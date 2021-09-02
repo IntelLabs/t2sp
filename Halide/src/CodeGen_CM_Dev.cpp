@@ -1,0 +1,1344 @@
+#include <algorithm>
+#include <sstream>
+#include <utility>
+#include <string>
+
+#include "CSE.h"
+#include "CodeGen_Internal.h"
+#include "CodeGen_CM_Dev.h"
+#include "Debug.h"
+#include "EliminateBoolVectors.h"
+#include "EmulateFloat16Math.h"
+#include "ExprUsesVar.h"
+#include "IRMutator.h"
+#include "IROperator.h"
+#include "Simplify.h"
+
+namespace Halide {
+namespace Internal {
+
+using std::ostringstream;
+using std::sort;
+using std::string;
+using std::vector;
+using std::stoi;
+
+CodeGen_CM_Dev::CodeGen_CM_Dev(Target t)
+    : clc(src_stream, t) {
+}
+
+string CodeGen_CM_Dev::CodeGen_CM_C::print_type(Type type, AppendSpaceIfNeeded space) {
+    ostringstream oss;
+    if (type.is_float()) {
+        if (type.bits() == 16) {
+            user_assert(target.has_feature(Target::CLHalf))
+                << "CM kernel uses half type, but CLHalf target flag not enabled\n";
+            oss << "half";
+        } else if (type.bits() == 32) {
+            oss << "float";
+        } else if (type.bits() == 64) {
+            oss << "double";
+        } else {
+            user_error << "Can't represent a float with this many bits in CM C: " << type << "\n";
+        }
+    } else {
+        if (type.is_uint() && type.bits() > 1) {
+            oss << "unsigned ";
+        }
+        switch (type.bits()) {
+        case 1:
+            // internal_assert(type.lanes() == 1) << "Encountered vector of bool\n";
+            // regard bool as int
+            oss << "char";
+            break;
+        case 8:
+            oss << "char";
+            break;
+        case 16:
+            oss << "short";
+            break;
+        case 32:
+            oss << "int";
+            break;
+        case 64:
+            oss << "long long";
+            break;
+        default:
+            user_error << "Can't represent an integer with this many bits in CM C: " << type << "\n";
+        }
+    }
+#if 0
+    if (type.lanes() != 1) {
+        switch (type.lanes()) {
+        case 2:
+        case 3:
+        case 4:
+        case 8:
+        case 16:
+            oss << type.lanes();
+            break;
+        default:
+            user_error << "Unsupported vector width in CM C: " << type << "\n";
+        }
+    }
+#endif
+    if (space == AppendSpace) {
+        oss << " ";
+    }
+    return oss.str();
+}
+
+// These are built-in types in CM
+void CodeGen_CM_Dev::CodeGen_CM_C::add_vector_typedefs(const std::set<Type> &vector_types) {
+}
+
+string CodeGen_CM_Dev::CodeGen_CM_C::print_reinterpret(Type type, Expr e) {
+    ostringstream oss;
+    oss << "as_" << print_type(type) << "(" << print_expr(e) << ")";
+    return oss.str();
+}
+
+namespace {
+string simt_intrinsic(const string &name) {
+    if (ends_with(name, ".__thread_id_x")) {
+        return "cm_local_id(0)";
+    } else if (ends_with(name, ".__thread_id_y")) {
+        return "cm_local_id(1)";
+    } else if (ends_with(name, ".__block_id_x")) {
+        return "cm_group_id(0)";
+    } else if (ends_with(name, ".__block_id_y")) {
+        return "cm_group_id(1)";
+    }
+    internal_error << "simt_intrinsic called on bad variable name: " << name << "\n";
+    return "";
+}
+}  // namespace
+
+string CodeGen_CM_Dev::CodeGen_CM_C::print_vector_op(const string& tmpl, char prefix) {
+    auto cached = cache.find(tmpl);
+    if (cached == cache.end()) {
+        string gen;
+        id = unique_name(prefix);
+        gen = replace_all(tmpl, "$ID$", id);
+        stream << gen;
+        cache[tmpl] = id;
+    } else {
+        id = cached->second;
+    }
+
+    return id;
+}
+
+string CodeGen_CM_Dev::CodeGen_CM_C::get_vector_declaration(Type t, const string &id) {
+    ostringstream os_tmpl;
+    os_tmpl << get_indent() << "vector<"
+                            << print_type(t) << ", "
+                            << t.lanes() << "> "
+                            << id << ";\n";
+    return os_tmpl.str();
+}
+
+string CodeGen_CM_Dev::CodeGen_CM_C::get_vector_init_tmpl(Type t,
+                                                          const string& base,
+                                                          const string& stride) {
+    if (t.lanes()%8 != 0)
+        return get_vector_assign_tmpl(t, base, stride);
+
+    ostringstream os_tmpl;
+    os_tmpl << get_indent() << "cm_vector($ID$, "
+                            << print_type(t) << ", " << t.lanes() << ", "
+                            << base << ", " << stride << ");\n";
+    return os_tmpl.str();
+}
+
+string CodeGen_CM_Dev::CodeGen_CM_C::get_vector_assign_tmpl(Type t,
+                                                            const string& base,
+                                                            const string& stride) {
+    ostringstream os_tmpl;
+    os_tmpl << get_vector_declaration(t, "$ID$");
+    if (t.lanes()%8 == 0) {
+        os_tmpl << get_indent() << "cmtl::cm_vector_assign("
+                                << "$ID$.select_all(), "
+                                << base << ", " << stride << ");\n";
+    } else {
+        for (int i = 0; i < t.lanes(); ++i)
+            os_tmpl << get_indent() << "$ID$[" << i << "] = "
+                                    << "(" << base << ")+"
+                                    << i << "*(" << stride << ");\n";
+    }
+    return os_tmpl.str();
+}
+
+string CodeGen_CM_Dev::CodeGen_CM_C::get_vector_read_tmpl(Type t,
+                                                          const string &name,
+                                                          const string &global_offset,
+                                                          const string &element_offset) {
+    ostringstream os_tmpl;
+    int lanes = (t.lanes()+7)/8*8;
+    int tmp = lanes;
+    os_tmpl << get_vector_declaration(t.with_lanes(lanes), "$ID$");
+
+    while (tmp != 0) {
+        int len = tmp < 16 ? tmp : 16;
+        os_tmpl << get_indent() << "read(" << print_name(name) << ", "
+                                       << global_offset << ", "
+                                       << element_offset << ".select<" << len << ", 1>(" << lanes-tmp << "), "
+                                       << "$ID$.select<" << len << ", 1>(" << lanes-tmp << "));\n";
+        tmp -= len;
+    }
+
+    return os_tmpl.str();
+}
+
+string CodeGen_CM_Dev::CodeGen_CM_C::get_slm_read_tmpl(Type t,
+                                                       const string &name,
+                                                       const string &global_offset,
+                                                       const string &element_offset) {
+    ostringstream os_tmpl;
+    int lanes = (t.lanes()+7)/8*8;
+    os_tmpl << get_vector_declaration(t.with_lanes(lanes), "$ID$");
+    os_tmpl << get_indent() << "cm_slm_read(" << print_name(name) << "+"
+                                              << "((" << global_offset << ")*" << t.bits()/8 << "), "
+                                              << element_offset << ", "
+                                              << "$ID$);\n";
+    return os_tmpl.str();
+}
+
+string CodeGen_CM_Dev::CodeGen_CM_C::get_vector_write_tmpl(Type t,
+                                                           const string &name,
+                                                           const string &global_offset,
+                                                           const string &element_offset) {
+    ostringstream os_tmpl;
+    if (t.lanes() % 8 == 0) {
+        os_tmpl << get_indent() << "write(" << print_name(name) << ", "
+                                            << global_offset << ", "
+                                            << element_offset << ", "
+                                            << "$ID$);\n";
+    } else {
+        if (t.lanes() == 1) {
+            os_tmpl << get_indent() << "write(" << print_name(name) << ", "
+                                                << global_offset << ", "
+                                                << 0 << ", "
+                                                << "$ID$);\n";
+        } else
+        for (int i = 0; i < t.lanes(); ++i)
+            os_tmpl << get_indent() << "write(" << print_name(name) << ", "
+                                                << global_offset << ", "
+                                                << i << ", "
+                                                << "$ID$[" << i << "]);\n";
+    }
+    return os_tmpl.str();
+}
+
+string CodeGen_CM_Dev::CodeGen_CM_C::get_slm_write_tmpl(Type t,
+                                                        const string &name,
+                                                        const string &global_offset,
+                                                        const string &element_offset) {
+    ostringstream os_tmpl;
+    os_tmpl << get_indent() << "cm_slm_write(" << print_name(name) << "+"
+                                               << "((" << global_offset << ")*" << t.bits()/8 << "), "
+                                               << element_offset << ", "
+                                               << "$ID$);\n";
+    return os_tmpl.str();
+}
+
+string CodeGen_CM_Dev::CodeGen_CM_C::get_vector_select(const string &name,
+                                                       const string &size,
+                                                       const string &stride,
+                                                       const string &base) {
+    ostringstream os_tmpl;
+    os_tmpl << print_name(name)
+            << ".select<" << size << ", " << stride << ">"
+            << "(" << base << ")";
+    return os_tmpl.str();
+}
+
+string CodeGen_CM_Dev::CodeGen_CM_C::print_assignment(Type t, const std::string &rhs) {
+    auto cached = cache.find(rhs);
+    if (cached == cache.end()) {
+        id = unique_name('_');
+        if (t.lanes() > 1) {
+            stream << get_vector_declaration(t, id);
+            stream << get_indent() << id << " = " << rhs <<";\n";
+        } else
+            stream << get_indent() << print_type(t, AppendSpace)
+                                   << (output_kind == CPlusPlusImplementation ? "const " : "")
+                                   << id << " = " << rhs << ";\n";
+        cache[rhs] = id;
+    } else {
+        id = cached->second;
+    }
+    return id;
+}
+
+string CodeGen_CM_Dev::CodeGen_CM_C::print_array_access(const string &name,
+                                                        const Type &type,
+                                                        const string &id_index) {
+    ostringstream rhs;
+    bool type_cast_needed = !(allocations.contains(name) &&
+                              allocations.get(name).type == type);
+
+    if (type_cast_needed) {
+        rhs << "((" << get_memory_space(name) << " "
+            << print_type(type) << " *)"
+            << print_name(name)
+            << ")";
+    } else {
+        rhs << print_name(name);
+    }
+    rhs << "[" << id_index << "]";
+
+    return rhs.str();
+}
+
+void CodeGen_CM_Dev::CodeGen_CM_C::visit(const Evaluate *op) {
+    if (is_const(op->value)) return;
+    string id = print_expr(op->value);
+    // stream << get_indent() << "(void)" << id << ";\n";
+}
+
+void CodeGen_CM_Dev::CodeGen_CM_C::visit(const For *loop) {
+    user_assert(loop->for_type != ForType::GPULane)
+        << "The CM backend does not support the gpu_lanes() scheduling directive.";
+
+    if (is_gpu_var(loop->name)) {
+        internal_assert((loop->for_type == ForType::GPUBlock) ||
+                        (loop->for_type == ForType::GPUThread))
+            << "kernel loop must be either gpu block or gpu thread\n";
+        internal_assert(is_zero(loop->min));
+
+        stream << get_indent() << print_type(Int(32)) << " " << print_name(loop->name)
+               << " = " << simt_intrinsic(loop->name) << ";\n";
+
+        loop->body.accept(this);
+
+    } else {
+        user_assert(loop->for_type != ForType::Parallel) << "Cannot use parallel loops inside CM kernel\n";
+        CodeGen_C::visit(loop);
+    }
+}
+
+void CodeGen_CM_Dev::CodeGen_CM_C::visit(const Ramp *op) {
+    string id_base = print_expr(op->base);
+    string id_stride = print_expr(op->stride);
+
+#if 0
+    ostringstream rhs;
+    rhs << id_base << " + " << id_stride << " * ("
+        << print_type(op->type.with_lanes(op->lanes)) << ")(0";
+    // Note 0 written above.
+    rhs << "{" << id_base;
+    for (int i = 1; i < op->lanes; ++i) {
+        // rhs << ", " << i;
+        rhs << ", " << id_base << " + " << stoi(id_stride) * i;
+    }
+    rhs << "}";
+    print_assignment(op->type.with_lanes(op->lanes), rhs.str());
+#endif
+    Type t = op->type.with_lanes(op->lanes);
+    string tmpl = get_vector_assign_tmpl(t, id_base, id_stride);
+    print_vector_op(tmpl);
+}
+
+void CodeGen_CM_Dev::CodeGen_CM_C::visit(const Broadcast *op) {
+    string id_value = print_expr(op->value);
+
+    // print_assignment(op->type.with_lanes(op->lanes), id_value);
+    Type t = op->type.with_lanes(op->lanes);
+    string tmpl = get_vector_assign_tmpl(t, id_value, "0");
+    print_vector_op(tmpl);
+}
+
+namespace {
+// Mapping of integer vector indices to CM ".s" syntax.
+const char *vector_elements = "0123456789ABCDEF";
+
+}  // namespace
+
+string CodeGen_CM_Dev::CodeGen_CM_C::get_memory_space(const string &buf) {
+    if (buf == shared_name) {
+        //TODO(hxc): Decide how to emit a share variable
+        return "";
+    } else {
+        return "SurfaceIndex";
+    }
+}
+
+void CodeGen_CM_Dev::CodeGen_CM_C::visit(const Call *op) {
+    if (op->is_intrinsic(Call::bool_to_mask)) {
+        if (op->args[0].type().is_vector()) {
+            // The argument is already a mask of the right width. Just
+            // sign-extend to the expected type.
+            op->args[0].accept(this);
+        } else {
+            // The argument is a scalar bool. Casting it to an int
+            // produces zero or one. Convert it to -1 of the requested
+            // type.
+            Expr equiv = -Cast::make(op->type, op->args[0]);
+            equiv.accept(this);
+        }
+    } else if (op->is_intrinsic(Call::cast_mask)) {
+        // Sign-extension is fine
+        Expr equiv = Cast::make(op->type, op->args[0]);
+        equiv.accept(this);
+    } else if (op->is_intrinsic(Call::select_mask)) {
+        internal_assert(op->args.size() == 3);
+        string cond = print_expr(op->args[0]);
+        string true_val = print_expr(op->args[1]);
+        string false_val = print_expr(op->args[2]);
+
+        // Yes, you read this right. CM's select function is declared
+        // 'select(false_case, true_case, condition)'.
+        ostringstream rhs;
+        rhs << "select(" << false_val << ", " << true_val << ", " << cond << ")";
+        print_assignment(op->type, rhs.str());
+    } else if (op->is_intrinsic(Call::abs)) {
+        if (op->type.is_float()) {
+            ostringstream rhs;
+            rhs << "abs_f" << op->type.bits() << "(" << print_expr(op->args[0]) << ")";
+            print_assignment(op->type, rhs.str());
+        } else {
+            ostringstream rhs;
+            rhs << "cm_abs(" << print_expr(op->args[0]) << ")";
+            print_assignment(op->type, rhs.str());
+        }
+    } else if (op->is_intrinsic(Call::absd)) {
+        ostringstream rhs;
+        rhs << "abs_diff(" << print_expr(op->args[0]) << ", " << print_expr(op->args[1]) << ")";
+        print_assignment(op->type, rhs.str());
+    } else if (op->is_intrinsic(Call::gpu_thread_barrier)) {
+#if 0
+        stream << get_indent() << "barrier(CLK_LOCAL_MEM_FENCE);\n";
+        print_assignment(op->type, "0");
+#endif
+        stream << get_indent() << "cm_barrier();\n";
+    } else if (op->is_intrinsic(Call::shift_left) || op->is_intrinsic(Call::shift_right)) {
+        // Some CM implementations forbid mixing signed-and-unsigned shift values;
+        // if the RHS is uint, quietly cast it back to int if the LHS is int
+        if (op->args[0].type().is_int() && op->args[1].type().is_uint()) {
+            Type t = op->args[0].type().with_code(halide_type_int);
+            Expr e = Call::make(op->type, op->name, {op->args[0], cast(t, op->args[1])}, op->call_type);
+            e.accept(this);
+        } else {
+            CodeGen_C::visit(op);
+        }
+    } else {
+        CodeGen_C::visit(op);
+    }
+}
+
+string CodeGen_CM_Dev::CodeGen_CM_C::print_extern_call(const Call *op) {
+    internal_assert(!function_takes_user_context(op->name));
+    vector<string> args(op->args.size());
+    for (size_t i = 0; i < op->args.size(); i++) {
+        args[i] = print_expr(op->args[i]);
+    }
+    ostringstream rhs;
+    rhs << op->name << "(" << with_commas(args) << ")";
+    return rhs.str();
+}
+
+void CodeGen_CM_Dev::CodeGen_CM_C::visit(const Load *op) {
+    user_assert(is_one(op->predicate)) << "Predicated load is not supported inside CM kernel.\n";
+
+    internal_assert(allocations.contains(op->name))
+        << op->name << "is not allocated\n";
+    const auto &alloc = allocations.get(op->name);
+
+    // If we're loading a contiguous ramp into a vector, use vload instead.
+    Expr ramp_base = strided_ramp_base(op->index);
+    if (ramp_base.defined()) {
+        internal_assert(op->type.is_vector());
+        string id_ramp_base = print_expr(ramp_base);
+
+#if 0
+        ostringstream rhs;
+        rhs << "vload" << op->type.lanes()
+            << "(0, (" << get_memory_space(op->name) << " "
+            << print_type(op->type.element_of()) << "*)"
+            << print_name(op->name) << " + " << id_ramp_base << ")";
+        print_assignment(op->type, rhs.str());
+#endif
+        if (alloc.memory_type == MemoryType::Register) {
+            string rhs = get_vector_select(op->name,
+                                           std::to_string(op->type.lanes()),
+                                           "1", id_ramp_base);
+            print_assignment(op->type, rhs);
+        } else
+        if (alloc.memory_type == MemoryType::GPUShared) {
+            int lanes = (op->type.lanes()+7)/8*8;
+            Type t(halide_type_uint, 8 * sizeof(uint16_t), lanes);
+            string tmpl = get_vector_init_tmpl(t, "0", "1");
+            string array_offset = print_vector_op(tmpl);
+
+            tmpl = get_slm_read_tmpl(op->type, op->name, id_ramp_base, array_offset);
+            print_vector_op(tmpl);
+        } else {
+            int lanes = (op->type.lanes()+7)/8*8;
+            Type t(halide_type_uint, 8 * sizeof(uint32_t), lanes);
+            string tmpl = get_vector_init_tmpl(t, "0", "1");
+            string array_offset = print_vector_op(tmpl);
+
+            tmpl = get_vector_read_tmpl(op->type, op->name, id_ramp_base, array_offset);
+            print_vector_op(tmpl);
+        }
+    } else
+    if (op->index.type().is_vector()) {
+        // If index is a vector, gather vector elements.
+        internal_assert(op->type.is_vector());
+
+        Type idx_t = op->index.type().with_code(halide_type_uint);
+        op->index.set_type(idx_t);
+        string id_index = print_expr(op->index);
+
+        string tmpl;
+        if (alloc.memory_type == MemoryType::GPUShared)
+            tmpl = get_slm_read_tmpl(op->type, op->name, "0", id_index);
+        else
+            tmpl = get_vector_read_tmpl(op->type, op->name, "0", id_index);
+        auto cached = cache.find(tmpl);
+        if (cached != cache.end()) {
+            id = cached->second;
+            return;
+        }
+        id = "_" + unique_name('V');
+
+#if 0
+        stream << get_indent() << print_type(op->type)
+               << " " << id << ";\n";
+
+        for (int i = 0; i < op->type.lanes(); ++i) {
+            stream << get_indent();
+            stream
+                << id << ".s" << vector_elements[i]
+                << " = ((" << get_memory_space(op->name) << " "
+                << print_type(op->type.element_of()) << "*)"
+                << print_name(op->name) << ")"
+                << "[" << id_index << ".s" << vector_elements[i] << "];\n";
+#endif
+        stream << replace_all(tmpl, "$ID$", id);
+        cache[tmpl] = id;
+    } else {
+        string id_index = print_expr(op->index);
+        if (alloc.memory_type == MemoryType::GPUShared) {
+            // Get the rhs just for the cache.
+            Type t(halide_type_uint, 8 * sizeof(uint16_t), 8);
+            string tmpl = get_vector_init_tmpl(t, "0", "1");
+            string id_offset = print_vector_op(tmpl);
+
+            tmpl = get_slm_read_tmpl(op->type.with_lanes(8), op->name,
+                                    "("+id_index+")/8*8", id_offset);
+            string id_vector = print_vector_op(tmpl);
+            print_assignment(op->type, id_vector+"[("+id_index+")%8]");
+        } else
+        if (alloc.memory_type == MemoryType::Register) {
+            string rhs = print_array_access(op->name, op->type, id_index);
+            print_assignment(op->type, rhs);
+        } else {
+            Type t(halide_type_uint, 8 * sizeof(uint32_t), 8);
+            string tmpl = get_vector_init_tmpl(t, "0", "1");
+            string id_offset = print_vector_op(tmpl);
+
+            tmpl = get_vector_read_tmpl(op->type.with_lanes(8), op->name,
+                                        "("+id_index+")/8*8", id_offset);
+            string id_vector = print_vector_op(tmpl);
+            print_assignment(op->type, id_vector+"[("+id_index+")%8]");
+        }
+    }
+}
+
+void CodeGen_CM_Dev::CodeGen_CM_C::visit(const Store *op) {
+    user_assert(is_one(op->predicate)) << "Predicated store is not supported inside CM kernel.\n";
+
+    internal_assert(allocations.contains(op->name))
+        << op->name << "is not allocated\n";
+    const auto &alloc = allocations.get(op->name);
+
+#if 0
+    if (emit_atomic_stores) {
+        // Currently only support scalar atomics.
+        user_assert(op->value.type().is_scalar()) << "CM atomic store does not support vectorization.\n";
+        user_assert(op->value.type().bits() >= 32) << "CM only support 32 and 64 bit atomics.\n";
+        if (op->value.type().bits() == 64) {
+            user_assert(target.has_feature(Target::CLAtomics64))
+                << "Enable feature CLAtomics64 for 64-bit atomics in CM.\n";
+        }
+        // Detect whether we can describe this as an atomic-read-modify-write,
+        // otherwise fallback to a compare-and-swap loop.
+        // Current only test for atomic add.
+        Expr val_expr = op->value;
+        Type t = val_expr.type();
+        Expr equiv_load = Load::make(t, op->name, op->index, Buffer<>(), op->param, op->predicate, op->alignment);
+        Expr delta = simplify(common_subexpression_elimination(op->value - equiv_load));
+        // For atomicAdd, we check if op->value - store[index] is independent of store.
+        // The atomicAdd operations in CM only supports integers so we also check that.
+        bool is_atomic_add = t.is_int_or_uint() && !expr_uses_var(delta, op->name);
+        bool type_cast_needed = !(allocations.contains(op->name) &&
+                                  allocations.get(op->name).type == t);
+        auto print_store_var = [&]() {
+            if (type_cast_needed) {
+                stream << "(("
+                       << get_memory_space(op->name) << " "
+                       << print_type(t)
+                       << " *)"
+                       << print_name(op->name)
+                       << ")";
+            } else {
+                stream << print_name(op->name);
+            }
+        };
+        if (is_atomic_add) {
+            string id_index = print_expr(op->index);
+            string id_delta = print_expr(delta);
+            stream << get_indent();
+            // atomic_add(&x[i], delta);
+            if (t.bits() == 32) {
+                stream << "atomic_add(&";
+            } else {
+                stream << "atom_add(&";
+            }
+
+            print_store_var();
+            stream << "[" << id_index << "]";
+            stream << "," << id_delta << ");\n";
+        } else {
+            // CmpXchg loop
+            // {
+            //   union {unsigned int i; float f;} old_val;
+            //   union {unsigned int i; float f;} new_val;
+            //   do {
+            //     old_val.f = x[id_index];
+            //     new_val.f = ...
+            //   } while(atomic_cmpxchg((volatile address_space unsigned int*)&x[id_index], old_val.i, new_val.i) != old_val.i);
+            // }
+            stream << get_indent() << "{\n";
+            indent += 2;
+            string id_index = print_expr(op->index);
+            std::string int_type = t.bits() == 32 ? "int" : "long";
+            if (t.is_float() || t.is_uint()) {
+                int_type = "unsigned " + int_type;
+            }
+            if (t.is_float()) {
+                stream << get_indent() << "union {" << int_type << " i; " << print_type(t) << " f;} old_val;\n";
+                stream << get_indent() << "union {" << int_type << " i; " << print_type(t) << " f;} new_val;\n";
+            } else {
+                stream << get_indent() << int_type << " old_val;\n";
+                stream << get_indent() << int_type << " new_val;\n";
+            }
+            stream << get_indent() << "do {\n";
+            indent += 2;
+            stream << get_indent();
+            if (t.is_float()) {
+                stream << "old_val.f = ";
+            } else {
+                stream << "old_val = ";
+            }
+            print_store_var();
+            stream << "[" << id_index << "];\n";
+            string id_value = print_expr(op->value);
+            stream << get_indent();
+            if (t.is_float()) {
+                stream << "new_val.f = ";
+            } else {
+                stream << "new_val = ";
+            }
+            stream << id_value << ";\n";
+            indent -= 2;
+            std::string old_val = t.is_float() ? "old_val.i" : "old_val";
+            std::string new_val = t.is_float() ? "new_val.i" : "new_val";
+            stream << get_indent()
+                   << "} while(atomic_cmpxchg((volatile "
+                   << get_memory_space(op->name) << " " << int_type << "*)&"
+                   << print_name(op->name) << "[" << id_index << "], "
+                   << old_val << ", " << new_val << ") != " << old_val << ");\n"
+                   << get_indent() << "}\n";
+            indent -= 2;
+        }
+        cache.clear();
+        return;
+    }
+#endif
+
+    string id_value = print_expr(op->value);
+    Type t = op->value.type();
+
+    // If we're writing a contiguous ramp, use vstore instead.
+    Expr ramp_base = strided_ramp_base(op->index);
+    if (ramp_base.defined()) {
+        internal_assert(t.is_vector());
+        string id_ramp_base = print_expr(ramp_base);
+
+#if 0
+        stream << get_indent() << "vstore" << t.lanes() << "("
+               << id_value << ","
+               << 0 << ", (" << get_memory_space(op->name) << " "
+               << print_type(t.element_of()) << "*)"
+               << print_name(op->name) << " + " << id_ramp_base
+               << ");\n";
+#endif
+        if (alloc.memory_type == MemoryType::GPUShared) {
+            int lanes = (t.lanes()+7)/8*8;
+            Type idx_t(halide_type_uint, 8 * sizeof(uint16_t), lanes);
+            string tmpl = get_vector_init_tmpl(idx_t, "0", "1");
+            string array_offset = print_vector_op(tmpl);
+
+            tmpl = get_slm_write_tmpl(t, op->name, id_ramp_base, array_offset);
+            stream << replace_all(tmpl, "$ID$", id_value);
+        } else
+        if (alloc.memory_type == MemoryType::Register) {
+            string lhs = get_vector_select(op->name,
+                                            std::to_string(t.lanes()),
+                                            "1", id_ramp_base);
+            string rhs = get_vector_select(id_value,
+                                           std::to_string(t.lanes()),
+                                           "1", "0");
+            stream << get_indent() << lhs << " = " << rhs << ";\n";
+        } else {
+            if (t.lanes() % 8 == 0) {
+                Type idx_t(halide_type_uint, 8 * sizeof(uint32_t), t.lanes());
+                string tmpl = get_vector_init_tmpl(idx_t, "0", "1");
+                string array_offset = print_vector_op(tmpl);
+                tmpl = get_vector_write_tmpl(t, op->name, id_ramp_base, array_offset);
+                stream << replace_all(tmpl, "$ID$", id_value);
+            } else {
+                string tmpl = get_vector_write_tmpl(t, op->name, id_ramp_base);
+                stream << replace_all(tmpl, "$ID$", id_value);
+            }
+        }
+    } else if (op->index.type().is_vector()) {
+        // If index is a vector, scatter vector elements.
+        internal_assert(t.is_vector());
+
+        // write() needs vector<uint, x> as element offset
+        Type idx_t = op->index.type().with_code(halide_type_uint);
+        op->index.set_type(idx_t);
+        string id_index = print_expr(op->index);
+
+#if 0
+        for (int i = 0; i < t.lanes(); ++i) {
+            stream << get_indent() << "((" << get_memory_space(op->name) << " "
+                   << print_type(t.element_of()) << " *)"
+                   << print_name(op->name)
+                   << ")["
+                   << id_index << ".s" << vector_elements[i] << "] = "
+                   << id_value << ".s" << vector_elements[i] << ";\n";
+        }
+#endif
+        string tmpl;
+        if (alloc.memory_type == MemoryType::GPUShared)
+            tmpl = get_slm_write_tmpl(t, op->name, "0", id_index);
+        else
+            tmpl = get_vector_write_tmpl(t, op->name, "0", id_index);
+        stream << replace_all(tmpl, "$ID$", id_value);
+    } else {
+        string id_index = print_expr(op->index);
+        if (alloc.memory_type == MemoryType::Register) {
+            // vector operation
+            std::string array_index = print_array_access(op->name, t, id_index);
+            stream << get_indent() << array_index << " = " << id_value << ";\n";
+        } else
+        if (alloc.memory_type == MemoryType::GPUShared) {
+            // slm surface operation
+            string tmpl = get_slm_write_tmpl(t, op->name, id_index, "0");
+            stream << replace_all(tmpl, "$ID$", id_value);
+        } else {
+            // memory surface operation
+            string tmpl = get_vector_write_tmpl(t, op->name, id_index, "0");
+            stream << replace_all(tmpl, "$ID$", id_value);
+        }
+    }
+    cache.clear();
+}
+
+#if 0
+void CodeGen_CM_Dev::CodeGen_CM_C::visit(const EQ *op) {
+    visit_binop(eliminated_bool_type(op->type, op->a.type()), op->a, op->b, "==");
+}
+
+void CodeGen_CM_Dev::CodeGen_CM_C::visit(const NE *op) {
+    visit_binop(eliminated_bool_type(op->type, op->a.type()), op->a, op->b, "!=");
+}
+
+void CodeGen_CM_Dev::CodeGen_CM_C::visit(const LT *op) {
+    visit_binop(eliminated_bool_type(op->type, op->a.type()), op->a, op->b, "<");
+}
+
+void CodeGen_CM_Dev::CodeGen_CM_C::visit(const LE *op) {
+    visit_binop(eliminated_bool_type(op->type, op->a.type()), op->a, op->b, "<=");
+}
+
+void CodeGen_CM_Dev::CodeGen_CM_C::visit(const GT *op) {
+    visit_binop(eliminated_bool_type(op->type, op->a.type()), op->a, op->b, ">");
+}
+
+void CodeGen_CM_Dev::CodeGen_CM_C::visit(const GE *op) {
+    visit_binop(eliminated_bool_type(op->type, op->a.type()), op->a, op->b, ">=");
+}
+#endif
+
+void CodeGen_CM_Dev::CodeGen_CM_C::visit(const Or *op) {
+    if (!op->a.type().is_scalar()) {
+        Expr equi_or = (op->a + op->b);
+        equi_or.accept(this);
+    } else
+        CodeGen_C::visit(op);
+}
+
+void CodeGen_CM_Dev::CodeGen_CM_C::visit(const And *op) {
+    if (!op->a.type().is_scalar()) {
+        Expr equi_and = (op->a + op->b) == 2;
+        equi_and.accept(this);
+    } else
+        CodeGen_C::visit(op);
+}
+
+void CodeGen_CM_Dev::CodeGen_CM_C::visit(const Cast *op) {
+    if (!target.has_feature(Target::CLHalf) &&
+        ((op->type.is_float() && op->type.bits() < 32) ||
+         (op->value.type().is_float() && op->value.type().bits() < 32))) {
+        Expr equiv = lower_float16_cast(op);
+        equiv.accept(this);
+        return;
+    }
+
+    if (op->type.is_vector()) {
+        print_assignment(op->type, "convert_" + print_type(op->type) + "(" + print_expr(op->value) + ")");
+    } else {
+        CodeGen_C::visit(op);
+    }
+}
+
+void CodeGen_CM_Dev::CodeGen_CM_C::visit(const Select *op) {
+    ostringstream rhs;
+    string cond = print_expr(op->condition);
+    string true_val = print_expr(op->true_value);
+    string false_val = print_expr(op->false_value);
+
+    if (!op->condition.type().is_scalar()) {
+#if 0
+        // A vector of bool was recursively introduced while
+        // performing codegen. Eliminate it.
+        Expr equiv = eliminate_bool_vectors(op);
+        equiv.accept(this);
+#endif
+        id = unique_name('_');
+        stream << get_vector_declaration(op->type, id);
+
+        stream << get_indent() << "SIMD_IF_BEGIN(" << cond << ") {\n";
+        indent += 2;
+        stream << get_indent() << id << " = "
+                               << true_val << ".select<" << op->condition.type().lanes() << ", 1>(0);\n";
+        indent -= 2;
+        stream << get_indent() << "} SIMD_ELSE {\n";
+        indent += 2;
+        stream << get_indent() << id << " = "
+                               << false_val << ".select<" << op->condition.type().lanes() << ", 1>(0);\n";
+        indent -= 2;
+        stream << get_indent() << "} SIMD_IF_END;\n";
+        return;
+    }
+
+    rhs << "(" << cond
+        << " ? " << true_val
+        << " : " << false_val
+        << ")";
+    print_assignment(op->type, rhs.str());
+}
+
+void CodeGen_CM_Dev::CodeGen_CM_C::visit(const Allocate *op) {
+    user_assert(!op->new_expr.defined()) << "Allocate node inside CM kernel has custom new expression.\n"
+                                         << "(Memoization is not supported inside GPU kernels at present.)\n";
+
+    if (op->memory_type == MemoryType::GPUShared) {
+        Allocation alloc;
+        alloc.type = op->type;
+        alloc.memory_type = op->memory_type;
+        allocations.push(op->name, alloc);
+        open_scope();
+
+        int32_t size = op->constant_allocation_size();
+        internal_assert(size % 4 == 0);
+        size = (size+7*4)/32*32;
+        stream << get_indent() << "cm_slm_init(" << size << ");\n";
+        stream << get_indent() << "unsigned int " << print_name(op->name)
+                               << " = cm_slm_alloc(" << size << ");\n";
+        op->body.accept(this);
+
+        close_scope("alloc " + print_name(op->name));
+        // Should have been freed internally
+        internal_assert(!allocations.contains(op->name));
+    } else {
+        open_scope();
+        int32_t size = op->constant_allocation_size();
+        user_assert(size > 0)
+            << "Allocation " << op->name << " has a dynamic size. "
+            << "Only fixed-size allocations are supported on the gpu. "
+            << "Try storing into shared memory instead.";
+        stream << get_vector_declaration(op->type.with_lanes(size), print_name(op->name));
+
+        Allocation alloc;
+        alloc.type = op->type;
+        alloc.memory_type = MemoryType::Register;
+        allocations.push(op->name, alloc);
+
+        op->body.accept(this);
+
+        internal_assert(!allocations.contains(op->name));
+        close_scope("alloc " + print_name(op->name));
+    }
+#if 0
+    open_scope();
+
+    debug(2) << "Allocate " << op->name << " on device\n";
+    debug(3) << "Pushing allocation called " << op->name << " onto the symbol table\n";
+
+    // Allocation is not a shared memory allocation, just make a local declaration.
+    // It must have a constant size.
+    int32_t size = op->constant_allocation_size();
+    user_assert(size > 0)
+        << "Allocation " << op->name << " has a dynamic size. "
+        << "Only fixed-size allocations are supported on the gpu. "
+        << "Try storing into shared memory instead.";
+
+    stream << get_indent() << print_type(op->type) << " "
+            << print_name(op->name) << "[" << size << "];\n";
+    stream << get_indent() << "#define " << get_memory_space(op->name) << " __private\n";
+
+    Allocation alloc;
+    alloc.type = op->type;
+    alloc.memory_type = op->memory_type;
+    allocations.push(op->name, alloc);
+
+    op->body.accept(this);
+
+    // Should have been freed internally
+    internal_assert(!allocations.contains(op->name));
+    close_scope("alloc " + print_name(op->name));
+#endif
+}
+
+void CodeGen_CM_Dev::CodeGen_CM_C::visit(const Free *op) {
+    // Should have been freed internally
+    internal_assert(allocations.contains(op->name));
+    allocations.pop(op->name);
+    // stream << get_indent() << "#undef " << get_memory_space(op->name) << "\n";
+}
+
+void CodeGen_CM_Dev::CodeGen_CM_C::visit(const AssertStmt *op) {
+    user_warning << "Ignoring assertion inside CM kernel: " << op->condition << "\n";
+}
+
+void CodeGen_CM_Dev::CodeGen_CM_C::visit(const Shuffle *op) {
+    if (op->is_interleave()) {
+        int op_lanes = op->type.lanes();
+        internal_assert(!op->vectors.empty());
+        int arg_lanes = op->vectors[0].type().lanes();
+        if (op->vectors.size() == 1) {
+            // 1 argument, just do a simple assignment
+            internal_assert(op_lanes == arg_lanes);
+            print_assignment(op->type, print_expr(op->vectors[0]));
+        } else if (op->vectors.size() == 2) {
+            // 2 arguments, set the .even to the first arg and the
+            // .odd to the second arg
+            internal_assert(op->vectors[1].type().lanes() == arg_lanes);
+            internal_assert(op_lanes / 2 == arg_lanes);
+            string a1 = print_expr(op->vectors[0]);
+            string a2 = print_expr(op->vectors[1]);
+            id = unique_name('_');
+            stream << get_indent() << print_type(op->type) << " " << id << ";\n";
+            stream << get_indent() << id << ".even = " << a1 << ";\n";
+            stream << get_indent() << id << ".odd = " << a2 << ";\n";
+        } else {
+            // 3+ arguments, interleave via a vector literal
+            // selecting the appropriate elements of the vectors
+            int dest_lanes = op->type.lanes();
+            internal_assert(dest_lanes <= 16);
+            int num_vectors = op->vectors.size();
+            vector<string> arg_exprs(num_vectors);
+            for (int i = 0; i < num_vectors; i++) {
+                internal_assert(op->vectors[i].type().lanes() == arg_lanes);
+                arg_exprs[i] = print_expr(op->vectors[i]);
+            }
+            internal_assert(num_vectors * arg_lanes >= dest_lanes);
+            id = unique_name('_');
+            stream << get_indent() << print_type(op->type) << " " << id;
+            stream << " = (" << print_type(op->type) << ")(";
+            for (int i = 0; i < dest_lanes; i++) {
+                int arg = i % num_vectors;
+                int arg_idx = i / num_vectors;
+                internal_assert(arg_idx <= arg_lanes);
+                stream << arg_exprs[arg] << ".s" << vector_elements[arg_idx];
+                if (i != dest_lanes - 1) {
+                    stream << ", ";
+                }
+            }
+            stream << ");\n";
+        }
+    } else {
+        internal_error << "Shuffle not implemented.\n";
+    }
+}
+
+void CodeGen_CM_Dev::CodeGen_CM_C::visit(const Max *op) {
+    print_expr(Call::make(op->type, "max", {op->a, op->b}, Call::Extern));
+}
+
+void CodeGen_CM_Dev::CodeGen_CM_C::visit(const Min *op) {
+    print_expr(Call::make(op->type, "min", {op->a, op->b}, Call::Extern));
+}
+
+void CodeGen_CM_Dev::CodeGen_CM_C::visit(const Atomic *op) {
+    // Most GPUs require all the threads in a warp to perform the same operations,
+    // which means our mutex will lead to deadlock.
+    user_assert(op->mutex_name.empty())
+        << "The atomic update requires a mutex lock, which is not supported in CM.\n";
+
+    // Issue atomic stores.
+    ScopedValue<bool> old_emit_atomic_stores(emit_atomic_stores, true);
+    CodeGen_C::visit(op);
+}
+
+void CodeGen_CM_Dev::add_kernel(Stmt s,
+                                const string &name,
+                                const vector<DeviceArgument> &args) {
+    debug(2) << "CodeGen_CM_Dev::compile " << name << "\n";
+
+    // TODO: do we have to uniquify these names, or can we trust that they are safe?
+    cur_kernel_name = name;
+    clc.add_kernel(s, name, args);
+}
+
+namespace {
+struct BufferSize {
+    string name;
+    size_t size;
+
+    BufferSize()
+        : size(0) {
+    }
+    BufferSize(string name, size_t size)
+        : name(std::move(name)), size(size) {
+    }
+
+    bool operator<(const BufferSize &r) const {
+        return size < r.size;
+    }
+};
+}  // namespace
+
+void CodeGen_CM_Dev::CodeGen_CM_C::add_kernel(Stmt s,
+                                              const string &name,
+                                              const vector<DeviceArgument> &args) {
+
+    debug(2) << "Adding CM kernel " << name << "\n";
+
+#if 0
+    s = eliminate_bool_vectors(s);
+    debug(2) << "After eliminating bool vectors:\n"
+             << s << "\n";
+
+    // Figure out which arguments should be passed in __constant.
+    // Such arguments should be:
+    // - not written to,
+    // - loads are block-uniform,
+    // - constant size,
+    // - and all allocations together should be less than the max constant
+    //   buffer size given by CL_DEVICE_MAX_CONSTANT_BUFFER_SIZE.
+    // The last condition is handled via the preprocessor in the kernel
+    // declaration.
+    vector<BufferSize> constants;
+    for (size_t i = 0; i < args.size(); i++) {
+        if (args[i].is_buffer &&
+            CodeGen_GPU_Dev::is_buffer_constant(s, args[i].name) &&
+            args[i].size > 0) {
+            constants.emplace_back(args[i].name, args[i].size);
+        }
+    }
+
+    // Sort the constant candidates from smallest to largest. This will put
+    // as many of the constant allocations in __constant as possible.
+    // Ideally, we would prioritize constant buffers by how frequently they
+    // are accessed.
+    sort(constants.begin(), constants.end());
+
+    // Compute the cumulative sum of the constants.
+    for (size_t i = 1; i < constants.size(); i++) {
+        constants[i].size += constants[i - 1].size;
+    }
+
+    // Create preprocessor replacements for the address spaces of all our buffers.
+    stream << "// Address spaces for " << name << "\n";
+    for (size_t i = 0; i < args.size(); i++) {
+        if (args[i].is_buffer) {
+            vector<BufferSize>::iterator constant = constants.begin();
+            while (constant != constants.end() &&
+                   constant->name != args[i].name) {
+                constant++;
+            }
+
+            if (constant != constants.end()) {
+                stream << "#if " << constant->size << " <= MAX_CONSTANT_BUFFER_SIZE && "
+                       << constant - constants.begin() << " < MAX_CONSTANT_ARGS\n";
+                stream << "#define " << get_memory_space(args[i].name) << " __constant\n";
+                stream << "#else\n";
+                stream << "#define " << get_memory_space(args[i].name) << " __global\n";
+                stream << "#endif\n";
+            } else {
+                stream << "#define " << get_memory_space(args[i].name) << " __global\n";
+            }
+        }
+    }
+#endif
+
+    // Emit the function prototype.
+    stream << "extern \"C\" _GENX_MAIN_ void " << name << "(\n";
+    for (size_t i = 0; i < args.size(); i++) {
+        if (args[i].is_buffer) {
+            stream << " " << get_memory_space(args[i].name) << " ";
+            // if (!args[i].write) stream << "const ";
+            stream << print_name(args[i].name);
+            Allocation alloc;
+            alloc.type = args[i].type;
+            alloc.memory_type = MemoryType::Heap;
+            allocations.push(args[i].name, alloc);
+        } else {
+            Type t = args[i].type;
+            string name = args[i].name;
+            // Bools are passed as a uint8.
+            t = t.with_bits(t.bytes() * 8);
+            // float16 are passed as uints
+            if (t.is_float() && t.bits() < 32) {
+                t = t.with_code(halide_type_uint);
+                name += "_bits";
+            }
+            stream << " const "
+                   << print_type(t)
+                   << " "
+                   << print_name(name);
+        }
+
+        if (i < args.size() - 1) stream << ",\n";
+    }
+    stream << ")\n";
+
+#if 0
+    class FindShared : public IRVisitor {
+        using IRVisitor::visit;
+        void visit(const Allocate *op) override {
+            if (op->memory_type == MemoryType::GPUShared) {
+                internal_assert(alloc == nullptr)
+                    << "Found multiple shared allocations in metal kernel\n";
+                alloc = op;
+            }
+        }
+
+    public:
+        const Allocate *alloc = nullptr;
+    } find_shared;
+
+    s.accept(&find_shared);
+
+    if (find_shared.alloc) {
+        shared_name = find_shared.alloc->name;
+    } else {
+        shared_name = "__shared";
+    }
+    Note that int16 below is an int32x16, not an int16_t. The type
+    is chosen to be large to maximize alignment.
+
+    stream << ",\n"
+           << " __local int16* "
+           << print_name(shared_name)
+           << ")\n";
+#endif
+
+    open_scope();
+
+#if 0
+    // Reinterpret half args passed as uint16 back to half
+    for (size_t i = 0; i < args.size(); i++) {
+        if (!args[i].is_buffer &&
+            args[i].type.is_float() &&
+            args[i].type.bits() < 32) {
+            stream << " const " << print_type(args[i].type)
+                   << " " << print_name(args[i].name)
+                   << " = half_from_bits(" << print_name(args[i].name + "_bits") << ");\n";
+        }
+    }
+#endif
+
+    print(s);
+    close_scope("kernel " + name);
+
+    for (size_t i = 0; i < args.size(); i++) {
+        // Remove buffer arguments from allocation scope
+        if (args[i].is_buffer) {
+            allocations.pop(args[i].name);
+        }
+    }
+
+#if 0
+    // Undef all the buffer address spaces, in case they're different in another kernel.
+    for (size_t i = 0; i < args.size(); i++) {
+        if (args[i].is_buffer) {
+            stream << "#undef " << get_memory_space(args[i].name) << "\n";
+        }
+    }
+#endif
+}
+
+void CodeGen_CM_Dev::init_module() {
+    debug(2) << "CM device codegen init_module\n";
+
+    // wipe the internal kernel source
+    src_stream.str("");
+    src_stream.clear();
+
+    const Target &target = clc.get_target();
+
+    // This identifies the program as CM C (as opposed to SPIR).
+    src_stream << "/*CM C " << target.to_string() << "*/\n";
+    src_stream << "#include <cm/cm.h>\n";
+    src_stream << "#include <cm/cmtl.h>\n";
+
+#if 0
+    // Write out the Halide math functions.
+    src_stream << "inline float float_from_bits(unsigned int x) {return as_float(x);}\n"
+               << "inline float nan_f32() { return NAN; }\n"
+               << "inline float neg_inf_f32() { return -INFINITY; }\n"
+               << "inline float inf_f32() { return INFINITY; }\n"
+               << "inline bool is_nan_f32(float x) {return isnan(x); }\n"
+               << "inline bool is_inf_f32(float x) {return isinf(x); }\n"
+               << "inline bool is_finite_f32(float x) {return isfinite(x); }\n"
+               << "#define sqrt_f32 sqrt \n"
+               << "#define sin_f32 sin \n"
+               << "#define cos_f32 cos \n"
+               << "#define exp_f32 exp \n"
+               << "#define log_f32 log \n"
+               << "#define abs_f32 fabs \n"
+               << "#define floor_f32 floor \n"
+               << "#define ceil_f32 ceil \n"
+               << "#define round_f32 round \n"
+               << "#define trunc_f32 trunc \n"
+               << "#define pow_f32 pow\n"
+               << "#define asin_f32 asin \n"
+               << "#define acos_f32 acos \n"
+               << "#define tan_f32 tan \n"
+               << "#define atan_f32 atan \n"
+               << "#define atan2_f32 atan2\n"
+               << "#define sinh_f32 sinh \n"
+               << "#define asinh_f32 asinh \n"
+               << "#define cosh_f32 cosh \n"
+               << "#define acosh_f32 acosh \n"
+               << "#define tanh_f32 tanh \n"
+               << "#define atanh_f32 atanh \n"
+               << "#define fast_inverse_f32 native_recip \n"
+               << "#define fast_inverse_sqrt_f32 native_rsqrt \n";
+
+
+    // There does not appear to be a reliable way to safely ignore unused
+    // variables in OpenCL C. See https://github.com/halide/Halide/issues/4918.
+    src_stream << "#define halide_unused(x)";
+
+    if (target.has_feature(Target::CLDoubles)) {
+        src_stream << "#pragma OPENCL EXTENSION cl_khr_fp64 : enable\n"
+                   << "inline bool is_nan_f64(double x) {return isnan(x); }\n"
+                   << "inline bool is_inf_f64(double x) {return isinf(x); }\n"
+                   << "inline bool is_finite_f64(double x) {return isfinite(x); }\n"
+                   << "#define sqrt_f64 sqrt\n"
+                   << "#define sin_f64 sin\n"
+                   << "#define cos_f64 cos\n"
+                   << "#define exp_f64 exp\n"
+                   << "#define log_f64 log\n"
+                   << "#define abs_f64 fabs\n"
+                   << "#define floor_f64 floor\n"
+                   << "#define ceil_f64 ceil\n"
+                   << "#define round_f64 round\n"
+                   << "#define trunc_f64 trunc\n"
+                   << "#define pow_f64 pow\n"
+                   << "#define asin_f64 asin\n"
+                   << "#define acos_f64 acos\n"
+                   << "#define tan_f64 tan\n"
+                   << "#define atan_f64 atan\n"
+                   << "#define atan2_f64 atan2\n"
+                   << "#define sinh_f64 sinh\n"
+                   << "#define asinh_f64 asinh\n"
+                   << "#define cosh_f64 cosh\n"
+                   << "#define acosh_f64 acosh\n"
+                   << "#define tanh_f64 tanh\n"
+                   << "#define atanh_f64 atanh\n";
+    }
+
+    if (target.has_feature(Target::CLHalf)) {
+        src_stream << "#pragma OPENCL EXTENSION cl_khr_fp16 : enable\n"
+                   << "inline half half_from_bits(unsigned short x) {return __builtin_astype(x, half);}\n"
+                   << "inline half nan_f16() { return half_from_bits(32767); }\n"
+                   << "inline half neg_inf_f16() { return half_from_bits(31744); }\n"
+                   << "inline half inf_f16() { return half_from_bits(64512); }\n"
+                   << "inline bool is_nan_f16(half x) {return isnan(x); }\n"
+                   << "inline bool is_inf_f16(half x) {return isinf(x); }\n"
+                   << "inline bool is_finite_f16(half x) {return isfinite(x); }\n"
+                   << "#define sqrt_f16 sqrt\n"
+                   << "#define sin_f16 sin\n"
+                   << "#define cos_f16 cos\n"
+                   << "#define exp_f16 exp\n"
+                   << "#define log_f16 log\n"
+                   << "#define abs_f16 fabs\n"
+                   << "#define floor_f16 floor\n"
+                   << "#define ceil_f16 ceil\n"
+                   << "#define round_f16 round\n"
+                   << "#define trunc_f16 trunc\n"
+                   << "#define pow_f16 pow\n"
+                   << "#define asin_f16 asin\n"
+                   << "#define acos_f16 acos\n"
+                   << "#define tan_f16 tan\n"
+                   << "#define atan_f16 atan\n"
+                   << "#define atan2_f16 atan2\n"
+                   << "#define sinh_f16 sinh\n"
+                   << "#define asinh_f16 asinh\n"
+                   << "#define cosh_f16 cosh\n"
+                   << "#define acosh_f16 acosh\n"
+                   << "#define tanh_f16 tanh\n"
+                   << "#define atanh_f16 atanh\n";
+    }
+
+    if (target.has_feature(Target::CLAtomics64)) {
+        src_stream << "#pragma OPENCL EXTENSION cl_khr_int64_base_atomics : enable\n";
+        src_stream << "#pragma OPENCL EXTENSION cl_khr_int64_extended_atomics : enable\n";
+    }
+
+    src_stream << "\n";
+
+    clc.add_common_macros(src_stream);
+
+    // Add at least one kernel to avoid errors on some implementations for functions
+    // without any GPU schedules.
+    src_stream << "extern \"C\" _GENX_MAIN_ void _at_least_one_kernel(void) { }\n";
+#endif
+
+    cur_kernel_name = "";
+}
+
+void CodeGen_CM_Dev::dump() {
+    std::cerr << src_stream.str() << "\n";
+}
+
+vector<char> CodeGen_CM_Dev::compile_to_src() {
+    string str = src_stream.str();
+    debug(1) << "CM kernel:\n"
+             << str << "\n";
+    vector<char> buffer(str.begin(), str.end());
+    // buffer.push_back(0);
+    return buffer;
+}
+
+string CodeGen_CM_Dev::get_current_kernel_name() {
+    return cur_kernel_name;
+}
+
+std::string CodeGen_CM_Dev::print_gpu_name(const std::string &name) {
+    return name;
+}
+
+}  // namespace Internal
+}  // namespace Halide
