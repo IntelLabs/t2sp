@@ -536,6 +536,7 @@ struct Call : public ExprNode<Call> {
         read_channel,
         read_channel_nb,
         read_field,
+        read_array,
         read_mem_channel,
         read_shift_reg,
         register_destructor,
@@ -561,6 +562,8 @@ struct Call : public ExprNode<Call> {
         write_channel_nb,
         write_mem_channel, 
         write_shift_reg,
+        write_array,
+        fpga_reg,
         IntrinsicOpCount  // Sentinel: keep last.
     };
 

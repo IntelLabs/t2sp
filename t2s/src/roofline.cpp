@@ -118,5 +118,6 @@ void roofline(double mem_bandwidth, double compute_roof, double number_ops, doub
     }
     sprintf(command, "python $T2S_PATH/t2s/src/roofline.py %lf %lf %lf %lf %lf", mem_bandwidth, compute_roof, number_ops, number_bytes, exec_time);
     printf("%s\n", command);
-    system(command);
+    int ret = system(command);
+    assert(ret != -1);
 }

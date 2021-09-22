@@ -797,6 +797,7 @@ T2S_SOURCE_FILES = \
   AutorunKernels.cpp \
   BuildCallRelation.cpp \
   CheckFuncConstraints.cpp \
+  ChannelPromotion.cpp \
   CheckRecursiveCalls.cpp \
   CombineChannels.cpp \
   CmdQueue.cpp \
@@ -821,7 +822,9 @@ T2S_SOURCE_FILES = \
   SpaceTimeTransform.cpp \
   StructType.cpp \
   Utilities.cpp \
-  roofline.cpp
+  roofline.cpp \
+  Stensor.cpp \
+  RemoveConds.cpp
 
 T2S_HEADER_FILES = \
   AutorunKernels.h \
@@ -848,7 +851,9 @@ T2S_HEADER_FILES = \
   SpaceTimeTransform.h \
   StructType.h \
   Utilities.h \
-  roofline.h
+  roofline.h \
+  Stensor.h \
+  RemoveConds.h
 
 OBJECTS += $(T2S_SOURCE_FILES:%.cpp=$(BUILD_DIR)/t2s/%.o)
 HEADERS += $(T2S_HEADER_FILES:%.h=$(T2S_DIR)/src/%.h)
