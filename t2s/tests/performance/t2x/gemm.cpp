@@ -1,39 +1,8 @@
 #include "Halide.h"
 #include "util.h"
+#include "sizes.h"
 
 using namespace Halide;
-
-#ifdef TINY
-#define II          4
-#define JJ          4
-#define KK          4
-#define III         4
-#define JJJ         4
-#define KKK         4
-#define O_I         4
-#define O_J         4
-#define O_K         4
-#elif S10
-#define II          32
-#define JJ          32
-#define KK          32
-#define III         12
-#define JJJ         16
-#define KKK         16
-#define O_I         32
-#define O_J         32
-#define O_K         4
-#else
-#define II          32
-#define JJ          32
-#define KK          32
-#define III         10
-#define JJJ         8
-#define KKK         16
-#define O_I         32
-#define O_J         32
-#define O_K         4
-#endif
 
 int main()
 {
@@ -83,35 +52,42 @@ int main()
     X.space_time_transform(kkk, jjj, iii);
 
     // GPU can have many threads running in parallel.
-    #ifdef GPU
+#ifdef GPU
     X.gpu_blocks(j, i).gpu_threads(jj, ii);
-    #endif
+#endif
 
     // I/O network
-    Stensor DA("A_loader", DRAM), SA("A_feeder", SRAM);
-    Stensor DB("B_loader", DRAM), SB("B_feeder", SRAM);
-    Stensor DC("unloader", DRAM), RC("collector", REG), C("deserializer");
-    A >> DA.width(kkk) >> SA.scope(k).banks(iii).width(kkk);
-    B >> DB.width(kkk) >> SB.scope(k).banks(jjj).width(kkk);
-    Out >> RC.scope(iii).banks(jjj).width(jjj) >> DC >> C;
+    Stensor DA("aLoader", DRAM), SA("aFeeder", SRAM), DB("bLoader", DRAM), SB("bFeeder", SRAM);
+    Stensor RC2("drainer", REG), RC1("collector", REG), DC("unloader", DRAM), C("deserializer");
+    A >> DA.bankwidth(kkk) >> FIFO(128)
+      >> SA.scope(k).banks(iii).bankwidth(kkk) >> FIFO(128);
+    B >> DB.bankwidth(kkk) >> FIFO(128)
+      >> SB.scope(k).banks(jjj).bankwidth(kkk) >> FIFO(128);
+    Out >> FIFO(1024) >> RC2.scope(jj).banks(jjj, iii)
+        >> FIFO(128)  >> RC1.scope(iii).banks(jjj)
+        >> FIFO(128)  >> DC >> C;
 
+#ifdef AOT
+    C.compile_to_host("host", { A, B }, "GEMM", IntelFPGA);
+#else
     Buffer<CTYPE> a = new_data_2d<float, KKK*KK*O_K, III*II*O_I>(RANDOM);
     Buffer<CTYPE> b = new_data_2d<float, JJJ*JJ*O_J, KKK*KK*O_K>(RANDOM);
-    Buffer<CTYPE> result(JJJ, III, JJ, II, O_J, O_I);
+    Buffer<CTYPE> c(JJJ, III, JJ, II, O_J, O_I);
     A.set(a), B.set(b);
-    C.realize(result, IntelFPGA);
+    C.realize(c, IntelFPGA);
 
     for (int i = 0; i < O_I; i++)
     for (int j = 0; j < O_J; j++)
-    for (int ii = 0; ii < II; ii++)
-    for (int jj = 0; jj < JJ; jj++)
-    for (int iii = 0; iii < III; iii++)
-    for (int jjj = 0; jjj < JJJ; jjj++) {
-        float golden = 0.0f;
-        for (int k = 0; k < O_K*KK*KKK; k++)
-            golden += a(k, total_i) * b(total_j, k);
-        assert(fabs(golden - result(P_Out)) < 0.005*fabs(golden));
-    }
+        for (int ii = 0; ii < II; ii++)
+        for (int jj = 0; jj < JJ; jj++)
+            for (int iii = 0; iii < III; iii++)
+            for (int jjj = 0; jjj < JJJ; jjj++) {
+                float golden = 0.0f;
+                for (int k = 0; k < O_K*KK*KKK; k++)
+                    golden += a(k, total_i) * b(total_j, k);
+                assert(fabs(golden - c(P_Out)) < 0.005*fabs(golden));
+            }
+#endif
     printf("Success\n");
     return 0;
 }
