@@ -107,6 +107,17 @@ protected:
             void visit(const Realize *op) override;
         };
 
+        // For declaring temporary array variable
+        class DeclareArrays : public IRVisitor {
+            using IRVisitor::visit;
+            CodeGen_OpenCL_C* parent;
+            std::set<std::string> array_set;
+        public:
+            std::ostringstream arrays;
+            DeclareArrays(CodeGen_OpenCL_C* parent) : parent(parent) {}
+            void visit(const Call *op) override;
+        };
+
         // For unrolling loop with different strategies
         class CheckConditionalChannelAccess : public IRVisitor {
             using IRVisitor::visit;

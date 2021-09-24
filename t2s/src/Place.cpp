@@ -791,6 +791,37 @@ set<string> identify_funcs_outputting_to_mem_channels(Stmt s, const map<string, 
     return funcs_outputting_to_mem_channels;
 }
 
+class RegCallInserter : public IRMutator {
+    using IRMutator::visit;
+    vector<Expr> write_args;
+public:
+
+    Expr visit(const Call *op) override {
+        if (op->is_intrinsic(Call::write_shift_reg)) {
+            write_args = op->args;
+            vector<Expr> new_args;
+            for (size_t i = 0; i < op->args.size(); i++)
+                new_args.push_back(mutate(op->args[i]));
+            write_args.clear();
+            return Call::make(op->type, op->name, new_args, op->call_type);
+        }
+        if (op->is_intrinsic(Call::read_shift_reg) && write_args.size() > 0) {
+            internal_assert(write_args.size() == op->args.size() + 1);
+            if (op->args.size() == 3) {
+                bool space = false;
+                for (size_t i = 1; i < 3; i++) {
+                    Expr diff = simplify(write_args[i] - op->args[i]);
+                    if (!is_zero(diff))
+                        space = true;
+                }
+                if (space) {
+                    return Call::make(op->type, "fpga_reg", { op }, Call::PureIntrinsic);
+                }
+            }
+        }
+        return IRMutator::visit(op);
+    }
+};
 
 Stmt replace_references_with_channels(Stmt s, const map<string, Function> &env) {
     LoopBounds global_bounds;
@@ -846,6 +877,11 @@ Stmt replace_references_with_shift_registers(Stmt s, const map<string, Function>
     return s;
 }
 
-}
+Stmt insert_fpga_reg(Stmt s) {
+    RegCallInserter inserter;
+    s = inserter.mutate(s);
+    return s;
 }
 
+}
+}

@@ -1916,9 +1916,6 @@ void Func::apply_same_loop_transform_to_merged_ures() {
                 if (var_name_match(merged_dims[i].var, func_dims[k].var)) {
                     auto for_type = func_dims[k].for_type;
                     auto device_api = func_dims[k].device_api;
-                    debug(1) << "Not check race condition for merged URE " << merged_f.name()
-                             << " with dimension " << merged_dims[i].var
-                             << ". If you encountered an issue, please check set_dim_type.\n";
                     internal_assert(supported_types.count(for_type) > 0)
                         << "Not implmented the loop transformation (with ForType = " << for_type << ") "
                         << "for a merged URE " << merged_f.name() << "\n";

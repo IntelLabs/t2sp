@@ -89,6 +89,8 @@
 #include "../../t2s/src/ScatterAndBuffer.h"
 #include "../../t2s/src/SpaceTimeTransform.h"
 #include "../../t2s/src/ScatterAndBuffer.h"
+#include "../../t2s/src/RemoveConds.h"
+#include "../../t2s/src/ChannelPromotion.h"
 
 namespace Halide {
 namespace Internal {
@@ -442,6 +444,10 @@ Module lower(const vector<Function> &output_funcs,
     s = simplify(gather_data(s, env));
     debug(2) << "Lowering after Gathering:\n"
              << s << "\n\n";
+    debug(1) << "Promoting channels...\n";
+    s = channel_promotion(s);
+    debug(2) << "Lowering after channel promotion:\n"
+             << s << "\n\n";
 
     debug(1) << "Unrolling...\n";
     s = unroll_loops(s, env);
@@ -457,11 +463,11 @@ Module lower(const vector<Function> &output_funcs,
                  << s << "\n\n";
     }
 
-    debug(1) << "Detecting vector interleavings...\n";
+    // debug(1) << "Detecting vector interleavings...\n";
     // s = rewrite_interleavings(s);
-    s = simplify(s);
-    debug(2) << "Lowering after rewriting vector interleavings:\n"
-             << s << "\n\n";
+    // s = simplify(s);
+    // debug(2) << "Lowering after rewriting vector interleavings:\n"
+            //  << s << "\n\n";
 
 
     debug(1) << "Partitioning loops to simplify boundary conditions...\n";
@@ -512,6 +518,13 @@ Module lower(const vector<Function> &output_funcs,
     }
     debug(1) << "CSE...\n";
     s = common_subexpression_elimination(s);
+    debug(2) << "Lowering after CSE:\n"
+             << s << "\n\n";
+
+    debug(1) << "Remove conditions...\n";
+    s = remove_conditions(s);
+    debug(2) << "Lowering after removing conditions:\n"
+             << s <<"\n\n";
 
     if (t.has_feature(Target::OpenGL)) {
         debug(1) << "Detecting varying attributes...\n";
@@ -522,6 +535,13 @@ Module lower(const vector<Function> &output_funcs,
         debug(1) << "Moving varying attribute expressions out of the shader...\n";
         s = setup_gpu_vertex_buffer(s);
         debug(2) << "Lowering after removing varying attributes:\n"
+                 << s << "\n\n";
+    }
+
+    if (t.has_feature(Target::IntelFPGA)) {
+        debug(1) << "Inserting FPGA register calls\n";
+        s = insert_fpga_reg(s);
+        debug(2) << "Lowering after inserting FPGA register calls:\n"
                  << s << "\n\n";
     }
 
@@ -537,7 +557,7 @@ Module lower(const vector<Function> &output_funcs,
     debug(1) << "Lowering after final simplification:\n"
              << s << "\n\n";
 
-    // For overlay, we don't need to flatten task loops. 
+    // For overlay, we don't need to flatten task loops.
     char *overlay_num = getenv("HL_OVERLAY_NUM");
     if (overlay_num == NULL) {
         debug(1) << "Flatten the loops...\n";

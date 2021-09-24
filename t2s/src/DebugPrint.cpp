@@ -176,6 +176,22 @@ string names_to_string(const vector<Func> &v) {
     return s.str();
 }
 
+string names_to_string(const vector<VarOrRVar> &v) {
+    std::ostringstream s;
+    for (size_t i = 0; i < v.size(); i++) {
+        s << ((i==0) ? "" : ", ") << v[i].name();
+    }
+    return s.str();
+}
+
+string names_to_string(const vector<Var> &v) {
+    std::ostringstream s;
+    for (size_t i = 0; i < v.size(); i++) {
+        s << ((i==0) ? "" : ", ") << v[i].name();
+    }
+    return s.str();
+}
+
 string to_string(const map<string, Box> &boxes) {
     std::ostringstream s;
     for (auto b: boxes) {

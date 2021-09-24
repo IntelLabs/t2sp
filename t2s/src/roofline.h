@@ -16,9 +16,14 @@
 *
 * SPDX-License-Identifier: BSD-2-Clause-Patent
 *******************************************************************************/
+#ifndef T2S_ROOFLINE_H
+#define T2S_ROOFLINE_H
+
 #define STR_SIZE 100
 
 int DSPs();
 double FMax();
 double ExecTime();
 void roofline(double mem_bandwidth, double compute_roof, double number_ops, double number_bytes, double exec_time);
+
+#endif

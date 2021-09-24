@@ -465,6 +465,7 @@ struct PrefetchDirective {
 struct SpaceTimeTransformParams {
     std::vector<int> sch_vector;
     SpaceTimeTransform check_time;
+    std::vector<std::string> src_vars;
     std::vector<std::string> dst_vars;
     std::vector<std::vector<int>> proj_matrix;
     std::map<std::string, Expr> reverse;

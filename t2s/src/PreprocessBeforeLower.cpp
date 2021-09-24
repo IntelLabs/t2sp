@@ -23,6 +23,7 @@
 #include <vector>
 #include "./DebugPrint.h"
 #include "./PreprocessBeforeLower.h"
+#include "Stensor.h"
 
 namespace Halide {
 namespace Internal {
@@ -173,25 +174,6 @@ void t2s_preprocess_before_lower(map<string, Func> &env, const Target &target) {
         func.apply_same_loop_transform_to_merged_ures();
         check_space_time_transform(func);
     }
-
-#if 0
-        if (target.has_feature(Target::IntelGPU)) {
-            if (ends_with(func.name(), "_im")) {
-                std::list<Function> wrappers;
-                for (auto &it : func.function().wrappers())
-                    wrappers.push_back(Function(it.second));
-                for (auto pf = wrappers.begin(); pf != wrappers.end(); ++pf) {
-                    debug(1) << "vectorize the last arg of func: "
-                             << pf->name() << "\n";
-                    size_t num_arg = pf->args().size();
-                    Stage(*pf, pf->definition(), 0)
-                        .vectorize(Var::implicit(num_arg-1));
-                    for (auto &jt : pf->wrappers())
-                        wrappers.push_back(Function(jt.second));
-                }
-            }
-        }
-#endif
 }
 
 }
