@@ -284,19 +284,22 @@ class ChannelPromotor : public IRMutator {
             bool need_promotion = false;
             string promotion_loop = loop_vars.back();
             bool is_simple_cond = check_cond(condition, args, promotion_loop);
-            // determined by arguments or conditions
+            // The channel arguments contain unrolled loops and needs to be promoted
             if (promotion_loop != loop_vars.back())
                 need_promotion = true;
             if (!is_write_chn) {
-                // the producer is promoted, so the consumer needs to be promoted
+                bool found = false;
                 for (auto &c : channels) {
                     if (chn_name == c.name && c.is_write_chn) {
+                        // The producer is promoted, so the consumer needs to be promoted
+                        // However, only the one guarded by simple condition can be promoted, so we check it here
                         internal_assert(is_simple_cond);
                         need_promotion = true;
+                        found = true;
                     }
                 }
-                // only the reads guarded by simple condition can be promoted, for writes no such restriction
-                if (!is_simple_cond)
+                // The producer is not promoted, so the consumer cannot be promoted
+                if (!found)
                     need_promotion = false;
             }
             if (need_promotion) {
