@@ -116,115 +116,89 @@ class ChannelPromotor : public IRMutator {
         }
     }
 };
+
 #endif
 
-class ChannelPromotor : public IRMutator {
+struct PromotedChannel {
+    bool is_write_chn;          // True if it is a write_channel intrinsic
+    bool is_simple_cond;        // True if it is guarded by simple condition that allows promotion
+    string name;                // Channel name after eliminating unnecessary suffix
+    string promotion_loop;      // Where the loop should be promoted
+    vector<Expr> args;          // The read/write_channel arguments
+};
+
+std::string get_channel_name(Expr e) {
+    auto v = e.as<StringImm>();
+    internal_assert(v);
+
+    int size = (v->value).rfind(".");
+    std::string channel_name = v->value;
+    debug(4) << "channel name: " << channel_name << "\n";
+    if (size < (int)(v->value.size())-1) {
+        std::string suffix = (v->value).substr(size + 1, (int)v->value.size() - size - 1);
+        // Eliminate useless suffix
+        while (suffix != "channel") {
+            channel_name = (channel_name).substr(0, size);
+            size = (channel_name).rfind(".");
+            if (size < (int)(channel_name.size())-1) {
+                suffix = (channel_name).substr(size + 1, (int)channel_name.size() - size - 1);
+            } else break;
+            if (suffix != "channel")
+                channel_name = v->value;
+        }
+    }
+    debug(4) << "modified channel name: " << channel_name << "\n";
+    return channel_name;
+}
+
+auto get_promoted_channel(vector<PromotedChannel> &channels, string name, bool is_write_chn)
+-> vector<PromotedChannel>::iterator {
+    auto it = channels.begin();
+    for (; it != channels.end(); ++it) {
+        if (it->name == name && it->is_write_chn == is_write_chn) break;
+    }
+    return it;
+}
+
+class ChannelVisitor : public IRVisitor {
   public:
-    ChannelPromotor() {}
-    struct Channel {
-        bool is_write_chn;
-        bool is_simple_cond;
-        string name;
-        string promotion_loop;
-    };
-    vector<Channel> channels;
+    ChannelVisitor() {}
+
+    vector<PromotedChannel> channels;
     vector<string> unrolled_loops;
     vector<string> loop_vars;
     Expr condition = const_true();
 
   private:
-    using IRMutator::visit;
+    using IRVisitor::visit;
 
-    std::string get_channel_name(Expr e) {
-        auto v = e.as<StringImm>();
-        internal_assert(v);
-
-        int size = (v->value).rfind(".");
-        std::string channel_name = v->value;
-        debug(4) << "channel name: " << channel_name << "\n";
-        if (size < (int)(v->value.size())-1) {
-            std::string suffix = (v->value).substr(size + 1, (int)v->value.size() - size - 1);
-            // eliminate useless suffix
-            while (suffix != "channel") {
-                channel_name = (channel_name).substr(0, size);
-                size = (channel_name).rfind(".");
-                if (size < (int)(channel_name.size())-1) {
-                    suffix = (channel_name).substr(size + 1, (int)channel_name.size() - size - 1);
-                } else break;
-                if (suffix != "channel")
-                    channel_name = v->value;
-            }
-        }
-        debug(4) << "modified channel name: " << channel_name << "\n";
-        return channel_name;
-    }
-
-    Stmt visit(const Realize* op) override {
-        Stmt body = mutate(op->body);
-        string name = op->name;
-        for (auto &c : channels) {
-            if (c.name == op->name) {
-                name += ".array";
-                break;
-            }
-        }
-        return Realize::make(name, op->types, op->memory_type, op->bounds, op->condition, body);
-    }
-
-    Stmt visit(const For* op) override {
+    void visit(const For* op) override {
         if (op->for_type == ForType::Unrolled)
             unrolled_loops.push_back(op->name);
         loop_vars.push_back(op->name);
 
-        Stmt body = mutate(op->body);
-        for (auto &c : channels) {
-            if (op->name == c.promotion_loop) {
-                string chn_array = c.name + ".array";
-                if (c.is_write_chn) {
-                    Expr read_array = Call::make(Handle(), "read_array", { chn_array }, Call::PureIntrinsic);
-                    Expr write = Call::make(Handle(), "write_channel", { c.name, read_array }, Call::PureIntrinsic);
-                    Stmt write_stmt = Evaluate::make(write);
-                    if (!c.is_simple_cond) {
-                        Expr get_flag = Call::make(Bool(), c.name+".temp", {}, Call::Intrinsic);
-                        write_stmt = IfThenElse::make(get_flag == 1, write_stmt);
-                    }
-                    body = Block::make(body, write_stmt);
-                    if (!c.is_simple_cond) {
-                        Stmt init_flag = Provide::make(c.name+".temp", {0}, {});
-                        body = Block::make(init_flag, body);
-                        body = Realize::make(c.name+".temp", { Bool() }, MemoryType::Auto, {}, const_true(), body);
-                    }
-                } else {
-                    Expr read = Call::make(Handle(), "read_channel", { c.name }, Call::PureIntrinsic);
-                    Expr write_array = Call::make(Handle(), "write_array", { chn_array, read }, Call::PureIntrinsic);
-                    Stmt read_stmt = Evaluate::make(write_array);
-                    body = Block::make(read_stmt, body);
-                }
-            }
-        }
-        body = For::make(op->name, op->min, op->extent, op->for_type, op->device_api, body);
+        op->body.accept(this);
+
         if (op->for_type == ForType::Unrolled)
             unrolled_loops.pop_back();
         loop_vars.pop_back();
-        return body;
     }
 
-    Stmt visit(const IfThenElse* op) override {
-        // in a loop body
+    void visit(const IfThenElse* op) override {
+        // Pass some conditions out of loop nests
         if (loop_vars.size() > 0) {
             Expr temp_cond = condition;
             condition = simplify(temp_cond && (op->condition));
-            Stmt then_case = mutate(op->then_case);
+            op->then_case.accept(this);
 
-            Stmt else_case = op->else_case;
-            if (else_case.defined()) {
+            if (op->else_case.defined()) {
                 condition = simplify(temp_cond && !(op->condition));
-                else_case = mutate(op->else_case);
+                op->else_case.accept(this);
             }
             condition = temp_cond;
-            return IfThenElse::make(op->condition, then_case, else_case);
+            return;
         }
-        return IRMutator::visit(op);
+        IRVisitor::visit(op);
     }
 
     bool find_loop_in_args(vector<Expr> args, string loop) {
@@ -236,7 +210,7 @@ class ChannelPromotor : public IRMutator {
     }
 
     bool check_cond(Expr condition, vector<Expr> args, string &promotion_loop) {
-        // collect occured loop variables in the condition
+        // Collect occured loop variables in the condition
         vector<Expr> conjunction = break_logic_into_conjunction(condition);
         std::set<string> occured_loops;
         bool is_simple_cond = true;
@@ -247,6 +221,18 @@ class ChannelPromotor : public IRMutator {
                     is_simple_cond = false;
                 continue;
             }
+            // Two cases of simple condition:
+            // 1. var_0 == var_1
+            //    for (gather_iii, 0, III)
+            //      unrolled for (iii, 0, III)
+            //        if (gather_iii == iii)
+            //          read/write_channel(name, iii)
+            //    The channel operation can be promoted out of gather_iii (occured_loop)
+            //    since its loop body only access a part of channel array
+            // 2. var_0 == 0 (const)
+            //    unrolled for (iii, 0, III)
+            //      read/write_channel(name, 0)
+            //    The channel operation can be promoted out of iii (boarder)
             auto lhs = eq->a.as<Variable>();
             auto rhs = eq->b.as<Variable>();
             if (lhs && rhs) {
@@ -262,9 +248,11 @@ class ChannelPromotor : public IRMutator {
                 is_simple_cond = false;
             }
         }
-        // check loops and find the promotion loop
+        // Find the promotion loop outward
         for (auto it = loop_vars.rbegin(); it != loop_vars.rend(); ++it) {
             promotion_loop = *it;
+            // Promote channels outside the argument loops (always)
+            // or the occured loops (if simple condition)
             if (!find_loop_in_args(args, *it)) {
                 auto o = occured_loops.find(*it);
                 if (o != occured_loops.end())
@@ -272,10 +260,16 @@ class ChannelPromotor : public IRMutator {
                 else break;
             }
         }
+        // If occured_loop is not empty, there exists condition like this:
+        // for (gather_iii, 0, III)
+        //   for (dummy, 0, D)
+        //     for (iii, 0, III)
+        //       if (gather_iii == iii) ...
+        // In such case, we cannot guarantee the correctness of channel promotion
         return is_simple_cond && occured_loops.empty();
     }
 
-    Expr visit(const Call* op) override {
+    void visit(const Call* op) override {
         if (op->is_intrinsic(Call::write_channel) || op->is_intrinsic(Call::read_channel)) {
             bool is_write_chn = op->is_intrinsic(Call::write_channel) ? true : false;
             auto args = op->args;
@@ -284,41 +278,119 @@ class ChannelPromotor : public IRMutator {
             bool need_promotion = false;
             string promotion_loop = loop_vars.back();
             bool is_simple_cond = check_cond(condition, args, promotion_loop);
-            // The channel arguments contain unrolled loops and needs to be promoted
             if (promotion_loop != loop_vars.back())
                 need_promotion = true;
+
             if (!is_write_chn) {
-                bool found = false;
-                for (auto &c : channels) {
-                    if (chn_name == c.name && c.is_write_chn) {
-                        // The producer is promoted, so the consumer needs to be promoted
-                        // However, only the one guarded by simple condition can be promoted, so we check it here
-                        internal_assert(is_simple_cond);
+                // Check the producer-consumer relation to determine if the promotion is valid
+                auto it = get_promoted_channel(channels, chn_name, true);
+                if (it == channels.end()) {
+                    // The producer is not promoted, so the consumer cannot be promoted
+                    need_promotion = false;
+                } else {
+                    if (is_simple_cond) {
+                        // The producer is promoted, and the consumer has simple condition
                         need_promotion = true;
-                        found = true;
+                    } else {
+                        // The consumer cannot be promoted, so revoke producer's promotion
+                        need_promotion = false;
+                        it = channels.erase(it);
                     }
                 }
-                // The producer is not promoted, so the consumer cannot be promoted
-                if (!found)
-                    need_promotion = false;
             }
             if (need_promotion) {
-                bool found = false;
-                for (auto &c : channels) {
-                    if (chn_name == c.name && is_write_chn == c.is_write_chn) {
-                        internal_assert(promotion_loop == c.promotion_loop);
-                        found = true;
-                    }
-                }
-                if (!found) {
-                    Channel c = { is_write_chn, is_simple_cond, chn_name, promotion_loop };
+                auto it = get_promoted_channel(channels, chn_name, is_write_chn);
+                if (it != channels.end()) {
+                    // We allow multiple read/write to one channel
+                    // But they must be promoted at the same loop
+                    internal_assert(promotion_loop == it->promotion_loop);
+                } else {
+                    // Record the promoted channel
+                    PromotedChannel c = { is_write_chn, is_simple_cond, chn_name, promotion_loop, args };
                     channels.push_back(std::move(c));
                 }
+            }
+        }
+        IRVisitor::visit(op);
+    }
+};
+
+class ChannelPromotor : public IRMutator {
+  public:
+    ChannelPromotor(ChannelVisitor &_cv)
+        : channels(_cv.channels) {}
+
+    vector<PromotedChannel> &channels;
+
+  private:
+    using IRMutator::visit;
+
+    // Add suffix .array to promoted channels
+    Stmt visit(const Realize* op) override {
+        Stmt body = mutate(op->body);
+        string name = op->name;
+        for (auto &c : channels) {
+            if (c.name == op->name) {
+                name += ".array";
+                break;
+            }
+        }
+        return Realize::make(name, op->types, op->memory_type, op->bounds, op->condition, body);
+    }
+
+    Stmt visit(const For* op) override {
+        Stmt body = mutate(op->body);
+        for (auto &c : channels) {
+            if (op->name == c.promotion_loop) {
+                string chn_array = c.name + ".array";
+                if (c.is_write_chn) {
+                    // Read/write the entire array as a whole
+                    // realize bool c.name.temp
+                    // c.name.temp = 0
+                    // for (name, min, extent) {...}
+                    // if (c.name.temp == 1)
+                    //  write_channel(c.name, read_array(chn_array))
+                    Expr read_array = Call::make(Handle(), "read_array", { chn_array }, Call::PureIntrinsic);
+                    Expr write = Call::make(Handle(), "write_channel", { c.name, read_array }, Call::PureIntrinsic);
+                    Stmt write_stmt = Evaluate::make(write);
+                    if (!c.is_simple_cond) {
+                        Expr get_flag = Call::make(Bool(), c.name+".temp", {}, Call::Intrinsic);
+                        write_stmt = IfThenElse::make(get_flag == 1, write_stmt);
+                    }
+                    body = Block::make(body, write_stmt);
+                    if (!c.is_simple_cond) {
+                        Stmt init_flag = Provide::make(c.name+".temp", {0}, {});
+                        body = Block::make(init_flag, body);
+                        body = Realize::make(c.name+".temp", { Bool() }, MemoryType::Auto, {}, const_true(), body);
+                    }
+                } else {
+                    // Read the entire array as a whole
+                    // write_array(chn_array, read_channel(c.name))
+                    // for (name, min, extent) {...}
+                    Expr read = Call::make(Handle(), "read_channel", { c.name }, Call::PureIntrinsic);
+                    Expr write_array = Call::make(Handle(), "write_array", { chn_array, read }, Call::PureIntrinsic);
+                    Stmt read_stmt = Evaluate::make(write_array);
+                    body = Block::make(read_stmt, body);
+                }
+            }
+        }
+        body = For::make(op->name, op->min, op->extent, op->for_type, op->device_api, body);
+        return body;
+    }
+
+    Expr visit(const Call* op) override {
+        if (op->is_intrinsic(Call::write_channel) || op->is_intrinsic(Call::read_channel)) {
+            bool is_write_chn = op->is_intrinsic(Call::write_channel) ? true : false;
+            vector<Expr> args = op->args;
+            string chn_name = get_channel_name(args[0]);
+
+            auto it = get_promoted_channel(channels, chn_name, is_write_chn);
+            // Replace read/write_channel with read/write_array
+            // The channel operation is recreated when visiting For nodes
+            if (it != channels.end()) {
+                string call_name = is_write_chn ? "write_array" : "read_array";
                 args[0] = StringImm::make(chn_name + ".array");
-                if (is_write_chn)
-                    return Call::make(op->type, "write_array", args, Call::PureIntrinsic);
-                else
-                    return Call::make(op->type, "read_array", args, Call::PureIntrinsic);
+                return Call::make(op->type, call_name, args, Call::PureIntrinsic);
             }
         }
         return IRMutator::visit(op);
@@ -330,10 +402,11 @@ class ChannelPromotor : public IRMutator {
 
         auto call = value.as<Call>();
         if (call && call->is_intrinsic(Call::write_array)) {
-            auto &chn = channels.back();
-            internal_assert(call->args[0].as<StringImm>()->value == chn.name + ".array");
-            if (!chn.is_simple_cond) {
-                string name = chn.name + ".temp";
+            string chn_name = get_channel_name(call->args[0].as<StringImm>()->value);
+            auto it = get_promoted_channel(channels, chn_name, true);
+
+            if (!it->is_simple_cond) {
+                string name = chn_name + ".temp";
                 Stmt set_flag = Provide::make(name, {1}, {});
                 ret = Block::make(ret, set_flag);
             }
@@ -342,10 +415,12 @@ class ChannelPromotor : public IRMutator {
     }
 };
 
-
 Stmt channel_promotion(Stmt s) {
-    ChannelPromotor mutator;
-    return simplify(mutator.mutate(s));
+    ChannelVisitor cv;
+    ChannelPromotor cp(cv);
+    s.accept(&cv);
+    s = cp.mutate(s);
+    return s;
 }
 
 }
