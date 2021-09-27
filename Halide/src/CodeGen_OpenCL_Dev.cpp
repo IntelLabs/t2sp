@@ -484,7 +484,7 @@ void CodeGen_OpenCL_Dev::CodeGen_OpenCL_C::visit(const Call *op) {
         }
         debug(4) << "modified channel name: " << channel_name << "\n";
         string type = print_type(op->type);
-        if (op->type.is_handle())
+        if (op->type.is_handle() && !op->type.is_generated_struct())
             type = print_name(channel_name + ".array.t");
         string read_call = "read_channel_intel(" + print_name(channel_name) + string_channel_index + ")";
         stream << get_indent() << type << " " << id << " = " << read_call << ";\n";

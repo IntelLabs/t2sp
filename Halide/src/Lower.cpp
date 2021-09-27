@@ -540,7 +540,7 @@ Module lower(const vector<Function> &output_funcs,
 
     if (t.has_feature(Target::IntelFPGA)) {
         debug(1) << "Inserting FPGA register calls\n";
-        s = insert_fpga_reg(s);
+        s = insert_fpga_reg(s, env);
         debug(2) << "Lowering after inserting FPGA register calls:\n"
                  << s << "\n\n";
     }
