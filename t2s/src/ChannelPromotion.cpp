@@ -381,8 +381,10 @@ class ChannelPromotor : public IRMutator {
     Expr visit(const Call* op) override {
         if (op->is_intrinsic(Call::write_channel) || op->is_intrinsic(Call::read_channel)) {
             bool is_write_chn = op->is_intrinsic(Call::write_channel) ? true : false;
-            vector<Expr> args = op->args;
-            string chn_name = get_channel_name(args[0]);
+            string chn_name = get_channel_name(op->args[0]);
+            vector<Expr> args;
+            for (size_t i = 0; i < op->args.size(); i++)
+                args.push_back(mutate(op->args[i]));
 
             auto it = get_promoted_channel(channels, chn_name, is_write_chn);
             // Replace read/write_channel with read/write_array
@@ -392,6 +394,7 @@ class ChannelPromotor : public IRMutator {
                 args[0] = StringImm::make(chn_name + ".array");
                 return Call::make(op->type, call_name, args, Call::PureIntrinsic);
             }
+            return Call::make(op->type, op->name, args, op->call_type);
         }
         return IRMutator::visit(op);
     }
