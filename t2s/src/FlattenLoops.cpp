@@ -1044,12 +1044,12 @@ public:
     }
 };
 
-Stmt flatten_loops(Stmt s, const std::map<std::string, Function> &env, const std::map<string, Place> &funcs_using_mem_channels) {
+Stmt replace_mem_channels(Stmt s, const std::map<std::string, Function> &env, const std::map<string, Place> &funcs_using_mem_channels) {
     map<string, Expr> mem_addr;
     FindAddressesOfMemChannels finder(mem_addr, env);
     s.accept(&finder);
     ReplaceMemChannel replacer(mem_addr);
-    Stmt stmt0 = replacer.mutate(s);
+    s = replacer.mutate(s);
 
     std::set<string> funcs;
     for(auto entry : env){
@@ -1057,19 +1057,31 @@ Stmt flatten_loops(Stmt s, const std::map<std::string, Function> &env, const std
             funcs.insert(entry.first);
         }
     }
-    Stmt stmt1 = remove_lets(stmt0, false, true, true, true, funcs);
-    debug(2) << "IR after removing LetStmts in device kernels first try ...\n\n" << stmt1 << "\n";
+    s = remove_lets(s, false, true, true, true, funcs);
+    debug(2) << "IR after removing LetStmts in device kernels ...\n\n" << s << "\n";
+    return s;
+}
+
+Stmt flatten_loops(Stmt s, const std::map<std::string, Function> &env) {
     ConstLoopFlattening clf;
-    Stmt stmt2 = clf.mutate(stmt1);
-    debug(2) << "IR after const loop flattening ...\n\n" << stmt2 << "\n";
-    Stmt stmt3 = remove_lets(stmt2, false, true, true, true, funcs);
-    debug(2) << "IR after removing LetStmts in device kernels second try...\n\n" << stmt3 << "\n";
+    s = clf.mutate(s);
+    debug(2) << "IR after const loop flattening ...\n\n" << s << "\n";
+
+    std::set<string> funcs;
+    for(auto entry : env){
+        if (entry.second.place() == Place::Device) {
+            funcs.insert(entry.first);
+        }
+    }
+    s = remove_lets(s, false, true, true, true, funcs);
+    debug(2) << "IR after removing LetStmts in device kernels ...\n\n" << s << "\n";
+
     // DynamicLoopFlattening dlf;
     // Stmt stmt3 = dlf.mutate(stmt2);
     // debug(2) << "IR after dynamic loop flattening ...\n\n" << stmt3 << "\n";
     // LoopMerging mgl;
     // Stmt stmt4 = mgl.mutate(stmt3);
-    return stmt3;
+    return s;
 }
 
 }

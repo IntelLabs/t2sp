@@ -201,6 +201,23 @@ class ChannelVisitor : public IRVisitor {
         IRVisitor::visit(op);
     }
 
+    void visit(const Select *op) override {
+        // Pass some conditions out of loop nests
+        if (loop_vars.size() > 0) {
+            Expr temp_cond = condition;
+            condition = simplify(temp_cond && (op->condition));
+            op->true_value.accept(this);
+
+            if (op->false_value.defined()) {
+                condition = simplify(temp_cond && !(op->condition));
+                op->false_value.accept(this);
+            }
+            condition = temp_cond;
+            return;
+        }
+        IRVisitor::visit(op);
+    }
+
     bool find_loop_in_args(vector<Expr> args, string loop) {
         for (auto v : args) {
             if (v.as<Variable>() && v.as<Variable>()->name == loop)
@@ -235,15 +252,13 @@ class ChannelVisitor : public IRVisitor {
             //    The channel operation can be promoted out of iii (boarder)
             auto lhs = eq->a.as<Variable>();
             auto rhs = eq->b.as<Variable>();
-            if (lhs && rhs) {
-                if (!find_loop_in_args(args, lhs->name))
+            if ((lhs && rhs)
+                || (lhs && is_const(eq->b))
+                || (rhs && is_const(eq->a))) {
+                if (lhs && !find_loop_in_args(args, lhs->name))
                     occured_loops.insert(lhs->name);
-                if (!find_loop_in_args(args, rhs->name))
+                if (rhs && !find_loop_in_args(args, rhs->name))
                     occured_loops.insert(rhs->name);
-            } else if (lhs && is_const(eq->b)) {
-                occured_loops.insert(lhs->name);
-            } else if (rhs && is_const(eq->a)) {
-                occured_loops.insert(rhs->name);
             } else {
                 is_simple_cond = false;
             }
@@ -268,6 +283,30 @@ class ChannelVisitor : public IRVisitor {
         // In such case, we cannot guarantee the correctness of channel promotion
         return is_simple_cond && occured_loops.empty();
     }
+
+    class VarsFinder : public IRVisitor
+    {
+        vector<Expr> &vars;
+    public:
+        VarsFinder(vector<Expr> &_v): vars(_v) {}
+        using IRVisitor::visit;
+        bool found = false;
+
+        void visit(const Variable* op) override {
+            for (auto e : vars) {
+                auto v = e.as<Variable>();
+                if (v && op->name == v->name)
+                    found = true;
+            }
+        }
+
+        void visit(const Call *op) override {
+            // Do not check call arguments
+            if (op->is_intrinsic(Call::read_shift_reg))
+                return;
+            IRVisitor::visit(op);
+        }
+    };
 
     void visit(const Call* op) override {
         if (op->is_intrinsic(Call::write_channel) || op->is_intrinsic(Call::read_channel)) {
@@ -297,6 +336,13 @@ class ChannelVisitor : public IRVisitor {
                         it = channels.erase(it);
                     }
                 }
+            } else {
+                // For write channels, if channel arguments occurs in the condition, we cannot ensure the entire array
+                // is write at once (example is CNN-Kung-Song). So we disable promotion for safe.
+                VarsFinder vf(args);
+                condition.accept(&vf);
+                if (vf.found)
+                    need_promotion = false;
             }
             if (need_promotion) {
                 auto it = get_promoted_channel(channels, chn_name, is_write_chn);

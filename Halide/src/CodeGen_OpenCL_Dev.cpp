@@ -277,6 +277,10 @@ void CodeGen_OpenCL_Dev::CodeGen_OpenCL_C::visit(const For *loop) {
             2. there is a irregular loop inside the current loop and the irregular bound depends on current loop var, e.g.
                 unrolled k = 0 to K
                     unrolled j = k to J
+            3. there is a shift register whose bounds depends on current loop var, e.g.,
+                float _Z_shreg_0, _Z_shreg_1, _Z_shreg_2, _Z_shreg_3;
+                unrolled j = 0 to J
+                    access _Z_shreg_j   // j needs to be replaced with 0, 1, 2, 3
 
         For other cases, we simply insert the #pragma unroll directive before a loop. The offline compiler attempts to fully
         unroll the loop.
@@ -285,8 +289,17 @@ void CodeGen_OpenCL_Dev::CodeGen_OpenCL_C::visit(const For *loop) {
         if (loop->for_type == ForType::Unrolled) {
             CheckConditionalChannelAccess checker(this, loop->name);
             loop->body.accept(&checker);
-            if (checker.conditional_access || checker.irregular_loop_dep ||
-                !is_const(loop->min) || !is_const(loop->extent)) {
+
+            // Check the condition 1 and 2
+            bool needs_unrolling = checker.conditional_access || checker.irregular_loop_dep;
+            // Check the condition 3
+            for (auto &kv : space_vars) {
+                for (auto &v : kv.second) {
+                    if (v.as<Variable>()->name == loop->name)
+                        needs_unrolling |= true;
+                }
+            }
+            if (needs_unrolling) {
                 Expr extent = simplify(loop->extent);
                 Stmt body = loop->body;
                 const IntImm *e = extent.as<IntImm>();
@@ -348,7 +361,6 @@ void CodeGen_OpenCL_Dev::CodeGen_OpenCL_C::CheckConditionalChannelAccess::visit(
     }
     IRVisitor::visit(op);
 }
-
 
 void CodeGen_OpenCL_Dev::CodeGen_OpenCL_C::visit(const Ramp *op) {
     string id_base = print_expr(op->base);

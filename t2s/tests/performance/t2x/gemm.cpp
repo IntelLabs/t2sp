@@ -70,8 +70,8 @@ int main()
 #ifdef AOT
     C.compile_to_host("host", { A, B }, "GEMM", IntelFPGA);
 #else
-    Buffer<CTYPE> a = new_data_2d<float, KKK*KK*O_K, III*II*O_I>(RANDOM);
-    Buffer<CTYPE> b = new_data_2d<float, JJJ*JJ*O_J, KKK*KK*O_K>(RANDOM);
+    Buffer<CTYPE> a = new_data_2d<float, KKK*KK*O_K, III*II*O_I>(SEQUENTIAL);
+    Buffer<CTYPE> b = new_data_2d<float, JJJ*JJ*O_J, KKK*KK*O_K>(SEQUENTIAL);
     Buffer<CTYPE> c(JJJ, III, JJ, II, O_J, O_I);
     A.set(a), B.set(b);
     C.realize(c, IntelFPGA);

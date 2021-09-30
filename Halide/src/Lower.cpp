@@ -444,10 +444,6 @@ Module lower(const vector<Function> &output_funcs,
     s = simplify(gather_data(s, env));
     debug(2) << "Lowering after Gathering:\n"
              << s << "\n\n";
-    debug(1) << "Promoting channels...\n";
-    s = channel_promotion(s);
-    debug(2) << "Lowering after channel promotion:\n"
-             << s << "\n\n";
 
     debug(1) << "Unrolling...\n";
     s = unroll_loops(s, env);
@@ -557,11 +553,21 @@ Module lower(const vector<Function> &output_funcs,
     debug(1) << "Lowering after final simplification:\n"
              << s << "\n\n";
 
+    debug(1) << "Replace memory channel with references...\n";
+    s = replace_mem_channels(s, env, funcs_using_mem_channels);
+    debug(2) << "Lowering after replacing memory channels:\n"
+             << s << "\n\n";
+
+    debug(1) << "Promoting channels...\n";
+    s = channel_promotion(s);
+    debug(2) << "Lowering after channel promotion:\n"
+             << s << "\n\n";
+
     // For overlay, we don't need to flatten task loops.
     char *overlay_num = getenv("HL_OVERLAY_NUM");
     if (overlay_num == NULL) {
         debug(1) << "Flatten the loops...\n";
-        s = simplify(flatten_loops(s, env, funcs_using_mem_channels));
+        s = simplify(flatten_loops(s, env));
         debug(2) << "Lowering after loop flattening:\n" << s << "\n\n";
     }
 
