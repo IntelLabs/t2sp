@@ -198,8 +198,9 @@ Func& Func::space_time_transform(const vector<Var>& src_vars,
     }
 
     vector<std::string> src_names(src_size);
-    for (size_t i = 0; i < src_size; i++)
+    for (size_t i = 0; i < src_size; i++) {
         src_names[i] = src_vars[i].name();
+    }
 
     user_assert(dst_size <= src_size);
     // Add prefix of variable name
@@ -210,7 +211,6 @@ Func& Func::space_time_transform(const vector<Var>& src_vars,
         var_map.insert({dst_vars[i].name(), var});
         dst_names[i] = dst_vars[i].name();
     }
-    for (size_t i = 0; i < src_size; i++)
 
     // Check if the number of coefficients is the same as the number of variables
     user_assert(dst_size == coefficients.size()

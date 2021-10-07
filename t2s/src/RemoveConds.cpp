@@ -1,9 +1,27 @@
+/*******************************************************************************
+* Copyright 2021 Intel Corporation
+*
+* Licensed under the BSD-2-Clause Plus Patent License (the "License");
+* you may not use this file except in compliance with the License.
+* You may obtain a copy of the License at
+*
+* https://opensource.org/licenses/BSDplusPatent
+*
+* Unless required by applicable law or agreed to in writing,
+* software distributed under the License is distributed on an "AS IS" BASIS,
+* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+* See the License for the specific language governing permissions
+* and limitations under the License.
+*
+*
+* SPDX-License-Identifier: BSD-2-Clause-Patent
+*******************************************************************************/
 #include "../../Halide/src/IRMutator.h"
 #include "../../Halide/src/IRVisitor.h"
 #include "../../Halide/src/Simplify.h"
 #include "../../Halide/src/IREquality.h"
-#include "./Utilities.h"
 #include "./RemoveConds.h"
+#include "./Utilities.h"
 
 namespace Halide {
 namespace Internal {
@@ -38,15 +56,18 @@ class RemoveCond : public IRMutator
             string tmp = sink_loop;
             for (auto c = conds.begin(); c != conds.end(); ++c) {
                 const EQ *eq = c->as<EQ>();
-                if (!eq) continue;
+                if (!eq) {
+                    continue;
+                }
                 auto a = eq->a.as<Variable>();
                 auto b = eq->b.as<IntImm>();
                 if ((a && a->name == *l) && (b && b->value == 0)) {
                     bool find_var = false;
                     for (auto &d : w_dims) {
                         auto v = d.as<Variable>();
-                        if (v && v->name == a->name)
+                        if (v && v->name == a->name) {
                             find_var = true;
+                        }
                     }
                     if (!find_var) {
                         sink_loop = a->name;
@@ -55,7 +76,9 @@ class RemoveCond : public IRMutator
                     }
                 }
             }
-            if (tmp == sink_loop) break;
+            if (tmp == sink_loop) {
+                break;
+            }
         }
         // Check if the false value is an reduction
         bool is_reduce = true;
@@ -66,15 +89,17 @@ class RemoveCond : public IRMutator
             if (r_name == w_name) {
                 internal_assert(w_dims.size() == r_dims.size());
                 for (size_t i = 0; i < w_dims.size(); i++) {
-                    if (!equal(w_dims[i], r_dims[i]))
+                    if (!equal(w_dims[i], r_dims[i])) {
                         is_reduce = false;
+                    }
                 }
             }
         }
         if (!sink_loop.empty() && is_reduce) {
             Expr new_cond = const_true();
-            for (auto &c : conds)
+            for (auto &c : conds) {
                 new_cond = new_cond && c;
+            }
 
             Reduce tmp;
             tmp.t = add->a.type();
@@ -125,8 +150,9 @@ public:
         loops.pop_back();
 
         if (ends_with(op->name, "run_on_device")) {
-            for (auto &p : allocs)
+            for (auto &p : allocs) {
                 body = Realize::make(p.first, {p.second}, MemoryType::Auto, {Range(0, 1)}, const_true(), body);
+            }
             allocs.clear();
         }
         body = For::make(op->name, op->min, op->extent,

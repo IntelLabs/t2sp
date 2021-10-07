@@ -809,11 +809,12 @@ class RegCallInserter : public IRMutator {
     public:
         bool found = false;
         FindSpaceVar(string &_s)
-            :var(_s) {}
+            : var(_s) {}
 
         void visit(const Variable *v) override {
-            if (extract_last_token(v->name) == var)
+            if (extract_last_token(v->name) == var) {
                 found = true;
+            }
         }
     };
 public:
@@ -824,8 +825,9 @@ public:
         if (op->is_intrinsic(Call::write_shift_reg)) {
             write_args = op->args;
             vector<Expr> new_args;
-            for (size_t i = 0; i < op->args.size(); i++)
+            for (size_t i = 0; i < op->args.size(); i++) {
                 new_args.push_back(mutate(op->args[i]));
+            }
             write_args.clear();
             return Call::make(op->type, op->name, new_args, op->call_type);
         }
@@ -837,19 +839,24 @@ public:
                 spv.found = false;
                 for (; iw < end_w; iw++) {
                     write_args[iw].accept(&spv);
-                    if (spv.found) break;
+                    if (spv.found) {
+                        break;
+                    }
                 }
                 spv.found = false;
                 for (; ir < end_r; ir++) {
                     op->args[ir].accept(&spv);
-                    if (spv.found) break;
+                    if (spv.found) {
+                        break;
+                    }
                 }
                 if (iw < end_w && ir < end_r) {
                     // Both iw (write) and ir (read) refer to one of the space loop
                     // So we compare them and insert a fpga_reg if different
                     Expr diff = simplify(write_args[iw] - op->args[ir]);
-                    if (!is_zero(diff))
+                    if (!is_zero(diff)) {
                         return Call::make(op->type, "fpga_reg", { op }, Call::PureIntrinsic);
+                    }
                 }
             }
         }

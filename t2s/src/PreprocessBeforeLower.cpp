@@ -23,7 +23,7 @@
 #include <vector>
 #include "./DebugPrint.h"
 #include "./PreprocessBeforeLower.h"
-#include "Stensor.h"
+#include "./Stensor.h"
 
 namespace Halide {
 namespace Internal {

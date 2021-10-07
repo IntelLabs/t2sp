@@ -1,5 +1,23 @@
-#include "Stensor.h"
+/*******************************************************************************
+* Copyright 2021 Intel Corporation
+*
+* Licensed under the BSD-2-Clause Plus Patent License (the "License");
+* you may not use this file except in compliance with the License.
+* You may obtain a copy of the License at
+*
+* https://opensource.org/licenses/BSDplusPatent
+*
+* Unless required by applicable law or agreed to in writing,
+* software distributed under the License is distributed on an "AS IS" BASIS,
+* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+* See the License for the specific language governing permissions
+* and limitations under the License.
+*
+*
+* SPDX-License-Identifier: BSD-2-Clause-Patent
+*******************************************************************************/
 #include "DebugPrint.h"
+#include "Stensor.h"
 #include "Utilities.h"
 
 namespace Halide {
@@ -10,7 +28,7 @@ using std::map;
 using std::string;
 
 struct Schain {
-    bool is_output;                 // Output chains needs different primitives
+    bool is_output;                 // Output chain needs different primitives
     Func outf;                      // The output chain starts from a function
     ImageParam imp;                 // The input chain starts from external input
     vector<Stensor> stensors;
@@ -79,8 +97,11 @@ struct FindVars
     }
 
     bool exists(const vector<Var> &vars) {
-        for (auto &v : vars)
-            if (var_index(v) == -1) return false;
+        for (auto &v : vars) {
+            if (var_index(v) == -1) {
+                return false;
+            }
+        }
         return true;
     }
 
@@ -94,9 +115,12 @@ struct FindVars
         internal_assert(used_vars.count(imp) > 0);
 
         for (Var v : free_vars) {
-            if (v.same_as(scope)) break;
-            if (used_vars[imp].count(v.name()) == 0)
+            if (v.same_as(scope)) {
+                break;
+            }
+            if (used_vars[imp].count(v.name()) == 0) {
                 reuse_vars.push_back(Var(v));
+            }
         }
         return std::move(reuse_vars);
     }
@@ -110,8 +134,9 @@ struct FindVars
         map<string, std::set<string>> used_vars;
 
         void visit(const Variable *op) override {
-            if (!image_param.empty())
+            if (!image_param.empty()) {
                 used_vars[image_param].insert(op->name);
+            }
         }
 
         void visit(const Call *op) override {

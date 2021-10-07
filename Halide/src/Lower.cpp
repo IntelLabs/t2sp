@@ -73,6 +73,7 @@
 
 // T2S related
 #include "../../t2s/src/AutorunKernels.h"
+#include "../../t2s/src/ChannelPromotion.h"
 #include "../../t2s/src/CheckRecursiveCalls.h"
 #include "../../t2s/src/ComputeLoopBounds.h"
 #include "../../t2s/src/CombineChannels.h"
@@ -86,11 +87,10 @@
 #include "../../t2s/src/NoIfSimplify.h"
 #include "../../t2s/src/Overlay.h"
 #include "../../t2s/src/Place.h"
+#include "../../t2s/src/RemoveConds.h"
 #include "../../t2s/src/ScatterAndBuffer.h"
 #include "../../t2s/src/SpaceTimeTransform.h"
 #include "../../t2s/src/ScatterAndBuffer.h"
-#include "../../t2s/src/RemoveConds.h"
-#include "../../t2s/src/ChannelPromotion.h"
 
 namespace Halide {
 namespace Internal {

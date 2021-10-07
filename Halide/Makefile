@@ -796,8 +796,8 @@ T2S_DIR  = $(ROOT_DIR)/../t2s
 T2S_SOURCE_FILES = \
   AutorunKernels.cpp \
   BuildCallRelation.cpp \
-  CheckFuncConstraints.cpp \
   ChannelPromotion.cpp \
+  CheckFuncConstraints.cpp \
   CheckRecursiveCalls.cpp \
   CombineChannels.cpp \
   CmdQueue.cpp \
@@ -817,14 +817,14 @@ T2S_SOURCE_FILES = \
   Overlay.cpp \
   Place.cpp \
   PreprocessBeforeLower.cpp \
+  RemoveConds.cpp \
+  Roofline.cpp \
   ScatterAndBuffer.cpp \
   SliceExprTree.cpp \
   SpaceTimeTransform.cpp \
-  StructType.cpp \
-  Utilities.cpp \
-  roofline.cpp \
   Stensor.cpp \
-  RemoveConds.cpp
+  StructType.cpp \
+  Utilities.cpp
 
 T2S_HEADER_FILES = \
   AutorunKernels.h \
@@ -846,14 +846,14 @@ T2S_HEADER_FILES = \
   Overlay.h \
   Place.h \
   PreprocessBeforeLower.h \
+  RemoveConds.h \
+  Roofline.h \
   ScatterAndBuffer.h \
   SliceExprTree.h \
   SpaceTimeTransform.h \
-  StructType.h \
-  Utilities.h \
-  roofline.h \
   Stensor.h \
-  RemoveConds.h
+  StructType.h \
+  Utilities.h
 
 OBJECTS += $(T2S_SOURCE_FILES:%.cpp=$(BUILD_DIR)/t2s/%.o)
 HEADERS += $(T2S_HEADER_FILES:%.h=$(T2S_DIR)/src/%.h)

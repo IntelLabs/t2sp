@@ -19,7 +19,7 @@ fail=0
 function emulate_func {
     eval file="$1"
     printf "$file "
-    compile="g++ $file -g -I ../util  -I ../../../../Halide/include -L ../../../../Halide/bin $EMULATOR_LIBHALIDE_TO_LINK -lz -lpthread -ldl -std=c++11 "
+    compile="g++ $file -g -I ../util  -I ../../../../Halide/include -I ../../../../Halide/apps/fft -L ../../../../Halide/bin $EMULATOR_LIBHALIDE_TO_LINK -lz -lpthread -ldl -std=c++11 "
     clean="rm -rf a a.out $HOME/tmp/a.aocx $HOME/tmp/a.aocr $HOME/tmp/a.aoco $HOME/tmp/a.cl $HOME/tmp/a profile_info.txt"
     $clean
     $compile >& a
