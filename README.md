@@ -175,7 +175,7 @@ The current release contains the following features:
 
   Loop flattening, removal, unrolling, vectorization
 
-# A short introuction
+# A short introduction
 
 ![intro](./intro.mp4)
 
