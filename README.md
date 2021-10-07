@@ -175,6 +175,10 @@ The current release contains the following features:
 
   Loop flattening, removal, unrolling, vectorization
 
+# A short introuction
+
+![intro](./intro.mp4)
+
 # Tutorials
 
 We have a set of [tutorials](https://github.com/intel/FPGA-Devcloud/tree/master/main/QuickStartGuides/T2S) at Intel FPGA DevCloud. A compiler binary is also there, and all dependencies have been installed, so you may start using the programming environment immediately.
