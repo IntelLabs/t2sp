@@ -16,8 +16,8 @@
 *
 * SPDX-License-Identifier: BSD-2-Clause-Patent
 *******************************************************************************/
-#ifndef SIZES_H
-#define SIZES_H
+#ifndef GEMM_SIZES_H
+#define GEMM_SIZES_H
 
 #ifdef TINY
     #define II          4

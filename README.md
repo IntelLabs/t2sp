@@ -1,4 +1,4 @@
-T2SP (Temporal To Spatial Programming, previously called T2S) enables software programmers to build a high-performance design on a spatial architecture (like FPGAs) in a constructive, incremental, and productive way. Particularly, programmers can quickly build sophisticated systolic arrays on spatial architectures, where systolic arrays are often the key to achieve high performance. This methodology extends [Halide](https://halide-lang.org/) from temporal architectures (CPUs and GPUs) to spatial architectures.
+T2SP (Temporal To Spatial Programming, previously called T2S) enables software programmers to build a high-performance design for a tensor compute on a spatial architecture (like FPGAs) in a constructive, incremental, and productive way. Particularly, programmers can quickly build sophisticated systolic arrays on spatial architectures, where systolic arrays are often the key to achieve high performance. This methodology extends [Halide](https://halide-lang.org/) from temporal architectures (CPUs and GPUs) to spatial architectures.
 
 T2SP is available under a permissive license, the [BSD+Patent license](./LICENSE.md).
 
@@ -86,7 +86,7 @@ This may take ~1 hour on a DevCloud machine.
 If you have your own gcc, llvm or clang and thus did not use `install-tools.sh` as shown above, in `my-setenv.sh`, modify the following path variables appropriately:
 
 ```
-    export GCC_PATH=...
+    GCC_PATH=...
     export LLVM_CONFIG=...
     export CLANG=...
 ```
@@ -130,9 +130,8 @@ Set up the environment (whenever a new terminal is open) with one of the followi
 ```
 
 + For debugging the T2SP compiler with source code information, ```make -j OPTIMIZE="-O0 -g"``` instead.
-+ For the T2SP compiler to throw exceptions instead of silently exit in case of any error, ```make -j WITH_EXCEPTIONS=1``` instead.
 + To debug runtime, ```make -j OPTIMIZE_RUNTIME="-O0 -g" ``` instead.
-+ To enable all of them, ```make -j OPTIMIZE="-O0 -g" WITH_EXCEPTIONS=1 OPTIMIZE_RUNTIME="-O0 -g" ``` instead.
++ To enable both of them, ```make -j OPTIMIZE="-O0 -g" OPTIMIZE_RUNTIME="-O0 -g" ``` instead.
 
 # Regression tests
 
@@ -148,13 +147,47 @@ To remove all the temporary files generated during the regression testing:
     ./test.sh clean
 ```
 
+# Performance tests
+
+Current release contains only SGEMM on Arria 10 FPGA. Follow the details at `t2s/tests/performance/gemm`.
+
+# Features
+
+The current release contains the following features:
+
++ Expressing systolic arrays
+  
+  UREs (uniform recurrence equations) and space-time transforms are supported for expressing systolic arrays in general. Currently, a space-time transform must be unimodular. 
+  
++ Defining an abstract, performance portable memory hierarchy 
+
+  A memory hierarchy is defined for each tensor by streaming the tensor across DRAM, SRAM, and registers. The memory hierarchy is then specialized by the compiler for specific hardware with portable performance. The current release targets FPGAs only. Next releases will support GPUs as well.
+
++ Isolation
+
+  Split a compute into spatial pieces, so that each piece can be optimized individually.
+
++ Data optimizations
+
+  Data gathering, scattering, double buffering, serialization
+
++ Loop optimizations
+
+  Loop flattening, removal, unrolling, vectorization
+
 # Tutorials
 
 We have a set of [tutorials](https://github.com/intel/FPGA-Devcloud/tree/master/main/QuickStartGuides/T2S) at Intel FPGA DevCloud. A compiler binary is also there, and all dependencies have been installed, so you may start using the programming environment immediately.
 
-# Next release
+# Next releases
 
-+ A new language interface for productive and portable performance across FPGAs and GPUs, and a performance test suite. This work enables programmers to build a hardware systolic array on an FPGA and a software systolic array on a GPU with portably high performance in a single specification. Aim to open in November, 2021.
++ SGEMM performance test that works across Arria 10 FPGA, GEN 9.5 GPU, and GEN 12 GPU with high and portable performance. Aim to open by the end of October, 2021.
+
+  This is our first test that builds a hardware systolic array on an FPGA and a software systolic array on a GPU with high performance in a single specification. 
+
++ Other portable performance tests, including 2-D convolution, Capsule convolution, and PairHMM, are aimed to open in November, 2021.
+
++ Support for Stratix 10 FPGA will be released afterwards.
 
 # Citation
 
