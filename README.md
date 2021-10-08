@@ -2,7 +2,7 @@ T2SP (Temporal To Spatial Programming, previously called T2S) enables software p
 
 T2SP is available under a permissive license, the [BSD+Patent license](./LICENSE.md). A 10-minute introduction is here:
 
-[![introduction](./intro.png)](./intro.mp4) 
+[![introduction](./intro.png)](https://github.com/ronghongbo/t2sp/raw/master/intro.mp4) 
 
 In this initial release, we support only Intel FPGAs. We assume your FPGA is local to you, or within Intel FPGA DevCloud, and the operating system is Linux. Other platforms might also work, but are not tested. 
 
