@@ -1,8 +1,6 @@
 T2SP (Temporal To Spatial Programming, previously called T2S) enables software programmers to build a high-performance design for a tensor compute on a spatial architecture (like FPGAs) in a constructive, incremental, and productive way. Particularly, programmers can quickly build sophisticated systolic arrays on spatial architectures, where systolic arrays are often the key to achieve high performance. This methodology extends [Halide](https://halide-lang.org/) from temporal architectures (CPUs and GPUs) to spatial architectures.
 
-T2SP is available under a permissive license, the [BSD+Patent license](./LICENSE.md). A 10-minute introduction is here:
-
-[![introduction](./intro.png)](https://github.com/ronghongbo/t2sp/raw/master/intro.mp4) 
+T2SP is available under a permissive license, the [BSD+Patent license](./LICENSE.md). 
 
 In this initial release, we support only Intel FPGAs. We assume your FPGA is local to you, or within Intel FPGA DevCloud, and the operating system is Linux. Other platforms might also work, but are not tested. 
 
@@ -178,6 +176,8 @@ The current release contains the following features:
   Loop flattening, removal, unrolling, vectorization
 
 # Tutorials
+
+A 10-minute video `intro.mp4`, located at the root of the repository, introduces the basic concept of T2SP.
 
 We have a set of [tutorials](https://github.com/intel/FPGA-Devcloud/tree/master/main/QuickStartGuides/T2S) at Intel FPGA DevCloud. A compiler binary is also there, and all dependencies have been installed, so you may start using the programming environment immediately.
 
