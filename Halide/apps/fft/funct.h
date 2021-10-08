@@ -5,7 +5,9 @@
 #include <vector>
 
 #include "Halide.h"
+#include "../../../../Halide/src/Func.h"
 
+struct ComplexExpr;
 template<typename T>
 class FuncRefT : public T {
     Halide::FuncRef untyped;
@@ -34,7 +36,13 @@ public:
     Stage operator/=(T x) {
         return untyped = T(Tuple(untyped)) / x;
     }
+    T toT(){
+        if(typeid(ComplexExpr)==typeid(T)){
+            return ComplexExpr(Halide::Call::make(untyped.function(), untyped.arguments(), 0), Halide::Call::make(untyped.function(), untyped.arguments(), 1));
+        }
+    }
 };
+
 
 template<typename T>
 class FuncT : public Halide::Func {
@@ -42,6 +50,9 @@ public:
     typedef Halide::Var Var;
     typedef Halide::Expr Expr;
     typedef Halide::Func Func;
+    typedef Halide::Place Place;
+    typedef Halide::Type Type;
+    typedef Halide::FuncRef FuncRef;
 
     explicit FuncT(const std::string &name)
         : Func(name) {
@@ -54,8 +65,24 @@ public:
     explicit FuncT(Func f)
         : Func(f) {
     }
+
+    explicit FuncT(Place place)
+        : Func(place) {
+    }
+    explicit FuncT(const std::string &name, Place place)
+        : Func(name, place) {
+    }
+
     explicit FuncT(Halide::Internal::Function f)
         : Func(f) {
+    }
+
+    explicit FuncT(const std::vector<Type> &return_types, const std::vector<Var> &args, Place place)
+        : Func(return_types, args, place) {
+    }
+
+    explicit FuncT(const std::string &name, const std::vector<Type> &return_types, const std::vector<Var> &args, Place place)
+        : Func(name, return_types, args, place) {
     }
 
     template<typename... Args>
@@ -78,7 +105,7 @@ public:
 // there is one.
 template<typename T>
 T operator-(FuncRefT<T> x) {
-    return -static_cast<T>(x);
+    return -x.toT();
 }
 template<typename T>
 T operator~(FuncRefT<T> x) {
@@ -87,43 +114,64 @@ T operator~(FuncRefT<T> x) {
 
 template<typename T>
 T operator+(FuncRefT<T> a, T b) {
-    return static_cast<T>(a) + b;
+    return a.toT()+b;
 }
 template<typename T>
 T operator-(FuncRefT<T> a, T b) {
-    return static_cast<T>(a) - b;
+    return a.toT()-b;
 }
 template<typename T>
 T operator*(FuncRefT<T> a, T b) {
-    return static_cast<T>(a) * b;
+    return a.toT()*b;
 }
 template<typename T>
 T operator/(FuncRefT<T> a, T b) {
-    return static_cast<T>(a) / b;
+    return a.toT()/b;
 }
 template<typename T>
 T operator%(FuncRefT<T> a, T b) {
-    return static_cast<T>(a) % b;
+    return a.toT()%b;
 }
 template<typename T>
 T operator+(T a, FuncRefT<T> b) {
-    return a + static_cast<T>(b);
+    return a+b.toT();
 }
 template<typename T>
 T operator-(T a, FuncRefT<T> b) {
-    return a - static_cast<T>(b);
+    return a-b.toT();
 }
 template<typename T>
 T operator*(T a, FuncRefT<T> b) {
-    return a * static_cast<T>(b);
+    return a*b.toT();
 }
 template<typename T>
 T operator/(T a, FuncRefT<T> b) {
-    return a / static_cast<T>(b);
+    return a/b.toT();
 }
 template<typename T>
 T operator%(T a, FuncRefT<T> b) {
-    return a % static_cast<T>(b);
+    return a%b.toT();
+}
+
+template<typename T>
+T operator+(FuncRefT<T> a, FuncRefT<T> b) {
+    return a.toT()+b.toT();
+}
+template<typename T>
+T operator-(FuncRefT<T> a, FuncRefT<T> b) {
+    return a.toT()-b.toT();
+}
+template<typename T>
+T operator*(FuncRefT<T> a, FuncRefT<T> b) {
+    return a.toT()*b.toT();
+}
+template<typename T>
+T operator/(FuncRefT<T> a, FuncRefT<T> b) {
+    return a.toT()/b.toT();
+}
+template<typename T>
+T operator%(FuncRefT<T> a, FuncRefT<T> b) {
+    return a.toT()%b.toT();
 }
 
 template<typename T>
