@@ -816,9 +816,9 @@ T2S_SOURCE_FILES = \
   MinimizeShregs.cpp \
   NoIfSimplify.cpp \
   Overlay.cpp \
+  PatternMatcher.cpp \
   Place.cpp \
   PreprocessBeforeLower.cpp \
-  RemoveConds.cpp \
   Roofline.cpp \
   ScatterAndBuffer.cpp \
   SliceExprTree.cpp \
@@ -845,9 +845,9 @@ T2S_HEADER_FILES = \
   MinimizeShregs.h \
   NoIfSimplify.h \
   Overlay.h \
+  PatternMatcher.h \
   Place.h \
   PreprocessBeforeLower.h \
-  RemoveConds.h \
   Roofline.h \
   ScatterAndBuffer.h \
   SliceExprTree.h \

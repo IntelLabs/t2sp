@@ -86,8 +86,8 @@
 #include "../../t2s/src/MinimizeShregs.h"
 #include "../../t2s/src/NoIfSimplify.h"
 #include "../../t2s/src/Overlay.h"
+#include "../../t2s/src/PatternMatcher.h"
 #include "../../t2s/src/Place.h"
-#include "../../t2s/src/RemoveConds.h"
 #include "../../t2s/src/ScatterAndBuffer.h"
 #include "../../t2s/src/SpaceTimeTransform.h"
 #include "../../t2s/src/ScatterAndBuffer.h"
@@ -517,9 +517,9 @@ Module lower(const vector<Function> &output_funcs,
     debug(2) << "Lowering after CSE:\n"
              << s << "\n\n";
 
-    debug(1) << "Remove conditions...\n";
-    s = remove_conditions(s);
-    debug(2) << "Lowering after removing conditions:\n"
+    debug(1) << "Matching compute patterns...\n";
+    s = match_patterns(s);
+    debug(2) << "Lowering after matching patterns:\n"
              << s <<"\n\n";
 
     if (t.has_feature(Target::OpenGL)) {

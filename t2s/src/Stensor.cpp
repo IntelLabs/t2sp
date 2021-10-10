@@ -479,6 +479,16 @@ void Stensor::realize(Buffer<> dst, Starget t) {
     }
 }
 
+void Stensor::compile_jit(Starget t) {
+    Func f = stensor_realize_wrapper(t);
+    if (t == Starget::IntelFPGA) {
+        Target acc = get_host_target();
+        acc.set_feature(Target::IntelFPGA);
+        acc.set_feature(Target::EnableSynthesis);
+        f.compile_jit(acc);
+    }
+}
+
 void Stensor::compile_to_host(string file_name, const vector<Argument> &args,
                               const std::string fn_name, Starget t) {
     Func f = stensor_realize_wrapper(t);

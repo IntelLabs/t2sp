@@ -54,6 +54,7 @@ struct Stensor
 
     Func stensor_realize_wrapper(Starget t);
     void realize(Buffer<> dst, Starget t);
+    void compile_jit(Starget t);
     void compile_to_host(string file_name, const vector<Argument> &args,
                          const std::string fn_name, Starget t);
     Stensor &scope(Var v);

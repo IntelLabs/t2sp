@@ -24,7 +24,7 @@
 namespace Halide {
 namespace Internal {
 
-Stmt remove_conditions(Stmt s);
+Stmt match_patterns(Stmt s);
 
 }
 }

@@ -87,6 +87,8 @@ int main()
 
 #ifdef AOT
     C.compile_to_host("host", { A, B }, "GEMM", IntelFPGA);
+#elif COMPILE_ONLY
+    C.compile_jit(IntelFPGA);
 #else
     Buffer<CTYPE> a = new_data_2d<float, KKK*KK*O_K, III*II*O_I>(SEQUENTIAL);
     Buffer<CTYPE> b = new_data_2d<float, JJJ*JJ*O_J, KKK*KK*O_K>(SEQUENTIAL);

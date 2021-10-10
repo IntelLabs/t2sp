@@ -21,9 +21,14 @@
 
 /** \file
  *
- * Defines a pass to move a channel read/write above a loop if that read/write happens only during
- * the first iteration of the loop.
- *
+ * Defines a pass to move a channel read/write above a loop to convert "an array of channels" into
+ * "a channel of array", since too many asynchronous channels may consume resources and lower frequency.
+ * For example, channel float A[I] is converted into channel float[I] A, and transform code into:
+ * float[I] arrA = read_channel("A")
+ * unrolled for (i, 0, I) {
+ *   // original: float a = read_channel("A", i)
+ *   float a = arrA[i]
+ * }
  */
 
 #include "../../Halide/src/IR.h"
