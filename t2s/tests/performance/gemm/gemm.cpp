@@ -45,11 +45,6 @@ int main()
     // Inputs
     ImageParam A("A", TTYPE, 2), B("B", TTYPE, 2);
 
-    // Optional: to be safe, let the host check the layout of the input data before offloading the kernel to the device
-    _halide_user_assert(evaluate<bool>(A.dim(0).extent() == B.dim(1).extent())) << "Matrix A and B's k dimension should be equal\n";
-    _halide_user_assert(evaluate<bool>(A.dim(0).extent() == (KKK * KK * K))) << "Dimension k should be divisible by " << KKK * KK << "\n";
-    _halide_user_assert(evaluate<bool>(A.dim(1).extent() == (III * II * I))) << "Dimension i should be divisible by " << III * II << "\n";
-    _halide_user_assert(evaluate<bool>(A.dim(0).extent() == (JJJ * JJ * J))) << "Dimension j should be divisible by " << JJJ * JJ << "\n";
 
     // UREs
     Var kkk("kkk"), jjj("jjj"), iii("iii"), jj("jj"), ii("ii"), kk("kk"), k("k"), j("j"), i("i");

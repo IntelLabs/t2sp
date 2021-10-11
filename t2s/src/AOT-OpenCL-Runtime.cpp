@@ -406,25 +406,29 @@ WEAK int halide_opencl_buffer_copy(void *user_context, struct halide_buffer_t *s
     bool from_host = (src->device == 0) ||
                      (src->host_dirty() && src->host != NULL);
     if (!from_host && to_host) {
-        std::cout << "Command queue " << current_kernel << ": copying " << src->size_in_bytes() << " bytes data from device to host. \n";
+        std::cout << "Command queue " << current_kernel << ": copying " << src->size_in_bytes() << " bytes data from device to host. ";
         status = clEnqueueReadBuffer(cmdQueue[current_kernel], ((device_handle *)src->device)->mem,
                                      CL_TRUE, 0, src->size_in_bytes(), (void *)(dst->host),
                                      0, NULL, NULL);
+        std::cout << "Done.\n";
     } else if (from_host && !to_host) {
-        std::cout << "Command queue " << current_kernel << ": copying " << src->size_in_bytes() << " bytes data from host to device. \n";
+        std::cout << "Command queue " << current_kernel << ": copying " << src->size_in_bytes() << " bytes data from host to device. ";
         status = clEnqueueWriteBuffer(cmdQueue[current_kernel], ((device_handle *)dst->device)->mem,
                                       CL_TRUE, 0, src->size_in_bytes(), (void *)(src->host),
                                       0, NULL, NULL);
+        std::cout << "Done.\n";
     } else if (!from_host && !to_host) {
-        std::cout << "Command queue " << current_kernel << ": copying " << src->size_in_bytes() << " bytes data from device to device. \n";
+        std::cout << "Command queue " << current_kernel << ": copying " << src->size_in_bytes() << " bytes data from device to device. ";
         status = clEnqueueCopyBuffer(cmdQueue[current_kernel], ((device_handle *)src->device)->mem, ((device_handle *)dst->device)->mem,
                                      0, 0,
                                      src->size_in_bytes(), 0, NULL, NULL);
+        std::cout << "Done.\n";
     } else if (dst->host != src->host) {
-        std::cout << "Copying " << src->size_in_bytes() << " bytes data from host to host. \n";
+        std::cout << "Copying " << src->size_in_bytes() << " bytes data from host to host. ";
             memcpy((void *)(dst->host), (void *)(src->host), src->size_in_bytes());
+        std::cout << "Done.\n";
     } else {
-        std::cout << "Do nothing. \n";
+        std::cout << "halide_opencl_buffer_copy: host to host copy with source address equal to destination address. Do nothing. \n";
     }
     return 0;
 }
