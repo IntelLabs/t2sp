@@ -16,11 +16,7 @@
 *
 * SPDX-License-Identifier: BSD-2-Clause-Patent
 *******************************************************************************/
-// The generated interface for the matrix multiply kernel
-#include "gemm-interface.h"
-
-// Loop bounds
-#include "sizes.h"
+#include "host.h"
 
 // The only header file needed for including T2S.
 #include "HalideBuffer.h"
@@ -36,10 +32,20 @@
 // using namespace Halide;
 using namespace std;
 
+#define OUTERMOST_I 2
+#define OUTERMOST_J 2
+#define OUTERMOST_K 2
+#define II   4
+#define JJ   4
+#define KK   256
+#define III  2
+#define JJJ  4
+#define KKK  4
+
 int main() {
-    const int TOTAL_I = III * II * I;
-    const int TOTAL_J = JJJ * JJ * J;
-    const int TOTAL_K = KKK * KK * K;
+    const int TOTAL_I = III * II * OUTERMOST_I;
+    const int TOTAL_J = JJJ * JJ * OUTERMOST_J;
+    const int TOTAL_K = KKK * KK * OUTERMOST_K;
     Halide::Runtime::Buffer<float> ina(TOTAL_K, TOTAL_I), inb(TOTAL_J, TOTAL_K);
     for (size_t i = 0; i < TOTAL_I; i++) {
         for (size_t k = 0; k < TOTAL_K; k++) {
@@ -52,13 +58,12 @@ int main() {
         }
     }
 
-    Halide::Runtime::Buffer<float> result(JJJ, III, JJ, II, J, I);
+    Halide::Runtime::Buffer<float> result(JJJ, III, JJ, II, OUTERMOST_J, OUTERMOST_I);
     GEMM(ina, inb, result);
 
-#ifdef TINY
-    // Validate the results
-    for (size_t i = 0; i < I; i++) {
-        for (size_t j = 0; j < J; j++) {
+    // Step 3: Validate the results
+    for (size_t i = 0; i < OUTERMOST_I; i++) {
+        for (size_t j = 0; j < OUTERMOST_J; j++) {
             for (size_t ii = 0; ii < II; ii++) {
                 for (size_t jj = 0; jj < JJ; jj++) {
                     for (size_t iii = 0; iii < III; iii++) {
@@ -77,21 +82,6 @@ int main() {
             }
         }
     }
-#else
-    // Report performance. DSPs, FMax and ExecTime are automatically figured out from the static analysis
-    // during FPGA synthesis and and the dynamic profile during the FGPA execution.
-    double mem_bandwidth = 33; // A10PAC on DevCloud has 33GB/s memory bandwidth
-    double compute_roof = 2 * DSPs() * FMax();
-    double number_ops = 2 * (long)(III * II * I) * (long)(JJJ * JJ * J) * (long)(KKK * KK * K); // Total operations (GFLOP for GEMM), independent of designs
-    double number_bytes = (long)(KKK * III * KK * II * K * J * I) * 4 + (long)(KKK * JJJ * KK * JJ * K * J * I) * 4 + (long)(III * II * I * JJJ * JJ * J) * 4;
-    double exec_time=ExecTime();
-    roofline(mem_bandwidth, compute_roof, number_ops, number_bytes,exec_time);
-    if (fopen("roofline.png", "r") == NULL) {
-        cout << "Failed to draw roofline!\n";
-        return 1;
-    }
-#endif
-
     cout << "Success!\n";
     return 0;
 }
