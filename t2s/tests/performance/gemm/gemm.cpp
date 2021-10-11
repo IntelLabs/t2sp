@@ -86,7 +86,7 @@ int main()
         >> FIFO(128)  >> DC >> C;
 
 #ifdef AOT
-    C.compile_to_host("host", { A, B }, "GEMM", IntelFPGA);
+    C.compile_to_host("gemm-interface", { A, B }, "GEMM", IntelFPGA);
 #elif COMPILE_ONLY
     C.compile_jit(IntelFPGA);
 #else
