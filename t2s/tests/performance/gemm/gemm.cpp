@@ -37,9 +37,6 @@ int main()
     #define total_i         (iii + III * ii + III * II * i)
     #define total_j         (jjj + JJJ * jj + JJJ * JJ * j)
     #define total_k         (kkk + KKK * kk + KKK * KK * k)
-    #define I               (A.dim(1).extent() / (III*II))
-    #define J               (B.dim(0).extent() / (JJJ*JJ))
-    #define K               (A.dim(0).extent() / (KKK*KK))
 
     // Type of the data to process in C and T2S
     #define CTYPE float
@@ -47,6 +44,12 @@ int main()
 
     // Inputs
     ImageParam A("A", TTYPE, 2), B("B", TTYPE, 2);
+
+    // Optional: to be safe, let the host check the layout of the input data before offloading the kernel to the device
+    _halide_user_assert(evaluate<bool>(A.dim(0).extent() == B.dim(1).extent())) << "Matrix A and B's k dimension should be equal\n";
+    _halide_user_assert(evaluate<bool>(A.dim(0).extent() == (KKK * KK * K))) << "Dimension k should be divisible by " << KKK * KK << "\n";
+    _halide_user_assert(evaluate<bool>(A.dim(1).extent() == (III * II * I))) << "Dimension i should be divisible by " << III * II << "\n";
+    _halide_user_assert(evaluate<bool>(A.dim(0).extent() == (JJJ * JJ * J))) << "Dimension j should be divisible by " << JJJ * JJ << "\n";
 
     // UREs
     Var kkk("kkk"), jjj("jjj"), iii("iii"), jj("jj"), ii("ii"), kk("kk"), k("k"), j("j"), i("i");
@@ -64,7 +67,9 @@ int main()
     // Explicitly set the loop bounds
     X.set_bounds(jjj, 0, JJJ, iii, 0, III, kkk, 0, KKK)
      .set_bounds(jj,  0, JJ,  ii,  0, II,  kk,  0, KK)
-     .set_bounds(j,   0, J,   i,   0, I,   k,   0, K);
+     .set_bounds(j,   0, B.dim(0).extent() / (JJJ * JJ),
+                 i,   0, A.dim(1).extent() / (III * II),
+                 k,   0, A.dim(0).extent() / (KKK * KK));
 
     // Create a systolic array
     X.space_time_transform(kkk, jjj, iii);
@@ -85,29 +90,8 @@ int main()
         >> FIFO(128)  >> RC1.scope(iii).banks(jjj)
         >> FIFO(128)  >> DC >> C;
 
-#ifdef AOT
+    // Compile the kernel to an FPGA bitstream, and expose a C interface for the host to invoke
     C.compile_to_host("gemm-interface", { A, B }, "GEMM", IntelFPGA);
-#elif COMPILE_ONLY
-    C.compile_jit(IntelFPGA);
-#else
-    Buffer<CTYPE> a = new_data_2d<float, KKK*KK*O_K, III*II*O_I>(SEQUENTIAL);
-    Buffer<CTYPE> b = new_data_2d<float, JJJ*JJ*O_J, KKK*KK*O_K>(SEQUENTIAL);
-    Buffer<CTYPE> c(JJJ, III, JJ, II, O_J, O_I);
-    A.set(a), B.set(b);
-    C.realize(c, IntelFPGA);
-
-    for (int i = 0; i < O_I; i++)
-    for (int j = 0; j < O_J; j++)
-        for (int ii = 0; ii < II; ii++)
-        for (int jj = 0; jj < JJ; jj++)
-            for (int iii = 0; iii < III; iii++)
-            for (int jjj = 0; jjj < JJJ; jjj++) {
-                float golden = 0.0f;
-                for (int k = 0; k < O_K*KK*KKK; k++)
-                    golden += a(k, total_i) * b(total_j, k);
-                assert(fabs(golden - c(P_Out)) < 0.005*fabs(golden));
-            }
-#endif
     printf("Success\n");
     return 0;
 }
