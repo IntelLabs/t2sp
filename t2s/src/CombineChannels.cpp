@@ -129,6 +129,7 @@ private:
         // TOFIX: Currently do not handle non-blocking channel reads
         if (op->is_intrinsic(Call::read_channel) || op->is_intrinsic(Call::write_channel)) {
             const StringImm *v = op->args[0].as<StringImm>();
+            internal_assert(v);
             string channel = v->value;
             vector<Expr> args;
             if (op->is_intrinsic(Call::read_channel)) {
@@ -529,6 +530,7 @@ public:
     Expr visit(const Call* op) override {
         if (op->is_intrinsic(Call::read_channel)) {
             const StringImm *v = op->args[0].as<StringImm>();
+            internal_assert(v);
             string channel = v->value;
             if (channel_to_combined.find(channel) == channel_to_combined.end()) {
                 return IRMutator::visit(op);
@@ -561,6 +563,7 @@ public:
             return IRMutator::mutate(stmt);
         }
         const StringImm *v = call->args[0].as<StringImm>();
+        internal_assert(v);
         string channel = v->value;
         if (channel_to_combined.find(channel) == channel_to_combined.end()) {
             return IRMutator::mutate(stmt);

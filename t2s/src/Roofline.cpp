@@ -38,6 +38,7 @@ int DSPs() {
 
         char str1[STR_SIZE], str2[STR_SIZE];
         assert(pos - str < STR_SIZE);
+        assert(strlen(pos + 2) < STR_SIZE);
         strncpy(str1, str, pos - str); str1[pos - str] = '\0';
         strncpy(str2, pos + 2, strlen(pos + 2)); str2[strlen(pos + 2)] = '\0';
 
@@ -77,6 +78,8 @@ double FMax() {
             continue;
 
         char str1[STR_SIZE], str2[STR_SIZE];
+        assert(pos - str < STR_SIZE);
+        assert(strlen(pos + 2) < STR_SIZE);
         strncpy(str1, str, pos - str); str1[pos - str] = '\0';
         strncpy(str2, pos + 2, strlen(pos + 2)); str2[strlen(pos + 2)] = '\0';
 

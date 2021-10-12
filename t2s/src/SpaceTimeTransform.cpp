@@ -931,6 +931,8 @@ A.space_time_transform({k, j},
                     for (size_t j = 0; j < num_args; j++) {
                         const Variable* old_arg = args[i].as<Variable>();
                         const Variable* new_arg = loop_vars[j].as<Variable>();
+                        internal_assert(old_arg);
+                        internal_assert(new_arg);
                         if (old_arg->name == new_arg->name) {
                             loop_var_pos[j] = i;
                             break;

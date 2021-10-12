@@ -469,12 +469,11 @@ struct SpaceTimeTransformParams {
     std::vector<std::string> dst_vars;
     std::vector<std::vector<int>> proj_matrix;
     std::map<std::string, Expr> reverse;
-    // The following fields record the original specification, without any processing (In comparison, the above fields
+    // The following field records the original specification, without any processing (In comparison, the above fields
     // like sch_vector, proj_matrix, etc. could have been processed to be different from the original specification. See
     // PreprocessBeforeLower.cpp).
     bool sch_vector_specified;     // If false, a scheduling vector was not actually specified, so this is an "unscheduled"
                                    // stt, and the above sch_vector is what compiler automatically makes.
-    size_t num_src_vars_specified; // Number of the original src_vars specified.
 };
 
 /** Record arguments for each invocation. */

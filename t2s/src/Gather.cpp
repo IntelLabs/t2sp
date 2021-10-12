@@ -180,7 +180,7 @@ class TestGathering : public IRVisitor{
     void visit(const Shuffle *op) override{
         if (in_gather_func && !op->vectors.empty()){
             const Call* arg0 = op->vectors[0].as<Call>();
-            if(arg0->is_intrinsic(Call::read_channel)){
+            if(arg0 && arg0->is_intrinsic(Call::read_channel)){
                 const StringImm* channel_name = arg0->args[0].as<StringImm>();
                 assert(channel_name);
                 if(ends_with(channel_name->value, func_name + ".channel.0")){

@@ -124,6 +124,7 @@ class InnerProductMatcher : public IRMutator
             tmp.sink_loop  = sink_loop;
             tmp.init_value = Select::make(simplify(new_cond), sel->true_value, sel->false_value);
             tmp.update_value = Call::make(tmp.type, tmp.name, {}, Call::Intrinsic) + add->b;
+            tmp.ori_call = NULL; // To be instantiated later.
             inner_products.push_back(std::move(tmp));
             return true;
         }
