@@ -21,12 +21,12 @@ The compiler implements the above optimizations. In addition, the compiler autom
 
 This design is specified to compile ahead-of-time (AOT), since AOT mode makes sense for the time-consuming FPGA compilation, although we can slightly change the specification to make it work just-in-time (JIT) as well.
 
-### 1. Set up the environments in the T2SP directory:
-```bash
-   source setenv.sh (local | devcloud)
-```
-### 2. Run emulation for verifying correctness with a tiny systolic array and inputs:
-- Just to be safe, remove previously generated bitstream and intermediate files, if any.
+### 1. Run emulation for verifying correctness with a tiny systolic array and inputs:
+- Set up the environment in the T2SP directory, if not yet:
+    ```
+    source ../../../../setenv.sh (local | devcloud)
+    ```
+- Just to be safe, remove previously generated bitstream and intermediate files, if any:
   
     ```
     rm -rf a.* a/ gemm-interface.* *.out exec_time.txt
@@ -51,7 +51,11 @@ This design is specified to compile ahead-of-time (AOT), since AOT mode makes se
     ```
     env BITSTREAM=a.aocx CL_CONTEXT_EMULATOR_DEVICE_INTELFPGA=1 INTEL_FPGA_OCL_PLATFORM_NAME="$EMULATOR_PLATFORM" ./b.out
     ```
-### 3. Synthesize and run for performance with a large systolic array and inputs:
+### 2. Synthesize and run for performance with a large systolic array and inputs:
+- Set up the environment in the T2SP directory, if not yet:
+    ```
+    source ../../../../setenv.sh (local | devcloud)
+    ```
 - Just to be safe, remove previously generated bitstream and intermediate files, if any.
   
     ```
@@ -71,16 +75,17 @@ This design is specified to compile ahead-of-time (AOT), since AOT mode makes se
 
     Look for the static analysis report in `a/reports/report.html`. For the options of the `aoc` command, refer to the [Best Practice Guide](https://www.intel.com/content/dam/www/programmable/us/en/pdfs/literature/hb/opencl-sdk/aocl-best-practices-guide.pdf).
 
-    **DevCloud**: This step might take 4-6 hrs. To avoid the above command from being killed automatically by the system, from the headnode `login-2`, submit a batch request. For example,  write a file:
+    **DevCloud**: This step might take 4-6 hrs. To avoid the above command from being killed automatically by the system, exit your current compute node, and from there (the headnode `login-2`), submit a batch request. For example,  write a file at $HOME:
 
     ```
     # file batch.sh
-    source /data/intel_fpga/devcloudLoginToolSetup.sh
-    tools_setup -t A10DS
+    cd path/to/t2sp
+    source setenv.sh devcloud
+    cd t2s/tests/performance/gemm
     env BITSTREAM=a.aocx AOC_OPTION="-v -profile -fpc -fp-relaxed -board=$FPGA_BOARD" ./a.out
     ```
 
-    Then from the headnode `login-2`, submit a batch request like this:
+    Then submit a batch request like this:
     ```
     devcloud_login -b A10PAC 1.2.1 walltime=08:00:00 batch.sh
     ```
@@ -96,6 +101,8 @@ This design is specified to compile ahead-of-time (AOT), since AOT mode makes se
     ```
 
     For more details, see [A10PAC tutorial](https://github.com/intel/FPGA-Devcloud/tree/master/main/QuickStartGuides/OpenCL_Program_PAC_Quickstart/Arria%2010).
+
+    **DevCloud**: log into a compute node again for the next steps.
 
 - Compile the host file (`gemm-run.cpp`) and link with the C interface (`gemm-interface.cpp`):
     ```
