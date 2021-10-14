@@ -926,6 +926,8 @@ Stmt insert_fpga_reg(Stmt s, const map<string, Function> &env) {
             const auto &params = kv.second.definition().schedule().transform_params();
             const auto &dst_vars = params[0].dst_vars;
             std::copy(dst_vars.begin(), dst_vars.end()-1, std::back_inserter(space_loops));
+            // Trick: in double buffer template, space loop is annotated with suffix "buf"
+            space_loops.push_back("buf");
             break;
         }
     }
