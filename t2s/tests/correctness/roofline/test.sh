@@ -8,7 +8,7 @@ NOCOLOR='\033[0m'
 # In this array, every element contains:
 # Test file
 regression=(
-        gemm.cpp
+        gemm
         
 )
 
@@ -18,8 +18,8 @@ fail=0
 function emulate_func {
     eval file="$1"
     printf "$file "
-    compile="g++ $file ../../../src/SharedUtilsInC.cpp ../../../src/Roofline.cpp -g -I ../util -I ../../../src -I ../../../../Halide/include -L ../../../../Halide/bin $EMULATOR_LIBHALIDE_TO_LINK -lz -lpthread -ldl -std=c++11 "
-    clean="rm -rf a a.out $file.aoc* $file.cl exec_time.txt *.png"
+    compile="g++ $file.cpp ../../../src/SharedUtilsInC.cpp ../../../src/Roofline.cpp -g -I ../util -I ../../../src -I ../../../../Halide/include -L ../../../../Halide/bin $EMULATOR_LIBHALIDE_TO_LINK -lz -lpthread -ldl -std=c++11 "
+    clean="rm -rf a a.out $file $file.aoc* $file.cl exec_time.txt *.png"
     $clean
     $compile >& a
     if [ -f "a.out" ]; then
