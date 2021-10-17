@@ -5,6 +5,7 @@
 #include "printer.h"
 
 #include "mini_cl.h"
+#include "../SharedUtilsInC.h"
 
 #define INLINE inline __attribute__((always_inline))
 
@@ -609,30 +610,48 @@ WEAK int create_opencl_context(void *user_context, cl_context *ctx, cl_command_q
 }}}} // namespace Halide::Runtime::Internal::OpenCL
 
 extern "C" {
-double exec_times[MAX_COMMAND_QUEUES][3]={{0,0,0}};
+int64_t exec_times[MAX_COMMAND_QUEUES][3]={{0,0,0}};
 const char *entry_names[MAX_COMMAND_QUEUES]={NULL};
 
 WEAK int halide_opencl_wait_for_kernels_finish(void *user_context) {
     // When we use multiple command queues, we flushed kernels, and did not wait for
     // them to finish. Here we wait for all of them to finish.
 #ifdef OCL_MULTI_CMD_Q
-     void *fp = fopen("profile_info.txt", "w");
+	 int64_t k_earliest_start_time;
+	 int64_t k_latest_end_time;
      for ( cl_int i = current_command_queue; i >= 0; i-- ) {
         if (command_queues[i] != NULL) {
             // TOFIX: overlay does not work well with WAIT_FINISH
             if (1) { // wait_for_finish[i]) {
                 clFinish(command_queues[i]);
                 debug(user_context) << "    Kernel in command queue " << i << " finished at time " << halide_current_time_ns(user_context) << "\n";
-            
-                
-                exec_times[i][1]=halide_current_time_ns(user_context);
-                exec_times[i][2]=exec_times[i][1]-exec_times[i][0];
-                //fprintf(fp,"Kernel %d(%s): %lf\n",i,entry_names[i],exec_times[i][2]);
-                fprintf(fp,"%d\n",(int)exec_times[i][2]);
+
+                exec_times[i][1]= halide_current_time_ns(user_context);
+                exec_times[i][2]= exec_times[i][1] - exec_times[i][0];
+
+                if (i == (cl_int) current_command_queue) {
+                	k_earliest_start_time = exec_times[i][0];
+                	k_latest_end_time = exec_times[i][1];
+                } else {
+                	if (exec_times[i][0] < k_earliest_start_time) {
+                		k_earliest_start_time = exec_times[i][0];
+                	}
+                	if (exec_times[i][1] > k_latest_end_time) {
+                		k_latest_end_time = exec_times[i][1];
+                	}
+                }
             }
         }
     }
+    int64_t k_overall_exec_time = k_latest_end_time - k_earliest_start_time;
+
+    char *bistream_dir = bitstream_directory();
+    char *exec_time_file = concat_directory_and_file(bistream_dir, "exec_time.txt");
+    void *fp = fopen(exec_time_file, "w");
+    fprintf(fp,"%f\n", (double)k_overall_exec_time);
     fclose(fp);
+    free(bistream_dir);
+    free(exec_time_file);
     debug(user_context) << "CLFinish: All command queues finished\n";
 #endif
     return 0;

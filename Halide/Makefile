@@ -574,6 +574,7 @@ SOURCE_FILES = \
   Schedule.cpp \
   ScheduleFunctions.cpp \
   SelectGPUAPI.cpp \
+  SharedUtilsInC.cpp \
   Simplify.cpp \
   Simplify_Add.cpp \
   Simplify_And.cpp \
@@ -758,6 +759,7 @@ HEADER_FILES = \
   ScheduleFunctions.h \
   Scope.h \
   SelectGPUAPI.h \
+  SharedUtilsInC.h \
   Simplify.h \
   SimplifyCorrelatedDifferences.h \
   SimplifySpecializations.h \
@@ -819,7 +821,6 @@ T2S_SOURCE_FILES = \
   PatternMatcher.cpp \
   Place.cpp \
   PreprocessBeforeLower.cpp \
-  Roofline.cpp \
   ScatterAndBuffer.cpp \
   SliceExprTree.cpp \
   SpaceTimeTransform.cpp \
@@ -848,7 +849,6 @@ T2S_HEADER_FILES = \
   PatternMatcher.h \
   Place.h \
   PreprocessBeforeLower.h \
-  Roofline.h \
   ScatterAndBuffer.h \
   SliceExprTree.h \
   SpaceTimeTransform.h \

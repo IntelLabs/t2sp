@@ -19,6 +19,7 @@
 #ifndef GEMM_SIZES_H
 #define GEMM_SIZES_H
 
+// Parameters of the systolic array. They are fixed.
 #ifdef TINY // For verifying correctness only
     #define KKK         4
     #define JJJ         4
@@ -26,9 +27,6 @@
     #define JJ          4
     #define II          4
     #define KK          4
-    #define K           4
-    #define J           4
-    #define I           4
 #else
     #define KKK         16
     #define JJJ         8
@@ -36,9 +34,6 @@
     #define JJ          32
     #define II          32
     #define KK          32
-    #define K           4
-    #define J           32
-    #define I           32
 #endif
 
 #endif

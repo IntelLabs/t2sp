@@ -18,6 +18,9 @@
 *******************************************************************************/
 #include "util.h"
 
+// Roofline utilities
+#include "Roofline.h"
+
 using namespace Halide;
 
 #define I 64

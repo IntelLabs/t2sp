@@ -9,7 +9,7 @@ if [ "$1" == "clean" ]; then
     find . -name \*.swp -type f -delete
     find . -name success.txt -type f -delete
     find . -name failure.txt -type f -delete
-    find . -name profile_info.txt -type f -delete
+    find . -name exec_time.txt -type f -delete
     find . -name \*.temp -type f -delete
     find . -name a -type f -delete
     find . -name a.out -type f -delete

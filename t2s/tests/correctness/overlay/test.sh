@@ -43,7 +43,7 @@ function emulate_func {
     eval file="$1"
     eval bitstream="$2"
     printf "$file "
-    clean="rm -rf a a.out $HOME/tmp/a.aocx $HOME/tmp/a.aocr $HOME/tmp/a.aoco $HOME/tmp/a.cl $HOME/tmp/a *.cl *.aocx *.aoco *.aocr test profile_info.txt *.temp"
+    clean="rm -rf a a.out $HOME/tmp/a.aocx $HOME/tmp/a.aocr $HOME/tmp/a.aoco $HOME/tmp/a.cl $HOME/tmp/a *.cl *.aocx *.aoco *.aocr test exec_time.txt *.temp"
     compile="   g++ $file -O0 -g -I ../util -I ../../../../Halide/include -L ../../../../Halide/bin $EMULATOR_LIBHALIDE_TO_LINK -lz -lpthread -ldl -std=c++11 -DVERBOSE_DEBUG -DPLACE0=Place::Host -DPLACE1=Place::Device "
     $clean            
     $compile >& a

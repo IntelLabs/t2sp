@@ -1,9 +1,9 @@
 # Matrix Multiply
 
 ## Performance for single precision matrix multiply
-| Device | Frequency | Throughput | LUTs/ALMs | DSPs | BRAMs | DSP Efficiency |
+| Device | Frequency | Throughput | Logic utilization | DSPs | BRAMs | DSP Efficiency |
 | ------ | --------- | ------ | --------- | ---- | ----- | -------------- |
-| Intel Arria 10 GX 1150 FPGA | 201 MHz | 504 GFLOPS | 49% | 85% | 53% | 97%   |
+| Intel Arria 10 GX 1150 FPGA | 223 MHz | 540 GFLOPS | 211,417 / 427,200 ( 49 % ) | 1,304 / 1,518 ( 86 % ) | 2,087 / 2,713 ( 77 % ) | 92%   |
 
 ## Key Implementation Details
 
@@ -75,7 +75,7 @@ This design is specified to compile ahead-of-time (AOT), since AOT mode makes se
 
     Look for the static analysis report in `a/reports/report.html`. For the options of the `aoc` command, refer to the [Best Practice Guide](https://www.intel.com/content/dam/www/programmable/us/en/pdfs/literature/hb/opencl-sdk/aocl-best-practices-guide.pdf).
 
-    **DevCloud**: This step might take 4-6 hrs. To avoid the above command from being killed automatically by the system, exit your current compute node, and from there (the headnode `login-2`), submit a batch request. For example,  write a file at $HOME:
+    **DevCloud**: This step might take 4-6 hrs. To avoid the above command from being killed automatically by the system, exit your current compute node, and from the headnode `login-2`, submit a batch request. For example,  write a file at your home directory:
 
     ```
     # file batch.sh
@@ -92,6 +92,8 @@ This design is specified to compile ahead-of-time (AOT), since AOT mode makes se
 
     See more details for [how to submit a batch job](https://github.com/intel/FPGA-Devcloud/tree/master/main/Devcloud_Access_Instructions#54-submitting-batch-jobs).
 
+    After the batch job is done, log into a compute node again, and re-set up the environment (Step 1).   
+
     **DevCloud A10PAC 1.2.1 only**: further convert the signed bitstream to unsigned:
 
     ```
@@ -102,11 +104,14 @@ This design is specified to compile ahead-of-time (AOT), since AOT mode makes se
 
     For more details, see [A10PAC tutorial](https://github.com/intel/FPGA-Devcloud/tree/master/main/QuickStartGuides/OpenCL_Program_PAC_Quickstart/Arria%2010).
 
-    **DevCloud**: log into a compute node again for the next steps.
-
 - Compile the host file (`gemm-run.cpp`) and link with the C interface (`gemm-interface.cpp`):
     ```
-    g++ gemm-run.cpp gemm-interface.cpp ../../../src/AOT-OpenCL-Runtime.cpp -g -DLINUX -DALTERA_CL -fPIC -I../../../src/ -I $T2S_PATH/Halide/include -I$INTELFPGAOCLSDKROOT/examples_aoc/common/inc $INTELFPGAOCLSDKROOT/examples_aoc/common/src/AOCLUtils/opencl.cpp $INTELFPGAOCLSDKROOT/examples_aoc/common/src/AOCLUtils/options.cpp -I$INTELFPGAOCLSDKROOT/host/include -L$INTELFPGAOCLSDKROOT/linux64/lib -L$AOCL_BOARD_PACKAGE_ROOT/linux64/lib -L$INTELFPGAOCLSDKROOT/host/linux64/lib -lOpenCL -L $T2S_PATH/Halide/bin -lelf $EMULATOR_LIBHALIDE_TO_LINK -lz -lpthread -ldl -std=c++11 -o ./b.out
+    g++ gemm-run.cpp gemm-interface.cpp ../../../src/AOT-OpenCL-Runtime.cpp ../../../src/Roofline.cpp ../../../src/SharedUtilsInC.cpp  -g -DLINUX -DALTERA_CL -fPIC -I../../../src/ -I $T2S_PATH/Halide/include -I$INTELFPGAOCLSDKROOT/examples_aoc/common/inc $INTELFPGAOCLSDKROOT/examples_aoc/common/src/AOCLUtils/opencl.cpp $INTELFPGAOCLSDKROOT/examples_aoc/common/src/AOCLUtils/options.cpp -I$INTELFPGAOCLSDKROOT/host/include -L$INTELFPGAOCLSDKROOT/linux64/lib -L$AOCL_BOARD_PACKAGE_ROOT/linux64/lib -L$INTELFPGAOCLSDKROOT/host/linux64/lib -lOpenCL -L $T2S_PATH/Halide/bin -lelf $HW_LIBHALIDE_TO_LINK -lz -lpthread -ldl -std=c++11 -o ./b.out
+    ```
+
+- Offload the bitstream to the device.
+    ```
+    aocl program acl0 a.aocx  
     ```
     
 - Run the host binary. The host offloads the bitstream to an FPGA and invokes the matrix multiply kernel there through the interface:
