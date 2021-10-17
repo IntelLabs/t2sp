@@ -5,6 +5,8 @@
 | ------ | --------- | ------ | --------- | ---- | ----- | -------------- |
 | Intel Arria 10 GX 1150 FPGA | 223 MHz | 540 GFLOPS | 211,417 / 427,200 ( 49 % ) | 1,304 / 1,518 ( 86 % ) | 2,087 / 2,713 ( 77 % ) | 92%   |
 
+The test can be reproduced by logging into a compute node on Intel FPGA DevCloud with an A10 card and 1.2.1 software stack, and following the instructions below.
+
 ## Key Implementation Details
 
 This design contains several important optimizations:
@@ -45,7 +47,7 @@ This design is specified to compile ahead-of-time (AOT), since AOT mode makes se
 - Compile the host file (`gemm-run.cpp`) and link with the C interface (`gemm-interface.cpp`):
   
     ```
-    g++ gemm-run.cpp gemm-interface.cpp ../../../src/AOT-OpenCL-Runtime.cpp -g -DLINUX -DALTERA_CL -fPIC -I../../../src/ -I $T2S_PATH/Halide/include -I$INTELFPGAOCLSDKROOT/examples_aoc/common/inc $INTELFPGAOCLSDKROOT/examples_aoc/common/src/AOCLUtils/opencl.cpp $INTELFPGAOCLSDKROOT/examples_aoc/common/src/AOCLUtils/options.cpp -I$INTELFPGAOCLSDKROOT/host/include -L$INTELFPGAOCLSDKROOT/linux64/lib -L$AOCL_BOARD_PACKAGE_ROOT/linux64/lib -L$INTELFPGAOCLSDKROOT/host/linux64/lib -lOpenCL -L $T2S_PATH/Halide/bin -lelf $EMULATOR_LIBHALIDE_TO_LINK -lz -lpthread -ldl -std=c++11 -DTINY -o ./b.out
+    g++ gemm-run.cpp gemm-interface.cpp ../../../src/AOT-OpenCL-Runtime.cpp ../../../src/SharedUtilsInC.cpp -g -DLINUX -DALTERA_CL -fPIC -I../../../src/ -I $T2S_PATH/Halide/include -I$INTELFPGAOCLSDKROOT/examples_aoc/common/inc $INTELFPGAOCLSDKROOT/examples_aoc/common/src/AOCLUtils/opencl.cpp $INTELFPGAOCLSDKROOT/examples_aoc/common/src/AOCLUtils/options.cpp -I$INTELFPGAOCLSDKROOT/host/include -L$INTELFPGAOCLSDKROOT/linux64/lib -L$AOCL_BOARD_PACKAGE_ROOT/linux64/lib -L$INTELFPGAOCLSDKROOT/host/linux64/lib -lOpenCL -L $T2S_PATH/Halide/bin -lelf $EMULATOR_LIBHALIDE_TO_LINK -lz -lpthread -ldl -std=c++11 -DTINY -o ./b.out
     ```
 - Emulate:
     ```
@@ -92,7 +94,7 @@ This design is specified to compile ahead-of-time (AOT), since AOT mode makes se
 
     See more details for [how to submit a batch job](https://github.com/intel/FPGA-Devcloud/tree/master/main/Devcloud_Access_Instructions#54-submitting-batch-jobs).
 
-    After the batch job is done, log into a compute node again, and re-set up the environment (Step 1).   
+    After the batch job is done, log into a compute node again, and re-source `setenv.sh` (Step 1).   
 
     **DevCloud A10PAC 1.2.1 only**: further convert the signed bitstream to unsigned:
 
@@ -102,7 +104,7 @@ This design is specified to compile ahead-of-time (AOT), since AOT mode makes se
     mv a_unsigned.aocx a.aocx
     ```
 
-    For more details, see [A10PAC tutorial](https://github.com/intel/FPGA-Devcloud/tree/master/main/QuickStartGuides/OpenCL_Program_PAC_Quickstart/Arria%2010).
+    For more details, see a [pac_a10 tutorial](https://github.com/intel/FPGA-Devcloud/tree/master/main/QuickStartGuides/OpenCL_Program_PAC_Quickstart/Arria%2010).
 
 - Compile the host file (`gemm-run.cpp`) and link with the C interface (`gemm-interface.cpp`):
     ```
