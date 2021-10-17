@@ -574,7 +574,6 @@ SOURCE_FILES = \
   Schedule.cpp \
   ScheduleFunctions.cpp \
   SelectGPUAPI.cpp \
-  SharedUtilsInC.cpp \
   Simplify.cpp \
   Simplify_Add.cpp \
   Simplify_And.cpp \
@@ -759,7 +758,6 @@ HEADER_FILES = \
   ScheduleFunctions.h \
   Scope.h \
   SelectGPUAPI.h \
-  SharedUtilsInC.h \
   Simplify.h \
   SimplifyCorrelatedDifferences.h \
   SimplifySpecializations.h \
