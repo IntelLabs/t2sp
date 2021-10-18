@@ -61,6 +61,9 @@ extern Stmt replace_references_with_mem_channels(Stmt s, const std::map<std::str
 extern Stmt replace_references_with_shift_registers(Stmt s, const map<string, Function> &env,
                                                     const std::map<std::string, RegBound > &reg_size_map);
 
+/* Insert fpga_reg calls */
+Stmt insert_fpga_reg(Stmt s, const map<string, Function> &env);
+
 }
 }
 

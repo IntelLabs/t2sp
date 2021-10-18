@@ -1,3 +1,4 @@
+
 # 'make' builds libHalide.a, the internal test suite, and runs the internal test suite
 # 'make run_tests' builds and runs all the end-to-end tests in the test subdirectory
 # 'make {error,performance}_foo' builds and runs test/{...}/foo.cpp for any
@@ -136,7 +137,7 @@ ifeq ($(OS), Windows_NT)
 else
     WITH_INTROSPECTION ?= not-empty
 endif
-WITH_EXCEPTIONS ?=
+WITH_EXCEPTIONS ?= 1
 WITH_LLVM_INSIDE_SHARED_LIBHALIDE ?= not-empty
 
 WITH_V8 ?=
@@ -796,6 +797,7 @@ T2S_DIR  = $(ROOT_DIR)/../t2s
 T2S_SOURCE_FILES = \
   AutorunKernels.cpp \
   BuildCallRelation.cpp \
+  ChannelPromotion.cpp \
   CheckFuncConstraints.cpp \
   CheckRecursiveCalls.cpp \
   CombineChannels.cpp \
@@ -814,14 +816,15 @@ T2S_SOURCE_FILES = \
   MinimizeShregs.cpp \
   NoIfSimplify.cpp \
   Overlay.cpp \
+  PatternMatcher.cpp \
   Place.cpp \
   PreprocessBeforeLower.cpp \
   ScatterAndBuffer.cpp \
   SliceExprTree.cpp \
   SpaceTimeTransform.cpp \
+  Stensor.cpp \
   StructType.cpp \
-  Utilities.cpp \
-  roofline.cpp
+  Utilities.cpp
 
 T2S_HEADER_FILES = \
   AutorunKernels.h \
@@ -841,14 +844,15 @@ T2S_HEADER_FILES = \
   MinimizeShregs.h \
   NoIfSimplify.h \
   Overlay.h \
+  PatternMatcher.h \
   Place.h \
   PreprocessBeforeLower.h \
   ScatterAndBuffer.h \
   SliceExprTree.h \
   SpaceTimeTransform.h \
+  Stensor.h \
   StructType.h \
-  Utilities.h \
-  roofline.h
+  Utilities.h
 
 OBJECTS += $(T2S_SOURCE_FILES:%.cpp=$(BUILD_DIR)/t2s/%.o)
 HEADERS += $(T2S_HEADER_FILES:%.h=$(T2S_DIR)/src/%.h)

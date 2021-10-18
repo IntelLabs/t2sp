@@ -18,10 +18,11 @@ if [ "$1" != "devcloud" -a "$1" != "local" ]; then
 fi
 
 export T2S_PATH="$( cd "$(dirname $(realpath "$BASH_SOURCE") )" >/dev/null 2>&1 ; pwd -P )" # The path to this script
-export TOOLS_PATH=$T2S_PATH/install
+TOOLS_PATH=$T2S_PATH/install
 
 # Modify these 3 paths if you installed your own versions of gcc or llvm-clang
-export GCC_PATH=$TOOLS_PATH/gcc-7.5.0
+# gcc should be located at $GCC_PATH/bin
+GCC_PATH=$TOOLS_PATH/gcc-7.5.0
 export LLVM_CONFIG=$TOOLS_PATH/bin/llvm-config
 export CLANG=$TOOLS_PATH/bin/clang
 

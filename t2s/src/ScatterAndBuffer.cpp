@@ -1222,6 +1222,7 @@ private:
             buf.read_args.push_back(buf_loop_var);
         } else {
             auto dim = buf.dims.back();
+            internal_assert(dim.extent.as<IntImm>());
             int extent = dim.extent.as<IntImm>()->value;
             BANKS = (int32_t)closest_power_of_two((uint32_t)extent);
             buf.dims.back() = Range(dim.min, BANKS);

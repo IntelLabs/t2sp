@@ -16,19 +16,26 @@
 *
 * SPDX-License-Identifier: BSD-2-Clause-Patent
 *******************************************************************************/
-#include"roofline.h"
+#include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <assert.h>
+
+#include "Roofline.h"
+#include "SharedUtilsInC.h"
 
 int DSPs() {
+    char *quartus_output_dir = quartus_output_directory();
+    char *report_file = concat_directory_and_file(quartus_output_dir, "acl_quartus_report.txt");
+
     FILE* fp;
     int _ret = 0;
 
     char str[STR_SIZE];
-    if ((fp = fopen("acl_quartus_report.txt", "r")) == NULL) {
-        printf("cannot open acl_quartus_report.txt!\n");
+    if ((fp = fopen(report_file, "r")) == NULL) {
+        printf("cannot open quartus report: %s! \n", report_file);
+        free(quartus_output_dir);
+        free(report_file);
         return -1;
     }
     while (fgets(str, 100, fp)) {
@@ -38,6 +45,7 @@ int DSPs() {
 
         char str1[STR_SIZE], str2[STR_SIZE];
         assert(pos - str < STR_SIZE);
+        assert(strlen(pos + 2) < STR_SIZE);
         strncpy(str1, str, pos - str); str1[pos - str] = '\0';
         strncpy(str2, pos + 2, strlen(pos + 2)); str2[strlen(pos + 2)] = '\0';
 
@@ -59,16 +67,23 @@ int DSPs() {
 
     }
     fclose(fp);
+    free(quartus_output_dir);
+    free(report_file);
     return _ret;
 }
 
 double FMax() {
+    char *quartus_output_dir = quartus_output_directory();
+    char *report_file = concat_directory_and_file(quartus_output_dir, "acl_quartus_report.txt");
+
     FILE* fp;
     double _ret = 0;
 
     char str[STR_SIZE];
-    if ((fp = fopen("acl_quartus_report.txt", "r")) == NULL) {
-        printf("cannot open acl_quartus_report.txt!\n");
+    if ((fp = fopen(report_file, "r")) == NULL) {
+        printf("cannot open quartus report: %s! \n", report_file);
+        free(quartus_output_dir);
+        free(report_file);
         return -1;
     }
     while (fgets(str, 100, fp)) {
@@ -77,6 +92,8 @@ double FMax() {
             continue;
 
         char str1[STR_SIZE], str2[STR_SIZE];
+        assert(pos - str < STR_SIZE);
+        assert(strlen(pos + 2) < STR_SIZE);
         strncpy(str1, str, pos - str); str1[pos - str] = '\0';
         strncpy(str2, pos + 2, strlen(pos + 2)); str2[strlen(pos + 2)] = '\0';
 
@@ -87,36 +104,38 @@ double FMax() {
 
     }
     fclose(fp);
+    free(quartus_output_dir);
+    free(report_file);
     return _ret;
 }
 
+// Execution time in terms of nanoseconds
 double ExecTime() {
+    char *bitstream_dir = bitstream_directory();
+    char *exec_time_file = concat_directory_and_file(bitstream_dir, "exec_time.txt");
+
     FILE* fp;
     double _ret = 0;
   
-    if ((fp = fopen("profile_info.txt", "r")) == NULL) {
-        printf("cannot open file!\n");
-        return _ret;
-    }
-
-    char str[STR_SIZE];
-    while (fgets(str, 100, fp)) {
-        double temp;
-        sscanf(str, "%lf", &temp);
-        if (temp > _ret)
-            _ret = temp;
+    if ((fp = fopen(exec_time_file, "r")) == NULL) {
+        printf("Cannot open %s!\n", exec_time_file);
+    } else {
+        fscanf(fp, "%lf", &_ret);
     }
     fclose(fp);
+    free(bitstream_dir);
+    free(exec_time_file);
     return _ret;
 }
 
 void roofline(double mem_bandwidth, double compute_roof, double number_ops, double number_bytes, double exec_time) {
     char command[1000];
     if (exec_time == 0 || compute_roof == 0) {
-        printf("Parameters Error!\n");
+        printf("Roofline parameters Error!\n");
         return;
     }
-    sprintf(command, "python $T2S_PATH/t2s/src/roofline.py %lf %lf %lf %lf %lf", mem_bandwidth, compute_roof, number_ops, number_bytes, exec_time);
+    sprintf(command, "python $T2S_PATH/t2s/src/Roofline.py %lf %lf %lf %lf %lf", mem_bandwidth, compute_roof, number_ops, number_bytes, exec_time);
     printf("%s\n", command);
-    system(command);
+    int ret = system(command);
+    assert(ret != -1);
 }

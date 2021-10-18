@@ -17,14 +17,14 @@ Many academic researchers have contributed to the project:
 
 Many Intel people have helped enabling the technology:
 
-+ System Software Group: Geoff Lowney, John C. Kreatsoulas, Nithin George, Paul Petersen, Gorge Powley, Daya Khudia, Charlotte Dryden, Adam Herr
++ System Software Group: Geoff Lowney, John C. Kreatsoulas, Nithin George, Paul Petersen, Gorge Powley, Carmen Badea, Daya Khudia, Adam Herr, Charlotte Dryden, Pablo Reble, Vishakha Agrawal, Mike Voss, Vasanth Tovinkere
 
 + Intel Labs: Christopher J. Hughes, Pradeep Dubey, Jim Held, Timothy Mattson, Sanket Tavarageri,  Kunal Banerjee, Bharat Kaul, Justin Gottschlich, Todd A. Anderson, Michael Beale
 
-+ Accelerated Computing Systems and Graphics Group: Hong Jiang, Kari Pulli, Lidong Xu, Fangwen Fu, Hongzheng Li, Sabareesh Ganapathy
++ Accelerated Computing Systems and Graphics Group: Hong Jiang, Lidong Xu, Kari Pulli, Fangwen Fu, Hongzheng Li, Sabareesh Ganapathy
 
 + GPU Software Engineering Group: Kai Yu Chen, Guei-Yuan Lueh, Yuting Yang
 
-+ Programmable Solution Group: Jose Alvarez, Bernhard Friebe, Mohamed Issa, Aravind Dasu, John Freeman, Davor Capalija, Tomasz Czajkowski
++ Programmable Solution Group: Jose Alvarez, Bernhard Friebe, Dan Prikster, Mohamed Issa, Aravind Dasu, John Freeman, Gordon Chiu, Davor Capalija, Tomasz Czajkowski, Andrei Hagiescu
 
 + Intel FPGA DevCloud: Lawrence Landis, Jimmy Tran

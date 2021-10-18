@@ -735,10 +735,6 @@ class Func {
     /** The imaging pipeline that outputs this Func alone. */
     Pipeline pipeline_;
 
-    /** Get the imaging pipeline that outputs this Func alone,
-     * creating it (and freezing the Func) if necessary. */
-    Pipeline pipeline();
-
     // Helper function for recursive reordering support
     Func &reorder_storage(const std::vector<Var> &dims, size_t start);
 
@@ -748,6 +744,10 @@ class Func {
     friend class Overlay;
 
 public:
+    /** Get the imaging pipeline that outputs this Func alone,
+     * creating it (and freezing the Func) if necessary. */
+    Pipeline pipeline();
+
     /** After we transform (i.e. unroll, vectorize, remove, etc.) a loop, call this function
      *  to apply the same transform to the same loop in all the merged UREs of this Func, because
      *  the UREs and this Func will be merged later and have to share the same loop structure.

@@ -18,6 +18,9 @@
 *******************************************************************************/
 #include "util.h"
 
+// Roofline utilities
+#include "Roofline.h"
+
 using namespace Halide;
 
 #define I 64
@@ -158,6 +161,11 @@ int main(void) {
         }
     }
     
+    // We test correctness in emulation, and thus there is not really a quartus report to produce the rooflines.
+    // Here we copy an example report to the directory where a quartus report is supposed to be.
+    // This is a hack, and NOT necesssary if running on real hardware.  
+    system("cp acl_quartus_report.txt gemm/");
+
     double mem_bandwidth = 33;
     double compute_roof = 2 * DSPs() * FMax();
     double number_ops = 2 * (long)(III * II * I) * (long)(JJJ * JJ * J) * (long)(KKK * KK * K); // Total operations (GFLOP for GEMM), independent of designs

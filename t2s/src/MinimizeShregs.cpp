@@ -163,12 +163,14 @@ public:
         IRVisitor::visit(op);
         if (op->is_intrinsic(Call::write_shift_reg)) {
             const StringImm *v = op->args[0].as<StringImm>();
+            internal_assert(v);
             string func_name = remove_postfix(v->value, ".shreg");
             vector<Expr> args = {op->args.begin() + 1, op->args.end() - 1};
             Access access = {true, func_name, args, op->type};
             accesses.push_back(access);
         } else if (op->is_intrinsic(Call::read_shift_reg)) {
             const StringImm *v = op->args[0].as<StringImm>();
+            internal_assert(v);
             string func_name = remove_postfix(v->value, ".shreg");
             vector<Expr> args = {op->args.begin() + 1, op->args.end()};
             Access access = {false, func_name, args, op->type};
@@ -377,6 +379,7 @@ bool vector_is_negative(const vector<int> &v) {
 
 // Test if the var is one of the vars.
 bool var_is_member(const Expr &var, const vector<Expr> &vars) {
+    internal_assert(var.as<Variable>());
     for (auto &v : vars) {
       if (v.as<Variable>()->name == var.as<Variable>()->name) {
           return true;
@@ -758,6 +761,7 @@ vector<Expr> map_args(const string            &func_name,
     for (size_t i = 0; i < alloc.linearized_dims.size(); i++) {
         auto &z = alloc.linearized_dims[i];
         int lin_distance = linearized_distance(alloc.args, distance, z, loop_extents);
+        internal_assert(alloc.linearized_extents[i].as<IntImm>());
         int lin_extent = alloc.linearized_extents[i].as<IntImm>()->value;
         internal_assert(lin_distance >= 0 && lin_distance <= lin_extent);
         if (lin_distance == lin_extent) {
@@ -840,6 +844,7 @@ void get_new_args_and_extents(const map<string, Expr> &loop_extents,
     } else {
         for (size_t i = 0; i < alloc.PE_dims.size(); i++) {
             int index = alloc.PE_dims[i];
+            internal_assert(alloc.args[index].as<Variable>());
             const string &original_loop_name = alloc.args[index].as<Variable>()->name;
             std::string new_loop_name = unique_name("dummy") + ".s0." + extract_last_token(original_loop_name);
             new_args.push_back(Variable::make(Int(32), new_loop_name));
@@ -879,6 +884,7 @@ void shift_linearized_dim(const For                           *op,          // T
     // Get the dimension of the given loop
     int current_dim = -1;
     for (size_t i = 0; i < args.size(); i++) {
+        internal_assert(args[i].as<Variable>());
         if (op->name == args[i].as<Variable>()->name) {
             current_dim = i;
             break;
@@ -985,6 +991,7 @@ void shift_linearized_dim(const For                           *op,          // T
     // Add PE loops
     size_t start_of_PE_dims = outer_args.size() - alloc.PE_dims.size(); // Start position of PE_dims in outer_args
     for (size_t i = start_of_PE_dims; i < outer_args.size(); i++) {
+        internal_assert(outer_args[i].as<Variable>());
         const string &new_loop_name = outer_args[i].as<Variable>()->name;
         const Expr &min = loop_min(alloc.args, loop_mins, alloc.PE_dims[i - start_of_PE_dims]);
         const Expr &extent = loop_extent(alloc.args, loop_extents, alloc.PE_dims[i - start_of_PE_dims]);
@@ -1105,6 +1112,7 @@ public:
     Expr visit(const Call *op) override {
         if (op->is_intrinsic(Call::write_shift_reg)) {
             const StringImm *v = op->args[0].as<StringImm>();
+            internal_assert(v);
             string func_name = remove_postfix(v->value, ".shreg");
             if (func_to_regalloc.find(func_name) == func_to_regalloc.end()) {
                 return IRMutator::visit(op);
@@ -1118,6 +1126,7 @@ public:
             return new_call;
         } else if (op->is_intrinsic(Call::read_shift_reg)) {
             const StringImm *v = op->args[0].as<StringImm>();
+            internal_assert(v);
             string func_name = remove_postfix(v->value, ".shreg");
             if (func_to_regalloc.find(func_name) == func_to_regalloc.end()) {
                 return IRMutator::visit(op);
@@ -1207,6 +1216,7 @@ public:
     Expr visit(const Call *op) override {
         if (op->is_intrinsic(Call::write_shift_reg)) {
             const StringImm *v = op->args[0].as<StringImm>();
+            internal_assert(v);
             string func_name = remove_postfix(v->value, ".shreg");
             if (func_to_bounds_to_remove.find(func_name) == func_to_bounds_to_remove.end()) {
                 return IRMutator::visit(op);
@@ -1221,6 +1231,7 @@ public:
             return new_call;
         } else if (op->is_intrinsic(Call::read_shift_reg)) {
             const StringImm *v = op->args[0].as<StringImm>();
+            internal_assert(v);
             string func_name = remove_postfix(v->value, ".shreg");
             if (func_to_bounds_to_remove.find(func_name) == func_to_bounds_to_remove.end()) {
                 return IRMutator::visit(op);

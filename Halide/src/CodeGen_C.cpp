@@ -1597,7 +1597,7 @@ private:
     CodeGen_C* parent;
 public:
     vector<string> kernel_names;
-    
+
     GatherKernelInfo() {}
 
     void visit(const For *op) override {
@@ -1715,7 +1715,7 @@ void CodeGen_C::compile(const Module &input) {
             f.body.accept(&g);
         }
 
-        stream << "int MAX_DEVICES = 4;\n" 
+        stream << "int MAX_DEVICES = 4;\n"
                << "int NUM_QUEUES_TO_CREATE = " << g.kernel_names.size() << ";\n"
                << "int NUM_KERNELS_TO_CREATE = " << g.kernel_names.size() << ";\n"
                << "cl_int status;\n"
@@ -1724,13 +1724,13 @@ void CodeGen_C::compile(const Module &input) {
                << "cl_device_id devices[4];\n"
                << "int current_kernel = 0;\n"
                << "cl_kernel kernel[" << g.kernel_names.size() << "];\n\n";
-        
+
         stream << "const char *kernel_name[] = {\n";
         for (auto name : g.kernel_names) {
             stream << "    \"" << name << "\",\n";
         }
         stream << "};\n";
-        
+
     }
 
     for (const auto &b : input.buffers()) {
@@ -2803,7 +2803,7 @@ void CodeGen_C::visit(const For *op) {
                 stream << "sizeof(cl_mem), "
                        << "(void *)&((device_handle *)_halide_buffer_get_device(" << print_name(arg.name + ".buffer") << "))->mem";
             } else {
-                stream << "sizeof(" << print_type(arg.type) << "), " 
+                stream << "sizeof(" << print_type(arg.type) << "), "
                        << "(void *)&" << arg.name;
             }
             stream << ");\n"

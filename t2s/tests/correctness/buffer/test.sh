@@ -33,7 +33,7 @@ function test_func {
     eval strategy="$3"
     eval expect_executable="$4"
     compile="    g++ $file -g -I ../util  -I ../../../../Halide/include -L ../../../../Halide/bin $EMULATOR_LIBHALIDE_TO_LINK -lz -lpthread -ldl -std=c++11 -DSIZE=10  -DTINY -DVERBOSE_DEBUG $strategy $place_combination"
-    clean="rm -rf a a.out $HOME/tmp/a.aocx $HOME/tmp/a.aocr $HOME/tmp/a.aoco $HOME/tmp/a.cl $HOME/tmp/a profile_info.txt"
+    clean="rm -rf a a.out $HOME/tmp/a.aocx $HOME/tmp/a.aocr $HOME/tmp/a.aoco $HOME/tmp/a.cl $HOME/tmp/a exec_time.txt"
     $clean        
     $compile >& a
     if [ -f "a.out" ]; then

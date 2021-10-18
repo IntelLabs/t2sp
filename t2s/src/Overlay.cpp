@@ -331,14 +331,17 @@ class OverlayIntrinsicUpdating : public IRMutator {
 
     Stmt visit(const Store *op) override {
         auto in = op->value.as<Call>();
-        user_assert(in->is_intrinsic(Call::overlay));
+        internal_assert(in);
+        internal_assert(in->is_intrinsic(Call::overlay));
         type = in->type;
         output_task_name = op->name;
         index = op->index;
         // Extract expected arguments
+        internal_assert(in->args[0].as<IntImm>());
+        internal_assert(in->args[1].as<IntImm>());
         int task_id = in->args[0].as<IntImm>()->value;
         int queue = in->args[1].as<IntImm>()->value;
-        user_assert(in->args.size() > 1);
+        internal_assert(in->args.size() > 1);
 
         for (int i = 2; i < (signed)in->args.size(); i++) {
             expected_args.push_back(in->args[i]);
@@ -349,7 +352,7 @@ class OverlayIntrinsicUpdating : public IRMutator {
         }
 
         // Assert the output buffer is passed in
-        user_assert(output_buffer.defined());
+        internal_assert(output_buffer.defined());
 
         // Create insertion points
         // E.g.
@@ -385,7 +388,7 @@ class OverlayIntrinsicUpdating : public IRMutator {
 
             // Push back distance
             int index = 0;
-            user_assert(dep_info.distances.size() == loop_vars.size());
+            internal_assert(dep_info.distances.size() == loop_vars.size());
             for (auto &v : dep_info.distances) {
                 Expr expr = simplify(v + loop_vars[index]);
                 task_args.push_back(expr);
@@ -574,7 +577,7 @@ public:
         // Analyze the assignment (ordered) map
         // binding: Map from command queue index --> map of arg assignment
         // arg_map: vector of enqueued buffers
-        // user_assert(assignment.size() == arg_map.size());
+        // internal_assert(assignment.size() == arg_map.size());
         for (unsigned int task_id = 0; task_id < arg_map.size(); task_id++) {
             debug(4) << "\nTask " << task_id << " Assignment...";
 
@@ -628,7 +631,7 @@ public:
                     // later be used to create overlay instrinsic args)
                 } else if (key.find(".") != string::npos) {
                     ImageParamOrExpr param = buffer_or_expr[arg_pos[key]];
-                    user_assert(!param.is_image);
+                    internal_assert(!param.is_image);
                     Expr e = param.expr;
                     debug(4) << "  Set Scalar " << key << " as "
                              << e << " labeled as " << kv.second << "\n";
@@ -813,7 +816,7 @@ public:
         }
 
         // The last left buffer is for function output
-        user_assert((unsigned)buffer_index == buffers.size() - 1);
+        internal_assert((unsigned)buffer_index == buffers.size() - 1);
         auto buffer_name = buffers[buffer_index];
         arg_map[buffer_name] = "inputs.args" + std::to_string(buffer_index);
         debug(4) << "Assign buffer index " << arg_map[buffer_name]
@@ -856,7 +859,7 @@ public:
         // Check all the hidden args have been assigned
         int hidden_args_num = buffers.size() + mins.size() + extents.size() + strides.size();
         int assigned_args_num = (buffer_index + 1) + (constant_index - scalar_index);
-        user_assert(hidden_args_num == assigned_args_num)
+        internal_assert(hidden_args_num == assigned_args_num)
             << "Required " << hidden_args_num << " hidden parameters ("
             << assigned_args_num << " given)\n";
     }
@@ -903,7 +906,7 @@ Stmt MakeAutorunKernel(Stmt s, vector<Argument> sym_args,
     //    as parameters passed from scheduler
 
     // unsigned int num_of_buffers = buffers.size();
-    // user_assert(num_of_buffers == sym_args.size() + 1)
+    // internal_assert(num_of_buffers == sym_args.size() + 1)
     //     << "Missing arguments at command()... " << (num_of_buffers - 1)
     //     << " arguments required but " << sym_args.size() << " given\n";
 
@@ -1205,14 +1208,14 @@ Stmt create_overlay_schedule(Stmt s, const std::map<std::string, Function> &env)
         // Argument Inference and Body Mutation
         //   1. Add task receiver at the beginning of the kernel
         //   2. Add ack sender at the end of the kernel
-        user_assert(sym_args.size() != 0);
-        user_assert(curr_queue_index != -1);
+        internal_assert(sym_args.size() != 0);
+        internal_assert(curr_queue_index != -1);
         map<string, string> arg_map;
         map<string, int> arg_pos;
         IpFuncBodyUpdate update(in.inferred_args, overlay_kenrel_name,
                                 curr_queue_index, sym_args, arg_map, arg_pos);
         s = update.mutate(s);
-        user_assert(env.count(env_key_name));
+        internal_assert(env.count(env_key_name));
 
         env.at(env_key_name).overlay().definition().assignMap()[curr_queue_index].arg_map = arg_map;
         env.at(env_key_name).overlay().definition().assignMap()[curr_queue_index].arg_pos = arg_pos;

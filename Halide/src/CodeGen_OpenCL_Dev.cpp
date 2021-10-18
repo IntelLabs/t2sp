@@ -266,27 +266,40 @@ void CodeGen_OpenCL_Dev::CodeGen_OpenCL_C::visit(const For *loop) {
         stream << get_indent() << "#pragma unroll\n";
         CodeGen_C::visit(loop);
     } else {
-        /* 
-        If not explicitly define a env variable(DELAYUNROLL or PRAGMAUNROLL), the unrolling strategy will be automatically 
+        /*
+        If not explicitly define a env variable(DELAYUNROLL or PRAGMAUNROLL), the unrolling strategy will be automatically
         decided by the compiler.
-        To physically unroll a loop, we require that: 
-            1. there is a conditional execution of channel read/write inside the current loop, e.g. 
+        To physically unroll a loop, we require that:
+            1. there is a conditional execution of channel read/write inside the current loop, e.g.
                 unrolled k = 0 to K
                     if (cond)
                         read/write channel
-            2. there is a irregular loop inside the current loop and the irregular bound depends on current loop var, e.g. 
+            2. there is a irregular loop inside the current loop and the irregular bound depends on current loop var, e.g.
                 unrolled k = 0 to K
                     unrolled j = k to J
+            3. there is a shift register whose bounds depends on current loop var, e.g.,
+                float _Z_shreg_0, _Z_shreg_1, _Z_shreg_2, _Z_shreg_3;
+                unrolled j = 0 to J
+                    access _Z_shreg_j   // j needs to be replaced with 0, 1, 2, 3
 
-        For other cases, we simply insert the #pragma unroll directive before a loop. The offline compiler attempts to fully 
+        For other cases, we simply insert the #pragma unroll directive before a loop. The offline compiler attempts to fully
         unroll the loop.
         */
         user_assert(loop->for_type != ForType::Parallel) << "Cannot use parallel loops inside OpenCL kernel\n";
         if (loop->for_type == ForType::Unrolled) {
             CheckConditionalChannelAccess checker(this, loop->name);
             loop->body.accept(&checker);
-            if (checker.conditional_access || checker.irregular_loop_dep ||
-                !is_const(loop->min) || !is_const(loop->extent)) {
+
+            // Check the condition 1 and 2
+            bool needs_unrolling = checker.conditional_access || checker.irregular_loop_dep;
+            // Check the condition 3
+            for (auto &kv : space_vars) {
+                for (auto &v : kv.second) {
+                    if (v.as<Variable>()->name == loop->name)
+                        needs_unrolling |= true;
+                }
+            }
+            if (needs_unrolling) {
                 Expr extent = simplify(loop->extent);
                 Stmt body = loop->body;
                 const IntImm *e = extent.as<IntImm>();
@@ -337,18 +350,17 @@ void CodeGen_OpenCL_Dev::CodeGen_OpenCL_C::CheckConditionalChannelAccess::visit(
         if (!is_const(op->min)) {
             irregular_loop_dep = true;
             debug(4) << "Loop min: " << op->min << "\n";
-            debug(4) << "Physically unroll loop " << current_loop_name << " because of the irregular loop " 
-                     << op->name << " inside. \n"; 
+            debug(4) << "Physically unroll loop " << current_loop_name << " because of the irregular loop "
+                     << op->name << " inside. \n";
         } else if (!is_const(op->extent)) {
             irregular_loop_dep = true;
             debug(4) << "Loop extent: " << op->extent << "\n";
-            debug(4) << "Physically unroll loop " << current_loop_name << " because of the irregular loop " 
-                     << op->name << " inside. \n"; 
+            debug(4) << "Physically unroll loop " << current_loop_name << " because of the irregular loop "
+                     << op->name << " inside. \n";
         }
     }
     IRVisitor::visit(op);
 }
-
 
 void CodeGen_OpenCL_Dev::CodeGen_OpenCL_C::visit(const Ramp *op) {
     string id_base = print_expr(op->base);
@@ -483,14 +495,12 @@ void CodeGen_OpenCL_Dev::CodeGen_OpenCL_C::visit(const Call *op) {
             }
         }
         debug(4) << "modified channel name: " << channel_name << "\n";
-        // if ((int)suffix.size() > 0 && suffix[0] >= '0' && suffix[0] <= '9') {
-        //     channel_name = (v->value).substr(0, size);
-        // }
-        stream << get_indent() << print_type(op->type) << " " << id << " = read_channel_intel(" << print_name(channel_name) << string_channel_index << ");\n";
-        // if(starts_with(channel_name,"A_feeder"))
-        // {
-        //     // stream<<"printf(\"read success\\n\");\n";
-        // }
+        string type = print_type(op->type);
+        if (op->type.is_handle() && !op->type.is_generated_struct()) {
+            type = print_name(channel_name + ".array.t");
+        }
+        string read_call = "read_channel_intel(" + print_name(channel_name) + string_channel_index + ")";
+        stream << get_indent() << type << " " << id << " = " << read_call << ";\n";
     } else if (op->is_intrinsic(Call::read_channel_nb)) {
         std::string string_channel_index;
         const StringImm *v = op->args[0].as<StringImm>();
@@ -601,6 +611,32 @@ void CodeGen_OpenCL_Dev::CodeGen_OpenCL_C::visit(const Call *op) {
         std::string write_data = print_expr(op->args[1]);
         rhs << write_data;
         stream << get_indent() << print_name(write_success->value) << " = write_channel_nb_intel(" << rhs.str() << ");\n";
+    } else if (op->is_intrinsic(Call::read_array)) {
+        std::string arr_name = op->args[0].as<StringImm>()->value;
+        // read the entire array as a whole
+        if (op->args.size() == 1) {
+            id = print_name(arr_name);
+        } else {
+            std::string string_index = ".s";
+            for (size_t i = 1; i < op->args.size(); i++)
+                string_index += "[" + print_expr(op->args[i]) + "]";
+            id = '_' + unique_name('_');
+            stream << get_indent() << print_type(op->type) << " " << id
+                   <<" = " << print_name(arr_name) << string_index << ";\n";
+        }
+    } else if (op->is_intrinsic(Call::write_array)) {
+        std::string arr_name = op->args[0].as<StringImm>()->value;
+        // write the entire array as a whole
+        if (op->args.size() == 2) {
+            std::string write_data = print_expr(op->args[1]);
+            stream << get_indent() << print_name(arr_name) << " = " << write_data << ";\n";
+        } else {
+            std::string write_data = print_expr(op->args[1]);
+            std::string string_index = ".s";
+            for (size_t i = 2; i < op->args.size(); i++)
+                string_index += "[" + print_expr(op->args[i]) + "]";
+            stream << get_indent() << print_name(arr_name) << string_index << " = " << write_data << ";\n";
+        }
     } else if (op->is_intrinsic(Call::read_shift_reg)) {
         std::string string_index;
         const StringImm *v = op->args[0].as<StringImm>();
@@ -682,7 +718,6 @@ void CodeGen_OpenCL_Dev::CodeGen_OpenCL_C::visit(const Call *op) {
                 }
             }
             ostringstream rhs;
-
             int size = (v->value).rfind(".");
             std::string shreg_name = v->value;
             debug(4) << "shreg name: " << shreg_name << "\n";
@@ -707,14 +742,12 @@ void CodeGen_OpenCL_Dev::CodeGen_OpenCL_C::visit(const Call *op) {
             rhs << print_name(shreg_name) << suffix_index << string_index;
             print_assignment(op->type, rhs.str());
         }
-
     } else if (op->is_intrinsic(Call::write_shift_reg)) {
         const StringImm *v = op->args[0].as<StringImm>();
         std::string reg_name = extract_first_token(v->value);
         // shift reg has regular bounds
         if (space_vars.find(reg_name) == space_vars.end()) {
             ostringstream rhs;
-
             int size = (v->value).rfind(".");
             std::string shreg_name = v->value;
             debug(4) << "shreg name: " << shreg_name << "\n";
@@ -759,7 +792,7 @@ void CodeGen_OpenCL_Dev::CodeGen_OpenCL_C::visit(const Call *op) {
             }
             std::string write_data = print_expr(op->args[op->args.size()-1]);
 
-            // After writing to a shift register, the original cached value is no longer valid. 
+            // After writing to a shift register, the original cached value is no longer valid.
             auto cached = cache.find(rhs.str());
             if (cached != cache.end()) {
                 cache.erase(cached);
@@ -832,7 +865,7 @@ void CodeGen_OpenCL_Dev::CodeGen_OpenCL_C::visit(const Call *op) {
         }
         print_assignment(op->type, rhs.str());
     } else if (ends_with(op->name, ".temp")) {
-    	std::string name = op->name;
+        std::string name = op->name;
         // Do not directly print to stream: there might have been a cached value useable.
         ostringstream rhs;
         rhs << print_name(name);
@@ -870,14 +903,18 @@ void CodeGen_OpenCL_Dev::CodeGen_OpenCL_C::visit(const Call *op) {
             }
         }
         stream << get_indent() << print_expr(op->args[0]) << ";\n";
-        stream << get_indent() << addr_temp << " = " << addr_temp << " + " << offset << ";\n";        
-    } else if (op->is_intrinsic(Call::overlay_switch)) {
+        stream << get_indent() << addr_temp << " = " << addr_temp << " + " << offset << ";\n";
+    } else if (op->is_intrinsic(Call::fpga_reg)) {
+        ostringstream rhs;
+        rhs << "__fpga_reg(__fpga_reg(" << print_expr(op->args[0]) << "))";
+        print_assignment(op->type, rhs.str());
 
+    } else if (op->is_intrinsic(Call::overlay_switch)) {
         internal_assert(op->args.size() > 0);
 
         // Prepare task object to be dispatched
         internal_assert(op->args[0].as<StringImm>());
-        std::string type = op->args[0].as<StringImm>()->value; 
+        std::string type = op->args[0].as<StringImm>()->value;
 
         if (type == "before_switch") {
             ostringstream rhs;
@@ -917,14 +954,14 @@ void CodeGen_OpenCL_Dev::CodeGen_OpenCL_C::visit(const Call *op) {
             internal_assert(op->args.size() > 1);
             internal_assert(op->args[1].as<IntImm>());
             int queue_index = op->args[1].as<IntImm>()->value;
-            // stream << get_indent() 
+            // stream << get_indent()
             //     << "mem_fence(CLK_CHANNEL_MEM_FENCE | CLK_GLOBAL_MEM_FENCE);\n";
-            // stream << get_indent() << "index_t f" << queue_index 
+            // stream << get_indent() << "index_t f" << queue_index
             //     << " = read_channel_intel(q" << queue_index << "_end);\n";
             stream << get_indent() << "mem_fence(CLK_CHANNEL_MEM_FENCE);\n";
             stream << get_indent() << "write_channel_intel(q_ret[" << queue_index << "], inputs.finish);\n";
 
-        // Print data from task channel for autorun kernels 
+        // Print data from task channel for autorun kernels
         } else if (type == "data") {
             ostringstream rhs;
             internal_assert(op->args[1].as<StringImm>());
@@ -982,7 +1019,7 @@ void CodeGen_OpenCL_Dev::CodeGen_OpenCL_C::visit(const Call *op) {
         };
 
         int dep_queue_index = -1;
-        std::map<int, status> info; 
+        std::map<int, status> info;
         std::vector<input> inputs;
 
         auto task_id = op->args[0].as<IntImm>()->value;
@@ -1030,11 +1067,11 @@ void CodeGen_OpenCL_Dev::CodeGen_OpenCL_C::visit(const Call *op) {
             }
         }
 
-        // Print task dispatching logic 
+        // Print task dispatching logic
         int dep_num = 0;
-        stream << get_indent() << "// Sending task" << task_id << " to the scheduler...\n"; 
-        stream << get_indent() << "task.queue = " << queueNo << ";\n"; 
-        stream << get_indent() << "task.index.task_id = " << task_id << ";\n\n"; 
+        stream << get_indent() << "// Sending task" << task_id << " to the scheduler...\n";
+        stream << get_indent() << "task.queue = " << queueNo << ";\n";
+        stream << get_indent() << "task.index.task_id = " << task_id << ";\n\n";
 
         int cond_num = 0;
         ostringstream temp;
@@ -1050,7 +1087,7 @@ void CodeGen_OpenCL_Dev::CodeGen_OpenCL_C::visit(const Call *op) {
                         cond += " && ";
                     }
                 }
-                
+
                 temp << get_indent()  << "index_t dep_" << task_id << "_" << dep_num
                      << " = {" << kv.first << ", {";
 
@@ -1071,7 +1108,7 @@ void CodeGen_OpenCL_Dev::CodeGen_OpenCL_C::visit(const Call *op) {
             }
 
             temp << "}};\n";
-            temp << get_indent() << "task.deps[" << dep_num << "]" 
+            temp << get_indent() << "task.deps[" << dep_num << "]"
                    << " = dep_" << task_id << "_" << dep_num << ";\n";
             dep_num ++;
         }
@@ -1079,26 +1116,27 @@ void CodeGen_OpenCL_Dev::CodeGen_OpenCL_C::visit(const Call *op) {
         stream << temp.str();
         stream << get_indent() << "task.num_of_deps = " << dep_num << ";\n\n";
         // if (cond_num == 0) {
-        //   stream << get_indent() << "task.num_of_deps = " 
+        //   stream << get_indent() << "task.num_of_deps = "
         //          << dep_num << ";\n\n";
         // } else {
-        //   stream << get_indent() << "task.num_of_deps = (" 
-        //          << cond << " ? " << dep_num << " : " 
+        //   stream << get_indent() << "task.num_of_deps = ("
+        //          << cond << " ? " << dep_num << " : "
         //          << dep_num - cond_num << ");\n\n";
         // }
 
-        // Prepare input information 
-        stream << get_indent() << "inputs.finish = task.index;\n"; 
+        // Prepare input information
+        stream << get_indent() << "inputs.finish = task.index;\n";
         for (auto& input : inputs) {
             string name = input.name;
             string prefix = (starts_with(name, "inputs.args")) ? "_" : "";
-            stream << get_indent() << input.name << " = " 
+            stream << get_indent() << input.name << " = "
                 << prefix << input.value << ";\n";
         }
-        stream << get_indent() << "task.inputs = inputs;\n"; 
+        stream << get_indent() << "task.inputs = inputs;\n";
         stream << get_indent() << "write_channel_intel(qt, task);\n";
         stream << get_indent() << "mem_fence(CLK_CHANNEL_MEM_FENCE);\n\n";
     } else {
+        // Other intrinsics
         CodeGen_C::visit(op);
     }
 }
@@ -1311,7 +1349,7 @@ void CodeGen_OpenCL_Dev::CodeGen_OpenCL_C::visit(const Store *op) {
                    << " + " << id_ramp_base << ")) = " << id_value << ";\n";
         } else {
             stream << get_indent() << "vstore" << t.lanes() << "("
-                   << id_value << ","
+                   << id_value << ", "
                    << 0 << ", (" << get_memory_space(op->name) << " "
                    << print_type(t.element_of()) << "*)"
                    << print_name(op->name) << " + " << id_ramp_base
@@ -1771,8 +1809,8 @@ void CodeGen_OpenCL_Dev::CodeGen_OpenCL_C::add_kernel(Stmt s,
     // Emit the function prototype.
     IsAutorun checker;
     s.accept(&checker);
-    char *overlay_kenrel_name = getenv("HL_OVERLAY_KERNEL");
-    if (checker.is_autorun || (overlay_kenrel_name != NULL && args.size() == 0)) {
+    char *overlay_kernel_name = getenv("HL_OVERLAY_KERNEL");
+    if (checker.is_autorun || (overlay_kernel_name != NULL && args.size() == 0)) {
         stream << "__attribute__((max_global_work_dim(0)))\n";
         stream << "__attribute__((autorun))\n";
     }
@@ -1781,7 +1819,7 @@ void CodeGen_OpenCL_Dev::CodeGen_OpenCL_C::add_kernel(Stmt s,
     for (size_t i = 0; i < args.size(); i++) {
         if (args[i].is_buffer) {
             stream << " " << get_memory_space(args[i].name) << " ";
-            // TODO: Update buffer attributes if written in kernel ip 
+            // TODO: Update buffer attributes if written in kernel ip
             char *overlay_num = getenv("HL_OVERLAY_NUM");
             if (!args[i].write && overlay_num == NULL) stream << "const ";
             stream << print_type(args[i].type) << " *"
@@ -1828,6 +1866,10 @@ void CodeGen_OpenCL_Dev::CodeGen_OpenCL_C::add_kernel(Stmt s,
         }
     }
 
+    DeclareArrays da(this);
+    s.accept(&da);
+    stream << da.arrays.str();
+
     print(s);
     close_scope("kernel " + name);
 
@@ -1855,8 +1897,8 @@ void CodeGen_OpenCL_Dev::init_module() {
 
     const Target &target = clc.get_target();
 
-    // Check whether it's compiled for ip kernel 
-    char *overlay_kenrel = getenv("HL_OVERLAY_KERNEL"); 
+    // Check whether it's compiled for ip kernel
+    char *overlay_kenrel = getenv("HL_OVERLAY_KERNEL");
     if (overlay_kenrel != NULL) return;
 
     // This identifies the program as OpenCL C (as opposed to SPIR).
@@ -1988,7 +2030,7 @@ void CodeGen_OpenCL_Dev::init_module() {
         src_stream << "#include \"ihc_apint.h\"\n";
         char *space_dim = getenv("HL_SPACE_DIM");
         char *overlay_dtype = getenv("HL_OVERLAY_DTYPE");
-        src_stream << "#define DTYPE  " << string(overlay_dtype) 
+        src_stream << "#define DTYPE  " << string(overlay_dtype)
             << "  // default data type\n";
 
         src_stream << "#define K      " << ip_num << "   // number of IPs\n";
@@ -2026,7 +2068,7 @@ typedef struct task {
     bool        last;
 } task_t;
 
-// Task graph 
+// Task graph
 typedef struct graph {
     uint16_t     slots;        // valid bit used for allocation
     uint16_t     issue;        // valid bit used for task issuance
@@ -2039,14 +2081,14 @@ channel task_t qt __attribute__((depth(64)));
 channel int    qf __attribute__((depth(64)));
 
 )";
-        // Print req and ack channels 
+        // Print req and ack channels
         src_stream << "channel arg_t q[" << ip_num << "] __attribute__((depth(64)));\n";
         src_stream << "channel index_t q_ret[" << ip_num << "] __attribute__((depth(64)));\n";
         src_stream << R"(
 // Map from task to array index in the graph
 int map( graph_t* graph, index_t key) {
     for (int index = 0; index < SIZE; index++) {
-      index_t k = graph->tasks[index].index; 
+      index_t k = graph->tasks[index].index;
       if (k.task_id == key.task_id) {
         bool match = true;
         for (int i = 0; i < M; i++) {
@@ -2086,19 +2128,19 @@ void allocate(graph_t* graph, task_t task) {
 // Find out tasks with all deps satisified
 bool dispatch(graph_t* graph, task_t* task) {
     for (int i = 0; i < SIZE; i++) {
-        // valid task slot with no dependency 
+        // valid task slot with no dependency
         if ((graph->slots & (1 << i)) && graph->deps[i] == 0x0000) {
             if (!(graph->issue & (1 << i))) {
               graph->issue |= (1 << i);
-              *task = graph->tasks[i]; 
+              *task = graph->tasks[i];
               return true;
             }
         }
     }
     return false;
-} 
+}
 
-// Update the graph  
+// Update the graph
 void update(graph_t* graph, index_t key) {
     int index = map(graph, key);
     // invalidate the slot
@@ -2118,21 +2160,21 @@ void update(graph_t* graph, index_t key) {
 __attribute__((max_global_work_dim(0)))
 __attribute__((autorun))
 __kernel void scheduler() {
-    
+
     // create task graph
     graph_t graph;
     graph.slots = 0x0000;
     graph.issue = 0x0000;
 
     int task_count = 0;
-    bool task_not_end = true; 
+    bool task_not_end = true;
 
     // perform scheduling
     while(1) {
 
         while (task_not_end) {
             if (graph.slots == 0xFFFF) break;   // stop allocating when graph is full
-            task_t task = read_channel_intel(qt);   // read task generated by the application 
+            task_t task = read_channel_intel(qt);   // read task generated by the application
 
             if (task.last) {
                 // printf("Received the last task....\n");
@@ -2154,7 +2196,7 @@ __kernel void scheduler() {
 )";
         for (int t = 0; t < ip_num; t++) {
             src_stream << string(16, ' ') << "case " << t << ": {\n";
-            src_stream << string(20, ' ') << "write_channel_intel(q[" 
+            src_stream << string(20, ' ') << "write_channel_intel(q["
                 << t << "], task.inputs);\n";
             src_stream << string(20, ' ') << "break;\n";
             src_stream << string(16, ' ') << "}\n";
@@ -2163,7 +2205,7 @@ __kernel void scheduler() {
             }
         }
 
-        // update the graph with ack information 
+        // update the graph with ack information
         mem_fence(CLK_CHANNEL_MEM_FENCE);
         for (int i = 0; i < K; i++) {
             bool ret_valid = true;
@@ -2177,7 +2219,7 @@ __kernel void scheduler() {
             src_stream << string(20, ' ') << "while (ret_valid) {\n";
             src_stream << string(24, ' ') << "update(&graph, ret);\n"
                        << string(24, ' ') << "ret = read_channel_nb_intel(q_ret["<< t <<"], &ret_valid); \n";
-            src_stream << string(20, ' ') << "}\n" 
+            src_stream << string(20, ' ') << "}\n"
                        << string(20, ' ') << "break;\n";
             src_stream << string(16, ' ') << "}\n";
         }
@@ -2194,10 +2236,10 @@ __kernel void scheduler() {
 }
 
 )";
-        // Include the kernel ip functions 
-        char *overlay_kenrel_files = getenv("HL_OVERLAY_FILES"); 
+        // Include the kernel ip functions
+        char *overlay_kenrel_files = getenv("HL_OVERLAY_FILES");
         user_assert(overlay_kenrel_files != NULL) << "HL_OVERLAY_FILES empty...\n";
-        
+
         std::string text(overlay_kenrel_files);
         std::size_t start = 0, end = 0;
         while ((end = text.find(" ", start)) != std::string::npos) {
@@ -2243,15 +2285,15 @@ void CodeGen_OpenCL_Dev::compile_to_aocx(std::ostringstream &src_stream) {
     // Otherwise, dump the source code to ~/tmp/a.cl and compile it to ~/tmp/a.aocx.
     char *aocx_name = getenv("BITSTREAM");
     std::string bitstream_file = (aocx_name != NULL) ? std::string(aocx_name) : (std::string(getenv("HOME")) + "/tmp/a.aocx");
-    user_assert(ends_with(bitstream_file, ".aocx")) << " Bitstream file name expected to end with \".aocx\"\n"; 
+    user_assert(ends_with(bitstream_file, ".aocx")) << " Bitstream file name expected to end with \".aocx\"\n";
     user_assert(bitstream_file.size() < 300) << "The full name of the bitstream file is too long. "
             << "Consider to define a environment variable BITSTREAM within 300 characters instead. Current file name:\n"
             << bitstream_file << "\n";
 
-    // If HL_OVERLAY_KERNEL is set, only compile the CL files in local 
-    char *overlay_kenrel_name = getenv("HL_OVERLAY_KERNEL"); 
-    if (overlay_kenrel_name != NULL) {
-        auto cl_name = std::string(overlay_kenrel_name) + ".cl";
+    // If HL_OVERLAY_KERNEL is set, only compile the CL files in local
+    char *overlay_kernel_name = getenv("HL_OVERLAY_KERNEL");
+    if (overlay_kernel_name != NULL) {
+        auto cl_name = std::string(overlay_kernel_name) + ".cl";
         std::ofstream fp(cl_name.c_str(), std::ios::out);
         internal_assert(fp) << "Error: failed to open file " << cl_name << " for output.\n";
         fp << src_stream.str() << "\n";
@@ -2316,10 +2358,10 @@ void CodeGen_OpenCL_Dev::CodeGen_OpenCL_C::print_global_data_structures_before_k
 }
 
 void CodeGen_OpenCL_Dev::CodeGen_OpenCL_C::DeclareChannels::visit(const Realize *op) {
-    if (ends_with(op->name, ".channel")) {
+    if (ends_with(op->name, ".channel") || ends_with(op->name, ".channel.array")) {
         // Get the bounds in which all bounds are for the dimensions of the channel array, except the last one is for the min depth.
         Region bounds = op->bounds;
-        std::string bounds_str = "" ;
+        std::string bounds_str = "";
         std::string attributes = "";
         for (size_t i = 0; i < bounds.size(); i++) {
             Range b = bounds[i];
@@ -2335,21 +2377,44 @@ void CodeGen_OpenCL_Dev::CodeGen_OpenCL_C::DeclareChannels::visit(const Realize 
         }
         internal_assert(op->types.size() == 1) << "In generating Intel OpenCL for FPGAs, a single type is expected for a channel.\n";
         std::string type = parent->print_type(op->types[0]);
+
         std::ostringstream oss;
-        oss << "channel " << type << " " << parent->print_name(op->name) << bounds_str << attributes << ";\n";
-        channels += oss.str();
+        if (ends_with(op->name, ".channel")) {
+            oss << "channel " << type << " " << parent->print_name(op->name) << bounds_str << attributes << ";\n";
+            channels += oss.str();
+        } else {
+            string printed_name = parent->print_name(op->name);
+            string type_name = printed_name + "_t";
+            size_t pos_last_token = printed_name.rfind('_');
+            string channel_name = printed_name.substr(0, pos_last_token);
+            oss << "typedef struct { " << type << " s" << bounds_str << "; } " << type_name << ";\n";
+            oss << "channel " << type_name << " " << channel_name << attributes << ";\n";
+            channels += oss.str();
+        }
     }
     IRVisitor::visit(op);
 }
 
-/* 
+void CodeGen_OpenCL_Dev::CodeGen_OpenCL_C::DeclareArrays::visit(const Call *op) {
+    if (op->is_intrinsic(Call::write_array)) {
+        string printed_name = parent->print_name(op->args[0].as<StringImm>()->value);
+        string type_name = printed_name + "_t";
+        if (array_set.find(printed_name) == array_set.end()) {
+            array_set.insert(printed_name);
+            arrays << parent->get_indent() << type_name << " " << printed_name << ";\n";
+        }
+    }
+    return IRVisitor::visit(op);
+}
+
+/*
 Check if shift reg has irregular bounds.
 e.g.    realize shift regs [k, J-k] [0, K] [0, T]
           ...
             unrolled k = 0 to K
               unrolled j = k to J
                 ...
-The corresponding systolic array of above case is triangular in shape. 
+The corresponding systolic array of above case is triangular in shape.
 */
 bool CodeGen_OpenCL_Dev::CodeGen_OpenCL_C::is_irregular(Region &bounds) {
     bool irregular_bounds = false;
@@ -2410,7 +2475,7 @@ void CodeGen_OpenCL_Dev::CodeGen_OpenCL_C::GatherShiftRegsAllocates::print_irreg
             rhs << type << " " << new_name << bounds_str << ";\n";
             shift_regs_allocates[reg_name].push_back(rhs.str());
         }
-        
+
     }
 }
 
@@ -2426,7 +2491,7 @@ void CodeGen_OpenCL_Dev::CodeGen_OpenCL_C::GatherShiftRegsAllocates::visit(const
 }
 
 void CodeGen_OpenCL_Dev::CodeGen_OpenCL_C::GatherShiftRegsAllocates::visit(const Realize *op) {
-    if (ends_with(op->name, ".channel")) {
+    if (ends_with(op->name, ".channel") || ends_with(op->name, ".channel.array")) {
     } else if (ends_with(op->name, ".shreg")) {
         ostringstream rhs;
         Region bounds = op->bounds;
@@ -2436,13 +2501,13 @@ void CodeGen_OpenCL_Dev::CodeGen_OpenCL_C::GatherShiftRegsAllocates::visit(const
         if (parent->is_irregular(bounds)) {
             debug(3) << op->name << " has irregular bounds. \n";
             /*
-            For irregular case, we physically unroll the space dimension of shift registers. 
-            e.g. 
+            For irregular case, we physically unroll the space dimension of shift registers.
+            e.g.
             realize shreg[k, 3-k][0, 3][0, 100] of type float32
-            [k, 3-k] and [0, 3] are space dimensions. 
-            The generated code should be like this: 
-            float shreg_0_0[100]; float shreg_0_1[100]; float shreg_0_2[100]; 
-                                  float shreg_1_1[100]; float shreg_1_2[100]; 
+            [k, 3-k] and [0, 3] are space dimensions.
+            The generated code should be like this:
+            float shreg_0_0[100]; float shreg_0_1[100]; float shreg_0_2[100];
+                                  float shreg_1_1[100]; float shreg_1_2[100];
                                                         float shreg_2_2[100];
             */
 
@@ -2455,7 +2520,7 @@ void CodeGen_OpenCL_Dev::CodeGen_OpenCL_C::GatherShiftRegsAllocates::visit(const
             //     debug(2) << "space var " << var << "\n";
 
             // Divide reg bounds into space bounds and time bounds.
-            // We only unroll the space part. 
+            // We only unroll the space part.
             Region space_bounds, time_bounds;
             for (size_t i = 0; i < bounds.size(); i++) {
                 if (i < space_var_num)
@@ -2515,7 +2580,7 @@ void CodeGen_OpenCL_Dev::CodeGen_OpenCL_C::GatherShiftRegsAllocates::visit(const
 }
 
 void CodeGen_OpenCL_Dev::CodeGen_OpenCL_C::visit(const Realize *op) {
-    if (ends_with(op->name, ".channel")) {
+    if (ends_with(op->name, ".channel") || ends_with(op->name, ".channel")) {
         // We have already declared the channel before the kernel with print_global_data_structures_before_kernel().
         // Just skip it and get into the body.
         print_stmt(op->body);
@@ -2574,9 +2639,9 @@ void CodeGen_OpenCL_Dev::CodeGen_OpenCL_C::visit(const Provide *op){
         std::string name = op->name.substr(0, op->name.length()-std::string(".ibuffer").size());
         std::vector<std::string> access_exprs;
         for(size_t i = 0; i < op->args.size(); i++) {
-        	access_exprs.push_back(print_expr(op->args[i]));
+            access_exprs.push_back(print_expr(op->args[i]));
         }
-        string buffer_name = name + '.' + std::to_string(0) + ".ibuffer";   
+        string buffer_name = name + '.' + std::to_string(0) + ".ibuffer";
         stream << get_indent() << print_name(buffer_name);
         for(size_t i = 0; i < op->args.size(); i++) {
             stream << "[";
@@ -2586,14 +2651,14 @@ void CodeGen_OpenCL_Dev::CodeGen_OpenCL_C::visit(const Provide *op){
         stream << " = " << id_value << ";\n";
         cache.clear();
     } else if (ends_with(op->name, ".temp")) {
-    	internal_assert(op->values.size() == 1);
-    	string id_value = print_expr(op->values[0]);
-    	std::string name = op->name;
+        internal_assert(op->values.size() == 1);
+        string id_value = print_expr(op->values[0]);
+        std::string name = op->name;
         std::vector<std::string> access_exprs;
         for(size_t i = 0; i < op->args.size(); i++) {
-        	access_exprs.push_back(print_expr(op->args[i]));
+            access_exprs.push_back(print_expr(op->args[i]));
         }
-    	stream << get_indent() << print_name(name);
+        stream << get_indent() << print_name(name);
         // do_indent();
         for(size_t i = 0; i < op->args.size(); i++) {
             stream << "[";

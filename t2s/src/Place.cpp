@@ -791,6 +791,78 @@ set<string> identify_funcs_outputting_to_mem_channels(Stmt s, const map<string, 
     return funcs_outputting_to_mem_channels;
 }
 
+// The __fpga_reg function is useful to "Break the critical paths between spatially distant portions of a data path,
+// such as between processing elements of a large systolic array." We check the arguments' differences in the nested
+// write/read_shift_regs calls, which hints the data path across PEs:
+// write_shift_regs("X.shreg", iii, jjj, read_shift_regs("X.shreg", iii-1, jjj)), iii and jjj are space loops
+// The value of X is propogated along the iii dimension. After transformation, a fpga_reg call is inserted:
+// write_shift_regs("X.shreg", iii, jjj, fpga_reg( read_shift_regs("X.shreg", iii-1, jjj) ))
+class RegCallInserter : public IRMutator {
+    using IRMutator::visit;
+    vector<Expr> write_args;
+    vector<string> space_loops;
+
+    class FindSpaceVar : public IRVisitor {
+        using IRVisitor::visit;
+        string var;
+
+    public:
+        bool found = false;
+        FindSpaceVar(string &_s)
+            : var(_s) {}
+
+        void visit(const Variable *v) override {
+            if (extract_last_token(v->name) == var) {
+                found = true;
+            }
+        }
+    };
+public:
+    RegCallInserter(vector<string> &_s)
+        : space_loops(_s) {}
+
+    Expr visit(const Call *op) override {
+        if (op->is_intrinsic(Call::write_shift_reg)) {
+            write_args = op->args;
+            vector<Expr> new_args;
+            for (size_t i = 0; i < op->args.size(); i++) {
+                new_args.push_back(mutate(op->args[i]));
+            }
+            write_args.clear();
+            return Call::make(op->type, op->name, new_args, op->call_type);
+        }
+        if (op->is_intrinsic(Call::read_shift_reg) && write_args.size() > 0) {
+            for (auto &v : space_loops) {
+                FindSpaceVar spv(v);
+                size_t iw = 1, end_w = write_args.size()-1;
+                size_t ir = 1, end_r = op->args.size();
+                spv.found = false;
+                for (; iw < end_w; iw++) {
+                    write_args[iw].accept(&spv);
+                    if (spv.found) {
+                        break;
+                    }
+                }
+                spv.found = false;
+                for (; ir < end_r; ir++) {
+                    op->args[ir].accept(&spv);
+                    if (spv.found) {
+                        break;
+                    }
+                }
+                if (iw < end_w && ir < end_r) {
+                    // Both iw (write) and ir (read) refer to one of the space loop
+                    // So we compare them and insert a fpga_reg if different
+                    Expr diff = simplify(write_args[iw] - op->args[ir]);
+                    if (!is_zero(diff)) {
+                        return Call::make(op->type, "fpga_reg", { op }, Call::PureIntrinsic);
+                    }
+                }
+            }
+        }
+        return IRMutator::visit(op);
+    }
+};
 
 Stmt replace_references_with_channels(Stmt s, const map<string, Function> &env) {
     LoopBounds global_bounds;
@@ -846,6 +918,23 @@ Stmt replace_references_with_shift_registers(Stmt s, const map<string, Function>
     return s;
 }
 
-}
+Stmt insert_fpga_reg(Stmt s, const map<string, Function> &env) {
+    vector<string> space_loops;
+    for (auto &kv : env) {
+        if (kv.second.definition().schedule().transform_params().size() > 0) {
+            // Only the space loops are needed to identify spatially distant PEs
+            const auto &params = kv.second.definition().schedule().transform_params();
+            const auto &dst_vars = params[0].dst_vars;
+            std::copy(dst_vars.begin(), dst_vars.end()-1, std::back_inserter(space_loops));
+            // Trick: in double buffer template, space loop is annotated with suffix "buf"
+            space_loops.push_back("buf");
+            break;
+        }
+    }
+    RegCallInserter inserter(space_loops);
+    s = inserter.mutate(s);
+    return s;
 }
 
+}
+}

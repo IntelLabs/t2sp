@@ -197,6 +197,11 @@ Func& Func::space_time_transform(const vector<Var>& src_vars,
         var_map.insert({src_vars[i].name(), var});
     }
 
+    vector<std::string> src_names(src_size);
+    for (size_t i = 0; i < src_size; i++) {
+        src_names[i] = src_vars[i].name();
+    }
+
     user_assert(dst_size <= src_size);
     // Add prefix of variable name
     vector<std::string> dst_names(dst_size);
@@ -279,7 +284,7 @@ Func& Func::space_time_transform(const vector<Var>& src_vars,
     params.dst_vars = dst_names;
     params.reverse = new_reverse;
     params.sch_vector_specified = true;
-    params.num_src_vars_specified = src_vars.size();
+    params.src_vars = src_names;
     param_vector.push_back(params);
 
     return *this;
@@ -676,7 +681,7 @@ class SpaceTimeTransformer : public IRMutator {
                 // name, instead of the current func's name, because this loop is not
                 // from the current func. Otherwise, the bound inference later will break
                 // as it will use this loop var to infer the bounds of the current func.
-                std::string sr_name = unique_name("DUMMY") + ".s0.t";
+                std::string sr_name = unique_name("dummy") + ".s0.t";
                 Expr sr_var = Variable::make(Int(32), sr_name);
                 // build the for loop body
                 vector<Expr> provide_args;
@@ -926,6 +931,8 @@ A.space_time_transform({k, j},
                     for (size_t j = 0; j < num_args; j++) {
                         const Variable* old_arg = args[i].as<Variable>();
                         const Variable* new_arg = loop_vars[j].as<Variable>();
+                        internal_assert(old_arg);
+                        internal_assert(new_arg);
                         if (old_arg->name == new_arg->name) {
                             loop_var_pos[j] = i;
                             break;

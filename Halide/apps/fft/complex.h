@@ -68,6 +68,9 @@ inline Halide::Expr im(Halide::Expr x) {
 inline ComplexExpr conj(ComplexExpr z) {
     return ComplexExpr(re(z), -im(z));
 }
+inline Halide::Expr conj(Halide::Expr x) {
+    return x;
+}
 
 // Unary negation.
 inline ComplexExpr operator-(ComplexExpr z) {
@@ -106,6 +109,10 @@ inline ComplexExpr operator/(ComplexExpr a, Halide::Expr b) {
     return ComplexExpr(re(a) / b, im(a) / b);
 }
 
+inline ComplexExpr operator/(ComplexExpr a, ComplexExpr b) {
+    return a * conj(b) / (re(b)*re(b) + im(b)*im(b));
+}
+
 // Compute exp(j*x)
 inline ComplexExpr expj(Halide::Expr x) {
     return ComplexExpr(Halide::cos(x), Halide::sin(x));
@@ -116,9 +123,14 @@ inline ComplexExpr sum(ComplexExpr z, const std::string &s = "sum") {
     return ComplexExpr(Halide::sum(re(z), s + "_re"),
                        Halide::sum(im(z), s + "_im"));
 }
+
 inline ComplexExpr select(Halide::Expr c, ComplexExpr t, ComplexExpr f) {
-    return ComplexExpr(Halide::select(c, re(t), re(f)),
-                       Halide::select(c, im(t), im(f)));
+    Halide::Expr re_part=Halide::select(c, re(t), re(f));
+    Halide::Expr im_part=Halide::select(c, im(t), im(f));
+    return ComplexExpr(re_part, im_part);
+}
+inline ComplexExpr select(Halide::Expr c, ComplexExpr t) {
+    return ComplexExpr(Halide::select(c, re(t)), Halide::select(c, im(t)));
 }
 inline ComplexExpr select(Halide::Expr c1, ComplexExpr t1,
                           Halide::Expr c2, ComplexExpr t2,
@@ -136,5 +148,18 @@ inline ComplexExpr cast(Halide::Type type, ComplexExpr z) {
 inline ComplexExpr likely(ComplexExpr z) {
     return ComplexExpr(Halide::likely(re(z)), Halide::likely(im(z)));
 }
+template<typename T>
+inline T select(Halide::Expr c, ComplexExpr t, FuncRefT<T> f){
+    return select(c,t,f.toT());
+}
+template<typename T>
+inline T select(Halide::Expr c, FuncRefT<T> t, ComplexExpr f){
+    return select(c,t.toT(),f);
+}
+template<typename T>
+inline T select(Halide::Expr c, FuncRefT<T> t, FuncRefT<T> f){
+    return select(c,t.toT(),f.toT());
+}
+
 
 #endif

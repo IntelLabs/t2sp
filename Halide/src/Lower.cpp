@@ -73,6 +73,7 @@
 
 // T2S related
 #include "../../t2s/src/AutorunKernels.h"
+#include "../../t2s/src/ChannelPromotion.h"
 #include "../../t2s/src/CheckRecursiveCalls.h"
 #include "../../t2s/src/ComputeLoopBounds.h"
 #include "../../t2s/src/CombineChannels.h"
@@ -85,6 +86,7 @@
 #include "../../t2s/src/MinimizeShregs.h"
 #include "../../t2s/src/NoIfSimplify.h"
 #include "../../t2s/src/Overlay.h"
+#include "../../t2s/src/PatternMatcher.h"
 #include "../../t2s/src/Place.h"
 #include "../../t2s/src/ScatterAndBuffer.h"
 #include "../../t2s/src/SpaceTimeTransform.h"
@@ -457,11 +459,11 @@ Module lower(const vector<Function> &output_funcs,
                  << s << "\n\n";
     }
 
-    debug(1) << "Detecting vector interleavings...\n";
+    // debug(1) << "Detecting vector interleavings...\n";
     // s = rewrite_interleavings(s);
-    s = simplify(s);
-    debug(2) << "Lowering after rewriting vector interleavings:\n"
-             << s << "\n\n";
+    // s = simplify(s);
+    // debug(2) << "Lowering after rewriting vector interleavings:\n"
+            //  << s << "\n\n";
 
 
     debug(1) << "Partitioning loops to simplify boundary conditions...\n";
@@ -512,6 +514,13 @@ Module lower(const vector<Function> &output_funcs,
     }
     debug(1) << "CSE...\n";
     s = common_subexpression_elimination(s);
+    debug(2) << "Lowering after CSE:\n"
+             << s << "\n\n";
+
+    debug(1) << "Matching compute patterns...\n";
+    s = match_patterns(s);
+    debug(2) << "Lowering after matching patterns:\n"
+             << s <<"\n\n";
 
     if (t.has_feature(Target::OpenGL)) {
         debug(1) << "Detecting varying attributes...\n";
@@ -522,6 +531,13 @@ Module lower(const vector<Function> &output_funcs,
         debug(1) << "Moving varying attribute expressions out of the shader...\n";
         s = setup_gpu_vertex_buffer(s);
         debug(2) << "Lowering after removing varying attributes:\n"
+                 << s << "\n\n";
+    }
+
+    if (t.has_feature(Target::IntelFPGA)) {
+        debug(1) << "Inserting FPGA register calls\n";
+        s = insert_fpga_reg(s, env);
+        debug(2) << "Lowering after inserting FPGA register calls:\n"
                  << s << "\n\n";
     }
 
@@ -537,11 +553,21 @@ Module lower(const vector<Function> &output_funcs,
     debug(1) << "Lowering after final simplification:\n"
              << s << "\n\n";
 
-    // For overlay, we don't need to flatten task loops. 
+    debug(1) << "Replace memory channel with references...\n";
+    s = replace_mem_channels(s, env, funcs_using_mem_channels);
+    debug(2) << "Lowering after replacing memory channels:\n"
+             << s << "\n\n";
+
+    debug(1) << "Promoting channels...\n";
+    s = channel_promotion(s);
+    debug(2) << "Lowering after channel promotion:\n"
+             << s << "\n\n";
+
+    // For overlay, we don't need to flatten task loops.
     char *overlay_num = getenv("HL_OVERLAY_NUM");
     if (overlay_num == NULL) {
         debug(1) << "Flatten the loops...\n";
-        s = simplify(flatten_loops(s, env, funcs_using_mem_channels));
+        s = simplify(flatten_loops(s, env));
         debug(2) << "Lowering after loop flattening:\n" << s << "\n\n";
     }
 
