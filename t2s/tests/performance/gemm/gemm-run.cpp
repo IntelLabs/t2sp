@@ -80,8 +80,8 @@ int main()
     double compute_roof = 2 * DSPs() * FMax();
     double number_ops = 2 * (double)(III * II * I) * (double)(JJJ * JJ * J) * (double)(KKK * KK * K); // Total operations (GFLOP for GEMM), independent of designs
     double number_bytes = (double)(KKK * III) * (double)(KK * II) * (double)(K * J * I) * 4 +
-    		              (double)(KKK * JJJ) * (double)(KK * JJ) * (double)(K * J * I) * 4 +
-						  (double)(III * II * I) * (double)(JJJ * JJ * J) * 4;
+                          (double)(KKK * JJJ) * (double)(KK * JJ) * (double)(K * J * I) * 4 +
+                          (double)(III * II * I) * (double)(JJJ * JJ * J) * 4;
     double exec_time= ExecTime();
     roofline(mem_bandwidth, compute_roof, number_ops, number_bytes,exec_time);
     if (fopen("roofline.png", "r") == NULL) {

@@ -373,9 +373,9 @@ class RealizeOnFPGA
     }
 
     // Check if the stensors are inclusive cache
-    // Namely, for input chain the scope of consumer cannot beyound its predecessor,
+    // Namely, for input chain the scope of consumer cannot be beyond its predecessor,
     // for output chain the scope of consumer cannot below its predecessor
-    // If not specified, the scope is inherited from its 
+    // If not specified, the scope is inherited
     void check_inclusiveness(Schain &c) {
         if (!c.is_output) {
             // start from the outermost loop

@@ -16,8 +16,8 @@
 *
 * SPDX-License-Identifier: BSD-2-Clause-Patent
 *******************************************************************************/
-#ifndef T2S_REMOVE_CONDS_H
-#define T2S_REMOVE_CONDS_H
+#ifndef T2S_PATTERN_MATCHER_H
+#define T2S_PATTERN_MATCHER_H
 
 #include "../../Halide/src/IR.h"
 
