@@ -31,12 +31,6 @@ int main(void) {
     .set_bounds(j2, 0, SIZE);
 
   // Space loops should be at the innermost level.
-  try {
-      A2.space_time_transform(j2);
-  } catch (Halide::CompileError &e) {
-      cout << e.what() << "Success!\n";
-      exit(0);
-  }
-  cout << "Failed!\n";
-  exit(1);
+  A2.space_time_transform(j2);
+  cout << "Success!\n";
 }

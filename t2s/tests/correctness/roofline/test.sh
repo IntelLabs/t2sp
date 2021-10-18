@@ -8,7 +8,7 @@ NOCOLOR='\033[0m'
 # In this array, every element contains:
 # Test file
 regression=(
-        gemm.cpp
+        gemm
         
 )
 
@@ -18,14 +18,14 @@ fail=0
 function emulate_func {
     eval file="$1"
     printf "$file "
-    compile="g++ $file -g -I ../util  -I ../../../../Halide/include -L ../../../../Halide/bin $EMULATOR_LIBHALIDE_TO_LINK -lz -lpthread -ldl -std=c++11 "
-    clean="rm -rf a a.out $HOME/tmp/a.aocx $HOME/tmp/a.aocr $HOME/tmp/a.aoco $HOME/tmp/a.cl $HOME/tmp/a profile_info.txt *.png"
+    compile="g++ $file.cpp ../../../src/SharedUtilsInC.cpp ../../../src/Roofline.cpp -g -I ../util -I ../../../src -I ../../../../Halide/include -L ../../../../Halide/bin $EMULATOR_LIBHALIDE_TO_LINK -lz -lpthread -ldl -std=c++11 "
+    clean="rm -rf a a.out $file $file.aoc* $file.cl exec_time.txt *.png"
     $clean
     $compile >& a
     if [ -f "a.out" ]; then
         # There is an error "Unterminated quoted string" using $run due to AOC_OPTION. To avoid it, explicitly run for every case.
-        run="env PRAGMAUNROLL=1 CL_CONTEXT_EMULATOR_DEVICE_INTELFPGA=1 INTEL_FPGA_OCL_PLATFORM_NAME="\""$EMULATOR_PLATFORM"\"" AOC_OPTION="\""$EMULATOR_AOC_OPTION -board=$FPGA_BOARD -emulator-channel-depth-model=strict "\"" ./a.out"
-        timeout 5m env PRAGMAUNROLL=1 BITSTREAM="${HOME}/tmp/a.aocx" CL_CONTEXT_EMULATOR_DEVICE_INTELFPGA=1 INTEL_FPGA_OCL_PLATFORM_NAME="$EMULATOR_PLATFORM" AOC_OPTION="$EMULATOR_AOC_OPTION -board=${FPGA_BOARD} -emulator-channel-depth-model=strict " ./a.out >& a
+        run="env PRAGMAUNROLL=1 BITSTREAM="\""$file.aocx"\"" CL_CONTEXT_EMULATOR_DEVICE_INTELFPGA=1 INTEL_FPGA_OCL_PLATFORM_NAME="\""$EMULATOR_PLATFORM"\"" AOC_OPTION="\""$EMULATOR_AOC_OPTION -board=$FPGA_BOARD -emulator-channel-depth-model=strict "\"" ./a.out"
+        timeout 5m env PRAGMAUNROLL=1 BITSTREAM="$file.aocx" CL_CONTEXT_EMULATOR_DEVICE_INTELFPGA=1 INTEL_FPGA_OCL_PLATFORM_NAME="$EMULATOR_PLATFORM" AOC_OPTION="$EMULATOR_AOC_OPTION -board=${FPGA_BOARD} -emulator-channel-depth-model=strict " ./a.out >& a
         if  tail -n 1 a | grep -q -E "^Success!"; then
             echo >> success.txt
             echo $clean >> success.txt

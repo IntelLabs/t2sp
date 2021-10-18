@@ -18,6 +18,8 @@
 ###############################################################################
 import numpy as np
 import sys
+import matplotlib
+matplotlib.use('Agg')
 from matplotlib import pyplot as plt
 
 def roofline(mem_bandwidth, compute_roof, number_ops, number_bytes, exec_time):

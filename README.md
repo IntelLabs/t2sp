@@ -149,7 +149,7 @@ To remove all the temporary files generated during the regression testing:
 
 # Performance tests
 
-Current release contains only SGEMM on Arria 10 FPGA. Follow the details at `t2s/tests/performance/gemm`.
+Current release contains only SGEMM on Arria 10 FPGA. Follow the details at `t2s/tests/performance/gemm/README.md`.
 
 # Features
 
@@ -185,11 +185,11 @@ We have a set of [tutorials](https://github.com/intel/FPGA-Devcloud/tree/master/
 
 + SGEMM performance test that works across Arria 10 FPGA, GEN 9.5 GPU, and GEN 12 GPU with high and portable performance. Aim to open by the end of October, 2021.
 
-  This is our first test that builds a hardware systolic array on an FPGA and a software systolic array on a GPU with high performance in a single specification. 
+  This will be our first test that builds a hardware systolic array on an FPGA and a software systolic array on a GPU with high performance in a single specification. 
 
 + Other portable performance tests, including 2-D convolution, Capsule convolution, and PairHMM, are aimed to open in November, 2021.
 
-+ Support for Stratix 10 FPGA will be released afterwards.
++ Support for Stratix 10 FPGA will be released afterwards (The current release works for S10 as well, but lacks some critical optimizations for it).
 
 # Citation
 

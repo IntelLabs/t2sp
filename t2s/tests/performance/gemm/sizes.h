@@ -19,6 +19,7 @@
 #ifndef GEMM_SIZES_H
 #define GEMM_SIZES_H
 
+// Loop bounds
 #ifdef TINY // For verifying correctness only
     #define KKK         4
     #define JJJ         4
@@ -46,7 +47,7 @@
     #define JJ          32
     #define II          32
     #define KK          32
-    #define K           4
+    #define K           32
     #define J           32
     #define I           32
 #endif

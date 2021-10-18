@@ -1997,8 +1997,8 @@ void CodeGen_C::visit(const Div *op) {
     int bits;
     if (is_const_power_of_two_integer(op->b, &bits)) {
         visit_binop(op->type, op->a, make_const(op->a.type(), bits), ">>");
-    //} else if (op->type.is_int()) {
-    //    print_expr(lower_euclidean_div(op->a, op->b));
+    } else if (op->type.is_int()) {
+       print_expr(lower_euclidean_div(op->a, op->b));
     } else {
         visit_binop(op->type, op->a, op->b, "/");
     }
@@ -2008,8 +2008,8 @@ void CodeGen_C::visit(const Mod *op) {
     int bits;
     if (is_const_power_of_two_integer(op->b, &bits)) {
         visit_binop(op->type, op->a, make_const(op->a.type(), (1 << bits) - 1), "&");
-    //} else if (op->type.is_int()) {
-    //    print_expr(lower_euclidean_mod(op->a, op->b));
+    } else if (op->type.is_int()) {
+       print_expr(lower_euclidean_mod(op->a, op->b));
     } else if (op->type.is_float()) {
         string arg0 = print_expr(op->a);
         string arg1 = print_expr(op->b);

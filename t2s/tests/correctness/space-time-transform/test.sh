@@ -9,7 +9,7 @@ NOCOLOR='\033[0m'
 # design
 regression=(
               2D-loop-1-1.cpp 1
-              2D-loop-1-2-negative.cpp 1
+              2D-loop-1-2.cpp 1
               2D-loop-1-3-negative.cpp 1
               2D-loop-1-4.cpp 1
               2D-loop-2-1.cpp 1
@@ -21,7 +21,7 @@ regression=(
               2D-loop-6.cpp 1
               3D-loop-1-1.cpp 1
               3D-loop-1-4.cpp 1
-              3D-loop-1-5-negative.cpp 1
+              3D-loop-1-5.cpp 1
               3D-loop-2-1.cpp 1
               3D-loop-2-4.cpp 1
               3D-loop-3-1.cpp 1
@@ -55,7 +55,7 @@ function test_func {
     printf "$file design=$design "
     compile="    g++ $file -g -I ../util  -I ../../../../Halide/include -L ../../../../Halide/bin $EMULATOR_LIBHALIDE_TO_LINK -lz -lpthread -ldl -std=c++11 -DSIZE=10  -DVERBOSE_DEBUG -DPLACE0=Place::Host -DPLACE1=Place::Host -DDESIGN=$design"
     run="./a.out"
-    clean="rm -rf a a.out $HOME/tmp/a.aocx $HOME/tmp/a.aocr $HOME/tmp/a.aoco $HOME/tmp/a.cl $HOME/tmp/a profile_info.txt"
+    clean="rm -rf a a.out $HOME/tmp/a.aocx $HOME/tmp/a.aocr $HOME/tmp/a.aoco $HOME/tmp/a.cl $HOME/tmp/a exec_time.txt"
     $clean
     $compile >& a
     if [ -f "a.out" ]; then

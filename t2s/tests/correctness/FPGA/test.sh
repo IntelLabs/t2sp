@@ -93,12 +93,12 @@ function test_func {
     fi 
 
     if [ "$remove" = "remove" ]; then
-        rm -rf $bitstream profile_info.txt a $HOME/tmp/a.*  $HOME/tmp/a $HOME/tmp/4.*  $HOME/tmp/4 $HOME/tmp/5.*  $HOME/tmp/5
+        rm -rf $bitstream exec_time.txt a $HOME/tmp/a.*  $HOME/tmp/a $HOME/tmp/4.*  $HOME/tmp/4 $HOME/tmp/5.*  $HOME/tmp/5
     fi
 }
         
 echo "Testing FPGA target."
-rm -rf success.txt failure.txt profile_info.txt a $HOME/tmp/a.*  $HOME/tmp/a $HOME/tmp/4.*  $HOME/tmp/4 $HOME/tmp/5.*  $HOME/tmp/5
+rm -rf success.txt failure.txt exec_time.txt a $HOME/tmp/a.*  $HOME/tmp/a $HOME/tmp/4.*  $HOME/tmp/4 $HOME/tmp/5.*  $HOME/tmp/5
 index=0
 while [ "$index" -lt "${#array[*]}" ]; do
    file=${array[$index]}

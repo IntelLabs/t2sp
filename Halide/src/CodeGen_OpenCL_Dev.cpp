@@ -1815,8 +1815,8 @@ void CodeGen_OpenCL_Dev::CodeGen_OpenCL_C::add_kernel(Stmt s,
     // Emit the function prototype.
     IsAutorun checker;
     s.accept(&checker);
-    char *overlay_kenrel_name = getenv("HL_OVERLAY_KERNEL");
-    if (checker.is_autorun || (overlay_kenrel_name != NULL && args.size() == 0)) {
+    char *overlay_kernel_name = getenv("HL_OVERLAY_KERNEL");
+    if (checker.is_autorun || (overlay_kernel_name != NULL && args.size() == 0)) {
         stream << "__attribute__((max_global_work_dim(0)))\n";
         stream << "__attribute__((autorun))\n";
     }
@@ -2297,9 +2297,9 @@ void CodeGen_OpenCL_Dev::compile_to_aocx(std::ostringstream &src_stream) {
             << bitstream_file << "\n";
 
     // If HL_OVERLAY_KERNEL is set, only compile the CL files in local
-    char *overlay_kenrel_name = getenv("HL_OVERLAY_KERNEL");
-    if (overlay_kenrel_name != NULL) {
-        auto cl_name = std::string(overlay_kenrel_name) + ".cl";
+    char *overlay_kernel_name = getenv("HL_OVERLAY_KERNEL");
+    if (overlay_kernel_name != NULL) {
+        auto cl_name = std::string(overlay_kernel_name) + ".cl";
         std::ofstream fp(cl_name.c_str(), std::ios::out);
         internal_assert(fp) << "Error: failed to open file " << cl_name << " for output.\n";
         fp << src_stream.str() << "\n";

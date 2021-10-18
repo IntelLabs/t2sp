@@ -32,11 +32,7 @@ int main(void) {
     .set_bounds(k2, 0, SIZE);
 
   // Space loops should be adjacent to each other.
-  try {
-      A2.space_time_transform(i2, k2);
-  } catch (Halide::CompileError &e) {
-      cout << e.what() << "Success!\n";
-      exit(0);
-  }
-  return 1;
+  A2.space_time_transform(i2, k2);
+  cout << "Success!\n";
+  return 0;
 }

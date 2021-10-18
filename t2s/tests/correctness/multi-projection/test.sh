@@ -73,7 +73,7 @@ function emulate_func {
         let fail=fail+1
         echo " Failure!"
     fi 
-    rm -f a a.out profile_info.txt 1dconv-fbs-1 capsule 
+    rm -f a a.out exec_time.txt 1dconv-fbs-1 capsule 
 }
         
 rm -f success.txt failure.txt

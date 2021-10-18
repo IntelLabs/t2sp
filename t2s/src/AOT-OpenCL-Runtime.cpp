@@ -17,6 +17,7 @@
 * SPDX-License-Identifier: BSD-2-Clause-Patent
 *******************************************************************************/
 #include "AOT-OpenCL-Runtime.h"
+#include "SharedUtilsInC.h"
 
 #define WEAK __attribute__((weak))
 #define ACL_ALIGNMENT 64
@@ -130,7 +131,6 @@ WEAK int32_t halide_device_and_host_malloc(void *user_context, struct halide_buf
 
         const char *name = getenv("INTEL_FPGA_OCL_PLATFORM_NAME");
         platform = findPlatform(name);
-printf("%s\n", name); 
         if(platform == NULL) {
             DPRINTF("ERROR: Unable to find Intel(R) FPGA OpenCL platform\n");
             return -1;
@@ -297,16 +297,16 @@ WEAK int32_t halide_device_and_host_free(void *user_context, void *obj) {
 WEAK void halide_device_and_host_free_as_destructor(void *user_context, void *obj) {
 }
 
+// Return execution time in nanoseconds, as well as the start and end time in nanoseconds
 double compute_kernel_execution_time(cl_event &event, double &start_d, double &end_d) {
     cl_ulong start, end;
 
     clGetEventProfilingInfo(event, CL_PROFILING_COMMAND_END, sizeof(cl_ulong), &end, NULL);
     clGetEventProfilingInfo(event, CL_PROFILING_COMMAND_START, sizeof(cl_ulong), &start, NULL);
 
-    start_d = (double)1.0e-9 * start;
-    end_d = (double)1.0e-9 * end;
-    //return (double)(end-start);
-    return (double)1.0e-9 * (end - start); // nanoseconds to seconds
+    start_d = (double)start;
+    end_d = (double)end;
+    return (double)(end-start);
 }
 
 WEAK int32_t halide_opencl_wait_for_kernels_finish(void *user_context) {
@@ -360,41 +360,36 @@ WEAK int32_t halide_opencl_wait_for_kernels_finish(void *user_context) {
     double k_start_time[NUM_KERNELS_TO_CREATE];
     double k_end_time[NUM_KERNELS_TO_CREATE];
     double k_exec_time[NUM_KERNELS_TO_CREATE];
-    double max_time = 0;
     for (int i = 0; i < NUM_KERNELS_TO_CREATE; i++) {
         k_exec_time[i] = compute_kernel_execution_time(kernel_exec_event[i], k_start_time[i], k_end_time[i]);
-        if (k_exec_time[i] > max_time) {
-            max_time = k_exec_time[i];
-        }
     }
-
-    char *output_file = getenv("BITSTREAM");
-    int i;
-    for (i = strlen(output_file) - 1; i >= 0 && output_file[i] != '/'; i--) { ; }
-    strcpy(output_file + i + 1, "exec_time.txt");
 
     double k_earliest_start_time = k_start_time[0];
     double k_latest_end_time = k_end_time[0];
-
     for (int i = 1; i < NUM_KERNELS_TO_CREATE; i++) {
-        if (k_start_time[i] < k_earliest_start_time)
+        if (k_start_time[i] < k_earliest_start_time) {
             k_earliest_start_time = k_start_time[i];
-
-        if (k_end_time[i] > k_latest_end_time)
+        }
+        if (k_end_time[i] > k_latest_end_time) {
             k_latest_end_time = k_end_time[i];
+        }
     }
 
-    uint64_t k_overall_exec_time = (uint64_t)((k_latest_end_time - k_earliest_start_time) * 1e9);
+    double k_overall_exec_time = k_latest_end_time - k_earliest_start_time;
 
-    FILE *fp = fopen(output_file, "w+");
-
+    char *bitstream_dir = bitstream_directory();
+    char *exec_time_file = concat_directory_and_file(bitstream_dir, "exec_time.txt");
+    FILE *fp = fopen(exec_time_file, "w");
     if (fp == NULL) {
-        DPRINTF("Failed to open the AOCX file (fopen).\n");
+        DPRINTF("Failed to open %s for writing.\n", exec_time_file);
+        free(bitstream_dir);
+        free(exec_time_file);
         return -1;
     }
-
-    fprintf(fp, "%ld\n", k_overall_exec_time);
-
+    fprintf(fp, "%f\n", k_overall_exec_time);
+    fclose(fp);
+    free(bitstream_dir);
+    free(exec_time_file);
     return 0;
 }
 
