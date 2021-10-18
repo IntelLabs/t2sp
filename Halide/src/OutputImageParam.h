@@ -120,6 +120,13 @@ public:
 
     OutputImageParam &set_bounds(const vector<int> &bounds);
 
+    void mem_fetch(Var loop_level, MemoryType mem_type, vector<Expr> reuse_args, size_t sz = 16) {
+        func.mem_fetch(loop_level, mem_type, reuse_args, sz);
+    }
+    void mem_fetch(Var loop_level, MemoryType mem_type, size_t sz = 16) {
+        func.mem_fetch(loop_level, mem_type, {}, sz);
+    }
+
     template<typename... Args>
     HALIDE_NO_USER_CODE_INLINE typename std::enable_if<Internal::all_are_convertible<int, Args...>::value, OutputImageParam &>::type
     set_bounds(int x, Args... args) {

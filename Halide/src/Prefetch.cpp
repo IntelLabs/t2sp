@@ -367,6 +367,9 @@ Stmt reduce_prefetch_dimension(Stmt stmt, const Target &t) {
         // size at runtime. To be safe, we just use 32 bytes.
         max_dim = 1;
         max_byte_size = 32;
+    } else if (t.has_feature(Target::IntelGPU)) {
+        max_dim = 1;
+        max_byte_size = 256;
     } else {
         max_dim = 1;
         max_byte_size = 64;

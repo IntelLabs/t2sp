@@ -460,15 +460,27 @@ struct PrefetchDirective {
     Parameter param;
 };
 
-
+struct FetchParams {
+    std::string store_at;
+    MemoryType store_in;
+    size_t rw_len;
+    std::vector<Expr> reuse_args;
+};
+ 
+struct StoreParams {
+    std::vector<Expr> shape_args;
+    size_t rw_len;
+};
+ 
 
 struct SpaceTimeTransformParams {
+    size_t num_space_vars;
     std::vector<int> sch_vector;
-    SpaceTimeTransform check_time;
     std::vector<std::string> src_vars;
     std::vector<std::string> dst_vars;
     std::vector<std::vector<int>> proj_matrix;
     std::map<std::string, Expr> reverse;
+    SpaceTimeTransform check_time;
     // The following field records the original specification, without any processing (In comparison, the above fields
     // like sch_vector, proj_matrix, etc. could have been processed to be different from the original specification. See
     // PreprocessBeforeLower.cpp).
@@ -650,6 +662,7 @@ public:
  * innards. In the future it may become more encapsulated. */
 class StageSchedule {
     IntrusivePtr<StageScheduleContents> contents;
+    std::string inherit_name;
 
 public:
     StageSchedule(IntrusivePtr<StageScheduleContents> c)
@@ -739,6 +752,16 @@ public:
     bool &is_merged();
     const bool &is_merged() const;
     // @}
+
+    bool &is_remove();
+    bool has_stt() const;
+    bool has_fetch() const;
+    bool has_store() const;
+    bool has_prefetch() const;
+    FetchParams &fetch_params();
+    const FetchParams &fetch_params() const;
+    StoreParams &store_params();
+    const StoreParams &store_params() const;
 
     /** Merged Functions */
     const std::vector<Function> merged_funcs() const;

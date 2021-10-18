@@ -455,23 +455,6 @@ void substitute_calls(Func                               &f,
     }
 }
 
-void fix_transform_params(const string &old_func_name, const string &new_func_name,
-                          vector<SpaceTimeTransformParams> &transform_params) {
-    internal_assert(transform_params.size() < 2); // Currently only at most one STT is allowed.
-    if (transform_params.empty()) {
-        return;
-    }
-    map<string, Expr> &reverse = transform_params[0].reverse;
-    map<string, Expr> new_reverse;
-    for (auto &r : reverse) {
-        internal_assert(starts_with(r.first, old_func_name + ".s0."));
-        string new_name = new_func_name + ".s0." + extract_after_tokens(r.first, 2);
-        Expr new_value = replace_prefix(old_func_name, new_func_name, r.second);
-        new_reverse[new_name] = new_value;
-    }
-    reverse = std::move(new_reverse);
-}
-
 void fix_map(map<Func, Func, FuncCompare> &m, const Func &dest, const Func &new_dest) {
     for (auto itr : m) {
         if (itr.second.name() == dest.name()) {
@@ -564,9 +547,6 @@ Func &Func::isolate_producer(const vector<FuncOrExpr> &_fs, Func p) {
         a.function().definition().schedule().splits() = func.definition().schedule().splits();
         a.function().definition().schedule().dims() = func.definition().schedule().dims();
         a.function().definition().schedule().transform_params() = func.definition().schedule().transform_params();
-        // The reverse map in the transform params contain variables with function prefix. Change the
-        // function prefix to this new function name.
-        fix_transform_params(func.name(), p.name(), a.function().definition().schedule().transform_params());
         a.function().arg_min_extents() = func.arg_min_extents();
         a.function().definition().schedule().is_input() = true;
         a.function().isolated_from_as_producer() = name();

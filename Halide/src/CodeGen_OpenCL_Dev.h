@@ -196,7 +196,6 @@ protected:
     CodeGen_OpenCL_C clc;
 
 private:
-
     // Methods only for generating OpenCL code for Intel FPGAs
     void compile_to_aocx(std::ostringstream &src_stream);
 

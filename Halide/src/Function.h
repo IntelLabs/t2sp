@@ -219,9 +219,6 @@ public:
     /** Does this function has merged definitions? */
     bool has_merged_defs() const;
 
-    /** Does this function has space-time transform specification */
-    bool has_stt() const;
-
     /** Does this function has shift register? */
     bool has_shift_reg(bool is_set = false); 
 

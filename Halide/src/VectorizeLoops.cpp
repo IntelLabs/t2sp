@@ -274,6 +274,8 @@ class PredicateLoadStore : public IRMutator {
             // See: https://github.com/halide/Halide/issues/3534
             // return (bit_size == 32) && (lanes >= 4);
             return false;
+        } else if (target.has_feature(Target::IntelGPU)) {
+            return true;
         }
         // For other architecture, do not predicate vector load/store
         return false;

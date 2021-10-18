@@ -2638,6 +2638,28 @@ Func &Func::fold_storage(Var dim, Expr factor, bool fold_forward) {
     return *this;
 }
 
+Func &Func::mem_fetch(Var loop_level, MemoryType mem_type, vector<Expr> reuse_args, size_t sz) {
+    invalidate_cache();
+
+    FetchParams &fp = func.definition().schedule().fetch_params();
+    fp.store_at = loop_level.name();
+    fp.store_in = mem_type;
+    fp.rw_len = sz;
+    fp.reuse_args = reuse_args;
+
+    return *this;
+}
+
+Func &Func::mem_store(const vector<Expr> &args, size_t sz) {
+    invalidate_cache();
+
+    StoreParams &rp = func.definition().schedule().store_params();
+    rp.shape_args = args;
+    rp.rw_len = sz;
+
+    return *this;
+}
+
 Func &Func::late_fuse(Func f, Var var) {
     invalidate_cache();
 

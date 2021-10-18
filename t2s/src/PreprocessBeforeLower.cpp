@@ -32,114 +32,94 @@ using std::vector;
 
 class SttChecker : public IRVisitor {
   public:
-    SttChecker(const std::vector<Var> &a)
-        : args(a.begin(), a.end()),
-          num_stt_args(0) {}
-    
-    size_t get_num_stt_args(void) const {
-        return num_stt_args;
-    }
-
+    std::set<std::string> extend_dims;
+    SttChecker(const std::vector<Var> &a, const std::vector<string> &s)
+        : args(a), src_vars(s) {}
   private:
     using IRVisitor::visit;
-    std::vector<Var> args;
-    // the outermost dimension having dependence
-    // the stt spec should cover this dimension
-    size_t num_stt_args;
+    const std::vector<Var> args;
+    const std::vector<string> src_vars;
 
     void visit(const Call* op) override {
-        if (op->call_type != Call::Halide) {
-            IRVisitor::visit(op);
-            return;
-        }
+        if (op->call_type == Call::Halide) {
+            // Check all UREs' dependences and record their dimension indexes
+            Function func(op->func);
+            if ((func.definition().schedule().is_merged() || func.has_merged_defs())
+                && !func.definition().schedule().is_output()
+                && !func.definition().schedule().is_input()) {
+                vector<Expr> call_args = op->args;
+                internal_assert(call_args.size() == args.size());
 
-        Function func(op->func);
-        if (func.definition().schedule().is_merged() ||
-            func.has_merged_defs()) {
-            vector<Expr> call_args = op->args;
-            size_t off_args = args.size() - call_args.size();
-            internal_assert(off_args >= 0);
-            for (size_t i = off_args; i < args.size(); i++) {
-                debug(3) << args[i] - call_args[i - off_args] << ", ";
-                if (!is_zero(simplify(args[i] - call_args[i - off_args])))
-                    if (num_stt_args < i + 1)
-                        num_stt_args = i + 1;
+                for (size_t i = 0; i < args.size(); i++) {
+                    string dim_name = args[i].name();
+                    auto diff = simplify(args[i] - call_args[i]);
+                    auto src_it = std::find(src_vars.begin(), src_vars.end(), dim_name);
+                    if (!is_zero(diff) && src_it == src_vars.end()) {
+                        extend_dims.insert(dim_name);
+                    }
+                }
             }
-            debug(3) << "\n";
         }
         IRVisitor::visit(op);
     }
 };
 
 
-void check_space_time_transform(const Func &func) {
+void check_space_time_transform(Func &func, Target target) {
     if (func.function().has_merged_defs()
-        && func.function().has_stt()
+        && func.function().definition().schedule().has_stt()
         && !func.function().definition().schedule().is_output()
         && !func.function().definition().schedule().is_input()) {
-        const auto &args = func.args();
-        SttChecker chker(args);
-
-        for (auto &f : func.function().definition().schedule().merged_ures()) {
-            Tuple values = f.values();
-			for (size_t i = 0; i < values.size(); i++) {
-				values[i].accept(&chker);
-			}
-        }
-        size_t num_stt_args = chker.get_num_stt_args();
         auto& param = func.function().definition().schedule().transform_params()[0];
-        size_t num_src_vars = param.sch_vector.size();
-        size_t num_space_vars = param.proj_matrix.size();
+        auto& src_vars = param.src_vars;
+        SttChecker chker(func.args(), src_vars);
 
-        // Take 3D-loop-2-1 as an example:
-        // the reverse transform have the following form:
-        // {i2, i2,             keep the space loop unchanged
-        //  j2, dst % J2        J2 is the original time loop bound
-        //  k2, dst / J2        k2 is the flattened loop, dst = j2 + J2*k2
-        if (num_src_vars < num_stt_args) {
+        vector<Func> ures = func.function().definition().schedule().merged_ures();
+        ures.push_back(func);
+        for (auto &f : ures) {
+            Tuple values = f.values();
+            for (size_t i = 0; i < values.size(); i++) {
+                values[i].accept(&chker);
+            }
+        }
+        auto& extend_dims = chker.extend_dims;
+
+        if (extend_dims.size() > 0) {
             debug(4) << "STT does not cover all the dependencies, "
-                            "try to flatten the time loop...";
-            int loop_bounds = 0;
-            auto dims = func.function().definition().schedule().dims();
+                        "try to flatten the time loop...\n";
+            Expr loop_bound = 0;
+            auto func_dims = func.function().definition().schedule().dims();
 
-            for (size_t i = 0; i < num_space_vars; i++) {
-                for (size_t j = 0; j < num_stt_args - num_src_vars; j++)
-                    param.proj_matrix[i].push_back(0);
-            }
             // the original time loop bound
-            for (size_t i = 0; i < num_src_vars; i++) {
-                auto expr = func.function().get_bounds(dims[i].var).second;
-                const IntImm *bound = expr.as<IntImm>();
-                user_assert(bound)
-                    << "You must specify the loop bound of " << dims[i].var;
-                loop_bounds += param.sch_vector[i] * (int)bound->value;
+            for (size_t i = 0; i < param.sch_vector.size(); i++) {
+                string var = src_vars[i];
+                auto min_expr = func.function().get_bounds(var).first;
+                auto max_expr = func.function().get_bounds(var).second;
+                auto diff = simplify(max_expr - min_expr - 1);
+                loop_bound += param.sch_vector[i] * diff;
             }
-            string name = func.name() + ".s0." + dims[num_src_vars-1].var;
-            Expr ori_rev_expr = param.reverse[name];
-            Expr rev_expr = ori_rev_expr % (int)loop_bounds;
-            param.reverse[name] = simplify(rev_expr);
-            debug(3) << name << ": " << rev_expr << "\n";
+            loop_bound = simplify(loop_bound + 1);
 
-            // the flattened loop
-            rev_expr = ori_rev_expr / loop_bounds;
-            param.sch_vector.push_back(loop_bounds);
-            for (size_t i = num_src_vars; i < num_stt_args-1; i++) {
-                auto expr = func.function().get_bounds(dims[i].var).second;
-                const IntImm *bound = expr.as<IntImm>();
-                user_assert(bound)
-                    << "You must specify the loop bound of " << dims[i].var;
-                rev_expr = rev_expr % (int)bound->value;
-                name = func.name() + ".s0." + dims[i].var;
-                param.reverse.insert({ name, simplify(rev_expr) });
-                debug(3) << name << ": " << rev_expr << "\n";
-
-                loop_bounds *= bound->value;
-                param.sch_vector.push_back(loop_bounds);
-                rev_expr = ori_rev_expr / loop_bounds;
+            for (size_t i = 0; i < func_dims.size()-1; i++) {
+                string cur_dim = func_dims[i].var;
+                auto src_it = std::find(src_vars.begin(), src_vars.end(), cur_dim);
+                // We find a dependence not covered by space-time transform
+                if (src_it == src_vars.end()) {
+                    if (extend_dims.find(cur_dim) != extend_dims.end()) {
+                        src_vars.push_back(cur_dim);
+                        for (size_t i = 0; i < param.proj_matrix.size(); i++) {
+                            param.proj_matrix[i].push_back(0);
+                        }
+                        user_assert(is_const(loop_bound))
+                                << "We cannot flatten the time loop with dynamic bound."
+                                << "Please provide a schedule vector covering all dependencies\n";
+                        param.sch_vector.push_back(loop_bound.as<IntImm>()->value);
+                    }
+                    auto min_expr = func.function().get_bounds(cur_dim).first;
+                    auto max_expr = func.function().get_bounds(cur_dim).second;
+                    loop_bound = simplify(loop_bound * (max_expr - min_expr));
+                }
             }
-            name = func.name() + ".s0." + dims[num_stt_args - 1].var;
-            param.reverse.insert({ name, simplify(rev_expr) });
-            debug(3) << name << ": " << rev_expr << "\n";
         }
     }
 }
@@ -161,6 +141,46 @@ void convert_removed_loops_to_unit_loops(Func &func) {
     }
 }
 
+void reorder_gpu_loops(Func func) {
+    if (func.function().has_merged_defs()
+        && func.function().definition().schedule().has_stt()
+        && !func.function().definition().schedule().is_output()
+        && !func.function().definition().schedule().is_input()) {
+        // A kernel starts from GPU loops, so the outer loops cannot enter into codegen.
+        // We move GPU loops as the outermost levels to be portable acorss targets.
+        auto func_dims = func.function().definition().schedule().dims();
+        vector<VarOrRVar> loops, gpu_loops;
+        for (auto &d : func_dims) {
+            if (d.for_type == ForType::GPUBlock || d.for_type == ForType::GPUThread) {
+                gpu_loops.push_back(Var(d.var));
+            } else {
+                loops.push_back(Var(d.var));
+            }
+        }
+        internal_assert(loops.back().name() == "__outermost");
+        loops.insert(loops.end()-1, gpu_loops.begin(), gpu_loops.end());
+        func.reorder(loops);
+    }
+}
+
+void annotate_loop_type(Func func) {
+    if (func.function().definition().schedule().has_stt()) {
+        // We annotate space loops as unrolled when invoking unscheduled stt, since
+        // the target platform is unknown at that time. But the innermost space loop
+        // should be vectorized while others should be serial on GPUs (loops involved
+        // in memory address can be automatically unrolled in a later stage).
+        auto& param = func.function().definition().schedule().transform_params()[0];
+        if (!param.sch_vector_specified) {
+            auto& src_vars = param.src_vars;
+            func.vectorize(Var(src_vars[0]));
+            for (size_t i = 1; i < src_vars.size(); i++) {
+                func.serial(Var(src_vars[i]));
+            }
+        }
+    }
+}
+
+
 void t2s_preprocess_before_lower(map<string, Func> &env, const Target &target) {
     debug(4) << "Preprocessing functions in the environment:\n";
     for (auto &e : env) {
@@ -170,9 +190,14 @@ void t2s_preprocess_before_lower(map<string, Func> &env, const Target &target) {
         // calls of the function, later we will fix their args corresponding to the loops.
         convert_removed_loops_to_unit_loops(func);
 
+        // GPU-related transform
+        if (target.has_feature(Target::IntelGPU)) {
+            reorder_gpu_loops(func);
+            annotate_loop_type(func);
+        }
         // Space-time transform
         func.apply_same_loop_transform_to_merged_ures();
-        check_space_time_transform(func);
+        check_space_time_transform(func, target);
     }
 }
 

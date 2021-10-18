@@ -83,6 +83,7 @@
 #include "../../t2s/src/Gather.h"
 #include "../../t2s/src/LateFuse.h"
 #include "../../t2s/src/LoopRemoval.h"
+#include "../../t2s/src/MemorySchedule.h"
 #include "../../t2s/src/MinimizeShregs.h"
 #include "../../t2s/src/NoIfSimplify.h"
 #include "../../t2s/src/Overlay.h"
@@ -110,7 +111,6 @@ Module lower(const vector<Function> &output_funcs,
              const vector<IRMutator *> &custom_passes) {
     std::vector<std::string> namespaces;
     std::string simple_pipeline_name = extract_namespaces(pipeline_name, namespaces);
-
     Module result_module(simple_pipeline_name, t);
 
     // Compute an environment
@@ -264,9 +264,11 @@ Module lower(const vector<Function> &output_funcs,
     s = no_if_simplify(s, false);
     debug(2) << "Lowering after simplifying IfThenElse without keeping unit loops:\n" << s << "\n\n";
 
-    debug(1) << "Minimizing shift registers...\n";
-    s = minimize_shift_registers(s, env);
-    debug(2) << "Lowering after minimizing shift registers:\n" << s << "\n\n";
+    if (t.has_feature(Target::IntelFPGA)) {
+        debug(1) << "Minimizing shift registers...\n";
+        s = minimize_shift_registers(s, env);
+        debug(2) << "Lowering after minimizing shift registers:\n" << s << "\n\n";
+    }
 
     debug(1) << "Performing storage folding optimization...\n";
     s = storage_folding(s, env);
@@ -288,7 +290,7 @@ Module lower(const vector<Function> &output_funcs,
     //debug(2) << "Lowering after dynamically skipping stages:\n"
     //         << s << "\n\n";
 
-    if (!t.has_feature(Target::IntelFPGA)) {
+    if (!t.features_any_of({ Target::IntelFPGA, Target::IntelGPU })) {
         debug(1) << "Forking asynchronous producers...\n";
         s = fork_async_producers(s, env);
         debug(2) << "Lowering after forking asynchronous producers:\n"
@@ -322,6 +324,12 @@ Module lower(const vector<Function> &output_funcs,
     s = storage_flattening(s, outputs, env, t);
     debug(2) << "Lowering after storage flattening:\n"
              << s << "\n\n";
+
+    if (t.has_feature(Target::IntelGPU)) {
+        debug(1) << "Applying memory schedule...\n";
+        s = do_memory_schedule(s, env);
+        debug(2) << "Lowering after memory schedule:\n" << s << "\n\n";
+    }
 
     debug(1) << "Adding atomic mutex allocation...\n";
     s = add_atomic_mutex(s, env);
@@ -400,9 +408,11 @@ Module lower(const vector<Function> &output_funcs,
     debug(2) << "Lowering after simplifying correlated differences:\n"
              << s << '\n';
 
-    debug(1) << "Devectorize unsuitable loops...\n";
-    s = devectorize(s);
-    debug(2) << "Lowering after devectorizing unsuitable loops:\n" << s << "\n\n";
+    if (t.has_feature(Target::IntelFPGA)) {
+        debug(1) << "Devectorize unsuitable loops...\n";
+        s = devectorize(s);
+        debug(2) << "Lowering after devectorizing unsuitable loops:\n" << s << "\n\n";
+    }
 
     debug(1) << "Vectorizing...\n";
     s = vectorize_loops(s, t);
@@ -565,7 +575,7 @@ Module lower(const vector<Function> &output_funcs,
 
     // For overlay, we don't need to flatten task loops.
     char *overlay_num = getenv("HL_OVERLAY_NUM");
-    if (overlay_num == NULL) {
+    if (t.has_feature(Target::IntelFPGA) && overlay_num == NULL) {
         debug(1) << "Flatten the loops...\n";
         s = simplify(flatten_loops(s, env));
         debug(2) << "Lowering after loop flattening:\n" << s << "\n\n";

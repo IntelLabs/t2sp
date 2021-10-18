@@ -29,6 +29,16 @@
     #define K           4
     #define J           4
     #define I           4
+#elif GPU
+    #define KKK         8
+    #define JJJ         8
+    #define III         32
+    #define JJ          8
+    #define II          2
+    #define KK          32
+    #define K           4
+    #define J           32
+    #define I           32
 #else
     #define KKK         16
     #define JJJ         8

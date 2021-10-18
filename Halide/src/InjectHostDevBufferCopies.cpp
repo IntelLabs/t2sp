@@ -712,6 +712,11 @@ class FindOutermostProduce : public IRVisitor {
         result = op;
     }
 
+    void visit(const For *op) override {
+        if (op->for_type == ForType::GPUBlock)
+            result = op;
+    }
+
 public:
     Stmt result;
 };
