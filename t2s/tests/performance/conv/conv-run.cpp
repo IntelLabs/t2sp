@@ -22,6 +22,9 @@
 // Loop bounds
 #include "sizes.h"
 
+// Roofline utilities
+#include "Roofline.h"
+
 // The only header file needed for including T2S.
 #include "HalideBuffer.h"
 
@@ -86,8 +89,8 @@ int main()
     double mem_bandwidth = 33;
     double compute_roof = 2 * DSPs() * FMax();
      // Total operations (GFLOP for CONV), independent of designs
-    double number_ops = 2 * (long)(B * H * W) * (long)(CO * HH * WW * COO) * (long)(CI * KH * KW * CII);
-    double number_bytes = (long)(TOTAL_IW * TOTAL_IH * TOTAL_CI * B) * 4 + (long)(R_KW * R_KH * TOTAL_CI * TOTAL_CO) * 4
+    double number_ops = 2 * (long)(B * H * W) * (long)(TOTAL_CO * HH * WW) * (long)(TOTAL_CI * KH * KW);
+    double number_bytes = (long)(TOTAL_IW * TOTAL_IH * TOTAL_CI * B) * 4 + (long)(KW * KH * TOTAL_CI * TOTAL_CO) * 4
                         + (long)(TOTAL_OW * TOTAL_OH * TOTAL_CO * B) * 4;
     double exec_time = ExecTime();
     roofline(mem_bandwidth, compute_roof, number_ops, number_bytes, exec_time);
