@@ -1,10 +1,10 @@
-# Matrix Multiply
+# CONV
 
 ## Performance for single precision matrix multiply
 | Device | Frequency | Throughput | Logic utilization | DSPs | BRAMs | DSP Efficiency |
 | ------ | --------- | ------ | --------- | ---- | ----- | -------------- |
-| Intel Arria 10 GX 1150 FPGA | 223 MHz | 540 GFLOPS | 211,417 / 427,200 ( 49 % ) | 1,304 / 1,518 ( 86 % ) | 2,087 / 2,713 ( 77 % ) | 92%   |
-| Intel GEN9.5 GPU | 1200 MHz | 423 GFLOPS | - | - | - | 92%   |
+| Intel Arria 10 GX 1150 FPGA | 201 MHz | ? GFLOPS | 251,033 / 427,200 ( 59 % ) | 1,317 / 1,518 ( 87 % ) | 1,819 / 2,713 ( 67 % ) | ?%   |
+| Intel GEN9.5 GPU | 1200 MHz | 415 GFLOPS | - | - | - | 90%   |
 
 The test can be reproduced by logging into a compute node on Intel FPGA DevCloud with an A10 card and 1.2.1 software stack, and following the instructions below.
 
