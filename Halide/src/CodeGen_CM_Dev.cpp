@@ -55,10 +55,14 @@ string simt_intrinsic(const string &name) {
         return "cm_local_id(0)";
     } else if (ends_with(name, ".__thread_id_y")) {
         return "cm_local_id(1)";
+    } else if (ends_with(name, ".__thread_id_z")) {
+        return "cm_local_id(2)";
     } else if (ends_with(name, ".__block_id_x")) {
         return "cm_group_id(0)";
     } else if (ends_with(name, ".__block_id_y")) {
         return "cm_group_id(1)";
+    } else if (ends_with(name, ".__block_id_z")) {
+        return "cm_group_id(2)";
     }
     internal_error << "simt_intrinsic called on bad variable name: " << name << "\n";
     return "";

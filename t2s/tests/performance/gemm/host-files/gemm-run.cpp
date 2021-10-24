@@ -1,18 +1,10 @@
+#define GPU     1
+#include "sizes.h"
+
 #include <assert.h>
 #include "cm_rt.h"
 #include "common/cm_rt_helpers.h"
 #include "common/isa_helpers.h"
-
-#define KKK         8
-#define JJJ         8
-#define III         32
-#define JJ          8
-#define II          2
-#define KK          32
-#define K           4
-#define J           32
-#define I           32
-#define ITER        100
 
 #define TOTAL_I     III*II*I
 #define TOTAL_J     JJJ*JJ*J
@@ -119,9 +111,8 @@ int main(int argc, char *argv[]) {
         }
         cm_result_check(device->DestroyTask(task));
     }
-    double size_i = TOTAL_I, size_j = TOTAL_J, size_k = TOTAL_K;
     double tkern = kernel_ns / ITER;
-    double ops = size_i*size_j*size_k*2.0;
+    double ops = (long)TOTAL_I*(long)TOTAL_J*(long)TOTAL_K*2.0;
 
     cm_result_check(::DestroyCmDevice(device));
     printf("GFlops: %lf\n", ops / tkern);

@@ -944,7 +944,7 @@ class VectorSubs : public IRMutator {
     Stmt visit(const For *op) override {
         ForType for_type = op->for_type;
         if (for_type == ForType::Vectorized) {
-            user_warning << "Warning: Encountered vector for loop over " << op->name
+            user_warning << "Encountered vector for loop over " << op->name
                          << " inside vector for loop over " << var << "."
                          << " Ignoring the vectorize directive for the inner for loop.\n";
             for_type = ForType::Serial;

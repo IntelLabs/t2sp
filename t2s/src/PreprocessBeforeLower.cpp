@@ -149,16 +149,19 @@ void reorder_gpu_loops(Func func) {
         // A kernel starts from GPU loops, so the outer loops cannot enter into codegen.
         // We move GPU loops as the outermost levels to be portable acorss targets.
         auto func_dims = func.function().definition().schedule().dims();
-        vector<VarOrRVar> loops, gpu_loops;
+        vector<VarOrRVar> loops, gpu_threads, gpu_blocks;
         for (auto &d : func_dims) {
-            if (d.for_type == ForType::GPUBlock || d.for_type == ForType::GPUThread) {
-                gpu_loops.push_back(Var(d.var));
+            if (d.for_type == ForType::GPUThread) {
+                gpu_threads.push_back(Var(d.var));
+            } else if (d.for_type == ForType::GPUBlock) {
+                gpu_blocks.push_back(Var(d.var));
             } else {
                 loops.push_back(Var(d.var));
             }
         }
         internal_assert(loops.back().name() == "__outermost");
-        loops.insert(loops.end()-1, gpu_loops.begin(), gpu_loops.end());
+        loops.insert(loops.end()-1, gpu_threads.begin(), gpu_threads.end());
+        loops.insert(loops.end()-1, gpu_blocks.begin(), gpu_blocks.end());
         func.reorder(loops);
     }
 }
