@@ -119,5 +119,5 @@ This design is specified to compile ahead-of-time (AOT), since AOT mode makes se
     
 - Run the host binary. The host offloads the bitstream to an FPGA and invokes the matrix multiply kernel there through the interface:
     ```
-    env BITSTREAM=a.aocx INTEL_FPGA_OCL_PLATFORM_NAME="$HW_RUN_PLATFORM_NAME" AOC_OPTION="-board=$FPGA_BOARD" ./b.out
+    env BITSTREAM=a.aocx INTEL_FPGA_OCL_PLATFORM_NAME="$HW_PLATFORM" AOC_OPTION="-board=$FPGA_BOARD" ./b.out
     ```
