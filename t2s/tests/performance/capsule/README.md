@@ -1,10 +1,10 @@
-# CONV
+# Matrix Multiply
 
 ## Performance for single precision matrix multiply
 | Device | Frequency | Throughput | Logic utilization | DSPs | BRAMs | DSP Efficiency |
 | ------ | --------- | ------ | --------- | ---- | ----- | -------------- |
-| Intel Arria 10 GX 1150 FPGA | 201 MHz | ? GFLOPS | 251,033 / 427,200 ( 59 % ) | 1,317 / 1,518 ( 87 % ) | 1,819 / 2,713 ( 67 % ) | ?%   |
-| Intel GEN9.5 GPU | 1200 MHz | 415 GFLOPS | - | - | - | 90%   |
+| Intel Arria 10 GX 1150 FPGA | 223 MHz | 540 GFLOPS | 211,417 / 427,200 ( 49 % ) | 1,304 / 1,518 ( 86 % ) | 2,087 / 2,713 ( 77 % ) | 92%   |
+| Intel GEN9.5 GPU | 1200 MHz | 423 GFLOPS | - | - | - | 92%   |
 
 The test can be reproduced by logging into a compute node on Intel FPGA DevCloud with an A10 card and 1.2.1 software stack, and following the instructions below.
 
@@ -32,23 +32,23 @@ This design is specified to compile ahead-of-time (AOT), since AOT mode makes se
 - Just to be safe, remove previously generated bitstream and intermediate files, if any:
   
     ```
-    rm -rf a.* a/ conv-interface.* *.out exec_time.txt
+    rm -rf a.* a/ capsule-interface.* *.out exec_time.txt
     ```
 - Compile the source code in this directory:
     ```
-    g++ conv.cpp -g -I ../util -I $T2S_PATH/Halide/include -L $T2S_PATH/Halide/bin $EMULATOR_LIBHALIDE_TO_LINK -lz -lpthread -ldl -std=c++11 -DTINY
+    g++ capsule.cpp -g -I ../util -I $T2S_PATH/Halide/include -L $T2S_PATH/Halide/bin $EMULATOR_LIBHALIDE_TO_LINK -lz -lpthread -ldl -std=c++11 -DTINY
     ```
 - Generate a device bitstream for emulation, and a C interface for the host to invoke the matrix multiply kernel in the bitstream:
     ```
     env BITSTREAM=a.aocx AOC_OPTION="$EMULATOR_AOC_OPTION -board=$FPGA_BOARD -emulator-channel-depth-model=strict" ./a.out
     ```
     
-     The bitstream generated is `a.aocx`, as indicated by the environment variable, BITSTREAM.  The C interface generated is `conv-interface.cpp`, as specified in `conv.cpp`.
+     The bitstream generated is `a.aocx`, as indicated by the environment variable, BITSTREAM.  The C interface generated is `capsule-interface.cpp`, as specified in `capsule.cpp`.
     
-- Compile the host file (`conv-run.cpp`) and link with the C interface (`conv-interface.cpp`):
+- Compile the host file (`capsule-run.cpp`) and link with the C interface (`capsule-interface.cpp`):
   
     ```
-    g++ conv-run.cpp conv-interface.cpp ../../../src/AOT-OpenCL-Runtime.cpp ../../../src/SharedUtilsInC.cpp -g -DLINUX -DALTERA_CL -fPIC -I../../../src/ -I $T2S_PATH/Halide/include -I$INTELFPGAOCLSDKROOT/examples_aoc/common/inc $INTELFPGAOCLSDKROOT/examples_aoc/common/src/AOCLUtils/opencl.cpp $INTELFPGAOCLSDKROOT/examples_aoc/common/src/AOCLUtils/options.cpp -I$INTELFPGAOCLSDKROOT/host/include -L$INTELFPGAOCLSDKROOT/linux64/lib -L$AOCL_BOARD_PACKAGE_ROOT/linux64/lib -L$INTELFPGAOCLSDKROOT/host/linux64/lib -lOpenCL -L $T2S_PATH/Halide/bin -lelf $EMULATOR_LIBHALIDE_TO_LINK -lz -lpthread -ldl -std=c++11 -DTINY -o ./b.out
+    g++ capsule-run.cpp capsule-interface.cpp ../../../src/AOT-OpenCL-Runtime.cpp ../../../src/SharedUtilsInC.cpp -g -DLINUX -DALTERA_CL -fPIC -I../../../src/ -I $T2S_PATH/Halide/include -I$INTELFPGAOCLSDKROOT/examples_aoc/common/inc $INTELFPGAOCLSDKROOT/examples_aoc/common/src/AOCLUtils/opencl.cpp $INTELFPGAOCLSDKROOT/examples_aoc/common/src/AOCLUtils/options.cpp -I$INTELFPGAOCLSDKROOT/host/include -L$INTELFPGAOCLSDKROOT/linux64/lib -L$AOCL_BOARD_PACKAGE_ROOT/linux64/lib -L$INTELFPGAOCLSDKROOT/host/linux64/lib -lOpenCL -L $T2S_PATH/Halide/bin -lelf $EMULATOR_LIBHALIDE_TO_LINK -lz -lpthread -ldl -std=c++11 -DTINY -o ./b.out
     ```
 - Emulate:
     ```
@@ -62,12 +62,12 @@ This design is specified to compile ahead-of-time (AOT), since AOT mode makes se
 - Just to be safe, remove previously generated bitstream and intermediate files, if any.
   
     ```
-    rm -rf a.* a/ conv-interface.* *.out exec_time.txt
+    rm -rf a.* a/ capsule-interface.* *.out exec_time.txt
     ```
     
 - Re-compile the source code with large size:
     ```
-    g++ conv.cpp -g -I ../util -I $T2S_PATH/Halide/include -L $T2S_PATH/Halide/bin $HW_LIBHALIDE_TO_LINK -lz -lpthread -ldl -std=c++11
+    g++ capsule.cpp -g -I ../util -I $T2S_PATH/Halide/include -L $T2S_PATH/Halide/bin $HW_LIBHALIDE_TO_LINK -lz -lpthread -ldl -std=c++11
     ```
     
 - Generate a device bitstream, and a C interface for the host to invoke the matrix multiply kernel in the bitstream:
@@ -84,7 +84,7 @@ This design is specified to compile ahead-of-time (AOT), since AOT mode makes se
     # file batch.sh
     cd path/to/t2sp
     source setenv.sh devcloud
-    cd t2s/tests/performance/conv
+    cd t2s/tests/performance/capsule
     env BITSTREAM=a.aocx AOC_OPTION="-v -profile -fpc -fp-relaxed -board=$FPGA_BOARD" ./a.out
     ```
 
@@ -97,7 +97,7 @@ This design is specified to compile ahead-of-time (AOT), since AOT mode makes se
 
     After the batch job is done, log into a compute node again, and re-source `setenv.sh` (Step 1).   
 
-    **DevCloud A10PAC 1.2.1 only**: further convert the signed bitstream to unsigned:
+    **DevCloud A10PAC 1.2.1 only**: further capsuleert the signed bitstream to unsigned:
 
     ```
     # Type `y` when prompted
@@ -107,9 +107,9 @@ This design is specified to compile ahead-of-time (AOT), since AOT mode makes se
 
     For more details, see a [pac_a10 tutorial](https://github.com/intel/FPGA-Devcloud/tree/master/main/QuickStartGuides/OpenCL_Program_PAC_Quickstart/Arria%2010).
 
-- Compile the host file (`conv-run.cpp`) and link with the C interface (`conv-interface.cpp`):
+- Compile the host file (`capsule-run.cpp`) and link with the C interface (`capsule-interface.cpp`):
     ```
-    g++ conv-run.cpp conv-interface.cpp ../../../src/AOT-OpenCL-Runtime.cpp ../../../src/Roofline.cpp ../../../src/SharedUtilsInC.cpp  -g -DLINUX -DALTERA_CL -fPIC -I../../../src/ -I $T2S_PATH/Halide/include -I$INTELFPGAOCLSDKROOT/examples_aoc/common/inc $INTELFPGAOCLSDKROOT/examples_aoc/common/src/AOCLUtils/opencl.cpp $INTELFPGAOCLSDKROOT/examples_aoc/common/src/AOCLUtils/options.cpp -I$INTELFPGAOCLSDKROOT/host/include -L$INTELFPGAOCLSDKROOT/linux64/lib -L$AOCL_BOARD_PACKAGE_ROOT/linux64/lib -L$INTELFPGAOCLSDKROOT/host/linux64/lib -lOpenCL -L $T2S_PATH/Halide/bin -lelf $HW_LIBHALIDE_TO_LINK -lz -lpthread -ldl -std=c++11 -o ./b.out
+    g++ capsule-run.cpp capsule-interface.cpp ../../../src/AOT-OpenCL-Runtime.cpp ../../../src/Roofline.cpp ../../../src/SharedUtilsInC.cpp  -g -DLINUX -DALTERA_CL -fPIC -I../../../src/ -I $T2S_PATH/Halide/include -I$INTELFPGAOCLSDKROOT/examples_aoc/common/inc $INTELFPGAOCLSDKROOT/examples_aoc/common/src/AOCLUtils/opencl.cpp $INTELFPGAOCLSDKROOT/examples_aoc/common/src/AOCLUtils/options.cpp -I$INTELFPGAOCLSDKROOT/host/include -L$INTELFPGAOCLSDKROOT/linux64/lib -L$AOCL_BOARD_PACKAGE_ROOT/linux64/lib -L$INTELFPGAOCLSDKROOT/host/linux64/lib -lOpenCL -L $T2S_PATH/Halide/bin -lelf $HW_LIBHALIDE_TO_LINK -lz -lpthread -ldl -std=c++11 -o ./b.out
     ```
 
 - Offload the bitstream to the device.

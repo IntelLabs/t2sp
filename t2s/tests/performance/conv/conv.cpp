@@ -52,13 +52,13 @@ int main(void)
     #define P_I     total_ci + (TOTAL_CI) * b,  total_iw + TOTAL_IW * total_ih
     #define P_K     total_co + TOTAL_CO * r_kw, total_ci + (TOTAL_CI) * r_kh
     #define P_O     total_co + (TOTAL_CO) * b,  total_ow + TOTAL_OW * total_oh
-    #define BB      (I.dim(0).extent() / TOTAL_CI)
+    #define UB      (I.dim(0).extent() / TOTAL_CI)
 #else
     ImageParam I("I", TTYPE, 4), K("K", TTYPE, 4);
     #define P_I     total_iw, total_ih, total_ci, b
     #define P_K     r_kw, r_kh, total_ci, total_co
     #define P_O     P_Out
-    #define BB      (I.dim(3).extent())
+    #define UB      (I.dim(3).extent())
 #endif
 
     // UREs
@@ -80,7 +80,7 @@ int main(void)
      .set_bounds(coo,   0, COO, co,   0, CO)
      .set_bounds(ww,    0, WW,  hh,   0, HH)
      .set_bounds(w,     0, W,   h,    0, H)
-     .set_bounds(b,     0, BB);
+     .set_bounds(b,     0, UB);
 
     // Create a systolic array
     X.space_time_transform(coo, ww);
