@@ -1,10 +1,10 @@
-# Matrix Multiply
+# Capsule
 
 ## Performance for single precision matrix multiply
 | Device | Frequency | Throughput | Logic utilization | DSPs | BRAMs | DSP Efficiency |
 | ------ | --------- | ------ | --------- | ---- | ----- | -------------- |
-| Intel Arria 10 GX 1150 FPGA | 223 MHz | 540 GFLOPS | 211,417 / 427,200 ( 49 % ) | 1,304 / 1,518 ( 86 % ) | 2,087 / 2,713 ( 77 % ) | 92%   |
-| Intel GEN9.5 GPU | 1200 MHz | 423 GFLOPS | - | - | - | 92%   |
+| Intel Arria 10 GX 1150 FPGA | 210 MHz | 534 GFLOPS | 214,384 / 427,200 ( 53 % ) | 1,295 / 1,518 ( 85 % ) | 1,866 / 2,713 ( 69 % ) | 98%   |
+| Intel GEN9.5 GPU | 1200 MHz | 416 GFLOPS | - | - | - | 90%   |
 
 The test can be reproduced by logging into a compute node on Intel FPGA DevCloud with an A10 card and 1.2.1 software stack, and following the instructions below.
 
@@ -119,5 +119,5 @@ This design is specified to compile ahead-of-time (AOT), since AOT mode makes se
     
 - Run the host binary. The host offloads the bitstream to an FPGA and invokes the matrix multiply kernel there through the interface:
     ```
-    env BITSTREAM=a.aocx INTEL_FPGA_OCL_PLATFORM_NAME="$HW_RUN_PLATFORM_NAME" AOC_OPTION="-board=$FPGA_BOARD" ./b.out
+    env BITSTREAM=a.aocx INTEL_FPGA_OCL_PLATFORM_NAME="$HW_PLATFORM" AOC_OPTION="-board=$FPGA_BOARD" ./b.out
     ```
