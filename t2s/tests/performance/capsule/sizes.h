@@ -60,7 +60,7 @@
     #define CI          2
     #define KW          3
     #define KH          3
-    #define B           6
+    #define B           16
 #endif
 
 #define TOTAL_IH        (H * 2 + KH - 1)

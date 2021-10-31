@@ -12,7 +12,7 @@ if [ $0 == $BASH_SOURCE ]; then
    exit
 fi 
 
-if [ "$1" != "devcloud" -a "$1" != "local" ]; then
+if [ "$1" != "devcloud" -a "$1" != "local" -a "$1" != "gpu" ]; then
     show_usage
     return 
 fi
@@ -50,6 +50,13 @@ if [ "$1" = "local" ]; then
         unset CL_CONTEXT_EMULATOR_DEVICE_ALTERA
         export EMULATOR_LIBHALIDE_TO_LINK="-lHalide"
         export HW_LIBHALIDE_TO_LINK="-lHalide"
+fi
+
+if [ "$1" = "gpu" ]; then
+	export CM_ROOT=~/Linux_C_for_Metal_Development_Package_20200119
+	export LIBVA_DRIVERS_PATH=$CM_ROOT/drivers/media_driver/release/extract/usr/lib/x86_64-linux-gnu/dri
+	export LD_LIBRARY_PATH=$CM_ROOT/drivers/media_driver/release/extract/usr/lib/x86_64-linux-gnu:$LD_LIBRARY_PATH
+	export HW_LIBHALIDE_TO_LINK="$T2S_PATH/Halide/lib/libHalide.a"
 fi
 
 #### No need to change below this point ##########

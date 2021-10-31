@@ -47,13 +47,13 @@
     #define CII         16
     #define COO         8
     #define WW          10
-    #define HH          10
+    #define HH          30
     #define CO          32
     #define KW          3
     #define KH          3
     #define CI          16
     #define W           6
-    #define H           6
+    #define H           2
     #define B           64
 #endif
 
