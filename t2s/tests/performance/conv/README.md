@@ -3,7 +3,7 @@
 ## Performance for single precision matrix multiply
 | Device | Frequency | Throughput | Logic utilization | DSPs | BRAMs | DSP Efficiency |
 | ------ | --------- | ------ | --------- | ---- | ----- | -------------- |
-| Intel Arria 10 GX 1150 FPGA | 201 MHz | ? GFLOPS | 251,033 / 427,200 ( 59 % ) | 1,317 / 1,518 ( 87 % ) | 1,819 / 2,713 ( 67 % ) | ?%   |
+| Intel Arria 10 GX 1150 FPGA | 206 MHz | 515 GFLOPS | 257,558 / 427,200 ( 60 % ) | 1,299 / 1,518 ( 86 % ) | 2,011 / 2,713 ( 74 % ) | 96%   |
 | Intel GEN9.5 GPU | 1200 MHz | 415 GFLOPS | - | - | - | 90%   |
 
 The test can be reproduced by logging into a compute node on Intel FPGA DevCloud with an A10 card and 1.2.1 software stack, and following the instructions below.
@@ -119,5 +119,32 @@ This design is specified to compile ahead-of-time (AOT), since AOT mode makes se
     
 - Run the host binary. The host offloads the bitstream to an FPGA and invokes the matrix multiply kernel there through the interface:
     ```
-    env BITSTREAM=a.aocx INTEL_FPGA_OCL_PLATFORM_NAME="$HW_RUN_PLATFORM_NAME" AOC_OPTION="-board=$FPGA_BOARD" ./b.out
+    env BITSTREAM=a.aocx INTEL_FPGA_OCL_PLATFORM_NAME="$HW_PLATFORM" AOC_OPTION="-board=$FPGA_BOARD" ./b.out
+    ```
+
+ ### 3. Run on the GEN9 GPU:
+ - Set up the environment in the T2SP directory, if not yet:
+    ```
+    source ../../../../setenv.sh gpu
+    ```
+ - Compile the source code in this directory:
+    ```
+    g++ conv.cpp -g -I ../util -I $T2S_PATH/Halide/include -L $T2S_PATH/Halide/bin $HW_LIBHALIDE_TO_LINK -lz -lpthread -ldl -std=c++11 -DGPU
+    ```
+- Generate kernel file:
+    ```
+    ./a.out
+    ```
+ - Create a new directory and copy the generated kernel and host file:
+    ```
+    mkdir $CM_ROOT/examples/t2sp_conv
+    cp CONV_genx.cpp $CM_ROOT/examples/t2sp_conv
+    cp host-files/gemm-run.cpp $CM_ROOT/examples/t2sp_conv
+    cp sizes.h $CM_ROOT/examples/t2sp_conv
+    ```
+ - Compile and run:
+    ```
+    cd $CM_ROOT/examples/t2sp_conv
+    make -f ../Makefile.linux
+    ./hw_x64.t2sp_conv
     ```
