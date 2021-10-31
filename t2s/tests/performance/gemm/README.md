@@ -121,3 +121,32 @@ This design is specified to compile ahead-of-time (AOT), since AOT mode makes se
     ```
     env BITSTREAM=a.aocx INTEL_FPGA_OCL_PLATFORM_NAME="$HW_PLATFORM" AOC_OPTION="-board=$FPGA_BOARD" ./b.out
     ```
+ 
+ ### 3. Run on the GEN9 GPU:
+ - Set up the environment in the T2SP directory, if not yet:
+    ```
+    source ../../../../setenv.sh gpu
+    ```
+ - Compile the source code in this directory:
+    ```
+    g++ gemm.cpp -g -I ../util -I $T2S_PATH/Halide/include -L $T2S_PATH/Halide/bin $HW_LIBHALIDE_TO_LINK -lz -lpthread -ldl -std=c++11 -DGPU
+    ```
+- Generate kernel file:
+    ```
+    ./a.out
+    ```
+ - Create a new directory and copy the generated kernel and host file:
+    ```
+    mkdir $CM_ROOT/examples/t2sp_gemm
+    cp GEMM_genx.cpp $CM_ROOT/examples/t2sp_gemm
+    cp host-files/gemm-run.cpp $CM_ROOT/examples/t2sp_gemm
+    cp sizes.h $CM_ROOT/examples/t2sp_gemm
+    ```
+ - Compile and run:
+    ```
+    cd $CM_ROOT/examples/t2sp_gemm
+    make -f ../Makefile.linux
+    ./hw_x64.t2sp_gemm
+    ```
+    
+    
