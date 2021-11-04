@@ -80,10 +80,8 @@ This may take ~1 hour on a DevCloud machine.
 
 ```
     cd $HOME/t2sp
-    cp setenv.sh my-setenv.sh
 ```
-
-If you have your own gcc, llvm or clang and thus did not use `install-tools.sh` as shown above, in `my-setenv.sh`, modify the following path variables appropriately:
+Here you would see a `setenv.sh`. If you have your own gcc, llvm or clang and thus did not use `install-tools.sh` as shown above, in `setenv.sh`, modify the following path variables appropriately:
 
 ```
     GCC_PATH=...
@@ -117,8 +115,8 @@ There are 1 board package and 2 boards in this case, and you should set `FPGA_BO
 Set up the environment (whenever a new terminal is open) with one of the following commands:
 
 ```
-    source ./my-setenv.sh local        # If using a local FPGA
-    source ./my-setenv.sh devcloud     # If using DevCloud
+    source ./setenv.sh local        # If using a local FPGA
+    source ./setenv.sh devcloud     # If using DevCloud
 ```
 
 # Build T2SP (whenever you change the source code)
@@ -183,11 +181,11 @@ We have a set of [tutorials](https://github.com/intel/FPGA-Devcloud/tree/master/
 
 # Next releases
 
-+ SGEMM performance test that works across Arria 10 FPGA, GEN 9.5 GPU, and GEN 12 GPU with high and portable performance. Aim to open by the end of October, 2021.
++ Performance tests for SGEMM, 2-D convolution, and Capsule convolution that work across Arria 10 FPGA and GEN 9.5 GPU with high and portable performance. Aim to open in November, 2021.
 
-  This will be our first test that builds a hardware systolic array on an FPGA and a software systolic array on a GPU with high performance in a single specification. 
+  This will be our first suite where each test, written in a single specification, builds a hardware systolic array on an FPGA and a software systolic array on a GPU with high performance. 
 
-+ Other portable performance tests, including 2-D convolution, Capsule convolution, and PairHMM, are aimed to open in November, 2021.
++ Performance test for PairHMM is to open in December, 2021.
 
 + Support for Stratix 10 FPGA will be released afterwards (The current release works for S10 as well, but lacks some critical optimizations for it).
 
