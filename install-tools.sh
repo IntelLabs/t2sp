@@ -32,7 +32,7 @@ function install_cmake {
     cd cmake-$minor
     mkdir -p build && cd build
     ../configure --prefix=$T2S_PATH/install > /dev/null
-    make -j > /dev/null
+    make -j`nproc` > /dev/null
     make install > /dev/null
     cd ..
     cd ..
@@ -46,7 +46,7 @@ function install_m4 {
     tar xvf m4-$version.tar.xz > /dev/null
     cd m4-$version
     ./configure --prefix=$T2S_PATH/install > /dev/null
-    make -j > /dev/null
+    make -j`nproc` > /dev/null
     make install > /dev/null
     cd ..
 }
@@ -58,7 +58,7 @@ function install_gmp {
     tar xvf gmp-$version.tar.xz > /dev/null
     cd gmp-$version
     ./configure --prefix=$T2S_PATH/install > /dev/null
-    make -j > /dev/null
+    make -j`nproc` > /dev/null
     make install > /dev/null
     cd ..
 }
@@ -70,7 +70,7 @@ function install_mpfr {
     tar xvzf mpfr-$version.tar.gz > /dev/null
     cd mpfr-$version
     ./configure --prefix=$T2S_PATH/install --with-gmp=$T2S_PATH/install  > /dev/null
-    make -j > /dev/null
+    make -j`nproc` > /dev/null
     make install > /dev/null
     cd ..
 }
@@ -82,7 +82,7 @@ function install_mpc {
     tar xvzf mpc-$version.tar.gz > /dev/null
     cd mpc-$version
     ./configure --prefix=$T2S_PATH/install --with-gmp=$T2S_PATH/install  --with-mpfr=$T2S_PATH/install > /dev/null
-    make -j > /dev/null
+    make -j`nproc` > /dev/null
     make install > /dev/null
     cd ..
 }
@@ -95,7 +95,7 @@ function install_gcc {
     mkdir -p gcc-$version-build && cd gcc-$version-build
     export LD_LIBRARY_PATH=$T2S_PATH/install/lib:$T2S_PATH/install/lib64:$LD_LIBRARY_PATH
     ../gcc-$version/configure --enable-languages=c,c++ --disable-multilib --prefix=$T2S_PATH/install/gcc-$version --with-gmp=$T2S_PATH/install --with-mpfr=$T2S_PATH/install --with-mpc=$T2S_PATH/install > /dev/null
-    make -j > /dev/null
+    make -j`nproc` > /dev/null
     make install > /dev/null
     cd ..
 }
@@ -113,7 +113,7 @@ function install_llvm_clang {
     export LD_LIBRARY_PATH=$T2S_PATH/install/lib:$T2S_PATH/install/lib64:$LD_LIBRARY_PATH
     CXX=$T2S_PATH/install/gcc-$gcc_version/bin/g++ CC=$T2S_PATH/install/gcc-$gcc_version/bin/gcc cmake -DCMAKE_CXX_LINK_FLAGS="-Wl,-rpath,$T2S_PATH/install/gcc-$gcc_version/lib64 -L$T2S_PATH/install/gcc-$gcc_version/lib64" \
         -DLLVM_ENABLE_TERMINFO=OFF -DLLVM_TARGETS_TO_BUILD="X86" -DLLVM_ENABLE_ASSERTIONS=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=$T2S_PATH/install .. > /dev/null
-    make -j > /dev/null
+    make -j`nproc` > /dev/null
     make install > /dev/null
     cd ..
     cd ..
