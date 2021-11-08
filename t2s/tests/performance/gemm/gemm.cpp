@@ -71,7 +71,7 @@ int main()
      .set_bounds(j,   0, J,   i,   0, I,   k,   0, K);
 
     // Create a systolic array
-    X.space_time_transform(kkk, jjj, iii);
+    X.space_time_transform(jjj, iii);
 
     // GPU can have many threads running in parallel.
 #ifdef GPU
