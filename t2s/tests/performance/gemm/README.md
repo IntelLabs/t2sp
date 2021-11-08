@@ -1,10 +1,9 @@
 # Matrix Multiply
 
 ## Performance for single precision matrix multiply
-| Device | Frequency | Throughput | Logic utilization | DSPs | BRAMs | DSP Efficiency |
+| Device | Frequency | Throughput | Logic utilization | DSPs | BRAMs | DSP Efficiency | Matrix Size | EDA tool |
 | ------ | --------- | ------ | --------- | ---- | ----- | -------------- |
-| Intel Arria 10 GX 1150 FPGA | 223 MHz | 540 GFLOPS | 211,417 / 427,200 ( 49 % ) | 1,304 / 1,518 ( 86 % ) | 2,087 / 2,713 ( 77 % ) | 92%   |
-| Intel GEN9.5 GPU | 1200 MHz | 423 GFLOPS | - | - | - | 92%   |
+| Intel Arria 10 GX 1150 FPGA | 215 MHz | 532 GFLOPS | 211,199 / 427,200 ( 49 % ) | 1,304 / 1,518 ( 86 % ) | 2,087 / 2,713 ( 77 % ) | 95%   | 10K * 16K matrix times 16K * 8K matrix | aoc 19.4.0 |
 
 The test can be reproduced by logging into a compute node on Intel FPGA DevCloud with an A10 card and 1.2.1 software stack, and following the instructions below.
 
@@ -24,10 +23,10 @@ The compiler implements the above optimizations. In addition, the compiler autom
 
 This design is specified to compile ahead-of-time (AOT), since AOT mode makes sense for the time-consuming FPGA compilation, although we can slightly change the specification to make it work just-in-time (JIT) as well.
 
-### 1. Run emulation for verifying correctness with a tiny systolic array and inputs:
+### 1. [FPGA] Run emulation for verifying correctness with a tiny systolic array and inputs:
 - Set up the environment in the T2SP directory, if not yet:
     ```
-    source ../../../../setenv.sh (local | devcloud)
+    source ../../../../setenv.sh (local | devcloud) fpga
     ```
 - Just to be safe, remove previously generated bitstream and intermediate files, if any:
   
@@ -54,10 +53,10 @@ This design is specified to compile ahead-of-time (AOT), since AOT mode makes se
     ```
     env BITSTREAM=a.aocx CL_CONTEXT_EMULATOR_DEVICE_INTELFPGA=1 INTEL_FPGA_OCL_PLATFORM_NAME="$EMULATOR_PLATFORM" ./b.out
     ```
-### 2. Synthesize and run for performance with a large systolic array and inputs:
+### 2. [FPGA] Synthesize and run for performance with a large systolic array and inputs:
 - Set up the environment in the T2SP directory, if not yet:
     ```
-    source ../../../../setenv.sh (local | devcloud)
+    source ../../../../setenv.sh (local | devcloud) fpga
     ```
 - Just to be safe, remove previously generated bitstream and intermediate files, if any.
   
@@ -121,32 +120,33 @@ This design is specified to compile ahead-of-time (AOT), since AOT mode makes se
     ```
     env BITSTREAM=a.aocx INTEL_FPGA_OCL_PLATFORM_NAME="$HW_PLATFORM" AOC_OPTION="-board=$FPGA_BOARD" ./b.out
     ```
- 
- ### 3. Run on the GEN9 GPU:
- - Set up the environment in the T2SP directory, if not yet:
+- Look at the results. With the execution time collected, a roofline model of performance has been automatically generated in a file `roofline.png`.
+
+### 3. [GPU] Run on a GPU
+- Set up the environment in the T2SP directory, if not yet:
+
     ```
-    source ../../../../setenv.sh gpu
+    source ../../../../setenv.sh (local | devcloud) gpu
     ```
- - Compile the source code in this directory:
+
+- Just to be safe, remove previously generated intermediate files, if any.
+  
+    ```
+    rm -rf a.* *.o *.isa GEMM_genx.cpp
+    ```
+    
+- Generate a device kernel:
+
     ```
     g++ gemm.cpp -g -I ../util -I $T2S_PATH/Halide/include -L $T2S_PATH/Halide/bin $HW_LIBHALIDE_TO_LINK -lz -lpthread -ldl -std=c++11 -DGPU
-    ```
-- Generate kernel file:
-    ```
     ./a.out
+    cmc GEMM_genx.cpp -march=GEN9(or GEN12) -isystem ../../compiler/include_llvm -o GEMM_genx.isa
     ```
- - Create a new directory and copy the generated kernel and host file:
-    ```
-    mkdir $CM_ROOT/examples/t2sp_gemm
-    cp GEMM_genx.cpp $CM_ROOT/examples/t2sp_gemm
-    cp host-files/gemm-run.cpp $CM_ROOT/examples/t2sp_gemm
-    cp sizes.h $CM_ROOT/examples/t2sp_gemm
-    ```
- - Compile and run:
-    ```
-    cd $CM_ROOT/examples/t2sp_gemm
-    make -f ../Makefile.linux
-    ./hw_x64.t2sp_gemm
-    ```
-    
-    
+    The specification is compiled in the first command and is run in the second command, which generates a device kernel file named `GEMM_genx.cpp`, which is then compiled into a binary `GEMM_genx.isa`. Remember to use `-march` option according to your setting.
+
+- Link the host and kernel code and run:
+  ```
+  g++ gemm-run-gpu.cpp -w -g -I$(CM_ROOT)/runtime/include -I.. -msse4.1 -D__LINUX__ -DLINUX -O0 -std=gnu++11 -fPIC -c -DCM_GEN9(or -DCM_GEN12) -rdynamic -ffloat-store -o gemm-run-gpu.o
+  g++ gemm-run-gpu.o -lva -ldl -fPIC -rdynamic $(CM_ROOT)/runtime/lib/x64/libigfxcmrt.so -o gemm-run-gpu.out
+  ./gemm-run-gpu.out
+  ```

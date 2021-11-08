@@ -2,9 +2,9 @@
 
 function show_usage {
     echo "DevCloud usage:"
-    echo "  source setenv.sh devcloud"
+    echo "  source setenv.sh devcloud (fpga | gpu)"
     echo "Local usage:"
-    echo "  source setenv.sh local"
+    echo "  source setenv.sh local    (fpga | gpu)"
 }       
 
 if [ $0 == $BASH_SOURCE ]; then
@@ -12,7 +12,12 @@ if [ $0 == $BASH_SOURCE ]; then
    exit
 fi 
 
-if [ "$1" != "devcloud" -a "$1" != "local" -a "$1" != "gpu" ]; then
+if [ "$1" != "devcloud" -a "$1" != "local" ]; then
+    show_usage
+    return 
+fi
+
+if [ "$2" != "fpga" -a "$2" != "gpu" ]; then
     show_usage
     return 
 fi
@@ -52,11 +57,12 @@ if [ "$1" = "local" ]; then
         export HW_LIBHALIDE_TO_LINK="-lHalide"
 fi
 
-if [ "$1" = "gpu" ]; then
-	export CM_ROOT=~/Linux_C_for_Metal_Development_Package_20200119
-	export LIBVA_DRIVERS_PATH=$CM_ROOT/drivers/media_driver/release/extract/usr/lib/x86_64-linux-gnu/dri
-	export LD_LIBRARY_PATH=$CM_ROOT/drivers/media_driver/release/extract/usr/lib/x86_64-linux-gnu:$LD_LIBRARY_PATH
-	export HW_LIBHALIDE_TO_LINK="$T2S_PATH/Halide/lib/libHalide.a"
+if [ "$2" = "gpu" ]; then
+    export CM_ROOT=$T2S_PATH/install/Linux_C_for_Metal_Development_Package_20200119
+    export LIBVA_DRIVERS_PATH=$CM_ROOT/drivers/media_driver/release/extract/usr/lib/x86_64-linux-gnu/dri
+    export PATH=$CM_ROOT/compiler/bin:$PATH
+    export LD_LIBRARY_PATH=$CM_ROOT/drivers/media_driver/release/extract/usr/lib/x86_64-linux-gnu:$LD_LIBRARY_PATH
+    export HW_LIBHALIDE_TO_LINK="$T2S_PATH/Halide/lib/libHalide.a"
 fi
 
 #### No need to change below this point ##########
@@ -70,7 +76,7 @@ if [ "$1" = "devcloud" ]; then
         tools_setup -t  A10DS 1.2.1
         export FPGA_BOARD=pac_a10
     else
-        if grep "fpga,darby" tmp.txt; then
+        if grep "fpga,stratix10" tmp.txt; then
             tools_setup -t S10DS
             export FPGA_BOARD=pac_s10_dc
         else
