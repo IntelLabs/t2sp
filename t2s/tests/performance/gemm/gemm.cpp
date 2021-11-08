@@ -18,7 +18,9 @@
 *******************************************************************************/
 #include "Halide.h"
 #include "util.h"
-#include "sizes.h"
+
+// Constant parameters (inner loop bounds) of the design
+#include "const-parameters.h"
 
 using namespace Halide;
 
@@ -37,6 +39,11 @@ int main()
     #define total_i         (iii + III * ii + III * II * i)
     #define total_j         (jjj + JJJ * jj + JJJ * JJ * j)
     #define total_k         (kkk + KKK * kk + KKK * KK * k)
+
+    // Outer loop bounds, which are determined by input sizes
+    #define I (A.dim(1).extent() / (III * II))
+    #define J (B.dim(0).extent() / (JJJ * JJ))
+    #define K (A.dim(0).extent() / (KKK * KK))
 
     // Type of the data to process in C and T2S
     #define CTYPE float
@@ -61,12 +68,10 @@ int main()
     // Explicitly set the loop bounds
     X.set_bounds(jjj, 0, JJJ, iii, 0, III, kkk, 0, KKK)
      .set_bounds(jj,  0, JJ,  ii,  0, II,  kk,  0, KK)
-     .set_bounds(j,   0, B.dim(0).extent() / (JJJ * JJ),
-                 i,   0, A.dim(1).extent() / (III * II),
-                 k,   0, A.dim(0).extent() / (KKK * KK));
+     .set_bounds(j,   0, J,   i,   0, I,   k,   0, K);
 
     // Create a systolic array
-    X.space_time_transform(jjj, iii);
+    X.space_time_transform(kkk, jjj, iii);
 
     // GPU can have many threads running in parallel.
 #ifdef GPU
