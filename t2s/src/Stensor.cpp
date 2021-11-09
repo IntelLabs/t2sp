@@ -215,18 +215,12 @@ class RealizeOnFPGA
 
     vector<Func> isolate_consumer(Schain &c) {
         vector<Func> consumers;
-        Func outf = c.outf;
-        // The output stensor inherits loops of the output URE, generally less than that of systolic array
-        // So we isolate the first consumer alone and apply space-time transform to regenerate loop structure,
-        // then the subsequent stensors could be isolated based on that
-        Func f_dev(c.stensors[0].name, Place::Device);
-        outf.isolate_consumer(f_dev);
-        debug(1) << outf.name() << ".isolate_consumer("
-                 << f_dev.name() << ");\n";
-        // generate_output_array(outf, f_dev);
-        f_dev.space_time_transform(c.stensors[0].v_banks);
-        outf = std::move(f_dev);
-
+        // Isolate subsequent consumers
+        for (auto &s : c.stensors) {
+            Place place = s.position == SMemType::HOST ? Place::Host : Place::Device;
+            Func f_dev(s.name, place);
+            consumers.push_back(std::move(f_dev));
+        }
         if (c.stensors.back().position != HOST) {
             // If the host stensor is not specified, we automatically generate it
             string host_name = c.outf.name() + "_deserializer";
@@ -234,17 +228,28 @@ class RealizeOnFPGA
             s_host.schain_idx = c.stensors[0].schain_idx;
             c.stensors.push_back(s_host);
         }
-        // Isolate subsequent consumers
-        for (size_t i = 1; i < c.stensors.size(); i++) {
-            auto &s = c.stensors[i];
-            Place place = s.position == SMemType::HOST ? Place::Host : Place::Device;
-            Func f_dev(s.name, place);
-            consumers.push_back(std::move(f_dev));
+
+        if (c.stensors[0].position == REG && !c.stensors[0].v_banks.empty()) {
+            // The output stensor inherits loops of the output URE, generally less than that of systolic array
+            // So we isolate the first consumer alone and apply space-time transform to regenerate loop structure,
+            // then the subsequent stensors could be isolated based on that
+            Func regf = consumers[0];
+            c.outf.isolate_consumer(regf);
+            debug(1) << c.outf.name() << ".isolate_consumer("
+                     << regf.name() << ");\n";
+            // generate_output_array(outf, f_dev);
+            regf.space_time_transform(c.stensors[0].v_banks);
+            debug(1) << regf.name() << ".space_time_transform("
+                     << names_to_string(c.stensors[0].v_banks) << ");\n";
+            vector<Func> other_cons(consumers.begin()+1, consumers.end());
+            regf.isolate_consumer_chain(other_cons);
+            debug(1) << regf.name() << ".isolate_consumer_chain("
+                     << names_to_string(other_cons);
+        } else {
+            c.outf.isolate_consumer_chain(consumers);
+            debug(1) << c.outf.name() << ".isolate_consumer_chain("
+                     << names_to_string(consumers) << ");\n";
         }
-        outf.isolate_consumer_chain(consumers);
-        debug(1) << outf.name() << ".isolate_consumer_chain("
-                 << names_to_string(consumers) << ");\n";
-        consumers.insert(consumers.begin(), outf);
         return std::move(consumers);
     }
 
