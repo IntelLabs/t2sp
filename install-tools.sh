@@ -125,7 +125,7 @@ function install_python-packages {
 }
 
 function install_cm {
-    wget https://github.com/intel/cm-compiler/releases/download/Master/Linux_C_for_Metal_Development_Package_20200119.zip
+    wget -c https://github.com/intel/cm-compiler/releases/download/Master/Linux_C_for_Metal_Development_Package_20200119.zip
     unzip Linux_C_for_Metal_Development_Package_20200119.zip
 
     cd Linux_C_for_Metal_Development_Package_20200119
@@ -141,7 +141,7 @@ function install_cm {
     dpkg -X intel-igc.deb extract/    
     cd -
     
-    cd -
+    cd ..
     cp -rf Linux_C_for_Metal_Development_Package_20200119 $T2S_PATH/install
 }
 

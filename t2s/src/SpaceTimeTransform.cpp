@@ -192,18 +192,6 @@ Func& Func::space_time_transform(const vector<Var>& src_vars,
     for (size_t i = 0; i < src_size; i++) {
         src_names[i] = src_vars[i].name();
     }
-<<<<<<< HEAD
-=======
-
-    vector<std::string> src_names(src_size);
-    for (size_t i = 0; i < src_size; i++) {
-        src_names[i] = src_vars[i].name();
-    }
-
-    user_assert(dst_size <= src_size);
-    // Add prefix of variable name
-    vector<std::string> dst_names(dst_size);
->>>>>>> upstream/master
     for (size_t i = 0; i < dst_size; i++) {
         dst_names[i] = dst_vars[i].name();
     }
@@ -277,10 +265,6 @@ Func& Func::space_time_transform(const vector<Var>& src_vars,
     params.reverse          = new_reverse;
     params.check_time       = check;
     params.sch_vector_specified = true;
-<<<<<<< HEAD
-=======
-    params.src_vars = src_names;
->>>>>>> upstream/master
     param_vector.push_back(params);
 
     return *this;

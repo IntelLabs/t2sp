@@ -52,7 +52,6 @@ int main()
     // Inputs
     ImageParam A("A", TTYPE, 2), B("B", TTYPE, 2);
 
-
     // UREs
     Var kkk("kkk"), jjj("jjj"), iii("iii"), jj("jj"), ii("ii"), kk("kk"), k("k"), j("j"), i("i");
     URE X("X", TTYPE, {P}), Y("Y", TTYPE, {P}), Z("Z", TTYPE, {P}), Out("Out");
@@ -72,7 +71,7 @@ int main()
      .set_bounds(j,   0, J,   i,   0, I,   k,   0, K);
 
     // Create a systolic array
-    X.space_time_transform(kkk, jjj, iii);
+    X.space_time_transform(jjj, iii);
 
     // GPU can have many threads running in parallel.
 #ifdef GPU
@@ -88,10 +87,14 @@ int main()
       >> SB.scope(k).banks(jjj).bankwidth(kkk) >> FIFO(128);
     Out >> FIFO(1024) >> RC2.scope(jj).banks(jjj, iii)
         >> FIFO(128)  >> RC1.scope(iii).banks(jjj)
-        >> FIFO(128)  >> DC >> C;
+        >> FIFO(128)  >> DC >> C(total_j, total_i);
 
     // Compile the kernel to an FPGA bitstream, and expose a C interface for the host to invoke
+#ifdef GPU
+    C.compile_to_host("gemm-interface", { A, B }, "GEMM", IntelGPU);
+#else
     C.compile_to_host("gemm-interface", { A, B }, "GEMM", IntelFPGA);
+#endif
     printf("Success\n");
     return 0;
 }

@@ -16,16 +16,10 @@
 *
 * SPDX-License-Identifier: BSD-2-Clause-Patent
 *******************************************************************************/
-<<<<<<< HEAD
 #include "./DebugPrint.h"
 #include "./Utilities.h"
 #include "./PreprocessBeforeLower.h"
 #include "./Stensor.h"
-=======
-#include "DebugPrint.h"
-#include "Stensor.h"
-#include "Utilities.h"
->>>>>>> upstream/master
 
 namespace Halide {
 
@@ -164,14 +158,8 @@ struct FindVars
             // UREs have the same iteration space, so we just check the one applied merge_ures
             if (f.function().has_merged_defs()) {
                 ure = f;
-<<<<<<< HEAD
                 for (auto &d : f.function().definition().schedule().dims()) {
                     free_vars.push_back(d.var);
-=======
-                for (auto &e : f.function().definition().args()) {
-                    auto v = e.as<Variable>();
-                    free_vars.push_back(Var(v->name));
->>>>>>> upstream/master
                 }
             }
         }
@@ -448,7 +436,6 @@ public:
     }
 };
 
-<<<<<<< HEAD
 class RealizeOnGPU
 {
     FindVars &fv;
@@ -496,8 +483,6 @@ public:
     }
 };
 
-=======
->>>>>>> upstream/master
 Func &operator>>(Func &func, const FIFO &fifo) {
     func.min_depth(fifo.depth);
     debug(1) << func.name() << ".min_depth("
@@ -521,20 +506,13 @@ Func Stensor::stensor_realize_wrapper(Starget t) {
     Func outf = schains[c].outf;
     env = outf.pipeline().compute_environment();
 
-<<<<<<< HEAD
     Func f;
     if (t == Starget::IntelFPGA) {
         FindVars fv(env);
-=======
-    FindVars fv(env);
-    Func f;
-    if (t == Starget::IntelFPGA) {
->>>>>>> upstream/master
         RealizeOnFPGA fpga(fv);
         f = fpga.realize();
         internal_assert(f.function().place() == Place::Host);
     }
-<<<<<<< HEAD
     if (t == Starget::IntelGPU) {
         for (auto &p : env) {
             if (p.second.function().place() == Place::Device) {
@@ -547,8 +525,6 @@ Func Stensor::stensor_realize_wrapper(Starget t) {
         RealizeOnGPU gpu(fv);
         f = gpu.realize();
     }
-=======
->>>>>>> upstream/master
     return f;
 }
 
@@ -560,12 +536,9 @@ void Stensor::realize(Buffer<> dst, Starget t) {
         acc.set_feature(Target::EnableSynthesis);
         f.realize(dst, acc);
     }
-<<<<<<< HEAD
     if (t == Starget::IntelGPU) {
         user_error << "Currently the GPU runtime is under developement\n";
     }
-=======
->>>>>>> upstream/master
 }
 
 void Stensor::compile_jit(Starget t) {
@@ -587,7 +560,6 @@ void Stensor::compile_to_host(string file_name, const vector<Argument> &args,
         acc.set_feature(Target::EnableSynthesis);
         f.compile_to_host(file_name, args, fn_name, acc);
     }
-<<<<<<< HEAD
     if (t == Starget::IntelGPU) {
         user_warning << "Currently the GPU runtime is under developement, "
                         "so we just emit out the source code in " << fn_name << "_genx.cpp\n";
@@ -595,8 +567,6 @@ void Stensor::compile_to_host(string file_name, const vector<Argument> &args,
         acc.set_feature(Target::IntelGPU);
         f.compile_to_cm(fn_name, std::move(args), acc);
     }
-=======
->>>>>>> upstream/master
 }
 
 }

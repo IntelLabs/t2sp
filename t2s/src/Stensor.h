@@ -65,21 +65,13 @@ struct Stensor
     template<typename... Args>
     HALIDE_NO_USER_CODE_INLINE typename std::enable_if<Internal::all_are_convertible<Expr, Args...>::value, Stensor &>::type
     operator()(Expr e, Args &&... args) {
-<<<<<<< HEAD
         std::vector<Expr> collected_args{e, std::forward<Args>(args)...};
-=======
-        std::vector<Expr> collected_args{e, std::forward<Expr>(args)...};
->>>>>>> upstream/master
         return this->operator()(collected_args);
     }
     template<typename... Args>
     HALIDE_NO_USER_CODE_INLINE typename std::enable_if<Internal::all_are_convertible<Var, Args...>::value, Stensor &>::type
     banks(Var v, Args &&... args) {
-<<<<<<< HEAD
         std::vector<Var> collected_args{v, std::forward<Args>(args)...};
-=======
-        std::vector<Var> collected_args{v, std::forward<Var>(args)...};
->>>>>>> upstream/master
         return this->banks(collected_args);
     }
 
