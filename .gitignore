@@ -9,3 +9,4 @@ tmp.txt
 *.aocx
 *.aocr
 *.aoco
+setenv.sh

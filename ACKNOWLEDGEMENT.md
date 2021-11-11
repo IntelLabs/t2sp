@@ -21,7 +21,7 @@ Many Intel people have helped enabling the technology:
 
 + Intel Labs: Christopher J. Hughes, Pradeep Dubey, Jim Held, Timothy Mattson, Sanket Tavarageri,  Kunal Banerjee, Bharat Kaul, Justin Gottschlich, Todd A. Anderson, Michael Beale
 
-+ Accelerated Computing Systems and Graphics Group: Hong Jiang, Lidong Xu, Kari Pulli, Fangwen Fu, Hongzheng Li, Sabareesh Ganapathy
++ Accelerated Computing Systems and Graphics Group: Hong Jiang, Lidong Xu, Kari Pulli, Fangwen Fu, Hongzheng Li, Sabareesh Ganapathy, Daniel Rhee
 
 + GPU Software Engineering Group: Kai Yu Chen, Guei-Yuan Lueh, Yuting Yang
 
