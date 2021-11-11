@@ -1,6 +1,5 @@
-# CONV
+# 2-D convolution
 
-## Performance for single precision matrix multiply
 | Device | Frequency | Throughput | Logic utilization | DSPs | BRAMs | DSP Efficiency |
 | ------ | --------- | ------ | --------- | ---- | ----- | -------------- |
 | Intel Arria 10 GX 1150 FPGA | 206 MHz | 515 GFLOPS | 257,558 / 427,200 ( 60 % ) | 1,299 / 1,518 ( 86 % ) | 2,011 / 2,713 ( 74 % ) | 96%   |
@@ -45,10 +44,10 @@ This design is specified to compile ahead-of-time (AOT), since AOT mode makes se
     
      The bitstream generated is `a.aocx`, as indicated by the environment variable, BITSTREAM.  The C interface generated is `conv-interface.cpp`, as specified in `conv.cpp`.
     
-- Compile the host file (`conv-run.cpp`) and link with the C interface (`conv-interface.cpp`):
+- Compile the host file (`conv-run-fpga.cpp`) and link with the C interface (`conv-interface.cpp`):
   
     ```
-    g++ conv-run.cpp conv-interface.cpp ../../../src/AOT-OpenCL-Runtime.cpp ../../../src/SharedUtilsInC.cpp -g -DLINUX -DALTERA_CL -fPIC -I../../../src/ -I $T2S_PATH/Halide/include -I$INTELFPGAOCLSDKROOT/examples_aoc/common/inc $INTELFPGAOCLSDKROOT/examples_aoc/common/src/AOCLUtils/opencl.cpp $INTELFPGAOCLSDKROOT/examples_aoc/common/src/AOCLUtils/options.cpp -I$INTELFPGAOCLSDKROOT/host/include -L$INTELFPGAOCLSDKROOT/linux64/lib -L$AOCL_BOARD_PACKAGE_ROOT/linux64/lib -L$INTELFPGAOCLSDKROOT/host/linux64/lib -lOpenCL -L $T2S_PATH/Halide/bin -lelf $EMULATOR_LIBHALIDE_TO_LINK -lz -lpthread -ldl -std=c++11 -DTINY -o ./b.out
+    g++ conv-run-fpga.cpp conv-interface.cpp ../../../src/AOT-OpenCL-Runtime.cpp ../../../src/SharedUtilsInC.cpp -g -DLINUX -DALTERA_CL -fPIC -I../../../src/ -I $T2S_PATH/Halide/include -I$INTELFPGAOCLSDKROOT/examples_aoc/common/inc $INTELFPGAOCLSDKROOT/examples_aoc/common/src/AOCLUtils/opencl.cpp $INTELFPGAOCLSDKROOT/examples_aoc/common/src/AOCLUtils/options.cpp -I$INTELFPGAOCLSDKROOT/host/include -L$INTELFPGAOCLSDKROOT/linux64/lib -L$AOCL_BOARD_PACKAGE_ROOT/linux64/lib -L$INTELFPGAOCLSDKROOT/host/linux64/lib -lOpenCL -L $T2S_PATH/Halide/bin -lelf $EMULATOR_LIBHALIDE_TO_LINK -lz -lpthread -ldl -std=c++11 -DTINY -o ./b.out
     ```
 - Emulate:
     ```
@@ -107,9 +106,9 @@ This design is specified to compile ahead-of-time (AOT), since AOT mode makes se
 
     For more details, see a [pac_a10 tutorial](https://github.com/intel/FPGA-Devcloud/tree/master/main/QuickStartGuides/OpenCL_Program_PAC_Quickstart/Arria%2010).
 
-- Compile the host file (`conv-run.cpp`) and link with the C interface (`conv-interface.cpp`):
+- Compile the host file (`conv-run-fpga.cpp`) and link with the C interface (`conv-interface.cpp`):
     ```
-    g++ conv-run.cpp conv-interface.cpp ../../../src/AOT-OpenCL-Runtime.cpp ../../../src/Roofline.cpp ../../../src/SharedUtilsInC.cpp  -g -DLINUX -DALTERA_CL -fPIC -I../../../src/ -I $T2S_PATH/Halide/include -I$INTELFPGAOCLSDKROOT/examples_aoc/common/inc $INTELFPGAOCLSDKROOT/examples_aoc/common/src/AOCLUtils/opencl.cpp $INTELFPGAOCLSDKROOT/examples_aoc/common/src/AOCLUtils/options.cpp -I$INTELFPGAOCLSDKROOT/host/include -L$INTELFPGAOCLSDKROOT/linux64/lib -L$AOCL_BOARD_PACKAGE_ROOT/linux64/lib -L$INTELFPGAOCLSDKROOT/host/linux64/lib -lOpenCL -L $T2S_PATH/Halide/bin -lelf $HW_LIBHALIDE_TO_LINK -lz -lpthread -ldl -std=c++11 -o ./b.out
+    g++ conv-run-fpga.cpp conv-interface.cpp ../../../src/AOT-OpenCL-Runtime.cpp ../../../src/Roofline.cpp ../../../src/SharedUtilsInC.cpp  -g -DLINUX -DALTERA_CL -fPIC -I../../../src/ -I $T2S_PATH/Halide/include -I$INTELFPGAOCLSDKROOT/examples_aoc/common/inc $INTELFPGAOCLSDKROOT/examples_aoc/common/src/AOCLUtils/opencl.cpp $INTELFPGAOCLSDKROOT/examples_aoc/common/src/AOCLUtils/options.cpp -I$INTELFPGAOCLSDKROOT/host/include -L$INTELFPGAOCLSDKROOT/linux64/lib -L$AOCL_BOARD_PACKAGE_ROOT/linux64/lib -L$INTELFPGAOCLSDKROOT/host/linux64/lib -lOpenCL -L $T2S_PATH/Halide/bin -lelf $HW_LIBHALIDE_TO_LINK -lz -lpthread -ldl -std=c++11 -o ./b.out
     ```
 
 - Offload the bitstream to the device.
@@ -122,29 +121,33 @@ This design is specified to compile ahead-of-time (AOT), since AOT mode makes se
     env BITSTREAM=a.aocx INTEL_FPGA_OCL_PLATFORM_NAME="$HW_PLATFORM" AOC_OPTION="-board=$FPGA_BOARD" ./b.out
     ```
 
- ### 3. Run on the GEN9 GPU:
- - Set up the environment in the T2SP directory, if not yet:
+- Look at the results. With the execution time collected, a roofline model of performance has been automatically generated in a file `roofline.png`.
+
+### 3. [GPU] Run on a GPU
+- Set up the environment in the T2SP directory, if not yet:
+
     ```
-    source ../../../../setenv.sh gpu
+    source ../../../../setenv.sh (local | devcloud) gpu
     ```
- - Compile the source code in this directory:
+
+- Just to be safe, remove previously generated intermediate files, if any.
+  
+    ```
+    rm -rf a.* *.o *.isa CONV_genx.cpp
+    ```
+    
+- Generate a device kernel:
+
     ```
     g++ conv.cpp -g -I ../util -I $T2S_PATH/Halide/include -L $T2S_PATH/Halide/bin $HW_LIBHALIDE_TO_LINK -lz -lpthread -ldl -std=c++11 -DGPU
-    ```
-- Generate kernel file:
-    ```
     ./a.out
+    cmc CONV_genx.cpp -march=GEN9(or GEN12) -isystem ../../compiler/include_llvm -o CONV_genx.isa
     ```
- - Create a new directory and copy the generated kernel and host file:
-    ```
-    mkdir $CM_ROOT/examples/t2sp_conv
-    cp CONV_genx.cpp $CM_ROOT/examples/t2sp_conv
-    cp host-files/gemm-run.cpp $CM_ROOT/examples/t2sp_conv
-    cp sizes.h $CM_ROOT/examples/t2sp_conv
-    ```
- - Compile and run:
-    ```
-    cd $CM_ROOT/examples/t2sp_conv
-    make -f ../Makefile.linux
-    ./hw_x64.t2sp_conv
-    ```
+    The specification is compiled in the first command and is run in the second command, which generates a device kernel file named `CONV_genx.cpp`, which is then compiled into a binary `CONV_genx.isa`. Remember to use `-march` option according to your setting.
+
+- Link the host and kernel code and run:
+  ```
+  g++ conv-run-gpu.cpp -w -g -I$CM_ROOT/runtime/include -I$CM_ROOT/examples -I$CM_ROOT/drivers/media_driver/release/extract/usr/include -msse4.1 -D__LINUX__ -DLINUX -O0 -std=gnu++11 -fPIC -c -DCM_GEN9(or -DCM_GEN12) -rdynamic -ffloat-store -o conv-run-gpu.o
+  g++ conv-run-gpu.o -L$CM_ROOT/drivers/media_driver/release/extract/usr/lib/x86_64-linux-gnu -L$CM_ROOT/drivers/IGC/extract/usr/local/lib -L$CM_ROOT/drivers/media_driver/release/extract/usr/lib/x86_64-linux-gnu/dri $CM_ROOT/runtime/lib/x64/libigfxcmrt.so -lva -ldl -fPIC -rdynamic -o conv-run-gpu.out
+  ./conv-run-gpu.out
+  ```
