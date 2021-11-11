@@ -2,7 +2,7 @@
 
 ## Performance for single precision matrix multiply
 | Device | Frequency | Throughput | Logic utilization | DSPs | BRAMs | DSP Efficiency | Matrix Size | EDA tool |
-| ------ | --------- | ------ | --------- | ---- | ----- | -------------- |
+| ------ | --------- | ------ | --------- | ---- | ----- | -------------- | ----- | -------------- |
 | Intel Arria 10 GX 1150 FPGA | 215 MHz | 532 GFLOPS | 211,199 / 427,200 ( 49 % ) | 1,304 / 1,518 ( 86 % ) | 2,087 / 2,713 ( 77 % ) | 95%   | 10K * 16K matrix times 16K * 8K matrix | aoc 19.4.0 |
 | Intel GEN9.5 GPU | 1200 MHz | 423 GFLOPS | - | - | - | 92%   | - | -|
 
