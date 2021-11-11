@@ -1,5 +1,11 @@
 #define GPU     1
-#include "sizes.h"
+
+// Constant parameters (inner loop bounds) of the design
+#include "const-parameters.h"
+
+#define K           4
+#define J           32
+#define I           32
 
 #include <assert.h>
 #include "cm_rt.h"
@@ -12,6 +18,8 @@
 #define SIZE_A      TOTAL_I*TOTAL_K
 #define SIZE_B      TOTAL_J*TOTAL_K
 #define SIZE_C      TOTAL_I*TOTAL_J
+
+#define ITER        10
 
 void check_correctness(float *a, float *b, float *c)
 {

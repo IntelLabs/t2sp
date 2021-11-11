@@ -150,7 +150,7 @@ This design is specified to compile ahead-of-time (AOT), since AOT mode makes se
 
 - Link the host and kernel code and run:
   ```
-  g++ gemm-run-gpu.cpp -w -g -I$(CM_ROOT)/runtime/include -I.. -msse4.1 -D__LINUX__ -DLINUX -O0 -std=gnu++11 -fPIC -c -DCM_GEN9(or -DCM_GEN12) -rdynamic -ffloat-store -o gemm-run-gpu.o
-  g++ gemm-run-gpu.o -lva -ldl -fPIC -rdynamic $(CM_ROOT)/runtime/lib/x64/libigfxcmrt.so -o gemm-run-gpu.out
+  g++ gemm-run-gpu.cpp -w -g -I$CM_ROOT/runtime/include -I$CM_ROOT/examples -I$CM_ROOT/drivers/media_driver/release/extract/usr/include -msse4.1 -D__LINUX__ -DLINUX -O0 -std=gnu++11 -fPIC -c -DCM_GEN9(or -DCM_GEN12) -rdynamic -ffloat-store -o gemm-run-gpu.o
+  g++ gemm-run-gpu.o -L$CM_ROOT/drivers/media_driver/release/extract/usr/lib/x86_64-linux-gnu -L$CM_ROOT/drivers/IGC/extract/usr/local/lib -L$CM_ROOT/drivers/media_driver/release/extract/usr/lib/x86_64-linux-gnu/dri $CM_ROOT/runtime/lib/x64/libigfxcmrt.so -lva -ldl -fPIC -rdynamic -o gemm-run-gpu.out
   ./gemm-run-gpu.out
   ```
