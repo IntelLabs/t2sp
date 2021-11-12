@@ -1,1 +1,12 @@
+# Installation
+downloads
+install
+
+# T2S generated tmp
+a.out
+tmp.txt
+*.temp
+*.aocx
+*.aocr
+*.aoco
 setenv.sh
