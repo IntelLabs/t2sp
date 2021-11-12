@@ -43,6 +43,7 @@ fi
 #### No need to change below this point ##########
 
 if [ "$2" = "fpga" ]; then
+    export MARCH=FPGA
     if [ "$1" = "local" ]; then
         # Intel OpenCL related setting
         export ALTERAOCLSDKROOT=$ALTERA_PATH/$AOCL_VERSION/hld
@@ -119,10 +120,11 @@ if [ "$2" = "fpga" ]; then
 fi
 
 if [ "$2" = "gpu" ]; then
+    export MARCH=GPU
     export CM_ROOT=$T2S_PATH/install/Linux_C_for_Metal_Development_Package_20200119
     export LIBVA_DRIVERS_PATH=$CM_ROOT/drivers/media_driver/release/extract/usr/lib/x86_64-linux-gnu/dri
     export PATH=$CM_ROOT/compiler/bin:$PATH
-    export LD_LIBRARY_PATH=$CM_ROOT/drivers/media_driver/release/extract/usr/lib/x86_64-linux-gnu:$LD_LIBRARY_PATH
+    export LD_LIBRARY_PATH=$CM_ROOT/drivers/IGC/extract/usr/local/lib:$CM_ROOT/drivers/media_driver/release/extract/usr/lib/x86_64-linux-gnu:$LD_LIBRARY_PATH
     export HW_LIBHALIDE_TO_LINK="$T2S_PATH/Halide/lib/libHalide.a"
 fi
 
