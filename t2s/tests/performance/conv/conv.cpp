@@ -93,10 +93,10 @@ int main(void)
     // I/O network
     Stensor DI("iLoader", DRAM), SI("iFeeder", SRAM), DK("kLoader", DRAM), SK("kFeeder", SRAM);
     Stensor RO2("drainer", REG), RO1("collector", REG), DO("unloader", DRAM), O("deserializer");
-    I >> DI.bankwidth(r_cii) >> FIFO(128)
-      >> SI.scope(r_ci).banks(ww).bankwidth(r_cii) >> FIFO(128);
-    K >> DK.bankwidth(r_cii) >> FIFO(128)
-      >> SK.scope(r_ci).banks(coo).bankwidth(r_cii) >> FIFO(128);
+    I >> DI.out(r_cii) >> FIFO(128)
+      >> SI.scope(r_ci).out(r_cii, ww) >> FIFO(128);
+    K >> DK.out(r_cii) >> FIFO(128)
+      >> SK.scope(r_ci).out(r_cii, coo) >> FIFO(128);
     Out >> FIFO(1024) >> RO2.scope(hh).banks(coo, ww)
         >> FIFO(128)  >> RO1.scope(ww).banks(coo)
         >> FIFO(128)  >> DO >> O(P_O);

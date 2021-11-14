@@ -46,8 +46,17 @@ Stensor &Stensor::banks(const vector<Var> &v) {
     return *this;
 }
 
-Stensor &Stensor::bankwidth(Var v) {
-    v_width = v;
+Stensor &Stensor::out(const vector<Var> &v) {
+    if (v.empty()) {
+        // By default, this stensor will output a scalar each time.
+        return *this;
+    }
+    // Format of the vector: bankwidth, then banks
+    v_width = v[0];
+    if (v.size() > 1) {
+        vector<Var> banks = {v.begin() + 1, v.end()};
+        v_banks = banks;
+    }
     return *this;
 }
 
@@ -343,7 +352,7 @@ class RealizeOnFPGA
 
     void vectorize(Schain &c, vector<Func> &funcs) {
         internal_assert(c.stensors.size() == funcs.size());
-        // In general, each stensors could independently specify bankwidth,
+        // In general, each stensor could independently specify bankwidth,
         // so we do not check the consistency between the producer and consumer,
         // NOTE: Currently the producer and consumer must be consistent with manual work,
         // and we leave the sophisticated vectorization to future work
