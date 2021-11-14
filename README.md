@@ -1,4 +1,4 @@
-T2SP (Temporal To Spatial Programming, previously called T2S) enables software programmers to build systolic arrays for tensor computes with portable performance across spatial architectures (like FPGAs) and vector architectures (like GPUs) in a constructive, incremental, and productive way.
+T2SP (Temporal To Spatial Programming, previously called T2S) enables software programmers to build systolic arrays for dense tensor computes with portable performance across spatial architectures (like FPGAs) and vector architectures (like GPUs) in a constructive  and productive way.
 
 T2SP is available under a permissive license, the [BSD+Patent license](./LICENSE.md). 
 
@@ -6,7 +6,7 @@ Currently, we support only Intel FPGAs and GPUs. We assume your device is local 
 
 # [DevCloud] Open an account
 
- + Register at [DevCloud](https://software.intel.com/content/www/us/en/develop/tools/devcloud/fpga.html). This will get acess to both FPGAs and GPUs in the cloud.
+ + Register at [DevCloud](https://software.intel.com/content/www/us/en/develop/tools/devcloud/fpga.html). This will enable access to both FPGAs and GPUs in the cloud.
  + Follow the instructions of an approval email to set up your connection to DevCloud.
  + Add the following to your .bashrc:
    ```
@@ -75,7 +75,7 @@ git clone https://github.com/IntelLabs/t2sp
 
     ```
     ./install-tools.sh m4|gmp|mpfr|mpc|cmake
-    ````
+    ```
 
   + GPU: additionally, install C for Metal compiler and its packages:
 
@@ -115,7 +115,7 @@ Here you would see a `setenv.sh`.
   export LM_LICENSE_FILE=...
   ```
 
-  Note: here is an example to find out the board package and board (Assume Intel FPGA SDK for OpenCL 19.1 was installed under directory $HOME/intelFPGA_pro):
+  Note: here is an example how to find out the board package and board (Assume Intel FPGA SDK for OpenCL 19.1 was installed under directory $HOME/intelFPGA_pro):
 
   ```
   $HOME/intelFPGA_pro/19.1/hld/bin/aoc -list-boards
@@ -132,10 +132,8 @@ Here you would see a `setenv.sh`.
 with one of the following commands, according to if you are working on DevCloud or locally, to use an FPGA or a GPU:
 
 ```
-source ./setenv.sh devcloud fpga  
-source ./setenv.sh devcloud gpu   
-source ./setenv.sh local    fpga  
-source ./setenv.sh local    gpu   
+source ./setenv.sh devcloud fpga|gpu 
+source ./setenv.sh local    fpga|gpu 
 ```
 
 # Build T2SP (whenever you change the source code)
@@ -166,7 +164,15 @@ To remove all the temporary files generated during the regression testing:
 
 # Performance tests
 
-Current release contains only SGEMM on Arria 10 FPGA. Follow the details at `t2s/tests/performance/gemm/README.md`.
+Current release contains SGEMM, 2-D convolution and Capsule convolution on Arria 10 FPGA and GEN9.5 GPU. Follow the details at `t2s/tests/performance/`.
+
+Summary of throughput:
+
+|     | A10 | GEN9.5 |
+| --- | :-: | :-:    |
+| SGEMM |  532 GFLOPS, 95% DSP efficiency  |  423 GFLOPS, 92% machine peak |
+| 2-D convolution | 515 GFLOPS, 96% DSP efficiency | 415 GFLOPS, 90% machine peak |
+| Capsule convolution | 534 GFLOPS, 98% DSP efficiency | 416 GFLOPS, 90% machine peak |
 
 # Features
 
@@ -178,7 +184,7 @@ The current release contains the following features:
   
 + Defining an abstract, performance portable memory hierarchy 
 
-  A memory hierarchy is defined for each tensor by streaming the tensor across DRAM, SRAM, and registers. The memory hierarchy is then specialized by the compiler for specific hardware with portable performance. The current release targets FPGAs only. Next releases will support GPUs as well.
+  A memory hierarchy is defined for each tensor by streaming the tensor across DRAM, SRAM, and registers. The memory hierarchy is then specialized by the compiler for specific hardware with portable performance. 
 
 + Isolation
 
@@ -186,7 +192,7 @@ The current release contains the following features:
 
 + Data optimizations
 
-  Data gathering, scattering, double buffering, serialization
+  Data gathering, scattering, double buffering, serialization and de-serialization
 
 + Loop optimizations
 
@@ -196,17 +202,15 @@ The current release contains the following features:
 
 A 10-minute video `intro.mp4`, located at the root of the repository, introduces the basic concept of T2SP.
 
-We have a set of [tutorials](https://github.com/intel/FPGA-Devcloud/tree/master/main/QuickStartGuides/T2S) at Intel FPGA DevCloud. A compiler binary is also there, and all dependencies have been installed, so you may start using the programming environment immediately.
+We have a set of [tutorials](https://github.com/intel/FPGA-Devcloud/tree/master/main/QuickStartGuides/T2S) at Intel DevCloud. A compiler binary is also there, and all dependencies have been installed, so you may start using the programming environment immediately.
 
 # Next releases
 
-+ Performance tests for SGEMM, 2-D convolution, and Capsule convolution that work across Arria 10 FPGA and GEN 9.5 GPU with high and portable performance. Aim to open in November, 2021.
++ Throughput numbers of SGEMM, 2-D convolution, and Capsule convolution on GEN 12 GPU. Aim to open in December, 2021.
 
-  This will be our first suite where each test, written in a single specification, builds a hardware systolic array on an FPGA and a software systolic array on a GPU with high performance. 
-
-+ Performance test for PairHMM is to open in December, 2021.
-
++ Performance test of PairHMM is to open in December, 2021.
 + Support for Stratix 10 FPGA will be released afterwards (The current release works for S10 as well, but lacks some critical optimizations for it).
++ More automatic optimizations for improving performance.
 
 # Citation
 
