@@ -8,23 +8,26 @@
 
 The test can be reproduced by logging into a compute node on Intel FPGA DevCloud with an A10 card and 1.2.1 software stack, and following the instructions below.
 
-## Key Implementation Details
+## Design
 
-This design contains several important optimizations:
-- Generating a 10x8 systolic array with UREs and a space-time transform
-- Generating double buffers for input data, with multiple banks connected as a daisy chain
-- Vectorizing input data to utilize the bandwidth of the device's DRAM
-- Generating two-level output buffers in registers
+The following diagram shows the design on the device side, where `III`, `JJJ` and `KKK` are static constants and are the extents of loop `iii`, `jjj`, and `kkk`, respectively:
 
-The compiler implements the above optimizations. In addition, the compiler automatically performs the following optimizations so that the generated code lends itself to the downstream EDA tools for further optimizations:
-- Identifying and rewriting the inner-product pattern
-- Moving  channel accesses at the boundaries of the systolic array outside the unrolled loops
+![Design](figures/design.png)
+
+On the device, matrix `A` and `B` are initially located in DRAM. We create abstract memories for them, `DA` and `DB`. Think an abstract memory as a user-managed cache, and it outputs a tensor each time. For example, `DA` outputs a vector of size `KKK` each time. These data from DRAM are then stored in the shared memory. We create for them two other abstract memories, `SA` and `SB`.  
+
+In this design, the original 3 loops in matrix multiply are manually tiled and ordered. On a GPU, some loops are made block loops and thread loops to create parallel threads. For each block of threads, their shared data are managed by `SA` and `SB`. For each thread, a software systolic array is created with UREs and a space-time transform. For the systolic array, our compiler automatically allocates registers.
+
+FPGA is similar, except there  is only one thread, since multi-threading is not efficient on FPGAs, and the systolic array is a hardware array. 
+
+After the systolic array finishes execution for the current thread, the results are drained through two levels of abstract memories, `RC2` and `RC1`, and into the last abstract memory, `DC`, which is on the device's DRAM.
 
 ## Test the design
 
 This design is specified to compile ahead-of-time (AOT), since AOT mode makes sense for the time-consuming FPGA compilation, although we can slightly change the specification to make it work just-in-time (JIT) as well.
 
 ### 1. [FPGA] Run emulation for verifying correctness with a tiny systolic array and inputs:
+
 - Set up the environment in the T2SP directory, if not yet:
     ```
     source ../../../../setenv.sh (local | devcloud) fpga
