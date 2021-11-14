@@ -1,12 +1,3 @@
-// To debug the correctness of the UREs (on the host):
-//    g++ LU-basic.cpp -O0 -g -I ../util  -I ../../../../Halide/include -L ../../../../Halide/bin -lHalide -lpthread -ldl -std=c++11 -DDEBUG_URES -DSIZE=1(or 2, 3,..., 6)
-//    ./a.out
-//
-// To compile and run on the FPGA emulator:
-//    g++ LU-basic.cpp -O0 -g -I ../util  -I ../../../../Halide/include -L ../../../../Halide/bin -lHalide -lpthread -ldl -std=c++11 -DSIZE=1(or 2, 3,..., 6)
-//    rm ~/tmp/a.* ~/tmp/a -rf
-//    env CL_CONTEXT_EMULATOR_DEVICE_INTELFPGA=1 AOC_OPTION="-march=emulator -O0 -g " ./a.out
-
 #include "util.h"
 
 #define N 6
