@@ -135,8 +135,7 @@ This design is specified to compile ahead-of-time (AOT), since AOT mode makes se
     ```
     export GPU_ARCH=GEN9 # This is for both GEN9 and GEN9.5 GPU
     ```
-or
-
+    or
     ```
     export GPU_ARCH=GEN12
     ```
@@ -162,4 +161,4 @@ or
   g++ capsule-run-gpu.o -L$CM_ROOT/drivers/media_driver/release/extract/usr/lib/x86_64-linux-gnu -L$CM_ROOT/drivers/IGC/extract/usr/local/lib -L$CM_ROOT/drivers/media_driver/release/extract/usr/lib/x86_64-linux-gnu/dri $CM_ROOT/runtime/lib/x64/libigfxcmrt.so -lva -ldl -fPIC -rdynamic -o capsule-run-gpu.out
   ./capsule-run-gpu.out
   ```
-    
+  

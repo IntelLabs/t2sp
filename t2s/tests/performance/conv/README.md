@@ -135,8 +135,7 @@ This design is specified to compile ahead-of-time (AOT), since AOT mode makes se
     ```
     export GPU_ARCH=GEN9 # This is for both GEN9 and GEN9.5 GPU
     ```
-or
-
+    or
     ```
     export GPU_ARCH=GEN12
     ```
