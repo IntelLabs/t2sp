@@ -130,6 +130,17 @@ This design is specified to compile ahead-of-time (AOT), since AOT mode makes se
     source ../../../../setenv.sh (local | devcloud) gpu
     ```
 
+- Set up your target architecture:
+
+    ```
+    export GPU_ARCH=GEN9 # This is for both GEN9 and GEN9.5 GPU
+    ```
+or
+
+    ```
+    export GPU_ARCH=GEN12
+    ```
+
 - Just to be safe, remove previously generated intermediate files, if any.
   
     ```
@@ -141,13 +152,13 @@ This design is specified to compile ahead-of-time (AOT), since AOT mode makes se
     ```
     g++ conv.cpp -g -I ../util -I $T2S_PATH/Halide/include -L $T2S_PATH/Halide/bin $HW_LIBHALIDE_TO_LINK -lz -lpthread -ldl -std=c++11 -DGPU
     ./a.out
-    cmc CONV_genx.cpp -march=GEN9(or GEN12) -isystem ../../compiler/include_llvm -o CONV_genx.isa
+    cmc CONV_genx.cpp -march=$GPU_ARCH -isystem ../../compiler/include_llvm -o CONV_genx.isa
     ```
-    The specification is compiled in the first command and is run in the second command, which generates a device kernel file named `CONV_genx.cpp`, which is then compiled into a binary `CONV_genx.isa`. Remember to use `-march` option according to your setting.
+    The specification is compiled in the first command and is run in the second command, which generates a device kernel file named `CONV_genx.cpp`, which is then compiled into a binary `CONV_genx.isa`.
 
 - Link the host and kernel code and run:
   ```
-  g++ conv-run-gpu.cpp -w -g -I$CM_ROOT/runtime/include -I$CM_ROOT/examples -I$CM_ROOT/drivers/media_driver/release/extract/usr/include -msse4.1 -D__LINUX__ -DLINUX -O0 -std=gnu++11 -fPIC -c -DCM_GEN9(or -DCM_GEN12) -rdynamic -ffloat-store -o conv-run-gpu.o
+  g++ conv-run-gpu.cpp -w -g -I$CM_ROOT/runtime/include -I$CM_ROOT/examples -I$CM_ROOT/drivers/media_driver/release/extract/usr/include -msse4.1 -D__LINUX__ -DLINUX -O0 -std=gnu++11 -fPIC -c -DCM_$GPU_ARCH -rdynamic -ffloat-store -o conv-run-gpu.o
   g++ conv-run-gpu.o -L$CM_ROOT/drivers/media_driver/release/extract/usr/lib/x86_64-linux-gnu -L$CM_ROOT/drivers/IGC/extract/usr/local/lib -L$CM_ROOT/drivers/media_driver/release/extract/usr/lib/x86_64-linux-gnu/dri $CM_ROOT/runtime/lib/x64/libigfxcmrt.so -lva -ldl -fPIC -rdynamic -o conv-run-gpu.out
   ./conv-run-gpu.out
   ```
