@@ -78,7 +78,7 @@ int main(int argc, char *argv[]) {
 
     // Creates the cmNBody kernel.
     CmKernel *kernel = nullptr;
-    cm_result_check(device->CreateKernel(program, "kernel_X", kernel));
+    cm_result_check(device->CreateKernel(program, "kernel_A", kernel));
 
     // Create a task queue
     CmQueue* cmd_queue = NULL;
