@@ -1,12 +1,17 @@
 # Matrix Multiply
 
 ## Performance for single precision matrix multiply
-| Device | Frequency | Throughput | Logic utilization | DSPs | BRAMs | DSP Efficiency | Matrix Size | EDA tool |
+| Device | Frequency | Throughput | Logic utilization | DSPs | BRAMs | Efficiency | Matrix Size | Device compiler |
 | ------ | --------- | ------ | --------- | ---- | ----- | -------------- | ----- | -------------- |
-| Intel Arria 10 GX 1150 FPGA | 215 MHz | 532 GFLOPS | 211,199 / 427,200 ( 49 % ) | 1,304 / 1,518 ( 86 % ) | 2,087 / 2,713 ( 77 % ) | 95%   | 10K * 16K matrix times 16K * 8K matrix | aoc 19.4.0 |
-| Intel GEN9.5 GPU | 1200 MHz | 423 GFLOPS | - | - | - | 92%   | - | -|
+| Intel Arria 10 GX 1150 FPGA | 215 MHz | 532 GFLOPS | 211,199 / 427,200 ( 49 % ) | 1,304 / 1,518 ( 86 % ) | 2,087 / 2,713 ( 77 % ) | 95% DSP efficiency | 10K * 16K matrix times 16K * 8K matrix | aoc 19.4.0 |
+| Intel GEN9.5 GPU | 1200 MHz | 423 GFLOPS | - | - | - | 92% machine peak | 2K * 1K matrix times 1K * 2K matrix | CM Dev Package 20200119 |
 
-The test can be reproduced by logging into a compute node on Intel FPGA DevCloud with an A10 card and 1.2.1 software stack, and following the instructions below.
+Note:
+
+- The DSP efficiency of an FPGA for single-precision matrix multiply equals measured throughput/theoretical peak throughput.
+  - Measured throughput in GFLOPS = #operations / execution time =  2 (add + mul) * (#rows of matrix A) * (#columns of matrix A) * (#columns of matrix B) / execution time in nanoseconds.
+  - Theoretical peak throughput = 215 MHZ (frequency)  * 2 (add + mul)  * 1518 (#DSPs).
+- The machine peak of GEN9.5 for single-precision matrix multiply is calculated as 1200Mhz (peak frequency) * 2 (add + mul) * 2 (FPUs) * 4 (SIMD-4) * 24 (EUs) = 460.8 GFlOPS.  Refer to [GEN architecture document](https://www.intel.com/content/dam/develop/external/us/en/documents/the-compute-architecture-of-intel-processor-graphics-gen9-v1d0.pdf) for more details.
 
 ## Design
 
@@ -28,19 +33,25 @@ This design is specified to compile ahead-of-time (AOT), since AOT mode makes se
 
 ### 1. [FPGA] Run emulation for verifying correctness with a tiny systolic array and inputs:
 
+- [DevCloud]  Logging into a compute node with an A10 card and 1.2.1 software stack. See instruction [here](../../../../README.md#open-an-interactive-terminal).
+  
 - Set up the environment in the T2SP directory, if not yet:
+  
     ```
     source ../../../../setenv.sh (local | devcloud) fpga
     ```
+    
 - Just to be safe, remove previously generated bitstream and intermediate files, if any:
   
     ```
     rm -rf a.* a/ gemm-interface.* *.out exec_time.txt
     ```
+    
 - Compile the source code in this directory:
     ```
     g++ gemm.cpp -g -I ../util -I $T2S_PATH/Halide/include -L $T2S_PATH/Halide/bin $EMULATOR_LIBHALIDE_TO_LINK -lz -lpthread -ldl -std=c++11 -DTINY
     ```
+    
 - Generate a device bitstream for emulation, and a C interface for the host to invoke the matrix multiply kernel in the bitstream:
     ```
     env BITSTREAM=a.aocx AOC_OPTION="$EMULATOR_AOC_OPTION -board=$FPGA_BOARD -emulator-channel-depth-model=strict" ./a.out
@@ -53,15 +64,21 @@ This design is specified to compile ahead-of-time (AOT), since AOT mode makes se
     ```
     g++ gemm-run.cpp gemm-interface.cpp ../../../src/AOT-OpenCL-Runtime.cpp ../../../src/SharedUtilsInC.cpp -g -DLINUX -DALTERA_CL -fPIC -I../../../src/ -I $T2S_PATH/Halide/include -I$INTELFPGAOCLSDKROOT/examples_aoc/common/inc $INTELFPGAOCLSDKROOT/examples_aoc/common/src/AOCLUtils/opencl.cpp $INTELFPGAOCLSDKROOT/examples_aoc/common/src/AOCLUtils/options.cpp -I$INTELFPGAOCLSDKROOT/host/include -L$INTELFPGAOCLSDKROOT/linux64/lib -L$AOCL_BOARD_PACKAGE_ROOT/linux64/lib -L$INTELFPGAOCLSDKROOT/host/linux64/lib -lOpenCL -L $T2S_PATH/Halide/bin -lelf $EMULATOR_LIBHALIDE_TO_LINK -lz -lpthread -ldl -std=c++11 -DTINY -o ./b.out
     ```
+    
 - Emulate:
     ```
     env BITSTREAM=a.aocx CL_CONTEXT_EMULATOR_DEVICE_INTELFPGA=1 INTEL_FPGA_OCL_PLATFORM_NAME="$EMULATOR_PLATFORM" ./b.out
     ```
 ### 2. [FPGA] Synthesize and run for performance with a large systolic array and inputs:
+
+- [DevCloud]  Logging into a compute node with an A10 card and 1.2.1 software stack. See instruction [here](../../../../README.md#open-an-interactive-terminal).
+    
 - Set up the environment in the T2SP directory, if not yet:
+    
     ```
     source ../../../../setenv.sh (local | devcloud) fpga
     ```
+    
 - Just to be safe, remove previously generated bitstream and intermediate files, if any.
   
     ```
@@ -124,9 +141,12 @@ This design is specified to compile ahead-of-time (AOT), since AOT mode makes se
     ```
     env BITSTREAM=a.aocx INTEL_FPGA_OCL_PLATFORM_NAME="$HW_PLATFORM" AOC_OPTION="-board=$FPGA_BOARD" ./b.out
     ```
+    
 - Look at the results. With the execution time collected, a roofline model of performance has been automatically generated in a file `roofline.png`.
 
 ### 3. [GPU] Run on a GPU
+- [DevCloud]  Logging into a compute node with a GPU. See instruction [here](../../../../README.md#open-an-interactive-terminal).
+
 - Set up the environment in the T2SP directory, if not yet:
 
     ```
