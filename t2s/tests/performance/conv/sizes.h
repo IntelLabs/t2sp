@@ -22,45 +22,45 @@
 #ifdef TINY // For verifying correctness only
     #define CII         4
     #define COO         4
-    #define WW          4
-    #define HH          4
+    #define YY          4
+    #define XX          4
     #define CO          4
-    #define KW          4
-    #define KH          4
+    #define KY          4
+    #define KX          4
     #define CI          4
-    #define W           4
-    #define H           4
-    #define B           4
+    #define Y           4
+    #define X           4
+    #define N           4
 #elif GPU
     #define CII         8
     #define COO         8
-    #define WW          32
-    #define HH          32
+    #define YY          32
+    #define XX          32
     #define CO          32
-    #define KW          3
-    #define KH          3
+    #define KY          3
+    #define KX          3
     #define CI          32
-    #define W           2
-    #define H           2
-    #define B           4
+    #define Y           2
+    #define X           2
+    #define N           4
 #else
     #define CII         16
     #define COO         8
-    #define WW          10
-    #define HH          30
+    #define YY          10
+    #define XX          30
     #define CO          32
-    #define KW          3
-    #define KH          3
+    #define KY          3
+    #define KX          3
     #define CI          16
-    #define W           6
-    #define H           2
-    #define B           64
+    #define Y           6
+    #define X           2
+    #define N           64
 #endif
 
-#define TOTAL_IH        (HH * H + KH - 1)
-#define TOTAL_IW        (WW * W + KW - 1)
-#define TOTAL_OH        (HH * H)
-#define TOTAL_OW        (WW * W)
+#define TOTAL_IX        (XX * X + KX - 1)
+#define TOTAL_IY        (YY * Y + KY - 1)
+#define TOTAL_OX        (XX * X)
+#define TOTAL_OY        (YY * Y)
 #define TOTAL_CO        (COO * CO)
 #define TOTAL_CI        (CII * CI)
 
