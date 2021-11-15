@@ -142,6 +142,9 @@ This design is specified to compile ahead-of-time (AOT), since AOT mode makes se
 - Look at the results. With the execution time collected, a roofline model of performance has been automatically generated in a file `roofline.png`.
 
 ### 3. [GPU] Run on a GPU
+
+- [DevCloud]  Logging into a compute node with a GPU. See instruction [here](../../../../README.md#open-an-interactive-terminal).
+
 - Set up the environment in the T2SP directory, if not yet:
 
     ```
