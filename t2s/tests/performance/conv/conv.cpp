@@ -63,19 +63,19 @@ int main(void)
 
     // UREs
     Var cii("cii"), ci("ci"), ky("ky"), kx("kx"), coo("coo"), co("co"), yy("yy"), xx("xx"), y("y"), x("x"), n("n");
-    URE X("X", TTYPE, {P}), Y("Y", TTYPE, {P}), Z("Z", TTYPE, {P}), Out("Out");
-    X(P) = select(coo == 0, I(P_I), X(P_coo_minus_1));
-    Y(P) = select(yy == 0, K(P_K), Y(P_yy_minus_1));
-    Z(P) = select(cii == 0 && ky == 0 && kx == 0 && ci == 0, 0,
-                select(cii == 0, select(ky == 0, select(kx == 0, Z(P_ci_minus_1), Z(P_kx_minus_1)), Z(P_ky_minus_1)), Z(P_cii_minus_1)))
-                + X(P) * Y(P);
-    Out(P_Out) = select(cii == CII-1 && ky == KY-1 && kx == KX-1 && ci == CI-1, Z(P));
+    URE A("A", TTYPE, {P}), B("B", TTYPE, {P}), C("C", TTYPE, {P}), Out("Out");
+    A(P) = select(coo == 0, I(P_I), A(P_coo_minus_1));
+    B(P) = select(yy == 0, K(P_K), B(P_yy_minus_1));
+    C(P) = select(cii == 0 && ky == 0 && kx == 0 && ci == 0, 0,
+                select(cii == 0, select(ky == 0, select(kx == 0, C(P_ci_minus_1), C(P_kx_minus_1)), C(P_ky_minus_1)), C(P_cii_minus_1)))
+                + A(P) * B(P);
+    Out(P_Out) = select(cii == CII-1 && ky == KY-1 && kx == KX-1 && ci == CI-1, C(P));
 
     // Put all the UREs inside the same loop nest of X.
-    X.merge_ures(Y, Z, Out);
+    A.merge_ures(B, C, Out);
 
     // Explicitly set the loop bounds
-    X.set_bounds(ky,  0, KY,  kx, 0, KX)
+    A.set_bounds(ky,  0, KY,  kx, 0, KX)
      .set_bounds(cii, 0, CII, ci, 0, CI)
      .set_bounds(coo,   0, COO, co,   0, CO)
      .set_bounds(yy,    0, YY,  xx,   0, XX)
@@ -83,11 +83,11 @@ int main(void)
      .set_bounds(n,     0, UN);
 
     // Create a systolic array
-    X.space_time_transform(coo, yy);
+    A.space_time_transform(coo, yy);
 
     // GPU can have many threads running in parallel.
 #ifdef GPU
-    X.gpu_blocks(xx, co, n).gpu_threads(y, x);
+    A.gpu_blocks(xx, co, n).gpu_threads(y, x);
 #endif
 
     // I/O network
