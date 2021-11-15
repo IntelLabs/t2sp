@@ -39,47 +39,47 @@ using namespace std;
 
 int main()
 {
-    Halide::Runtime::Buffer<float> i(TOTAL_IW, TOTAL_IH, TOTAL_CI, B), k(KW, KH, TOTAL_CI, TOTAL_CO);
-    for (size_t b = 0; b < B; b++) {
+    Halide::Runtime::Buffer<float> i(TOTAL_IY, TOTAL_IX, TOTAL_CI, N), k(KY, KX, TOTAL_CI, TOTAL_CO);
+    for (size_t n = 0; n < N; n++) {
         for (size_t ci = 0; ci < TOTAL_CI; ci++) {
-            for (size_t h = 0; h < TOTAL_IH; h++) {
-                for (size_t w = 0; w < TOTAL_IW; w++) {
-                    i(w, h, ci, b) = random();
+            for (size_t x = 0; x < TOTAL_IX; x++) {
+                for (size_t y = 0; y < TOTAL_IY; y++) {
+                    i(y, x, ci, n) = random();
                 }
             }
         }
     }
     for (size_t co = 0; co < TOTAL_CO; co++) {
         for (size_t ci = 0; ci < TOTAL_CI; ci++) {
-            for (size_t kh = 0; kh < KH; kh++) {
-                for (size_t kw = 0; kw < KW; kw++) {
-                    k(kw, kh, ci, co) = random();
+            for (size_t kx = 0; kx < KX; kx++) {
+                for (size_t ky = 0; ky < KY; ky++) {
+                    k(ky, kx, ci, co) = random();
                 }
             }
         }
     }
-    Halide::Runtime::Buffer<float> o(COO, WW, HH, CO, W, H, B);
+    Halide::Runtime::Buffer<float> o(COO, YY, XX, CO, Y, X, N);
     CONV(i, k, o);
 
 #ifdef TINY
     // Validate the results
-    for (int b = 0; b < B; b++)
-    for (int h = 0; h < H; h++)
-    for (int w = 0; w < W; w++) {
+    for (int n = 0; n < N; n++)
+    for (int x = 0; x < X; x++)
+    for (int y = 0; y < Y; y++) {
         for (int co = 0; co < CO; co++)
-        for (int hh = 0; hh < HH; hh++)
-        for (int ww = 0; ww < WW; ww++)
+        for (int xx = 0; xx < XX; xx++)
+        for (int yy = 0; yy < YY; yy++)
         for (int coo = 0; coo < COO; coo++) {
             float golden = 0.0f;
-            for (int r_ci = 0; r_ci < TOTAL_CI; r_ci++)
-            for (int r_kh = 0; r_kh < KH; r_kh++)
-            for (int r_kw = 0; r_kw < KW; r_kw++) {
-                size_t total_iw = ww + WW * w + r_kw;
-                size_t total_ih = hh + HH * h + r_kh;
+            for (int ci = 0; ci < TOTAL_CI; ci++)
+            for (int kx = 0; kx < KX; kx++)
+            for (int ky = 0; ky < KY; ky++) {
+                size_t total_iy = yy + YY * y + ky;
+                size_t total_ix = xx + XX * x + kx;
                 size_t total_co = coo + COO * co;
-                golden += i(total_iw, total_ih, r_ci, b) * k(r_kw, r_kh, r_ci, total_co);
+                golden += i(total_iy, total_ix, ci, n) * k(ky, kx, ci, total_co);
             }
-            assert(fabs(golden - o(coo, ww, hh, co, w, h, b)) < 0.005*fabs(golden));
+            assert(fabs(golden - o(coo, yy, xx, co, y, x, n)) < 0.005*fabs(golden));
         }
     }
 #else
@@ -89,9 +89,9 @@ int main()
     double mem_bandwidth = 33;
     double compute_roof = 2 * DSPs() * FMax();
      // Total operations (GFLOP for CONV), independent of designs
-    double number_ops = 2 * (long)(B * H * W) * (long)(TOTAL_CO * HH * WW) * (long)(TOTAL_CI * KH * KW);
-    double number_bytes = (long)(TOTAL_IW * TOTAL_IH * TOTAL_CI * B) * 4 + (long)(KW * KH * TOTAL_CI * TOTAL_CO) * 4
-                        + (long)(TOTAL_OW * TOTAL_OH * TOTAL_CO * B) * 4;
+    double number_ops = 2 * (long)(N * X * Y) * (long)(TOTAL_CO * XX * YY) * (long)(TOTAL_CI * KX * KY);
+    double number_bytes = (long)(TOTAL_IY * TOTAL_IX * TOTAL_CI * N) * 4 + (long)(KY * KX * TOTAL_CI * TOTAL_CO) * 4
+                        + (long)(TOTAL_OY * TOTAL_OX * TOTAL_CO * N) * 4;
     double exec_time = ExecTime();
     roofline(mem_bandwidth, compute_roof, number_ops, number_bytes, exec_time);
     if (fopen("roofline.png", "r") == NULL) {

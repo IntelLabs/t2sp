@@ -25,39 +25,39 @@
 #include "common/isa_helpers.h"
 
 #define ITER        1
-#define SIZE_I_0    TOTAL_CI * B
-#define SIZE_I_1    TOTAL_IW * TOTAL_IH
-#define SIZE_K_0    TOTAL_CI * KW
-#define SIZE_K_1    TOTAL_CO * KH
-#define SIZE_O_0    TOTAL_CO * B
-#define SIZE_O_1    TOTAL_OW * TOTAL_OH
+#define SIZE_I_0    TOTAL_CI * N
+#define SIZE_I_1    TOTAL_IY * TOTAL_IX
+#define SIZE_K_0    TOTAL_CI * KY
+#define SIZE_K_1    TOTAL_CO * KX
+#define SIZE_O_0    TOTAL_CO * N
+#define SIZE_O_1    TOTAL_OY * TOTAL_OX
 
 void check_correctness(float *i, float *k, float *o)
 {
-    for (int b = 0; b < B; b++)
-    for (int h = 0; h < H; h++)
-    for (int w = 0; w < W; w++) {
+    for (int n = 0; n < N; n++)
+    for (int x = 0; x < X; x++)
+    for (int y = 0; y < Y; y++) {
         for (int co = 0; co < CO; co++)
-        for (int hh = 0; hh < HH; hh++)
-        for (int ww = 0; ww < WW; ww++)
+        for (int xx = 0; xx < XX; xx++)
+        for (int yy = 0; yy < YY; yy++)
         for (int coo = 0; coo < COO; coo++) {
             float golden = 0.0f;
             size_t total_co = coo + COO * co;
-            size_t total_ow = ww + WW * w;
-            size_t total_oh = hh + HH * h;
-            for (int r_ci = 0; r_ci < TOTAL_CI; r_ci++)
-            for (int r_kh = 0; r_kh < KH; r_kh++)
-            for (int r_kw = 0; r_kw < KW; r_kw++) {
-                size_t total_iw = ww + WW * w + r_kw;
-                size_t total_ih = hh + HH * h + r_kh;
-                size_t i_0 = r_ci + TOTAL_CI * b;
-                size_t i_1 = total_iw + TOTAL_IW * b;
-                size_t k_0 = r_ci + TOTAL_CI * r_kw;
-                size_t k_1 = total_co + TOTAL_CO * r_kh;
+            size_t total_oy = yy + YY * y;
+            size_t total_ox = xx + XX * x;
+            for (int ci = 0; ci < TOTAL_CI; ci++)
+            for (int kx = 0; kx < KX; kx++)
+            for (int ky = 0; ky < KY; ky++) {
+                size_t total_iy = yy + YY * y + ky;
+                size_t total_ix = xx + XX * x + kx;
+                size_t i_0 = ci + TOTAL_CI * n;
+                size_t i_1 = total_iy + TOTAL_IY * n;
+                size_t k_0 = ci + TOTAL_CI * ky;
+                size_t k_1 = total_co + TOTAL_CO * kx;
                 golden += i[i_0 + SIZE_I_0 * i_1] * k[k_0 + SIZE_K_0 * k_1];
             }
-            size_t o_0 = total_co + TOTAL_CO * b;
-            size_t o_1 = total_ow + TOTAL_OW * total_oh;
+            size_t o_0 = total_co + TOTAL_CO * n;
+            size_t o_1 = total_oy + TOTAL_OY * total_ox;
             printf("( %lf, %lf )\n", golden, o[o_0 + SIZE_O_0 * o_1]);
             assert(fabs(golden - o[o_0 + SIZE_O_0 * o_1]) < 0.005*fabs(golden));
         }
@@ -121,7 +121,7 @@ int main(int argc, char *argv[]) {
         cm_result_check(device->CreateTask(task));
         cm_result_check(task->AddKernel(kernel));
         CmThreadGroupSpace *thread_group_space = nullptr;
-        cm_result_check(device->CreateThreadGroupSpaceEx(W, H, 1, HH, CO, B, thread_group_space));
+        cm_result_check(device->CreateThreadGroupSpaceEx(Y, X, 1, XX, CO, N, thread_group_space));
 
         UINT64 tmp_kern_time;
         CmEvent *sync_event = nullptr;
@@ -142,7 +142,7 @@ int main(int argc, char *argv[]) {
         cm_result_check(device->DestroyTask(task));
     }
     double tkern = kernel_ns / ITER;
-    double ops = 2.0 * (long)(B * H * W) * (long)(CO * HH * WW * COO) * (long)(CI * KH * KW * CII);
+    double ops = 2.0 * (long)(N * X * Y) * (long)(CO * XX * YY * COO) * (long)(CI * KX * KY * CII);
 
     cm_result_check(::DestroyCmDevice(device));
     printf("GFlops: %lf\n", ops / tkern);
