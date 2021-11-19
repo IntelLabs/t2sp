@@ -3318,6 +3318,12 @@ void Func::compile_to_c(const string &filename, const vector<Argument> &args,
     pipeline().compile_to_c(filename, args, fn_name, target);
 }
 
+void Func::compile_to_oneapi(const string &filename, const vector<Argument> &args,
+                        const string &fn_name, const Target &target) {
+    user_assert( target.has_feature((Target::OneAPI)) ) << "OneAPI Target not found.\n";
+    pipeline().compile_to_oneapi(filename, args, fn_name, target);
+}
+
 void Func::compile_to_cm(const string &fn_name,
                          const vector<Argument> &args,
                          const Target &target) {

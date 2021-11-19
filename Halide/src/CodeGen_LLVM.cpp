@@ -305,6 +305,7 @@ CodeGen_LLVM *CodeGen_LLVM::new_for_target(const Target &target,
     // The awkward mapping from targets to code generators
     if (target.features_any_of({Target::CUDA,
                                 Target::OpenCL,
+                                Target::OneAPI,
                                 Target::IntelGPU,
                                 Target::OpenGL,
                                 Target::OpenGLCompute,

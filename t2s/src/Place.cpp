@@ -51,7 +51,9 @@ private:
                                       0,
                                       1,
                                       ForType::Parallel, // The loop type is arbitrarily chosen here: it does not really matter.
-                                      DeviceAPI::OpenCL, // TODO: allow other device APIs
+                                    //   DeviceAPI::OpenCL, // TODO: allow other device APIs
+                                      DeviceAPI::OneAPI, 
+                                    //   op->device_api, // (NOTE) Produces error " error: ‘const struct Halide::Internal::ProducerConsumer’ has no member named ‘device_api’"
                                       body);
             Stmt stmt = ProducerConsumer::make(op->name, op->is_producer, new_body);
             return stmt;
@@ -171,7 +173,7 @@ private:
         if ((op->for_type == ForType::Vectorized) && names.size() > 2) {
             enclosing_unrolled_loops.push_back(op->name);
         }
-        if (op->device_api != DeviceAPI::OpenCL && (op->min.as<Variable>() || op->extent.as<Variable>())) {
+        if (op->device_api != DeviceAPI::OpenCL && op->device_api != DeviceAPI::OneAPI && (op->min.as<Variable>() || op->extent.as<Variable>())) {
             is_set_bounds = false;
         }
         Stmt stmt = IRMutator::visit(op);

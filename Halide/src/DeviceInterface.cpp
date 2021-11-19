@@ -55,6 +55,8 @@ const halide_device_interface_t *get_device_interface_for_device_api(DeviceAPI d
         name = "metal";
     } else if (d == DeviceAPI::OpenCL) {
         name = "opencl";
+    } else if (d == DeviceAPI::OneAPI) {
+        name = "oneapi";
     } else if (d == DeviceAPI::CUDA) {
         name = "cuda";
     } else if (d == DeviceAPI::CM) {
@@ -111,6 +113,8 @@ const halide_device_interface_t *get_device_interface_for_device_api(DeviceAPI d
 DeviceAPI get_default_device_api_for_target(const Target &target) {
     if (target.has_feature(Target::Metal)) {
         return DeviceAPI::Metal;
+    } else if (target.has_feature(Target::OneAPI)) {
+        return DeviceAPI::OneAPI;
     } else if (target.has_feature(Target::OpenCL)) {
         return DeviceAPI::OpenCL;
     } else if (target.has_feature(Target::IntelGPU)) {
@@ -145,6 +149,9 @@ Expr make_device_interface_call(DeviceAPI device_api) {
         interface_name = "halide_cm_device_interface";
         break;
     case DeviceAPI::OpenCL:
+        interface_name = "halide_opencl_device_interface";
+        break;
+    case DeviceAPI::OneAPI:
         interface_name = "halide_opencl_device_interface";
         break;
     case DeviceAPI::Metal:

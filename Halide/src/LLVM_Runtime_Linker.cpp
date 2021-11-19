@@ -1103,7 +1103,7 @@ std::unique_ptr<llvm::Module> get_initial_module_for_target(Target t, llvm::LLVM
                 modules.push_back(get_initmod_cuda(c, bits_64, debug));
             }
         }
-        if (t.has_feature(Target::OpenCL)) {
+        if (t.has_feature(Target::OpenCL) || t.has_feature(Target::OneAPI)) {
             if (t.os == Target::Windows) {
                 modules.push_back(get_initmod_windows_opencl(c, bits_64, debug));
             } else {

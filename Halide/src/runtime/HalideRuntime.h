@@ -1307,6 +1307,7 @@ typedef enum halide_target_feature_t {
     halide_target_feature_sve2, ///< Enable ARM Scalable Vector Extensions v2
     halide_target_feature_egl,            ///< Force use of EGL support.
     halide_target_feature_intel_fpga, ///< Enable Intel FPGAs
+    halide_target_feature_one_api, ///< Enable Intel OneAPI dpcpp program generation
     halide_target_feature_intel_gpu, ///< Enable Intel Graphics
     halide_target_feature_enable_synthesis, ///< Enable synthesizing binaries. Currently used only for Intel FPGAs.
     halide_target_feature_end ///< A sentinel. Every target is considered to have this feature, and setting this feature does nothing.

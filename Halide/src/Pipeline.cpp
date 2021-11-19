@@ -341,6 +341,17 @@ void Pipeline::compile_to_c(const string &filename,
     m.compile(single_output(filename, m, Output::c_source));
 }
 
+void Pipeline::compile_to_oneapi(const string &filename,
+                            const vector<Argument> &args,
+                            const string &fn_name,
+                            const Target &target) {
+    // (TODO) check that target has IntelFPGA and OneAPI targets set. Else throw an error
+    user_assert( target.has_feature((Target::OneAPI)) ) << "OneAPI Target not found.\n";
+    Module m = compile_to_module(args, fn_name, target);
+    auto ext = get_output_info(target);
+    m.compile(single_output(filename + ext.at(Output::oneapi).extension, m, Output::oneapi));
+}
+
 void Pipeline::print_loop_nest() {
     user_assert(defined()) << "Can't print loop nest of undefined Pipeline.\n";
     debug(0) << Halide::Internal::print_loop_nest(contents->outputs);
