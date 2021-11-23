@@ -17,11 +17,11 @@ Note:
 
 Consider matrix multiply:
 
-![Matrix multiply](figures/matrix-mul-equation.png)
+![Matrix multiply](figures/gemm-equation.png)
 
 The following diagram shows the design:
 
-![Design](figures/design.png)
+![Design](figures/gemm-design.png)
 
 In this design, the original 3 loops are manually tiled and ordered; `III`, `JJJ` and `KKK` are static constants and are the extents of loop `iii`, `jjj`, and `kkk`, respectively.
 
@@ -190,3 +190,5 @@ This design is specified to compile ahead-of-time (AOT), since AOT mode makes se
   g++ gemm-run-gpu.o -L$CM_ROOT/drivers/media_driver/release/extract/usr/lib/x86_64-linux-gnu -L$CM_ROOT/drivers/IGC/extract/usr/local/lib -L$CM_ROOT/drivers/media_driver/release/extract/usr/lib/x86_64-linux-gnu/dri $CM_ROOT/runtime/lib/x64/libigfxcmrt.so -lva -ldl -fPIC -rdynamic -o gemm-run-gpu.out
   ./gemm-run-gpu.out
   ```
+  
+  Performance is printed in the output.
