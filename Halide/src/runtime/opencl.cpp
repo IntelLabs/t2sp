@@ -819,7 +819,7 @@ WEAK int halide_opencl_initialize_kernels(void *user_context, void **state_ptr, 
         (*state)->next = state_list;
         state_list = *state;
     }
-    halide_assert(*state);
+    halide_assert(user_context, *state);
 
     // Create the program if necessary. TODO: The program object needs to not
     // only already exist, but be created for the same context/device as the
