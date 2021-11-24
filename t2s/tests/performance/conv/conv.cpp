@@ -25,22 +25,21 @@ using namespace Halide;
 int main(void)
 {
     // Dependences
-    #define P               cii,       coo,   yy,   xx, co, ky,      kx,      ci,   y,   x,   n
-    #define P_cii_minus_1   cii-1,     coo,   yy,   xx, co, ky,      kx,      ci,   y,   x,   n
-    #define P_ky_minus_1    cii+CII-1, coo,   yy,   xx, co, ky-1,    kx,      ci,   y,   x,   n
-    #define P_kx_minus_1    cii+CII-1, coo,   yy,   xx, co, ky+KY-1, kx-1,    ci,   y,   x,   n
-    #define P_ci_minus_1    cii+CII-1, coo,   yy,   xx, co, ky+KY-1, kx+KX-1, ci-1, y,   x,   n
-    #define P_coo_minus_1   cii,       coo-1, yy,   xx, co, ky,      kx,      ci,   y,   x,   n
-    #define P_yy_minus_1    cii,       coo,   yy-1, xx, co, ky,      kx,      ci,   y,   x,   n
-    #define P_Out                        coo,   yy,   xx, co,                               y,   x,   n
-
+    #define P               cii,       coo,   yy,   xxp,  cop,  y,  x,  ky,      kx,      ci,   yp,  xp,  xx, co, n
+    #define P_cii_minus_1   cii-1,     coo,   yy,   xxp,  cop,  y,  x,  ky,      kx,      ci,   yp,  xp,  xx, co, n
+    #define P_ky_minus_1    cii+CII-1, coo,   yy,   xxp,  cop,  y,  x,  ky-1,    kx,      ci,   yp,  xp,  xx, co, n
+    #define P_kx_minus_1    cii+CII-1, coo,   yy,   xxp,  cop,  y,  x,  ky+KY-1, kx-1,    ci,   yp,  xp,  xx, co, n
+    #define P_ci_minus_1    cii+CII-1, coo,   yy,   xxp,  cop,  y,  x,  ky+KY-1, kx+KX-1, ci-1, yp,  xp,  xx, co, n
+    #define P_coo_minus_1   cii,       coo-1, yy,   xxp,  cop,  y,  x,  ky,      kx,      ci,   yp,  xp,  xx, co, n
+    #define P_yy_minus_1    cii,       coo,   yy-1, xxp,  cop,  y,  x,  ky,      kx,      ci,   yp,  xp,  xx, co, n
+    #define P_Out                      coo,   yy,   xxp,  cop,  y,  x,                          yp,  xp,  xx, co, n
     // Linearized addresses
-    #define total_iy        (yy + YY * y + ky)
-    #define total_ix        (xx + XX * x + kx)
-    #define total_oy        (yy + YY * y)
-    #define total_ox        (xx + XX * x)
-    #define total_co        (coo + COO * co)
-    #define total_ci        (cii + CII * ci)
+    #define total_iy        (yy  + YY*y  + YY*Y*yp  + ky)
+    #define total_ix        (xxp + XXP*x + XXP*X*xp + XXP*X*XP*xx + kx)
+    #define total_oy        (yy  + YY*y  + YY*Y*yp)
+    #define total_ox        (xxp + XXP*x + XXP*X*xp + XXP*X*XP*xx)
+    #define total_co        (coo + COO*cop + COO*COP*co)
+    #define total_ci        (cii + CII*ci)
 
     // Type of the data to process in C and T2S
     #define CTYPE float
@@ -62,7 +61,8 @@ int main(void)
 #endif
 
     // UREs
-    Var cii("cii"), ci("ci"), ky("ky"), kx("kx"), coo("coo"), co("co"), yy("yy"), xx("xx"), y("y"), x("x"), n("n");
+    Var cii("cii"), ci("ci"), coo("coo"), co("co"), ky("ky"), kx("kx"), yy("yy"), xx("xx"), y("y"), x("x"), n("n");
+    Var xxp("xxp"), cop("cop"), yp("yp"), xp("xp");
     URE A("A", TTYPE, {P}), B("B", TTYPE, {P}), C("C", TTYPE, {P}), Out("Out");
     A(P) = select(coo == 0, I(P_I), A(P_coo_minus_1));
     B(P) = select(yy == 0, K(P_K), B(P_yy_minus_1));
@@ -75,11 +75,13 @@ int main(void)
     A.merge_ures(B, C, Out);
 
     // Explicitly set the loop bounds
-    A.set_bounds(ky,  0, KY,  kx, 0, KX)
-     .set_bounds(cii, 0, CII, ci, 0, CI)
+    A.set_bounds(ky,    0, KY,  kx,   0, KX)
+     .set_bounds(cii,   0, CII, ci,   0, CI)
      .set_bounds(coo,   0, COO, co,   0, CO)
      .set_bounds(yy,    0, YY,  xx,   0, XX)
      .set_bounds(y,     0, Y,   x,    0, X)
+     .set_bounds(xxp,   0, XXP, cop,  0, COP)
+     .set_bounds(yp,    0, YP,  xp,   0, XP)
      .set_bounds(n,     0, UN);
 
     // Create a systolic array

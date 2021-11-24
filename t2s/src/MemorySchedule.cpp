@@ -1307,14 +1307,19 @@ public:
     map<string, Expr> new_loop_vars;
     using IRVisitor::visit;
 
+    LoopInfoCollector() {
+        for (auto &v : loop_vars) {
+            new_loop_vars[v] = 0;
+        }
+    }
+
     // After transformation, some variables are decorated with special suffix like
     // ".thread_id_x" for GPU loops, so we need to update their names
     void visit(const For* op) override {
         op->body.accept(this);
-        for (size_t i = 0; i < loop_vars.size(); i++) {
-            if (extract_token(op->name, 2) == extract_token(loop_vars[i], 2)) {
-                new_loop_vars[loop_vars[i]] = Variable::make(Int(32), op->name);
-                loop_vars[i] = op->name;
+        for (auto &v : loop_vars) {
+            if (extract_token(op->name, 2) == extract_token(v, 2)) {
+                new_loop_vars[v] = Variable::make(Int(32), op->name);
             }
         }
     }

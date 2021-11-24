@@ -168,7 +168,11 @@ struct FindVars
             if (f.function().has_merged_defs()) {
                 ure = f;
                 for (auto &d : f.function().definition().schedule().dims()) {
-                    free_vars.push_back(d.var);
+                    // Skip loops whose extent == 1
+                    auto bound = f.function().get_bounds(d.var);
+                    if (!is_one(bound.second)) {
+                        free_vars.push_back(d.var);
+                    }
                 }
             }
         }
@@ -458,10 +462,9 @@ class RealizeOnGPU
         for (auto &s : c.stensors) {
             // The SRAM stensor determines the allocated registers
             if (s.position == SRAM) {
-                int banks_idx = fv.var_index(s.v_banks[0]);
-                int width_idx = fv.var_index(s.v_width);
-                int max_idx = banks_idx < width_idx ? width_idx : banks_idx;
-                Var dim = fv.free_vars[max_idx + 1];
+                // Find a loop whose extent > 1
+                int idx = fv.var_index(s.v_banks.back());
+                Var dim = fv.free_vars[idx + 1];
                 c.imp.mem_fetch(dim, MemoryType::Register);
                 debug(1) << c.imp.name() << ".mem_fetch("
                          << dim << ");\n";
