@@ -3,7 +3,7 @@
 | Device | Frequency | Throughput | Logic utilization | DSPs | BRAMs | Efficiency | Tensor Sizes | Device compiler |
 | ------ | --------- | ------ | --------- | ---- | ----- | -------------- | ----- | -------------- |
 | Intel Arria 10 GX 1150 FPGA | 206 MHz | 515 GFLOPS | 257,558 / 427,200 ( 60 % ) | 1,299 / 1,518 ( 86 % ) | 2,011 / 2,713 ( 74 % ) | 96%   | I(64,256,1x60+3,1x60+3) * K(256,256,3,3) | aoc 19.4.0 |
-| Intel GEN9.5 GPU | 1200 MHz | 415 GFLOPS | - | - | - | 90%   | I(64,256,1x64+3,1x64+3) * K(256,256,3,3) | CM Dev Package 20200119 |
+| Intel GEN9.5 GPU | 1200 MHz | 412 GFLOPS | - | - | - | 90%   | I(64,256,1x64+3,1x64+3) * K(256,256,3,3) | CM Dev Package 20200119 |
 
 Note:
 
