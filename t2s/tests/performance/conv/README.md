@@ -2,40 +2,38 @@
 
 | Device | Frequency | Throughput | Logic utilization | DSPs | BRAMs | Efficiency | Tensor Sizes | Device compiler |
 | ------ | --------- | ------ | --------- | ---- | ----- | -------------- | ----- | -------------- |
-| Intel Arria 10 GX 1150 FPGA | 206 MHz | 515 GFLOPS | 257,558 / 427,200 ( 60 % ) | 1,299 / 1,518 ( 86 % ) | 2,011 / 2,713 ( 74 % ) | 96%   | 10K * 16K matrix times 16K * 8K matrix | aoc 19.4.0 |
-| Intel GEN9.5 GPU | 1200 MHz | 415 GFLOPS | - | - | - | 90%   | 2K * 1K matrix times 1K * 2K matrix | CM Dev Package 20200119 |
+| Intel Arria 10 GX 1150 FPGA | 206 MHz | 515 GFLOPS | 257,558 / 427,200 ( 60 % ) | 1,299 / 1,518 ( 86 % ) | 2,011 / 2,713 ( 74 % ) | 96%   | I(64,256,1x60+3,1x60+3) * K(256,256,3,3) | aoc 19.4.0 |
+| Intel GEN9.5 GPU | 1200 MHz | 415 GFLOPS | - | - | - | 90%   | I(64,256,1x64+3,1x64+3) * K(256,256,3,3) | CM Dev Package 20200119 |
 
 Note:
 
-- The DSP efficiency of an FPGA for single-precision matrix multiply equals measured throughput/theoretical peak throughput.
-  - Measured throughput in GFLOPS = #operations / execution time =  2 (add + mul) * (#rows of matrix A) * (#columns of matrix A) * (#columns of matrix B) / execution time in nanoseconds.
-  - Theoretical peak throughput = 215 MHZ (frequency)  * 2 (add + mul)  * 1518 (#DSPs).
-- The machine peak of GEN9.5 for single-precision matrix multiply is calculated as 1200Mhz (peak frequency) * 2 (add + mul) * 2 (FPUs) * 4 (SIMD-4) * 24 (EUs) = 460.8 GFlOPS.  Refer to [GEN architecture document](https://www.intel.com/content/dam/develop/external/us/en/documents/the-compute-architecture-of-intel-processor-graphics-gen9-v1d0.pdf) for more details.
+- The DSP efficiency of an FPGA equals measured throughput/theoretical peak throughput.
+  - Measured throughput in GFLOPS = #operations / execution time  in nanoseconds.
+  - Given the definition of 2-D convolution  in equation (1) below, #operations =  2 (add + mul) * (size of tensor `O` in the equation) * (multiplication of the extents of `kx`, `ky` and `ci` in the equation).
+  - Theoretical peak throughput = frequency  * 2 (add + mul)  * 1518 (#DSPs).
+- The machine peak of GEN9.5 for single-precision computes is calculated as 1200Mhz (peak frequency) * 2 (add + mul) * 2 (FPUs) * 4 (SIMD-4) * 24 (EUs) = 460.8 GFlOPS.  Refer to [GEN architecture document](https://www.intel.com/content/dam/develop/external/us/en/documents/the-compute-architecture-of-intel-processor-graphics-gen9-v1d0.pdf) for more details.
 
 ## Design
 
 2-D convolution is defined as follows [1]:
 
-![2dconv-original-equation](figures/original-equation.png)
+![2dconv-original-equation](figures/conv-equation.png) (1)
 
 where `s` is the stride, operation `·` is scalar multiplication, and `O`, `I`, and `K` are all 4-dimensional arrays of scalars.   
 
-In this design, the original loops have been manually tiled and ordered. For example, loop `x` has been tiled into an outer loop `x` and an inner loop `xx`, and so on. And we assume stride `s=1`.
+The following diagram shows the design:
 
+![Design](figures/conv-design.png)
 
+In this design, the original 3 loops are manually tiled and ordered; `CII`, `YY` and `COO` are static constants and are the extents of loop `cii`, `yy`, and `coo`, respectively. In this design, we assume `s=1`. 
 
- 
+On a GPU, some loops are made block loops,  and some loops are made thread loops, to create parallel threads. On an FPGA, there  is only one thread, since multi-threading is not efficient on FPGAs. To drain results out of the device, we also add extra drain loops for each thread. Any loop that is not specially annotated is a sequential loop. 
 
-This design contains several important optimizations:
+Data move as the loops run. For tensor`I` and `K` ,  we create abstract memories for them, `DI` and `DK`, that are resident in device DRAM, and serve as global user-managed caches. Above them, we create another level of abstract memories, `SI` and `SK`, that are resident in device SRAM, and serve as per-block user-managed caches.
 
-- Generating a 10x8 systolic array with UREs and a space-time transform
-- Generating double buffers for input data, with multiple banks connected as a daisy chain
-- Vectorizing input data to utilize the bandwidth of the device's DRAM
-- Generating two-level output buffers in registers
+Each thread contains a systolic array as its compute engine. This systolic array is created with UREs and a space-time transform. After the systolic array finishes execution, its results are drained through two levels of abstract memories, `RO2` and `RO1`,  that are resident in registers, and into the last abstract memory, `DO`, which is on the device's DRAM.
 
-The compiler implements the above optimizations. In addition, the compiler automatically performs the following optimizations so that the generated code lends itself to the downstream EDA tools for further optimizations:
-- Identifying and rewriting the inner-product pattern
-- Moving  channel accesses at the boundaries of the systolic array outside the unrolled loops
+Note that an abstract memory outputs a tensor each time. For example, `DI` outputs a vector of size `CII` each time. So the abstract memory is named streaming tensor (stensor). 
 
 ## Test the design
 
@@ -182,6 +180,8 @@ This design is specified to compile ahead-of-time (AOT), since AOT mode makes se
   g++ conv-run-gpu.o -L$CM_ROOT/drivers/media_driver/release/extract/usr/lib/x86_64-linux-gnu -L$CM_ROOT/drivers/IGC/extract/usr/local/lib -L$CM_ROOT/drivers/media_driver/release/extract/usr/lib/x86_64-linux-gnu/dri $CM_ROOT/runtime/lib/x64/libigfxcmrt.so -lva -ldl -fPIC -rdynamic -o conv-run-gpu.out
   ./conv-run-gpu.out
   ```
+  
+  Performance is printed in the output.
 
 ### References
 
