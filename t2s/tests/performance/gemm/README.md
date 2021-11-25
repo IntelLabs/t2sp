@@ -8,24 +8,25 @@
 
 Note:
 
-- The DSP efficiency of an FPGA for single-precision matrix multiply equals measured throughput/theoretical peak throughput.
-  - Measured throughput in GFLOPS = #operations / execution time in nanoseconds, and #operations =  2 (add + mul) * (#rows of matrix A) * (#columns of matrix A) * (#columns of matrix B).
+- The DSP efficiency of an FPGA equals measured throughput/theoretical peak throughput.
+  - Measured throughput in GFLOPS = #operations / execution time in nanoseconds.
+  - #operations =  2 (add + mul) * (#rows of matrix A) * (#columns of matrix A) * (#columns of matrix B).
   - Theoretical peak throughput = frequency * 2 (add + mul)  * 1518 (#DSPs).
-- The machine peak of GEN9.5 for single-precision matrix multiply is calculated as 1200Mhz (peak frequency) * 2 (add + mul) * 2 (FPUs) * 4 (SIMD4) * 24 (EUs) = 460.8 GFlOPS.  Refer to [GEN architecture document](https://www.intel.com/content/dam/develop/external/us/en/documents/the-compute-architecture-of-intel-processor-graphics-gen9-v1d0.pdf) for more details.
+- The machine peak of GEN9.5 for single-precision computes is calculated as 1200Mhz (peak frequency) * 2 (add + mul) * 2 (FPUs) * 4 (SIMD4) * 24 (EUs) = 460.8 GFlOPS.  Refer to [GEN architecture document](https://www.intel.com/content/dam/develop/external/us/en/documents/the-compute-architecture-of-intel-processor-graphics-gen9-v1d0.pdf) for more details.
 
 ## Design
 
 Consider matrix multiply:
 
-![Matrix multiply](figures/gemm-equation.png)
+![Matrix multiply](figures/gemm-equation.png)   (1)
 
 The following diagram shows the design:
 
 ![Design](figures/gemm-design.png)
 
-In this design, the original 3 loops are manually tiled and ordered; `III`, `JJJ` and `KKK` are static constants and are the extents of loop `iii`, `jjj`, and `kkk`, respectively.
+In this design, the original 3 loops are manually tiled and ordered; `III`, `JJJ` and `KKK` are static constants and are the extents of loop `iii`, `jjj`, and `kkk`, respectively. 
 
-On a GPU, some loops are made block loops,  and some loops are made thread loops, to create parallel threads. On an FPGA, there  is only one thread, since multi-threading is not efficient on FPGAs. 
+On a GPU, some loops are made block loops,  and some loops are made thread loops, to create parallel threads. On an FPGA, there  is only one thread, since multi-threading is not efficient on FPGAs.  To drain results out of the device, we also add extra drain loops for each thread. Any loop that is not specially annotated is a sequential loop.
 
 Data move as the loops run. For matrix `A` and `B` ,  we create abstract memories for them, `DA` and `DB`, that are resident in device DRAM, and serve as global user-managed caches. Above them, we create another level of abstract memories, `SA` and `SB`, that are resident in device SRAM, and serve as per-block user-managed caches.
 
