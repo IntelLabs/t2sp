@@ -37,7 +37,7 @@
 #define SIZE_B      TOTAL_J*TOTAL_K
 #define SIZE_C      TOTAL_I*TOTAL_J
 
-#define ITER        10
+#define ITER        100
 
 void check_correctness(float *a, float *b, float *c)
 {
@@ -81,27 +81,27 @@ int main(int argc, char *argv[]) {
 
     float *a = (float*)malloc(sizeof(float) * SIZE_A);
     for (int i = 0; i < SIZE_A; ++i) {
-        a[i] = rand() % 10;
+        a[i] = rand();
     }
     CmSurface2D *surf_a = nullptr;
     SurfaceIndex *surf_a_idx = nullptr;
-    cm_result_check(device->CreateSurface2D(TOTAL_I, TOTAL_K, CM_SURFACE_FORMAT_R32F, surf_a));
+    cm_result_check(device->CreateSurface2D(TOTAL_K, TOTAL_I, CM_SURFACE_FORMAT_R32F, surf_a));
     cm_result_check(surf_a->WriteSurface((unsigned char*)a, NULL));
     cm_result_check(surf_a->GetIndex(surf_a_idx));
 
     float *b = (float*)malloc(sizeof(float) * SIZE_B);
     for (int i = 0; i < SIZE_B; ++i) {
-        b[i] = rand() % 10;
+        b[i] = rand();
     }
     CmSurface2D *surf_b = nullptr;
     SurfaceIndex *surf_b_idx = nullptr;
-    cm_result_check(device->CreateSurface2D(TOTAL_K, TOTAL_J, CM_SURFACE_FORMAT_R32F, surf_b));
+    cm_result_check(device->CreateSurface2D(TOTAL_J, TOTAL_K, CM_SURFACE_FORMAT_R32F, surf_b));
     cm_result_check(surf_b->WriteSurface((unsigned char*)b, NULL));
     cm_result_check(surf_b->GetIndex(surf_b_idx));
 
     CmSurface2D *surf_c = nullptr;
     SurfaceIndex *surf_c_idx = nullptr;
-    cm_result_check(device->CreateSurface2D(TOTAL_I, TOTAL_J, CM_SURFACE_FORMAT_R32F, surf_c));
+    cm_result_check(device->CreateSurface2D(TOTAL_J, TOTAL_I, CM_SURFACE_FORMAT_R32F, surf_c));
     cm_result_check(surf_c->GetIndex(surf_c_idx));
 
     int _A_extent_0 = TOTAL_K;

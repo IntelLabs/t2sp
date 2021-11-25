@@ -18,7 +18,9 @@
 *******************************************************************************/
 #include "Halide.h"
 #include "util.h"
-#include "sizes.h"
+
+// Constant parameters (inner loop bounds) of the design
+#include "const-parameters.h"
 
 using namespace Halide;
 
@@ -34,10 +36,10 @@ int main(void)
     #define P_yy_minus_1    cii,       coo,   yy-1, xxp,  cop,  y,  x,  ky,      kx,      ci,   yp,  xp,  xx, co, n
     #define P_Out                      coo,   yy,   xxp,  cop,  y,  x,                          yp,  xp,  xx, co, n
     // Linearized addresses
-    #define total_iy        (yy  + YY*y  + YY*Y*yp  + ky)
-    #define total_ix        (xxp + XXP*x + XXP*X*xp + XXP*X*XP*xx + kx)
-    #define total_oy        (yy  + YY*y  + YY*Y*yp)
-    #define total_ox        (xxp + XXP*x + XXP*X*xp + XXP*X*XP*xx)
+    #define total_iy        (yy + YY*y   + YY*Y*yp  + ky)
+    #define total_ix        (xx + XX*xxp + XX*XXP*x + XX*XXP*X*xp + kx)
+    #define total_oy        (yy + YY*y   + YY*Y*yp)
+    #define total_ox        (xx + XX*xxp + XX*XXP*x + XX*XXP*X*xp)
     #define total_co        (coo + COO*cop + COO*COP*co)
     #define total_ci        (cii + CII*ci)
 
@@ -48,9 +50,9 @@ int main(void)
     // Inputs
 #ifdef GPU
     ImageParam I("I", TTYPE, 2), K("K", TTYPE, 2);
-    #define P_I     total_ci + (TOTAL_CI) * n,  total_iy + TOTAL_IY * total_ix
-    #define P_K     total_co + TOTAL_CO * ky, total_ci + (TOTAL_CI) * kx
-    #define P_O     total_co + (TOTAL_CO) * n,  total_oy + TOTAL_OY * total_ox
+    #define P_I     total_ci + (TOTAL_CI) * n,  total_iy + (TOTAL_IY) * total_ix
+    #define P_K     total_co + (TOTAL_CO) * ky, total_ci + (TOTAL_CI) * kx
+    #define P_O     total_co + (TOTAL_CO) * n,  total_oy + (TOTAL_OY) * total_ox
     #define UN      (I.dim(0).extent() / TOTAL_CI)
 #else
     ImageParam I("I", TTYPE, 4), K("K", TTYPE, 4);

@@ -17,18 +17,19 @@
 * SPDX-License-Identifier: BSD-2-Clause-Patent
 *******************************************************************************/
 #define GPU     1
-#include "sizes.h"
+#include "const-parameters.h"
 
 #include <assert.h>
 #include "cm_rt.h"
 #include "common/cm_rt_helpers.h"
 #include "common/isa_helpers.h"
 
-#define ITER        1
+#define N           4
+#define ITER        100
 #define SIZE_I_0    TOTAL_CI * N
 #define SIZE_I_1    TOTAL_IY * TOTAL_IX
-#define SIZE_K_0    TOTAL_CI * KY
-#define SIZE_K_1    TOTAL_CO * KX
+#define SIZE_K_0    TOTAL_CO * KY
+#define SIZE_K_1    TOTAL_CI * KX
 #define SIZE_O_0    TOTAL_CO * N
 #define SIZE_O_1    TOTAL_OY * TOTAL_OX
 
@@ -36,31 +37,29 @@ void check_correctness(float *i, float *k, float *o)
 {
     for (int n = 0; n < N; n++)
     for (int x = 0; x < X; x++)
-    for (int y = 0; y < Y; y++) {
-        for (int co = 0; co < CO; co++)
-        for (int xx = 0; xx < XX; xx++)
-        for (int yy = 0; yy < YY; yy++)
-        for (int coo = 0; coo < COO; coo++) {
-            float golden = 0.0f;
-            size_t total_co = coo + COO * co;
-            size_t total_oy = yy + YY * y;
-            size_t total_ox = xx + XX * x;
-            for (int ci = 0; ci < TOTAL_CI; ci++)
-            for (int kx = 0; kx < KX; kx++)
-            for (int ky = 0; ky < KY; ky++) {
-                size_t total_iy = yy + YY * y + ky;
-                size_t total_ix = xx + XX * x + kx;
-                size_t i_0 = ci + TOTAL_CI * n;
-                size_t i_1 = total_iy + TOTAL_IY * n;
-                size_t k_0 = ci + TOTAL_CI * ky;
-                size_t k_1 = total_co + TOTAL_CO * kx;
-                golden += i[i_0 + SIZE_I_0 * i_1] * k[k_0 + SIZE_K_0 * k_1];
-            }
-            size_t o_0 = total_co + TOTAL_CO * n;
-            size_t o_1 = total_oy + TOTAL_OY * total_ox;
-            printf("( %lf, %lf )\n", golden, o[o_0 + SIZE_O_0 * o_1]);
-            assert(fabs(golden - o[o_0 + SIZE_O_0 * o_1]) < 0.005*fabs(golden));
+    for (int y = 0; y < Y; y++)
+    for (int co = 0; co < CO; co++)
+    for (int xx = 0; xx < XX; xx++)
+    for (int yy = 0; yy < YY; yy++)
+    for (int coo = 0; coo < COO; coo++) {
+        float golden = 0.0f;
+        size_t total_co = coo + COO * co;
+        size_t total_oy = yy + YY * y;
+        size_t total_ox = xx + XX * x;
+        for (int ci = 0; ci < TOTAL_CI; ci++)
+        for (int kx = 0; kx < KX; kx++)
+        for (int ky = 0; ky < KY; ky++) {
+            size_t total_iy = yy + YY * y + ky;
+            size_t total_ix = xx + XX * x + kx;
+            size_t i_0 = ci + TOTAL_CI * n;
+            size_t i_1 = total_iy + TOTAL_IY * total_ix;
+            size_t k_0 = total_co + TOTAL_CO * ky;
+            size_t k_1 = ci + TOTAL_CI * kx;
+            golden += i[i_0 + SIZE_I_0 * i_1] * k[k_0 + SIZE_K_0 * k_1];
         }
+        size_t o_0 = total_co + TOTAL_CO * n;
+        size_t o_1 = total_oy + TOTAL_OY * total_ox;
+        assert(fabs(golden - o[o_0 + SIZE_O_0 * o_1]) < 0.005*fabs(golden));
     }
     printf("Passed\n");
 }
@@ -87,27 +86,27 @@ int main(int argc, char *argv[]) {
 
     float *a = (float*)malloc(sizeof(float) * SIZE_I_0 * SIZE_I_1);
     for (int i = 0; i < SIZE_I_0 * SIZE_I_1; ++i) {
-        a[i] = 1;
+        a[i] = rand();
     }
     CmSurface2D *surf_a = nullptr;
     SurfaceIndex *surf_a_idx = nullptr;
-    cm_result_check(device->CreateSurface2D(SIZE_I_1, SIZE_I_0, CM_SURFACE_FORMAT_R32F, surf_a));
+    cm_result_check(device->CreateSurface2D(SIZE_I_0, SIZE_I_1, CM_SURFACE_FORMAT_R32F, surf_a));
     cm_result_check(surf_a->WriteSurface((unsigned char*)a, NULL));
     cm_result_check(surf_a->GetIndex(surf_a_idx));
 
     float *b = (float*)malloc(sizeof(float) * SIZE_K_0 * SIZE_K_1);
     for (int i = 0; i < SIZE_K_0 * SIZE_K_1; ++i) {
-        b[i] = 1;
+        b[i] = rand();
     }
     CmSurface2D *surf_b = nullptr;
     SurfaceIndex *surf_b_idx = nullptr;
-    cm_result_check(device->CreateSurface2D(SIZE_K_1, SIZE_K_0, CM_SURFACE_FORMAT_R32F, surf_b));
+    cm_result_check(device->CreateSurface2D(SIZE_K_0, SIZE_K_0, CM_SURFACE_FORMAT_R32F, surf_b));
     cm_result_check(surf_b->WriteSurface((unsigned char*)b, NULL));
     cm_result_check(surf_b->GetIndex(surf_b_idx));
 
     CmSurface2D *surf_c = nullptr;
     SurfaceIndex *surf_c_idx = nullptr;
-    cm_result_check(device->CreateSurface2D(SIZE_O_1, SIZE_O_0, CM_SURFACE_FORMAT_R32F, surf_c));
+    cm_result_check(device->CreateSurface2D(SIZE_O_0, SIZE_O_1, CM_SURFACE_FORMAT_R32F, surf_c));
     cm_result_check(surf_c->GetIndex(surf_c_idx));
 
     cm_result_check(kernel->SetKernelArg(0, sizeof(SurfaceIndex), surf_a_idx));

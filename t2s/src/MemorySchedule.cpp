@@ -259,8 +259,9 @@ public:
         
         for (size_t i = 0; i < loop_vars.size(); i++) {
             bool is_space = find(space_loops.begin(), space_loops.end(), i) != space_loops.end();
-            if (is_space) {
+            if (is_space || is_one(loop_bounds[i].extent)) {
                 // We allocate registers for space loops, so hoisting code above them is safe
+                // The one-shot loops will be removed later, so hoisting code above them is safe
                 continue;
             }
             // Find a condition corresponding to the current loop
