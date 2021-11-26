@@ -85,8 +85,8 @@ int main()
       >> SA.scope(k).out(kkk, iii) >> FIFO(128);
     B >> DB.out(kkk) >> FIFO(128)
       >> SB.scope(k).out(kkk, jjj) >> FIFO(128);
-    Out >> FIFO(1024) >> RC2.scope(jj).banks(jjj, iii)
-        >> FIFO(128)  >> RC1.scope(iii).banks(jjj)
+    Out >> FIFO(1024) >> RC2.scope(jj).out(jjj, iii)
+        >> FIFO(128)  >> RC1.scope(iii).out(jjj)
         >> FIFO(128)  >> DC >> C(total_j, total_i);
 
     // Compile the kernel to an FPGA bitstream, and expose a C interface for the host to invoke

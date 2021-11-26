@@ -716,7 +716,7 @@ class FindOutermostProduce : public IRVisitor {
         if (op->for_type == ForType::GPUBlock) {
             result = op;
         } else {
-            // FIX?
+            op->body.accept(this);
         }
     }
 

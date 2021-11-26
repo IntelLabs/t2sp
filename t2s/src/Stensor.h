@@ -41,8 +41,9 @@ struct Stensor
     std::string name;
     SMemType position;
     Var v_scope;
-    Var v_width;
+    vector<Var> v_width;
     vector<Var> v_banks;
+    vector<Var> v_outs;
     vector<Expr> dims;
     int schain_idx = -1;
     int fifo_depth = 0;
@@ -59,7 +60,7 @@ struct Stensor
                          const std::string fn_name, Starget t);
     Stensor &scope(Var v);
     Stensor &banks(const std::vector<Var> &banks);
-    Stensor &out(const std::vector<Var> &bandwidth_and_banks);
+    Stensor &out(const std::vector<Var> &bankwidth_and_banks);
     Stensor &operator()(const std::vector<Expr> &dims);
 
     template<typename... Args>

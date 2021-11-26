@@ -42,6 +42,10 @@ Stensor &Stensor::scope(Var v) {
 }
 
 Stensor &Stensor::banks(const vector<Var> &v) {
+    if (v.empty()) {
+        // By default, this stensor will output a scalar each time.
+        return *this;
+    }
     v_banks = v;
     return *this;
 }
@@ -51,16 +55,15 @@ Stensor &Stensor::out(const vector<Var> &v) {
         // By default, this stensor will output a scalar each time.
         return *this;
     }
-    // Format of the vector: bankwidth, then banks
-    v_width = v[0];
-    if (v.size() > 1) {
-        vector<Var> banks = {v.begin() + 1, v.end()};
-        v_banks = banks;
-    }
+    v_outs = v;
     return *this;
 }
 
 Stensor &Stensor::operator()(const vector<Expr> &d) {
+    if (d.empty()) {
+        // By default, this stensor will use the original layout.
+        return *this;
+    }
     dims = d;
     return *this;
 }
@@ -361,7 +364,11 @@ class RealizeOnFPGA
         // NOTE: Currently the producer and consumer must be consistent with manual work,
         // and we leave the sophisticated vectorization to future work
         for (size_t i = 0; i < c.stensors.size(); i++) {
-            Var v_width = c.stensors[i].v_width;
+            if (c.stensors[i].v_width.size() == 0)
+                continue;
+            user_assert(c.stensors[i].v_width.size() == 1)
+                << "Currently we only support packing one dimension as a vector\n";
+            Var v_width = c.stensors[i].v_width[0];
             if (fv.exists(v_width)) {
                 funcs[i].vectorize(v_width);
                 debug(1) << funcs[i].name() << ".vectorize("
@@ -370,8 +377,9 @@ class RealizeOnFPGA
         }
 
         // To make UREs be consistent with its producer, we vectorize UREs as well
-        Var last_width = c.stensors.back().v_width;
-        if (!c.is_output && fv.exists(last_width)) {
+        auto &last_stensor = c.stensors.back();
+        if (!c.is_output && last_stensor.v_width.size() > 0) {
+            Var last_width = last_stensor.v_width[0];
             fv.ure.vectorize(last_width);
             debug(1) << fv.ure.name() << ".vectorize("
                      << last_width << ");\n";
@@ -425,6 +433,24 @@ class RealizeOnFPGA
         }
     }
 
+    void find_banks(Schain &c) {
+        // The dst_vars includes space loops plus one time loop
+        auto dst_vars = fv.ure.function().definition().schedule().transform_params()[0].dst_vars;
+        for (auto &s : c.stensors) {
+            for (auto &v : s.v_outs) {
+                auto p = std::find_if(dst_vars.begin(), dst_vars.end()-1,
+                                    [&](string &n){ return v.name() == n; });
+                if (p != dst_vars.end()-1) {
+                    // Find it is in space loops, so we view it as a bank
+                    s.v_banks.push_back(Var(*p));
+                } else {
+                    // Otherwise view it as bankwidth
+                    s.v_width.push_back(Var(*p));
+                }
+            }
+        }
+    }
+
 public:
     RealizeOnFPGA(FindVars &_f) : fv(_f) {}
 
@@ -432,6 +458,7 @@ public:
         Func out;
         for (auto &c: schains) {
             check_inclusiveness(c);
+            find_banks(c);
             if (!c.is_output) {
                 vector<Func> producers;
                 producers = isolate_producer(c);
@@ -463,7 +490,7 @@ class RealizeOnGPU
             // The SRAM stensor determines the allocated registers
             if (s.position == SRAM) {
                 // Find a loop whose extent > 1
-                int idx = fv.var_index(s.v_banks.back());
+                int idx = fv.var_index(s.v_outs.back());
                 Var dim = fv.free_vars[idx + 1];
                 c.imp.mem_fetch(dim, MemoryType::Register);
                 debug(1) << c.imp.name() << ".mem_fetch("

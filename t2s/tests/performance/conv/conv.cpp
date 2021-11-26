@@ -101,8 +101,8 @@ int main(void)
       >> SI.scope(ci).out(cii, yy) >> FIFO(128);
     K >> DK.out(cii) >> FIFO(128)
       >> SK.scope(ci).out(cii, coo) >> FIFO(128);
-    Out >> FIFO(1024) >> RO2.scope(xx).banks(coo, yy)
-        >> FIFO(128)  >> RO1.scope(yy).banks(coo)
+    Out >> FIFO(1024) >> RO2.scope(xx).out(coo, yy)
+        >> FIFO(128)  >> RO1.scope(yy).out(coo)
         >> FIFO(128)  >> DO >> O(P_O);
 
     // Compile the kernel to an FPGA bitstream, and expose a C interface for the host to invoke
