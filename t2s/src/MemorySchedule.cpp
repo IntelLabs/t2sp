@@ -1,3 +1,21 @@
+/*******************************************************************************
+* Copyright 2021 Intel Corporation
+*
+* Licensed under the BSD-2-Clause Plus Patent License (the "License");
+* you may not use this file except in compliance with the License.
+* You may obtain a copy of the License at
+*
+* https://opensource.org/licenses/BSDplusPatent
+*
+* Unless required by applicable law or agreed to in writing,
+* software distributed under the License is distributed on an "AS IS" BASIS,
+* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+* See the License for the specific language governing permissions
+* and limitations under the License.
+*
+*
+* SPDX-License-Identifier: BSD-2-Clause-Patent
+*******************************************************************************/
 #include <list>
 #include "../../Halide/src/CSE.h"
 #include "../../Halide/src/IR.h"
@@ -52,7 +70,7 @@ struct GPUBufInfo {
     struct COPY {
         Range src;                          // the range of the source
         Range dest;                         // the range of the destination
-    } copy_inst;                            // insert an instrctuion to reuse overlapped region
+    } copy_inst;                            // insert an instruction to reuse overlapped region
     struct LOAD {
         InstType type;                      // the load instruction type
         Expr elem;                          // elements of the load instruction (scatter or a region)
@@ -1291,7 +1309,7 @@ public:
 
 void adapt_loop_info(const Adaptor &stt) {
     // The loop_vars and loop_bounds used in this stage have minor differences
-    // with that defined in stt, so we need to re-build loop information.
+    // from these defined in stt, so we need to re-build loop information.
     for (size_t i = 0; i < stt.loop_vars.size(); i++) {
         string name = stt.loop_vars[i].as<Variable>()->name;
         Expr min = stt.loop_mins[i];
@@ -1339,7 +1357,7 @@ void update_loop_vars(Stmt s) {
 }
 
 Stmt do_prepare_memory_schedule(Stmt s, const map<string, Function> &env, const Adaptor &stt) {
-    // The loop infomation is collected before performing space-time transform
+    // The loop information is collected before performing space-time transform
     if (!stt.loop_vars.empty()) {
         FuncInfoCollector func_infoc(env);
         adapt_loop_info(stt);
@@ -1354,7 +1372,7 @@ Stmt do_prepare_memory_schedule(Stmt s, const map<string, Function> &env, const 
 }
 
 Stmt do_memory_schedule(Stmt s, const map<string, Function> &env) {
-    // The loop infomation is collected before performing space-time transform
+    // The loop information is collected before performing space-time transform
     if (!loop_vars.empty()) {
         GPUBufferInserter gb_inserter(env);
         GPUStoreInserter gs_inserter(env);
