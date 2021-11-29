@@ -14,6 +14,10 @@ Currently, we support only Intel FPGAs and GPUs. We assume your device is local 
         source /data/intel_fpga/devcloudLoginToolSetup.sh
     fi
    ```
+   Then
+   ```
+        source .bashrc
+   ```
 
 # Open an interactive terminal
 
@@ -204,13 +208,10 @@ A 10-minute video `intro.mp4`, located at the root of the repository, introduces
 
 We have a set of [tutorials](https://github.com/intel/FPGA-Devcloud/tree/master/main/QuickStartGuides/T2S) at Intel DevCloud. A compiler binary is also there, and all dependencies have been installed, so you may start using the programming environment immediately.
 
-# Next releases
-
-+ Throughput numbers of SGEMM, 2-D convolution, and Capsule convolution on GEN 12 GPU. Aim to open in December, 2021.
-
-+ Performance test of PairHMM is to open in December, 2021.
-+ Support for Stratix 10 FPGA will be released afterwards (The current release works for S10 as well, but lacks some critical optimizations for it).
-+ More automatic optimizations for improving performance.
+# Next release
+We aim to release the following in December, 2021:
++ Throughput numbers of SGEMM, 2-D convolution, and Capsule convolution on GEN 12 GPU.
++ Initial throughput numbers for Stratix 10 FPGA. 
 
 # Citation
 
