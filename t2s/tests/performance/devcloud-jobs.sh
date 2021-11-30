@@ -1,0 +1,40 @@
+#!/bin/bash
+
+# BASH_SOURCE is this script
+if [ $0 != $BASH_SOURCE ]; then
+    echo "Error: The script should be directly run, not sourced"
+    return
+fi
+
+if [ "$HOSTNAME" != "login-2" ]; then
+    echo "Error: The script should be run on the head node of DevCloud, i.e. login-2."
+    exit
+fi
+
+# The path to this script.
+PATH_TO_SCRIPT="$( cd "$(dirname "$BASH_SOURCE" )" >/dev/null 2>&1 ; pwd -P )"
+
+cur_dir=$PWD
+cd $PATH_TO_SCRIPT
+
+# GPU: Verify correctness with tiny problem sizes
+./devcloud-job.sh devcloud gemm gen9 tiny hw
+./devcloud-job.sh devcloud conv gen9 tiny hw
+./devcloud-job.sh devcloud capsule gen9 tiny hw
+
+# GPU: Test perf
+./devcloud-job.sh devcloud gemm gen9 large hw
+./devcloud-job.sh devcloud conv gen9 large hw
+./devcloud-job.sh devcloud capsule gen9 large hw
+
+# FPGA: Verify correctness with tiny problem sizes and emulator
+./devcloud-job.sh devcloud gemm a10 tiny emulator
+./devcloud-job.sh devcloud conv a10 tiny emulator
+./devcloud-job.sh devcloud capsule a10 tiny emulator
+
+# FPGA: Test perf
+./devcloud-job.sh devcloud gemm a10 large hw
+./devcloud-job.sh devcloud conv a10 large hw
+./devcloud-job.sh devcloud capsule a10 large hw
+
+cd $cur_dir

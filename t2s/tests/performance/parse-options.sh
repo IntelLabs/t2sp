@@ -2,16 +2,14 @@
 
 function show_usage {
     echo "Options: (devcloud|local) (gemm|conv|capsule) (a10|s10|gen9|gen12) (tiny|large) (hw|emulator)"
-    echo "The emulator option is applicable only to FPGAs and tiny size"
-}
+}       
+
+if [ $0 == $BASH_SOURCE ]; then
+   echo "This script should be sourced, not run."
+   exit
+fi 
 
 wrong_options=1
-
-if [ $0 != $BASH_SOURCE ]; then
-    echo "Error: The script should be sourced"
-    show_usage
-    return
-fi
 
 if [ "$1" != "devcloud" -a "$1" != "local" ]; then
     show_usage
@@ -38,7 +36,7 @@ if [ "$4" != "tiny" -a "$4" != "large" ]; then
     show_usage
     return
 else
-    size="$4"
+    size=$4
 fi
 
 if [ "$5" != "hw" -a "$5" != "emulator" ]; then
@@ -51,11 +49,16 @@ fi
 if [ "$platform" == "emulator" ]; then
     if [ "$target" != "a10" -a "$target" != "s10" ]; then
         show_usage
+        echo "Note: The emulator option is applicable only to FPGAs and tiny size"
         return
     elif [ "$size" != "tiny" ]; then
         show_usage
+        echo "Note: The emulator option is applicable only to FPGAs and tiny size"
         return
     fi
 fi
+
+# Convert size to uppercase: TINY and LARGE
+size=${size^^}
 
 wrong_options=0

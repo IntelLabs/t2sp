@@ -1,9 +1,9 @@
 #!/bin/bash
 
 # BASH_SOURCE is this script
-if [ $0 == $BASH_SOURCE ]; then
+if [ $0 != $BASH_SOURCE ]; then
     echo "Error: The script should be directly run, not sourced"
-    exit
+    return
 fi
 
 # Path to this script
@@ -27,7 +27,7 @@ function libhalide_to_link {
     else
         lib="$HW_LIBHALIDE_TO_LINK"
     fi
-    local lib_to_link=$lib
+    echo "$lib"
 }
 
 function aoc_options {
@@ -36,7 +36,7 @@ function aoc_options {
     else 
         aoc_opt="-v -profile -fpc -fp-relaxed -board=$FPGA_BOARD"
     fi
-    local opts=$aoc_opt
+    echo "$aoc_opt"
 }
 
 function generate_fpga_kernel {
@@ -46,16 +46,14 @@ function generate_fpga_kernel {
     # Generate a device kernel, and a C interface for the host to invoke the kernel:
     # The bitstream generated is a.aocx, as indicated by the environment variable, BITSTREAM.
     # The C interface generated is ${workload}-interface.cpp, as specified in ${workload}.cpp.
-    env BITSTREAM=a.aocx AOC_OPTION=$(aoc_options) ./a.out
+    env BITSTREAM=a.aocx AOC_OPTION="$(aoc_options)" ./a.out
 
     # DevCloud A10PAC (1.2.1) only: further convert the signed bitstream to unsigned:
-    if [ "$target" == "a10" ]; then
+    if [ "$target" == "a10" -a "$platform" == "hw" ]; then
         { echo "Y"; echo "Y"; echo "Y"; echo "Y"; } | source $AOCL_BOARD_PACKAGE_ROOT/linux64/libexec/sign_aocx.sh -H openssl_manager -i a.aocx -r NULL -k NULL -o a_unsigned.aocx 
         mv a_unsigned.aocx a.aocx
     fi
 }
-
-function 
 
 function test_fpga_kernel {
     # Compile the host file (${workload}-run-fpga.cpp) and link with the C interface (${workload}-interface.cpp):
@@ -95,16 +93,21 @@ function test_gpu_kernel {
     ./${workload}-run-gpu.out
 }
 
-if [ "$target" == "a10" || "$target" == "s10" ]; then
-    source ../../../../setenv.sh $location fpga
+echo ------------------- Testing $@
+
+if [ "$target" == "a10" -o "$target" == "s10" ]; then
+    source ../../../setenv.sh $location fpga
+    cd $workload
     cleanup
     generate_fpga_kernel
     test_fpga_kernel
 else
-    source ../../../../setenv.sh $location gpu
+    source ../../../setenv.sh $location gpu
+    cd $workload
     cleanup
     generate_gpu_kernel
     test_gpu_kernel
 fi
 
 cd $cur_dir
+

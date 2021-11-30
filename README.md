@@ -171,7 +171,7 @@ To remove all the temporary files generated during the regression testing:
 ```
 cd t2s/tests/performance
 ```
-Current release contains SGEMM, 2-D convolution and Capsule convolution on Arria 10 FPGA and GEN9.5 GPU. 
+Current release contains SGEMM, 2-D convolution and Capsule convolution on Arria 10 FPGA and GEN9.5 GPU. For every kernel, we write a **single** specification for the different hardwares. This reflects our concept of "**write a kernel once, and run with high performance across spatial and vector architectures**".
 
 Summary of throughput:
 
@@ -182,20 +182,36 @@ Summary of throughput:
 | Capsule convolution | 534 GFLOPS, 98% DSP efficiency | 416 GFLOPS, 90% machine peak |
 
 To reproduce the performance, follow one of the ways below:
-+ [On the DevCloud head node]:
++ [On the DevCloud head node], submit job(s):
   ```
-  ./devcloud-batch.sh (gemm|conv|capsule) (a10|s10|gen9|gen12) (tiny|large) (hw|emulator)
+  # Test all workloads, all hardwares, tiny and large inputs:
+  ./devcloud-jobs.sh
+    
+  # Or test individually:
+  ./devcloud-job.sh (gemm|conv|capsule) (a10|s10|gen9|gen12) (tiny|large) (hw|emulator)
   ```
-+ [On a DevCloud compute node]:
++ [On a DevCloud compute node], test directly:
+  
   ```
+  # Test all workloads, all hardwares, tiny and large inputs:
+  ./tests.sh devcloud
+    
+  # Or test individually:
   ./test.sh devcloud (gemm|conv|capsule) (a10|s10|gen9|gen12) (tiny|large) (hw|emulator)
   ```
-+ [On a local machine]:
-  ```
-  ./test.sh local (gemm|conv|capsule) (a10|s10|gen9|gen12) (tiny|large) (hw|emulator)
-  ```
-Note that the emulator option is applicable only to FPGAs and tiny size.
++ [On a local machine], test directly:
   
+  ```
+  # Test all workloads, all hardwares, tiny and large inputs:
+  ./tests.sh local
+    
+  # Or test individually:
+  ./test.sh local (gemm|conv|capsule) (a10|s10|gen9|gen12) (tiny|large) (hw|emulator)
+
+Note:
+     + The emulator option is applicable only to FPGAs and tiny size.
+     + Synthesis of each FPGA design will take hours. So on DevCloud, we recommend submitting job(s) for testing.
+
 # Features
 
 The current release contains the following features:
