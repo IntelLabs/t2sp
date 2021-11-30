@@ -22,18 +22,29 @@ fi
 cur_dir=$PWD
 cd $PATH_TO_SCRIPT
 
-source ./parse-options.sh $@
+source ./parse-options.sh devcloud $@
 if [ "$wrong_options" != "0" ]; then
     echo "Error: wrong options encountered"
     exit
 fi
 
+# It seems we cannot directly pass the options to test.sh with devcloud_login. 
+# So generate a shell script to call test.sh instead.
+echo "cd $PATH_TO_SCRIPT && ./test.sh devcloud $workload $target $size $platform" > job.sh
+chmod a+x job.sh
+
+time_budget="12:00:00"
+if [ "$platform" == "emulator" ]; then
+    # We emulate only tiny size and the time should be in minutes
+    time_budget="00:10:00"
+fi
+
 if [ "$target" == "a10" ]; then
-    devcloud_login -b A10PAC 1.2.1 walltime=12:00:00 ./test.sh $@
+    devcloud_login -b A10PAC 1.2.1 walltime=$time_budget ./job.sh
 elif [ "$target" == "s10" ]; then
-    devcloud_login -b S10PAC walltime=12:00:00 ./test.sh $@
+    devcloud_login -b S10PAC walltime=$time_budget ./job.sh
 elif [ "$target" == "gen9" ]; then
-    qsub -l nodes=1:gen9:ppn=2 -d . ./test.sh $@
+    qsub -l nodes=1:gen9:ppn=2 -d . ./job.sh
 else
     echo "Error: support for target $target is not released yet"
 fi

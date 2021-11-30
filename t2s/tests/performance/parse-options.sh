@@ -58,7 +58,4 @@ if [ "$platform" == "emulator" ]; then
     fi
 fi
 
-# Convert size to uppercase: TINY and LARGE
-size=${size^^}
-
 wrong_options=0
