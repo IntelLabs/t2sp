@@ -65,32 +65,31 @@ int main()
             }
         }
     }
-    Halide::Runtime::Buffer<float> o(COO, YY, XXP, COP, Y, X, YP, XP, XX, CO, N);
+    Halide::Runtime::Buffer<float> o(COOO, YYY, XXX, COO, YY, XX, Y, X, CO, N);
     conv(i, k, o);
 
 #ifdef TINY
     // Validate the results
     for (int n = 0; n < N; n++)
-    for (int co = 0; co < CO; co++)
-    for (int xx = 0; xx < XX; xx++)
-    for (int xp = 0; xp < XP; xp++)
-    for (int yp = 0; yp < YP; yp++)
     for (int x = 0; x < X; x++)
     for (int y = 0; y < Y; y++)
-    for (int cop = 0; cop < COP; cop++)
-    for (int xxp = 0; xxp < XXP; xxp++)
+    for (int xx = 0; xx < XX; xx++)
     for (int yy = 0; yy < YY; yy++)
-    for (int coo = 0; coo < COO; coo++) {
+    for (int xxx = 0; xxx < XXX; xxx++)
+    for (int yyy = 0; yyy < YYY; yyy++)
+    for (int co = 0; co < CO; co++)
+    for (int coo = 0; coo < COO; coo++)
+    for (int cooo = 0; cooo < COOO; cooo++) {
         float golden = 0.0f;
         for (int ci = 0; ci < TOTAL_CI; ci++)
         for (int kx = 0; kx < KX; kx++)
         for (int ky = 0; ky < KY; ky++) {
-            size_t total_iy = (yy  + YY*y  + YY*Y*yp  + ky);
-            size_t total_ix = (xxp + XXP*x + XXP*X*xp + XXP*X*XP*xx + kx);
-            size_t total_co = (coo + COO*cop + COO*COP*co);
+            size_t total_iy = (yyy + YYY*yy + YYY*YY*y + ky);
+            size_t total_ix = (xxx + XXX*xx + XXX*XX*x + kx);
+            size_t total_co = (cooo + COOO*coo + COOO*COO*co);
             golden += i(total_iy, total_ix, ci, n) * k(ky, kx, ci, total_co);
         }
-        assert(fabs(golden - o(coo, yy, xxp, cop, y, x, yp, xp, xx, co, n)) < 0.005*fabs(golden));
+        assert(fabs(golden - o(cooo, yyy, xxx, coo, yy, xx, y, x, co, n)) < 0.005*fabs(golden));
     }
 #else
     // Report performance. DSPs, FMax and ExecTime are automatically figured out from the static analysis
@@ -99,7 +98,7 @@ int main()
     double mem_bandwidth = 33;
     double compute_roof = 2 * DSPs() * FMax();
      // Total operations (GFLOP for CONV), independent of designs
-    double number_ops = 2 * (long)(N * XP * YP) * (long)(TOTAL_CO * XXP * YY) * (long)(TOTAL_CI * KX * KY);
+    double number_ops = 2 * (long)(N * TOTAL_CO * TOTAL_OY * TOTAL_OX) * (long)(TOTAL_CI * KX * KY);
     double number_bytes = (long)(TOTAL_IY * TOTAL_IX * TOTAL_CI * N) * 4 + (long)(KY * KX * TOTAL_CI * TOTAL_CO) * 4
                         + (long)(TOTAL_OY * TOTAL_OX * TOTAL_CO * N) * 4;
     double exec_time = ExecTime();

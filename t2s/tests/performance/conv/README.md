@@ -3,7 +3,7 @@
 | Device | Frequency | Throughput | Logic utilization | DSPs | BRAMs | Efficiency | Tensor Sizes | Device compiler |
 | ------ | --------- | ------ | --------- | ---- | ----- | -------------- | ----- | -------------- |
 | Intel Arria 10 GX 1150 FPGA | 206 MHz | 515 GFLOPS | 257,558 / 427,200 ( 60 % ) | 1,299 / 1,518 ( 86 % ) | 2,011 / 2,713 ( 74 % ) | 96%   | I(64,256,1x60+3,1x60+3) * K(256,256,3,3) | aoc 19.4.0 |
-| Intel GEN9.5 GPU | 1200 MHz | 412 GFLOPS | - | - | - | 90%   | I(64,256,1x64+3,1x64+3) * K(256,256,3,3) | CM Dev Package 20200119 |
+| Intel GEN9.5 GPU | 1200 MHz | 437 GFLOPS | - | - | - | 95%   | I(64,256,1x64+3,1x64+3) * K(256,256,3,3) | CM Dev Package 20200119 |
 
 Note:
 
@@ -162,7 +162,7 @@ This design is specified to compile ahead-of-time (AOT), since AOT mode makes se
 - Just to be safe, remove previously generated intermediate files, if any.
   
     ```
-    rm -rf a.* *.o *.isa CONV_genx.cpp
+    rm -rf a.* *.o *.isa conv_genx.cpp
     ```
     
 - Generate a device kernel:
@@ -170,13 +170,13 @@ This design is specified to compile ahead-of-time (AOT), since AOT mode makes se
     ```
     g++ conv.cpp -g -I ../util -I $T2S_PATH/Halide/include -L $T2S_PATH/Halide/bin $HW_LIBHALIDE_TO_LINK -lz -lpthread -ldl -std=c++11 -DGPU
     ./a.out
-    cmc CONV_genx.cpp -march=$GPU_ARCH -isystem ../../compiler/include_llvm -o CONV_genx.isa
+    cmc conv_genx.cpp -march=$GPU_ARCH -isystem -I$CM_ROOT/compiler/include_llvm -o conv_genx.isa
     ```
-    The specification is compiled in the first command and is run in the second command, which generates a device kernel file named `CONV_genx.cpp`, which is then compiled into a binary `CONV_genx.isa`.
+    The specification is compiled in the first command and is run in the second command, which generates a device kernel file named `conv_genx.cpp`, which is then compiled into a binary `conv_genx.isa`.
 
 - Link the host and kernel code and run:
   ```
-  g++ conv-run-gpu.cpp -w -g -I$CM_ROOT/runtime/include -I$CM_ROOT/examples -I$CM_ROOT/drivers/media_driver/release/extract/usr/include -msse4.1 -D__LINUX__ -DLINUX -O0 -std=gnu++11 -fPIC -c -DCM_$GPU_ARCH -rdynamic -ffloat-store -o conv-run-gpu.o
+  g++ conv-run-gpu.cpp -w -g -I$CM_ROOT/runtime/include -I$CM_ROOT/examples -I$CM_ROOT/drivers/media_driver/release/extract/usr/include -msse4.1 -D__LINUX__ -DLINUX -O0 -std=gnu++11 -fPIC -c -DCM_$GPU_ARCH -rdynamic -ffloat-store -o conv-run-gpu.o -DITER=1
   g++ conv-run-gpu.o -L$CM_ROOT/drivers/media_driver/release/extract/usr/lib/x86_64-linux-gnu -L$CM_ROOT/drivers/IGC/extract/usr/local/lib -L$CM_ROOT/drivers/media_driver/release/extract/usr/lib/x86_64-linux-gnu/dri $CM_ROOT/runtime/lib/x64/libigfxcmrt.so -lva -ldl -fPIC -rdynamic -o conv-run-gpu.out
   ./conv-run-gpu.out
   ```

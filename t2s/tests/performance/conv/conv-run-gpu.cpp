@@ -35,32 +35,25 @@
 void check_correctness(float *i, float *k, float *o)
 {
     for (int n = 0; n < N; n++)
-    for (int x = 0; x < X; x++)
-    for (int y = 0; y < Y; y++)
-    for (int co = 0; co < CO; co++)
-    for (int xx = 0; xx < XX; xx++)
-    for (int yy = 0; yy < YY; yy++)
-    for (int coo = 0; coo < COO; coo++) {
+    for (int x = 0; x < TOTAL_OX; x++)
+    for (int y = 0; y < TOTAL_OY; y++)
+    for (int co = 0; co < TOTAL_CO; co++) {
         float golden = 0.0f;
-        size_t total_co = coo + COO * co;
-        size_t total_oy = yy + YY * y;
-        size_t total_ox = xx + XX * x;
         for (int ci = 0; ci < TOTAL_CI; ci++)
         for (int kx = 0; kx < KX; kx++)
         for (int ky = 0; ky < KY; ky++) {
-            size_t total_iy = yy + YY * y + ky;
-            size_t total_ix = xx + XX * x + kx;
+            size_t iy = y + ky;
+            size_t ix = x + kx;
             size_t i_0 = ci + TOTAL_CI * n;
-            size_t i_1 = total_iy + TOTAL_IY * total_ix;
-            size_t k_0 = total_co + TOTAL_CO * kx;
+            size_t i_1 = iy + TOTAL_IY * ix;
+            size_t k_0 = co + TOTAL_CO * kx;
             size_t k_1 = ci + TOTAL_CI * ky;
             golden += i[i_0 + SIZE_I_0 * i_1] * k[k_0 + SIZE_K_0 * k_1];
         }
-        size_t o_0 = total_co + TOTAL_CO * n;
-        size_t o_1 = total_oy + TOTAL_OY * total_ox;
+        size_t o_0 = co + TOTAL_CO * n;
+        size_t o_1 = y + TOTAL_OY * x;
         assert(fabs(golden - o[o_0 + SIZE_O_0 * o_1]) < 0.005*fabs(golden));
     }
-    printf("Passed\n");
 }
 
 int main(int argc, char *argv[]) {
@@ -119,7 +112,7 @@ int main(int argc, char *argv[]) {
         cm_result_check(device->CreateTask(task));
         cm_result_check(task->AddKernel(kernel));
         CmThreadGroupSpace *thread_group_space = nullptr;
-        cm_result_check(device->CreateThreadGroupSpaceEx(Y, X, 1, XX, CO, N, thread_group_space));
+        cm_result_check(device->CreateThreadGroupSpaceEx(YY, XX, 1, X, CO, N, thread_group_space));
 
         UINT64 tmp_kern_time;
         CmEvent *sync_event = nullptr;
@@ -140,7 +133,7 @@ int main(int argc, char *argv[]) {
         cm_result_check(device->DestroyTask(task));
     }
     double tkern = kernel_ns / ITER;
-    double ops = 2.0 * (long)(N * X * Y) * (long)(CO * XX * YY * COO) * (long)(CI * KX * KY * CII);
+    double ops = 2.0 * (long)(N * TOTAL_OX * TOTAL_OY * TOTAL_CO) * (long)(TOTAL_CI * KX * KY);
 
     cm_result_check(::DestroyCmDevice(device));
 

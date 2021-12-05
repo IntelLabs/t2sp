@@ -25,16 +25,15 @@ using namespace Halide;
 int main(void)
 {
     // Dependences
-    #define P               cii,       cooo,   yy_xx,   my, mx, y_x, coo, ky,      kx,      ci,      mk,   co, n
-    #define P_cii_minus_1   cii-1,     cooo,   yy_xx,   my, mx, y_x, coo, ky,      kx,      ci,      mk,   co, n
-    #define P_ky_minus_1    cii+CII-1, cooo,   yy_xx,   my, mx, y_x, coo, ky-1,    kx,      ci,      mk,   co, n
-    #define P_kx_minus_1    cii+CII-1, cooo,   yy_xx,   my, mx, y_x, coo, ky+KY-1, kx-1,    ci,      mk,   co, n
-    #define P_ci_minus_1    cii+CII-1, cooo,   yy_xx,   my, mx, y_x, coo, ky+KY-1, kx+KX-1, ci-1,    mk,   co, n
-    #define P_mk_minus_1    cii+CII-1, cooo,   yy_xx,   my, mx, y_x, coo, ky+KY-1, kx+KX-1, ci+CI-1, mk-1, co, n
-    #define P_co3_minus_1   cii,       cooo-1, yy_xx,   my, mx, y_x, coo, ky,      kx,      ci,      mk,   co, n
-    #define P_yx3_minus_1   cii,       cooo,   yy_xx-1, my, mx, y_x, coo, ky,      kx,      ci,      mk,   co, n
-    #define P_Out                      cooo,   yy_xx,   my, mx, y_x, coo,                                  co, n
-
+    #define P               cii,       cooo,   yy_xx,   my, mx, y_x, coo, nn, ky,      kx,      ci,      mk,   co, n
+    #define P_cii_minus_1   cii-1,     cooo,   yy_xx,   my, mx, y_x, coo, nn, ky,      kx,      ci,      mk,   co, n
+    #define P_ky_minus_1    cii+CII-1, cooo,   yy_xx,   my, mx, y_x, coo, nn, ky-1,    kx,      ci,      mk,   co, n
+    #define P_kx_minus_1    cii+CII-1, cooo,   yy_xx,   my, mx, y_x, coo, nn, ky+KY-1, kx-1,    ci,      mk,   co, n
+    #define P_ci_minus_1    cii+CII-1, cooo,   yy_xx,   my, mx, y_x, coo, nn, ky+KY-1, kx+KX-1, ci-1,    mk,   co, n
+    #define P_mk_minus_1    cii+CII-1, cooo,   yy_xx,   my, mx, y_x, coo, nn, ky+KY-1, kx+KX-1, ci+CI-1, mk-1, co, n
+    #define P_co3_minus_1   cii,       cooo-1, yy_xx,   my, mx, y_x, coo, nn, ky,      kx,      ci,      mk,   co, n
+    #define P_yx3_minus_1   cii,       cooo,   yy_xx-1, my, mx, y_x, coo, nn, ky,      kx,      ci,      mk,   co, n
+    #define P_Out                      cooo,   yy_xx,   my, mx, y_x, coo, nn,                                  co, n
     // Linearized addresses
     #define total_oy        ((yy_xx + YY_XX*y_x) % OY)
     #define total_ox        ((yy_xx + YY_XX*y_x) / OY)
@@ -53,17 +52,17 @@ int main(void)
     #define P_I     total_ci + (TOTAL_CI)*mk + (TOTAL_CI*MK)*mx, total_iy + (TOTAL_IY)*total_ix + (TOTAL_IY*TOTAL_IX)*n
     #define P_K     total_co + (TOTAL_CO)*my, cii + (CII)*ky + (CII*KY)*kx + (CII*KY*KX)*ci + (TOTAL_CI*KY*KX)*mk
     #define P_O     total_co + (TOTAL_CO)*my + (TOTAL_CO*MY)*mx, total_oy + (OY)*total_ox + (OY*OX)*n
-    #define UN      (I.dim(1).extent() / (TOTAL_IY*TOTAL_IX))
+    #define UN      (I.dim(1).extent() / (TOTAL_IY*TOTAL_IX*NN))
 #else
     ImageParam I("I", TTYPE, 6), K("K", TTYPE, 6);
-    #define P_I     mk, mx, total_ci, total_iy, total_ix, n
+    #define P_I     mk, mx, total_ci, total_iy, total_ix, nn+NN*n
     #define P_K     my, mk, total_ci, total_co, ky, kx
     #define P_O     P_Out
-    #define UN      (I.dim(5).extent())
+    #define UN      (I.dim(5).extent() / NN)
 #endif
 
     // UREs
-    Var cii("cii"), cooo("cooo"), yy_xx("yy_xx"), my("my"), mx("mx"), y_x("y_x"), coo("coo"), ky("ky"), kx("kx"), ci("ci"), mk("mk"), co("co"), n("n");
+    Var cii("cii"), cooo("cooo"), yy_xx("yy_xx"), my("my"), mx("mx"), y_x("y_x"), coo("coo"), nn("nn"), ky("ky"), kx("kx"), ci("ci"), mk("mk"), co("co"), n("n");
     URE A("A", TTYPE, {P}), B("B", TTYPE, {P}), C("C", TTYPE, {P}), Out("Out");
     A(P) = select(cooo == 0, I(P_I), A(P_co3_minus_1));
     B(P) = select(yy_xx == 0, K(P_K), B(P_yx3_minus_1));
@@ -76,18 +75,18 @@ int main(void)
     A.merge_ures(B, C, Out);
 
     // Explicitly set the loop bounds
-    A.set_bounds(cooo,    0, COOO,    coo,   0, COO,   co,  0, CO)
-     .set_bounds(yy_xx,   0, YY_XX,   y_x,   0, Y_X)
-     .set_bounds(my,      0, MY,      mx,    0, MX)
-     .set_bounds(cii,     0, CII,     ci,    0, CI)
-     .set_bounds(ky,      0, KY,      kx,    0, KX)
-     .set_bounds(mk,      0, MK,      n,     0, UN);
+    A.set_bounds(cooo,  0, COOO,  coo, 0, COO, co, 0, CO)
+     .set_bounds(my,    0, MY,    mx,  0, MX,  mk, 0, MK)
+     .set_bounds(yy_xx, 0, YY_XX, y_x, 0, Y_X)
+     .set_bounds(cii,   0, CII,   ci,  0, CI)
+     .set_bounds(ky,    0, KY,    kx,  0, KX)
+     .set_bounds(nn,    0, NN,    n,   0, UN);
 
 #ifdef GPU
     // GPU can have many threads running in parallel.
     A.gpu_blocks(co, n).gpu_threads(my, mx);
     A.space_time_transform(cooo, yy_xx, y_x);
-    A.reorder(cii, cooo, my, mx, coo, ky, kx, yy_xx, y_x, ci, mk, co, n);
+    A.reorder(cii, cooo, my, mx, coo, nn, ky, kx, yy_xx, y_x, ci, mk, co, n);
 #else
     // Create a systolic array
     A.space_time_transform(cooo, yy_xx);

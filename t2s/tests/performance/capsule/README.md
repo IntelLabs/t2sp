@@ -3,7 +3,7 @@
 | Device | Frequency | Throughput | Logic utilization | DSPs | BRAMs | DSP Efficiency |
 | ------ | --------- | ------ | --------- | ---- | ----- | -------------- |
 | Intel Arria 10 GX 1150 FPGA | 210 MHz | 534 GFLOPS | 214,384 / 427,200 ( 53 % ) | 1,295 / 1,518 ( 85 % ) | 1,866 / 2,713 ( 69 % ) | 98%   |
-| Intel GEN9.5 GPU | 1200 MHz | 416 GFLOPS | - | - | - | 90%   |
+| Intel GEN9.5 GPU | 1200 MHz | 414 GFLOPS | - | - | - | 90%   |
 
 The test can be reproduced by logging into a compute node on Intel FPGA DevCloud with an A10 card and 1.2.1 software stack, and following the instructions below.
 
@@ -145,7 +145,7 @@ This design is specified to compile ahead-of-time (AOT), since AOT mode makes se
 - Just to be safe, remove previously generated intermediate files, if any.
   
     ```
-    rm -rf a.* *.o *.isa CAPSULE_genx.cpp
+    rm -rf a.* *.o *.isa capsule_genx.cpp
     ```
     
 - Generate a device kernel:
@@ -153,13 +153,13 @@ This design is specified to compile ahead-of-time (AOT), since AOT mode makes se
     ```
     g++ capsule.cpp -g -I ../util -I $T2S_PATH/Halide/include -L $T2S_PATH/Halide/bin $HW_LIBHALIDE_TO_LINK -lz -lpthread -ldl -std=c++11 -DGPU
     ./a.out
-    cmc CAPSULE_genx.cpp -march=$GPU_ARCH -isystem ../../compiler/include_llvm -o CAPSULE_genx.isa
+    cmc capsule_genx.cpp -march=$GPU_ARCH -isystem $CM_ROOT/compiler/include_llvm -o capsule_genx.isa
     ```
-    The specification is compiled in the first command and is run in the second command, which generates a device kernel file named `CAPSULE_genx.cpp`, which is then compiled into a binary `CAPSULE_genx.isa`.
+    The specification is compiled in the first command and is run in the second command, which generates a device kernel file named `capsule_genx.cpp`, which is then compiled into a binary `capsule_genx.isa`.
 
 - Link the host and kernel code and run:
   ```
-  g++ capsule-run-gpu.cpp -w -g -I$CM_ROOT/runtime/include -I$CM_ROOT/examples -I$CM_ROOT/drivers/media_driver/release/extract/usr/include -msse4.1 -D__LINUX__ -DLINUX -O0 -std=gnu++11 -fPIC -c -DCM_$GPU_ARCH -rdynamic -ffloat-store -o capsule-run-gpu.o
+  g++ capsule-run-gpu.cpp -w -g -I$CM_ROOT/runtime/include -I$CM_ROOT/examples -I$CM_ROOT/drivers/media_driver/release/extract/usr/include -msse4.1 -D__LINUX__ -DLINUX -O0 -std=gnu++11 -fPIC -c -DCM_$GPU_ARCH -rdynamic -ffloat-store -o capsule-run-gpu.o -DITER=1
   g++ capsule-run-gpu.o -L$CM_ROOT/drivers/media_driver/release/extract/usr/lib/x86_64-linux-gnu -L$CM_ROOT/drivers/IGC/extract/usr/local/lib -L$CM_ROOT/drivers/media_driver/release/extract/usr/lib/x86_64-linux-gnu/dri $CM_ROOT/runtime/lib/x64/libigfxcmrt.so -lva -ldl -fPIC -rdynamic -o capsule-run-gpu.out
   ./capsule-run-gpu.out
   ```

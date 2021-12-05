@@ -19,61 +19,55 @@
 #ifndef CONV_CONST_PARAMS_H
 #define CONV_CONST_PARAMS_H
 
+#define KY              3
+#define KX              3
+
 #ifdef GPU
     #define CII         8
-    #define COO         8
-    #define YY          32
-    #define XX          32
-    #define CO          32
-    #define COP         1
-    #define XXP         1
-    #define KY          3
-    #define KX          3
     #define CI          32
-    #define Y           2
-    #define X           2
-    #define YP          1
-    #define XP          1
+    #define COOO        8
+    #define COO         1
+    #define CO          32
+    #define YYY         32
+    #define XXX         1
+    #define YY          2
+    #define XX          2
+    #define Y           1
+    #define X           32
 #else // FPGA
     // Inner loop bounds, which are static constant parameters of the design
     #ifdef TINY // For verifying correctness only
         #define CII         4
-        #define COO         4
-        #define YY          4
-        #define XXP         4
-        #define COP         4
-        #define XX          1
-        #define CO          1
-        #define KY          4
-        #define KX          4
         #define CI          4
-        #define YP          4
-        #define XP          4
-        #define X           1
+        #define COOO        4
+        #define COO         4
+        #define CO          4
+        #define YYY         4
+        #define XXX         4
+        #define YY          1
+        #define XX          1
         #define Y           1
+        #define X           1
     #else
         #define CII         16
-        #define COO         8
-        #define YY          10
-        #define XXP         30
-        #define COP         32
-        #define XX          1
-        #define CO          1
-        #define KY          3
-        #define KX          3
         #define CI          16
-        #define YP          6
-        #define XP          2
-        #define X           1
-        #define Y           1
+        #define COOO        8
+        #define COO         32
+        #define CO          1
+        #define YYY         10
+        #define XXX         10
+        #define YY          2
+        #define XX          2
+        #define X           3
+        #define Y           3
     #endif
 #endif
 
-#define TOTAL_IX        (XX * X * XP * XXP + KX - 1)
-#define TOTAL_IY        (YY * Y * YP + KY - 1)
-#define TOTAL_OX        (XX * X * XP * XXP)
-#define TOTAL_OY        (YY * Y * YP)
-#define TOTAL_CO        (COO * CO * COP)
+#define TOTAL_IX        (XXX * XX * X + KX - 1)
+#define TOTAL_IY        (YYY * YY * Y + KY - 1)
+#define TOTAL_OX        (XXX * XX * X)
+#define TOTAL_OY        (YYY * YY * Y)
+#define TOTAL_CO        (COOO * COO * CO)
 #define TOTAL_CI        (CII * CI)
 
 #endif

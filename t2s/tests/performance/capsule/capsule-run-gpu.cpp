@@ -7,7 +7,6 @@
 #include "common/isa_helpers.h"
 
 #define N           64
-#define ITER        100
 #define SIZE_I_0    TOTAL_CI * MK * MX
 #define SIZE_I_1    TOTAL_IY * TOTAL_IX * N
 #define SIZE_K_0    TOTAL_CO * MY
@@ -33,14 +32,13 @@ void check_correctness(float *i, float *k, float *o)
             size_t i_0 = ci + (TOTAL_CI)*mk + (TOTAL_CI*MK)*mx;
             size_t i_1 = total_iy + (TOTAL_IY)*total_ix + (TOTAL_IY*TOTAL_IX)*n;
             size_t k_0 = co + (TOTAL_CO)*my;
-            size_t k_1 = (ci % CII) + (CII)*ky + (CII*KY)*kx + (CII*KY*KX)*(ci / CII) + (CII*KY*KX*CI)*mk;
+            size_t k_1 = (ci % CII) + (CII)*ky + (CII*KY)*kx + (CII*KY*KX)*(ci/CII) + (CII*KY*KX*CI)*mk;
             golden += i[i_0 + SIZE_I_0 * i_1] * k[k_0 + SIZE_K_0 * k_1];
         }
         size_t o_0 = co + TOTAL_CO*my + TOTAL_CO*MY*mx;
         size_t o_1 = y + OY*x + OY*OX*n;
         assert(fabs(golden - o[o_0 + SIZE_O_0 * o_1]) < 0.005*fabs(golden));
     }
-    printf("Passed\n");
 }
 
 int main(int argc, char *argv[]) {

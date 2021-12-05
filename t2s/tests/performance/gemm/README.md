@@ -173,7 +173,7 @@ This design is specified to compile ahead-of-time (AOT), since AOT mode makes se
 - Just to be safe, remove previously generated intermediate files, if any.
   
     ```
-    rm -rf a.* *.o *.isa GEMM_genx.cpp
+    rm -rf a.* *.o *.isa gemm_genx.cpp
     ```
     
 - Generate a device kernel:
@@ -181,13 +181,13 @@ This design is specified to compile ahead-of-time (AOT), since AOT mode makes se
     ```
     g++ gemm.cpp -g -I ../util -I $T2S_PATH/Halide/include -L $T2S_PATH/Halide/bin $HW_LIBHALIDE_TO_LINK -lz -lpthread -ldl -std=c++11 -DGPU
     ./a.out
-    cmc GEMM_genx.cpp -march=$GPU_ARCH -isystem ../../compiler/include_llvm -o GEMM_genx.isa
+    cmc gemm_genx.cpp -march=$GPU_ARCH -isystem $CM_ROOT/compiler/include_llvm -o gemm_genx.isa
     ```
-    The specification is compiled in the first command and is run in the second command, which generates a device kernel file named `GEMM_genx.cpp`, which is then compiled into a binary `GEMM_genx.isa`.
+    The specification is compiled in the first command and is run in the second command, which generates a device kernel file named `gemm_genx.cpp`, which is then compiled into a binary `gemm_genx.isa`.
 
 - Link the host and kernel code and run:
   ```
-  g++ gemm-run-gpu.cpp -w -g -I$CM_ROOT/runtime/include -I$CM_ROOT/examples -I$CM_ROOT/drivers/media_driver/release/extract/usr/include -msse4.1 -D__LINUX__ -DLINUX -O0 -std=gnu++11 -fPIC -c -DCM_$GPU_ARCH -rdynamic -ffloat-store -o gemm-run-gpu.o
+  g++ gemm-run-gpu.cpp -w -g -I$CM_ROOT/runtime/include -I$CM_ROOT/examples -I$CM_ROOT/drivers/media_driver/release/extract/usr/include -msse4.1 -D__LINUX__ -DLINUX -O0 -std=gnu++11 -fPIC -c -DCM_$GPU_ARCH -rdynamic -ffloat-store -o gemm-run-gpu.o -DITER=1
   g++ gemm-run-gpu.o -L$CM_ROOT/drivers/media_driver/release/extract/usr/lib/x86_64-linux-gnu -L$CM_ROOT/drivers/IGC/extract/usr/local/lib -L$CM_ROOT/drivers/media_driver/release/extract/usr/lib/x86_64-linux-gnu/dri $CM_ROOT/runtime/lib/x64/libigfxcmrt.so -lva -ldl -fPIC -rdynamic -o gemm-run-gpu.out
   ./gemm-run-gpu.out
   ```

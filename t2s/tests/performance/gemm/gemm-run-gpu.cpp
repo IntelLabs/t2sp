@@ -54,7 +54,6 @@ void check_correctness(float *a, float *b, float *c)
             }
         }
     }
-    printf("Passed\n");
 }
 
 int main(int argc, char *argv[]) {

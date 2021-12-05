@@ -196,8 +196,8 @@ Summary of throughput:
 |     | A10 | GEN9.5 |
 | --- | :-: | :-:    |
 | SGEMM |  532 GFLOPS, 95% DSP efficiency  |  423 GFLOPS, 92% machine peak |
-| 2-D convolution | 515 GFLOPS, 96% DSP efficiency | 415 GFLOPS, 90% machine peak |
-| Capsule convolution | 534 GFLOPS, 98% DSP efficiency | 416 GFLOPS, 90% machine peak |
+| 2-D convolution | 515 GFLOPS, 96% DSP efficiency | 437 GFLOPS, 95% machine peak |
+| Capsule convolution | 534 GFLOPS, 98% DSP efficiency | 414 GFLOPS, 90% machine peak |
 
 To reproduce the performance, follow one of the ways below:
 + [On the DevCloud head node], submit job(s):
