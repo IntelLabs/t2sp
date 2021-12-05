@@ -82,6 +82,11 @@ struct GPUBufInfo {
         Expr offs;                          // the base address determined by enclosing loops
         size_t rem_sz;                      // the size of data not covered by loops (remaining size)
     } init_loop, iter_loop;                 // insert a loop to load data several times
+    struct LOAD2 {
+        int ext_0, ext_1;
+        int off_0, off_1;
+    };
+    vector<LOAD2> load_inst;
 };
 map<string, GPUBufInfo> gpu_bufs;
 
@@ -225,7 +230,7 @@ public:
                     // In this case, space loops must be at the innermost level.
                     space_loops.push_back(i);
                 } else {
-                    auto pos = std::find_if(loop_vars.begin(), loop_vars.begin() + stt_param.num_space_vars,
+                    auto pos = std::find_if(loop_vars.begin(), loop_vars.end(),
                                             [&](string &s){ return extract_last_token(s) == stt_param.src_vars[i]; });
                     space_loops.push_back(pos - loop_vars.begin());
                 }
@@ -266,7 +271,8 @@ public:
             return;
         }
         for (size_t i = 0; i < op->values.size(); i++) {
-            op->values[i].accept(this);
+            Expr e = remove_lets(op->values[i]);
+            e.accept(this);
         }
         vector<Expr> conjuction = break_logic_into_conjunction(nested_cond);
         FuncInfo tmp_info;
@@ -277,9 +283,8 @@ public:
         
         for (size_t i = 0; i < loop_vars.size(); i++) {
             bool is_space = find(space_loops.begin(), space_loops.end(), i) != space_loops.end();
-            if (is_space || is_one(loop_bounds[i].extent)) {
+            if (is_space) {
                 // We allocate registers for space loops, so hoisting code above them is safe
-                // The one-shot loops will be removed later, so hoisting code above them is safe
                 continue;
             }
             // Find a condition corresponding to the current loop
@@ -287,8 +292,10 @@ public:
             Expr border_val = tmp_info.is_output ? loop_bounds[i].extent-1 : 0;
             bool is_border = equal(rhs, simplify(border_val));
             if (!is_border) {
-                // We cannot further hoist code without border condition
-                break;
+                // The one-shot loops will be removed later, so hoisting code above them is safe
+                // otherwise, we cannot further hoist it.
+                if (is_one(loop_bounds[i].extent)) continue;
+                else break;
             }
             internal_assert(tmp_info.if_cond.defined());
             tmp_info.sink_loop = loop_vars[i];
@@ -301,9 +308,10 @@ public:
 class GPUStoreBuilder
 {
     const map<string, Function> &env;
-    vector<Expr> arg_bounds;
     string output_func;
 
+    // The layout is specified in undecorated form, like iii, jjj
+    // now we need to transform it into decorated form, like A.s0.iii, A.s0.jjj
     void update_shape_args() {
         auto &shape_args = store_func.sp.shape_args;
         map<string, Expr> real_loops;
@@ -319,20 +327,18 @@ class GPUStoreBuilder
             real_loops.insert({ var, make_var(loop_vars[i]) });
             fix_bounds.insert({ loop_vars[i], loop_bounds[i].extent-1 });
         }
-        size_t sz = shape_args.size();
-        arg_bounds.resize(sz);
-        for (size_t i = 0; i < sz; i++) {
+        for (size_t i = 0; i < shape_args.size(); i++) {
             shape_args[i] = simplify(substitute(real_loops, shape_args[i]));
-            arg_bounds[i] = simplify(substitute(fix_bounds, shape_args[i])+1);
         }
     }
 
+    // Fuse multiple dimension into the linearized address
     Expr get_flatten_expr() {
         auto &shape_args = store_func.sp.shape_args;
         map<string, Expr> fix_loops;
-        for (size_t i = 0; i < loop_vars.size(); i++)
+        for (size_t i = 0; i < loop_vars.size(); i++) {
             fix_loops.insert({ loop_vars[i], loop_bounds[i].extent-1});
-
+        }
         Expr flat = 0;
         Expr stri = 1;
         for (size_t i = 0; i < shape_args.size(); i++) {
@@ -343,7 +349,9 @@ class GPUStoreBuilder
         return simplify(flat);
     }
 
-    // replace space loops with a fused var
+    // Replace space loops with a inner var and a output var,
+    // where the inner var is vectorized with length rw_len and the outer var is the times of vectorized writes
+    // TODO: I think it is no longer needed, the inner var is exactly the first space loop
     Expr fuse_space_loops(Expr flatten) {
         const auto &rw_len = store_func.sp.rw_len;
         internal_assert(rw_len);
@@ -380,12 +388,13 @@ class GPUStoreBuilder
         Expr min = 0;
         Expr ext = simplify(sz /int_exp(rw_len));
         size_t rem_sz = int_val(simplify(sz - int_exp(rw_len) * ext));
-        if (rem_sz > 0)
+        if (rem_sz > 0) {
             ext = simplify(ext + 1);
-
+        }
         return { Range(min, ext), rem_sz };
     }
 
+    // We get a scatter store instruction, by replacing inner var with the index from 0 to rw_len
     auto get_scatter_store_inst(Expr fused)
     -> decltype(store_func.st_inst) {
         const auto &rw_len = store_func.sp.rw_len;
@@ -418,13 +427,15 @@ class GPUStoreBuilder
         return { InstType::Scatter, elem, offs, addr };
     }
 
+    // We get a block store instruction, where the first dimension is the first space loop
+    // TODO: It is can be generalized as we have done for load instructions
     auto get_2d_store_inst(Expr fused_arg0, Expr fused_arg1)
     -> decltype(store_func.st_inst) {
         const auto &rw_len = store_func.sp.rw_len;
         string outer_name = output_outer_loop(output_func);
         string inner_name = output_inner_loop(output_func);
 
-        int ext_0 = int_val(loop_bounds[0].extent);
+        int ext_0 = int_val(loop_bounds[space_loops[0]].extent);
         int ext_1 = rw_len / ext_0;
         Expr addr_0 = substitute(inner_name, 0, fused_arg0);
         Expr addr_1 = substitute(inner_name, 0, fused_arg1);
@@ -433,7 +444,7 @@ class GPUStoreBuilder
 
         Expr offs = Shuffle::make_concat({ 0, 0 });
         Expr addr = Shuffle::make_concat({ addr_0, addr_1 });
-        Expr elem = Shuffle::make_concat({ ext_1, ext_0 });
+        Expr elem = Shuffle::make_concat({ ext_0, ext_1 });
         return { InstType::MediaBlock, elem, offs, addr };
     }
 
@@ -443,19 +454,22 @@ public:
 
     void get_store_func() {
         for (auto &kv : func_info) {
-            if (kv.second.is_output)
+            if (kv.second.is_output) {
                 output_func = kv.first;
+            }
         }
-        if (output_func.empty())
+        if (output_func.empty()) {
+            // TODO: now we have only one output function
             return;
-
+        }
         Function func;
         internal_assert(function_is_in_environment(output_func, env, func));
         store_func.sp = func.definition().schedule().store_params();
         const auto &shape_args = store_func.sp.shape_args;
-        if (shape_args.empty())
+        if (shape_args.empty()) {
+            // No need to transform layout
             return;
-
+        }
         update_shape_args();
         if (shape_args.size() == 2) {
             store_func.sp.rw_len = space_loop_extents();
@@ -682,6 +696,135 @@ class GPUBufferBuilder
         return { InstType::Scatter, concat_idx, rw_len };
     }
 
+    struct IndexFinder {
+        Expr im_arg;
+        vector<int> index;
+
+        void find_under_loops(int l) {
+            Expr tmp_arg = im_arg;
+            int min = int_val(loop_bounds[l].min);
+            int upp = min + int_val(loop_bounds[l].extent);
+            for (int i = min; i < upp; i++) {
+                im_arg = simplify(substitute(loop_vars[l], i, tmp_arg));
+                if (is_const(im_arg)) {
+                    index.push_back(int_val(im_arg));
+                    continue;
+                }
+                find_under_loops(l - 1);
+            }
+            im_arg = tmp_arg;
+        }
+    };
+
+    void get_load_inst(string name) {
+        const auto &store_at = gpu_bufs[name].fp.store_at;
+        internal_assert(!store_at.empty());
+
+        // Get address under buffer loop
+        map<string, Expr> fix_loops;
+        int buff_loop = 0;
+        for (int i = loop_vars.size()-1; i >= 0; i--) {
+            auto var = loop_vars[i];
+            fix_loops[var] = 0;
+            if (extract_last_token(var) == store_at) {
+                buff_loop = i - 1;
+                break;
+            }
+        }
+        IndexFinder dim_0, dim_1;
+        dim_0.im_arg = simplify(substitute(fix_loops, im_args[name][0]));
+        dim_1.im_arg = simplify(substitute(fix_loops, im_args[name][1]));
+        dim_0.find_under_loops(buff_loop);
+        dim_1.find_under_loops(buff_loop);
+        // Remove repeated values
+        auto beg_0 = dim_0.index.begin(), end_0 = dim_0.index.end();
+        auto beg_1 = dim_1.index.begin(), end_1 = dim_1.index.end();
+        std::sort(beg_0, end_0), std::sort(beg_1, end_1);
+        dim_0.index.erase(std::unique(beg_0, end_0), end_0);
+        dim_1.index.erase(std::unique(beg_1, end_1), end_1);
+        // Get allocation size
+        auto size_0 = Range(0, int_exp(dim_0.index.size()));
+        auto size_1 = Range(0, int_exp(dim_1.index.size()));
+        gpu_bufs[name].allocation = { size_0, size_1 };
+
+        // Merge indexes
+        vector<int> exts_0, offs_0;
+        size_t idx_0 = 0;
+        while (idx_0 < dim_0.index.size()) {
+            int off_0 = dim_0.index[idx_0];
+            int ext_0 = 1;
+            while (idx_0 + ext_0 < dim_0.index.size()
+                && dim_0.index[idx_0 + ext_0] == off_0 + ext_0) {
+                ext_0++;
+            }
+            exts_0.push_back(ext_0);
+            offs_0.push_back(off_0);
+            idx_0 += ext_0;
+        }
+        vector<int> exts_1, offs_1;
+        size_t idx_1 = 0;
+        while (idx_1 < dim_1.index.size()) {
+            int off_1 = dim_1.index[idx_1];
+            int ext_1 = 1;
+            while (idx_1 + ext_1 < dim_1.index.size()
+                && dim_1.index[idx_1 + ext_1] == off_1 + ext_1) {
+                ext_1++;
+            }
+            exts_1.push_back(ext_1);
+            offs_1.push_back(off_1);
+            idx_1 += ext_1;
+        }
+        // Add instructions
+        for (size_t j = 0; j < exts_1.size(); j++) {
+            for (size_t i = 0; i < exts_0.size(); i++) {
+                GPUBufInfo::LOAD2 ld;
+                ld.ext_0 = exts_0[i], ld.off_0 = offs_0[i];
+                ld.ext_1 = exts_1[j], ld.off_1 = offs_1[j];
+                debug(1) << "Load matrix " << name << " that starts at ("
+                        << ld.off_0 << ", " << ld.off_1 << "), and with extents ("
+                        << ld.ext_0 << ", " << ld.ext_1 << ")\n";
+                gpu_bufs[name].load_inst.push_back(std::move(ld));
+            }
+        }
+        // Get access index
+        vector<Expr> cond_0, acc_0;
+        for (size_t i = 0; i < exts_0.size(); i++) {
+            int acc = acc_0.empty() ? 0 : int_val(acc_0.back());
+            acc += cond_0.empty() ? 0 : offs_0[i] - int_val(cond_0.back());
+            cond_0.push_back(offs_0[i] + exts_0[i]);
+            acc_0.push_back(acc);
+        }
+        vector<Expr> cond_1, acc_1;
+        for (size_t i = 0; i < exts_1.size(); i++) {
+            int acc = acc_1.empty() ? 0 : int_val(acc_1.back());
+            acc += cond_1.empty() ? 0 : offs_1[i] - int_val(cond_1.back());
+            cond_1.push_back(offs_1[i] + exts_1[i]);
+            acc_1.push_back(acc);
+        }
+
+        Expr addr = 0;
+        if (exts_0.size() == 1) {
+            addr += dim_0.im_arg;
+        } else {
+            vector<Expr> call_args;
+            call_args.push_back(dim_0.im_arg);
+            call_args.push_back(Shuffle::make_concat(cond_0));
+            call_args.push_back(Shuffle::make_concat(acc_0));
+            addr = Call::make(Int(32), Call::cm_corr_buf_idx, call_args, Call::Intrinsic);
+        }
+        int stri = dim_0.index.size();
+        if (exts_1.size() == 1) {
+            addr += dim_1.im_arg * stri;
+        } else {
+            vector<Expr> call_args;
+            call_args.push_back(dim_1.im_arg);
+            call_args.push_back(Shuffle::make_concat(cond_1));
+            call_args.push_back(Shuffle::make_concat(acc_1));
+            addr += Call::make(Int(32), Call::cm_corr_buf_idx, call_args, Call::Intrinsic) * stri;
+        }
+        gpu_bufs[name].access_idx = addr;
+    }
+
     auto get_load_elem(string name, Region &region, LastArgument &last_arg)
     -> GPUBufInfo::LOAD {
         if (region.size() == 0) {
@@ -827,7 +970,8 @@ public:
                 LastArgument last_iter, last_init;
                 info.fp         = func.definition().schedule().fetch_params();
                 get_loop_bounds(name, init_bounds, iter_bounds);
-                info.allocation = get_alloc_size(name, loop_bounds);
+                get_load_inst(name);
+                // info.allocation = get_alloc_size(name, loop_bounds);
                 alloc_iter      = get_alloc_size(name, iter_bounds);
                 alloc_init      = get_alloc_size(name, init_bounds);
                 info.iter_inst  = get_load_elem(name, alloc_iter, last_iter);
@@ -835,7 +979,7 @@ public:
                 info.iter_loop  = get_load_loops(name, iter_bounds, alloc_iter, last_iter);
                 info.init_loop  = get_load_loops(name, init_bounds, alloc_init, last_init, true);
                 info.copy_inst  = get_copy_range(name, alloc_init);
-                info.access_idx = get_access_idx(name);
+                // info.access_idx = get_access_idx(name);
             }
         }
     }
@@ -1046,6 +1190,49 @@ private:
         return Stmt();
     }
 
+    Stmt make_load_insts(string name) {
+        // Eliminate _im suffix
+        auto pos = name.find("_im");
+        internal_assert(pos != name.npos);
+        string image = name.substr(0, pos);
+        const auto &param = image_param[name];
+
+        const auto &load_inst = gpu_bufs[name].load_inst;
+        Expr image_var = Variable::make(Handle(), image);
+        Expr buf_var = Variable::make(Handle(), buf_name(name));
+
+        int acc_size = 0;
+        Stmt block;
+        for (auto &in : load_inst) {
+            vector<Expr> call_args;
+            call_args.push_back(image_var);
+
+            Expr var_addr_0 = make_var(addr_name(name, "load", "", 0));
+            call_args.push_back(simplify(var_addr_0 + in.off_0));
+            Expr var_addr_1 = make_var(addr_name(name, "load", "", 1));
+            call_args.push_back(simplify(var_addr_1 + in.off_1));
+
+            int size = in.ext_0 * in.ext_1;
+            Expr store_idx = Ramp::make(acc_size, 1, size);
+            acc_size += size;
+            call_args.push_back(buf_var);
+            call_args.push_back(store_idx);
+            call_args.push_back(in.ext_0);
+            call_args.push_back(in.ext_1);
+
+            Expr call = Call::make(param.type(), Call::cm_load_2d, call_args, Call::Intrinsic);
+            Stmt call_node = Evaluate::make(call);
+            block = !block.defined() ? call_node : Block::make(block, call_node);
+        }
+
+        auto addrs = gpu_bufs[name].iter_loop.addr.as<Shuffle>()->vectors;
+        for (size_t i = 0; i < addrs.size(); i++) {
+            string let_addr_name = addr_name(name, "load", "", i);
+            block = LetStmt::make(let_addr_name, addrs[i], block);
+        }
+        return block;
+    }
+
     Stmt build_enclosing_loops(string name, bool is_init, const For *op) {
         const auto &info = gpu_bufs[name];
         const auto &loop = is_init ?info.init_loop :info.iter_loop;
@@ -1122,7 +1309,8 @@ private:
                 //     body = Block::make(body, store);
                 // }
                 // Insert loops enclosing the load instructions
-                Stmt iter_for = build_enclosing_loops(name, false, op);
+                // Stmt iter_for = build_enclosing_loops(name, false, op);
+                Stmt iter_for = make_load_insts(name);
                 body = Block::make(iter_for, body);
                 // if (sz > 0) {
                 //     Stmt init_for = build_fetch_loops(name, true, op->device_api);

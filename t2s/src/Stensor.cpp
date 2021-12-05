@@ -485,25 +485,23 @@ class RealizeOnGPU
 {
     FindVars &fv;
 
-    void mem_fetch(Schain &c) {
+    void gpu_fetch(Schain &c) {
         for (auto &s : c.stensors) {
+            // Currently, we realize SRAM with combined registers across threads
             // The SRAM stensor determines the allocated registers
             if (s.position == SRAM) {
-                // Find a loop whose extent > 1
-                int idx = fv.var_index(s.v_outs.back());
-                Var dim = fv.free_vars[idx + 1];
-                c.imp.mem_fetch(dim, MemoryType::Register);
-                debug(1) << c.imp.name() << ".mem_fetch("
-                         << dim << ");\n";
+                c.imp.gpu_fetch(s.v_scope, MemoryType::Register, s.v_outs);
+                debug(1) << c.imp.name() << ".gpu_fetch("
+                         << s.v_scope.name() << ", {" << names_to_string(s.v_outs) << "});\n";
             }
         }
     }
 
-    void mem_store(Schain &c) {
+    void gpu_store(Schain &c) {
         for (auto &s : c.stensors) {
             if (s.dims.size() > 0) {
-                c.outf.mem_store(s.dims);
-                debug(1) << c.outf.name() << ".mem_store("
+                c.outf.gpu_store(s.dims);
+                debug(1) << c.outf.name() << ".gpu_store("
                          << to_string(s.dims) << ");\n";
             }
         }
@@ -517,9 +515,9 @@ public:
         for (auto &c : schains) {
             // check_correctness(c);
             if (!c.is_output) {
-                mem_fetch(c);
+                gpu_fetch(c);
             } else {
-                mem_store(c);
+                gpu_store(c);
                 out = c.outf;
             }
         }

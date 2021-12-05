@@ -27,15 +27,15 @@ using namespace Halide;
 int main(void)
 {
     // Dependences
-    #define P               cii,       coo,   yy,   xxp,  cop,  y,  x,  ky,      kx,      ci,   yp,  xp,  xx, co, n
-    #define P_cii_minus_1   cii-1,     coo,   yy,   xxp,  cop,  y,  x,  ky,      kx,      ci,   yp,  xp,  xx, co, n
-    #define P_ky_minus_1    cii+CII-1, coo,   yy,   xxp,  cop,  y,  x,  ky-1,    kx,      ci,   yp,  xp,  xx, co, n
-    #define P_kx_minus_1    cii+CII-1, coo,   yy,   xxp,  cop,  y,  x,  ky+KY-1, kx-1,    ci,   yp,  xp,  xx, co, n
-    #define P_ci_minus_1    cii+CII-1, coo,   yy,   xxp,  cop,  y,  x,  ky+KY-1, kx+KX-1, ci-1, yp,  xp,  xx, co, n
-    #define P_coo_minus_1   cii,       coo-1, yy,   xxp,  cop,  y,  x,  ky,      kx,      ci,   yp,  xp,  xx, co, n
-    #define P_yy_minus_1    cii,       coo,   yy-1, xxp,  cop,  y,  x,  ky,      kx,      ci,   yp,  xp,  xx, co, n
-    #define P_Out                      coo,   yy,   xxp,  cop,  y,  x,                          yp,  xp,  xx, co, n
-    // Linearized addresses
+    #define P               cii,       coo,   yy,   xxp, cop, yp, xp,  ky,      kx,      ci,   y, x, xx, co, n
+    #define P_cii_minus_1   cii-1,     coo,   yy,   xxp, cop, yp, xp,  ky,      kx,      ci,   y, x, xx, co, n
+    #define P_ky_minus_1    cii+CII-1, coo,   yy,   xxp, cop, yp, xp,  ky-1,    kx,      ci,   y, x, xx, co, n
+    #define P_kx_minus_1    cii+CII-1, coo,   yy,   xxp, cop, yp, xp,  ky+KY-1, kx-1,    ci,   y, x, xx, co, n
+    #define P_ci_minus_1    cii+CII-1, coo,   yy,   xxp, cop, yp, xp,  ky+KY-1, kx+KX-1, ci-1, y, x, xx, co, n
+    #define P_coo_minus_1   cii,       coo-1, yy,   xxp, cop, yp, xp,  ky,      kx,      ci,   y, x, xx, co, n
+    #define P_yy_minus_1    cii,       coo,   yy-1, xxp, cop, yp, xp,  ky,      kx,      ci,   y, x, xx, co, n
+    #define P_Out                      coo,   yy,   xxp, cop, yp, xp,                          y, x, xx, co, n
+    // Linearized addresse
     #define total_iy        (yy + YY*y   + YY*Y*yp  + ky)
     #define total_ix        (xx + XX*xxp + XX*XXP*x + XX*XXP*X*xp + kx)
     #define total_oy        (yy + YY*y   + YY*Y*yp)
@@ -51,7 +51,7 @@ int main(void)
 #ifdef GPU
     ImageParam I("I", TTYPE, 2), K("K", TTYPE, 2);
     #define P_I     total_ci + (TOTAL_CI) * n,  total_iy + (TOTAL_IY) * total_ix
-    #define P_K     total_co + (TOTAL_CO) * ky, total_ci + (TOTAL_CI) * kx
+    #define P_K     total_co + (TOTAL_CO) * kx, total_ci + (TOTAL_CI) * ky
     #define P_O     total_co + (TOTAL_CO) * n,  total_oy + (TOTAL_OY) * total_ox
     #define UN      (I.dim(0).extent() / TOTAL_CI)
 #else
@@ -98,16 +98,16 @@ int main(void)
     Stensor DI("iLoader", DRAM), SI("iFeeder", SRAM), DK("kLoader", DRAM), SK("kFeeder", SRAM);
     Stensor RO2("drainer", REG), RO1("collector", REG), DO("unloader", DRAM), O("deserializer");
     I >> DI.out(cii) >> FIFO(128)
-      >> SI.scope(ci).out(cii, yy) >> FIFO(128);
+      >> SI.scope(kx).out(cii, yy) >> FIFO(128);
     K >> DK.out(cii) >> FIFO(128)
-      >> SK.scope(ci).out(cii, coo) >> FIFO(128);
+      >> SK.scope(kx).out(cii, coo) >> FIFO(128);
     Out >> FIFO(1024) >> RO2.scope(xx).out(coo, yy)
         >> FIFO(128)  >> RO1.scope(yy).out(coo)
         >> FIFO(128)  >> DO >> O(P_O);
 
     // Compile the kernel to an FPGA bitstream, and expose a C interface for the host to invoke
 #ifdef GPU
-    O.compile_to_host("conv-interface", { I, K }, "CONV", IntelGPU);
+    O.compile_to_host("conv-interface", { I, K }, "conv", IntelGPU);
 #else
     O.compile_to_host("conv-interface", { I, K }, "CONV", IntelFPGA);
 #endif

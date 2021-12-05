@@ -19,6 +19,7 @@
 #include <vector>
 #include <algorithm>
 
+#include "../../Halide/src/CSE.h"
 #include "../../Halide/src/Func.h"
 #include "../../Halide/src/Function.h"
 #include "../../Halide/src/IR.h"
@@ -1046,7 +1047,8 @@ class PreRewriter : public IRMutator {
     const std::map<std::string, Function> &env;
 
     Stmt visit(const Provide *op) override {
-        auto f_val = op->values[0].as<Select>();
+        Expr value = remove_lets(op->values[0]);
+        auto f_val = value.as<Select>();
         if (!f_val) {
             return IRMutator::visit(op);
         }

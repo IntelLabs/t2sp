@@ -25,7 +25,7 @@
     #define III         32
     #define JJ          8
     #define II          2
-    #define KK          32
+    #define KK          1
 #else // FPGA
     // Inner loop bounds, which are static constant parameters of the design
     #ifdef TINY // For verifying correctness only

@@ -28,8 +28,8 @@
 #define ITER        100
 #define SIZE_I_0    TOTAL_CI * N
 #define SIZE_I_1    TOTAL_IY * TOTAL_IX
-#define SIZE_K_0    TOTAL_CO * KY
-#define SIZE_K_1    TOTAL_CI * KX
+#define SIZE_K_0    TOTAL_CO * KX
+#define SIZE_K_1    TOTAL_CI * KY
 #define SIZE_O_0    TOTAL_CO * N
 #define SIZE_O_1    TOTAL_OY * TOTAL_OX
 
@@ -53,8 +53,8 @@ void check_correctness(float *i, float *k, float *o)
             size_t total_ix = xx + XX * x + kx;
             size_t i_0 = ci + TOTAL_CI * n;
             size_t i_1 = total_iy + TOTAL_IY * total_ix;
-            size_t k_0 = total_co + TOTAL_CO * ky;
-            size_t k_1 = ci + TOTAL_CI * kx;
+            size_t k_0 = total_co + TOTAL_CO * kx;
+            size_t k_1 = ci + TOTAL_CI * ky;
             golden += i[i_0 + SIZE_I_0 * i_1] * k[k_0 + SIZE_K_0 * k_1];
         }
         size_t o_0 = total_co + TOTAL_CO * n;
@@ -100,7 +100,7 @@ int main(int argc, char *argv[]) {
     }
     CmSurface2D *surf_b = nullptr;
     SurfaceIndex *surf_b_idx = nullptr;
-    cm_result_check(device->CreateSurface2D(SIZE_K_0, SIZE_K_0, CM_SURFACE_FORMAT_R32F, surf_b));
+    cm_result_check(device->CreateSurface2D(SIZE_K_0, SIZE_K_1, CM_SURFACE_FORMAT_R32F, surf_b));
     cm_result_check(surf_b->WriteSurface((unsigned char*)b, NULL));
     cm_result_check(surf_b->GetIndex(surf_b_idx));
 

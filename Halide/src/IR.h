@@ -505,6 +505,7 @@ struct Call : public ExprNode<Call> {
         cm_load_2d,
         cm_prefetch_2d,
         cm_store_2d,
+        cm_corr_buf_idx,
         count_leading_zeros,
         count_trailing_zeros,
         debug_to_file,

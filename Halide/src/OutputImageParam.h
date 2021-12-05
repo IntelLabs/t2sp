@@ -120,11 +120,11 @@ public:
 
     OutputImageParam &set_bounds(const vector<int> &bounds);
 
-    void mem_fetch(Var loop_level, MemoryType mem_type, vector<Expr> reuse_args, size_t sz = 16) {
-        func.mem_fetch(loop_level, mem_type, reuse_args, sz);
+    void gpu_fetch(Var loop_level, MemoryType mem_type, vector<Var> outs, vector<Expr> reuse_args) {
+        func.gpu_fetch(loop_level, mem_type, outs, reuse_args);
     }
-    void mem_fetch(Var loop_level, MemoryType mem_type, size_t sz = 16) {
-        func.mem_fetch(loop_level, mem_type, {}, sz);
+    void gpu_fetch(Var loop_level, MemoryType mem_type, vector<Var> outs) {
+        func.gpu_fetch(loop_level, mem_type, outs, {});
     }
 
     template<typename... Args>
