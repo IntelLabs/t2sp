@@ -109,7 +109,7 @@ int main(void)
 #ifdef GPU
     O.compile_to_host("conv-interface", { I, K }, "conv", IntelGPU);
 #else
-    O.compile_to_host("conv-interface", { I, K }, "CONV", IntelFPGA);
+    O.compile_to_host("conv-interface", { I, K }, "conv", IntelFPGA);
 #endif
     printf("Success\n");
     return 0;

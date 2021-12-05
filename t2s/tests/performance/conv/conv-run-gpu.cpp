@@ -25,7 +25,6 @@
 #include "common/isa_helpers.h"
 
 #define N           4
-#define ITER        100
 #define SIZE_I_0    TOTAL_CI * N
 #define SIZE_I_1    TOTAL_IY * TOTAL_IX
 #define SIZE_K_0    TOTAL_CO * KX
@@ -72,7 +71,7 @@ int main(int argc, char *argv[]) {
 
     // Creates a CmProgram object consisting of the kernel loaded from the code buffer.
     CmProgram *program = nullptr;
-    std::string isa_code = cm::util::isa::loadFile("CONV_genx.isa");
+    std::string isa_code = cm::util::isa::loadFile("conv_genx.isa");
     cm_result_check(device->LoadProgram(const_cast<char*>(isa_code.data()), isa_code.size(), program));
 
     // Creates the cmNBody kernel.
@@ -144,8 +143,12 @@ int main(int argc, char *argv[]) {
     double ops = 2.0 * (long)(N * X * Y) * (long)(CO * XX * YY * COO) * (long)(CI * KX * KY * CII);
 
     cm_result_check(::DestroyCmDevice(device));
-    printf("GFlops: %lf\n", ops / tkern);
-    printf("Max GFlops: %lf\n", ops / min_tkern);
 
+    if (ITER == 1) {
+        printf("Pass!\n");
+    } else {
+        printf("Average GFlops: %lf\n", ops / tkern);
+        printf("Max GFlops: %lf\n", ops / min_tkern);
+    }
     return 0;
 }

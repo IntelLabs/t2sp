@@ -123,8 +123,12 @@ int main(int argc, char *argv[]) {
     double ops = 2 * (long)(N * TOTAL_CO) * (long)(MY * MX * OY * OX) * (long)(TOTAL_CI * MK * KY * KX);
 
     cm_result_check(::DestroyCmDevice(device));
-    printf("GFlops: %lf\n", ops / tkern);
-    printf("Max GFlops: %lf\n", ops / min_tkern);
 
+    if (ITER == 1) {
+        printf("Pass!\n");
+    } else {
+        printf("Average GFlops: %lf\n", ops / tkern);
+        printf("Max GFlops: %lf\n", ops / min_tkern);
+    }
     return 0;
 }
