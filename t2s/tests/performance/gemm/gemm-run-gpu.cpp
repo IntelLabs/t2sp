@@ -37,8 +37,6 @@
 #define SIZE_B      TOTAL_J*TOTAL_K
 #define SIZE_C      TOTAL_I*TOTAL_J
 
-#define ITER        100
-
 void check_correctness(float *a, float *b, float *c)
 {
     for (int i = 0; i < I; i++)
@@ -141,8 +139,13 @@ int main(int argc, char *argv[]) {
     double ops = (long)TOTAL_I*(long)TOTAL_J*(long)TOTAL_K*2.0;
 
     cm_result_check(::DestroyCmDevice(device));
-    printf("GFlops: %lf\n", ops / tkern);
-    printf("Max GFlops: %lf\n", ops / min_tkern);
+
+    if (ITER == 1) {
+        printf("Pass!\n");
+    } else {
+        printf("Average GFlops: %lf\n", ops / tkern);
+        printf("Max GFlops: %lf\n", ops / min_tkern);
+    }
 
     return 0;
 }

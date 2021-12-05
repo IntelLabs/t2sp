@@ -6,7 +6,6 @@
 #include "common/cm_rt_helpers.h"
 #include "common/isa_helpers.h"
 
-#define ITER        100
 #define SIZE_I_0    TOTAL_CI * MK * MH
 #define SIZE_I_1    TOTAL_B * TOTAL_IW * TOTAL_IH
 #define SIZE_K_0    TOTAL_CO * MK * MW
@@ -127,8 +126,12 @@ int main(int argc, char *argv[]) {
     double ops = 2 * (long)(B * H * W) * (long)(BB * CO * MH * MW * COO) * (long)(CI * KH * KW * MK * CII);
 
     cm_result_check(::DestroyCmDevice(device));
-    printf("GFlops: %lf\n", ops / tkern);
-    printf("Max GFlops: %lf\n", ops / min_tkern);
 
+    if (ITER == 1) {
+        printf("Pass!\n");
+    } else {
+        printf("Average GFlops: %lf\n", ops / tkern);
+        printf("Max GFlops: %lf\n", ops / min_tkern);
+    }
     return 0;
 }

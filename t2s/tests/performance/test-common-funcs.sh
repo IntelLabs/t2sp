@@ -68,10 +68,20 @@ function generate_gpu_kernel {
         GPU_ARCH=GEN12
     fi
     
+    # TOFIX: TINY in the GPU workloads do not seem to mean the input size for now, 
+    # but how many iterations of the test to repeat. Should change to reflect the input size.
+    if [ "$size" == "TINY" ]; then
+        ITERATIONS=1
+    else
+        ITERATIONS=100
+    fi
+    
     # Compile the specification
-    g++ ${workload}.cpp -g -I ../util -I $T2S_PATH/Halide/include -L $T2S_PATH/Halide/bin $HW_LIBHALIDE_TO_LINK -lz -lpthread -ldl -std=c++11 -DGPU -D$size
+    g++ ${workload}.cpp -g -I ../util -I $T2S_PATH/Halide/include -L $T2S_PATH/Halide/bin $HW_LIBHALIDE_TO_LINK -lz -lpthread -ldl -std=c++11 -DGPU -DITER=$ITERATIONS
+
     # Run the specification to generate  a device kernel file ${workload}_genx.cpp
     ./a.out
+    
     # Compile the kernel into binary
     cmc ${workload}_genx.cpp -march=$GPU_ARCH -isystem ../../compiler/include_llvm -o ${workload}_genx.isa
 }
@@ -80,6 +90,7 @@ function test_gpu_kernel {
     # Link the host and kernel code:
     g++ ${workload}-run-gpu.cpp -w -g -I$CM_ROOT/runtime/include -I$CM_ROOT/examples -I$CM_ROOT/drivers/media_driver/release/extract/usr/include -msse4.1 -D__LINUX__ -DLINUX -O0 -std=gnu++11 -fPIC -c -DCM_$GPU_ARCH -rdynamic -ffloat-store -o ${workload}-run-gpu.o
     g++ ${workload}-run-gpu.o -L$CM_ROOT/drivers/media_driver/release/extract/usr/lib/x86_64-linux-gnu -L$CM_ROOT/drivers/IGC/extract/usr/local/lib -L$CM_ROOT/drivers/media_driver/release/extract/usr/lib/x86_64-linux-gnu/dri $CM_ROOT/runtime/lib/x64/libigfxcmrt.so -lva -ldl -fPIC -rdynamic -o ${workload}-run-gpu.out
+    
     # Run the host binary. The host offloads the kernel to a GPU:
     ./${workload}-run-gpu.out
 }

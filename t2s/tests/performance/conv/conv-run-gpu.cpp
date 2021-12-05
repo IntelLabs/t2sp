@@ -25,7 +25,6 @@
 #include "common/isa_helpers.h"
 
 #define N           4
-#define ITER        100
 #define SIZE_I_0    TOTAL_CI * N
 #define SIZE_I_1    TOTAL_IY * TOTAL_IX
 #define SIZE_K_0    TOTAL_CO * KY
@@ -144,8 +143,12 @@ int main(int argc, char *argv[]) {
     double ops = 2.0 * (long)(N * X * Y) * (long)(CO * XX * YY * COO) * (long)(CI * KX * KY * CII);
 
     cm_result_check(::DestroyCmDevice(device));
-    printf("GFlops: %lf\n", ops / tkern);
-    printf("Max GFlops: %lf\n", ops / min_tkern);
 
+    if (ITER == 1) {
+        printf("Pass!\n");
+    } else {
+        printf("Average GFlops: %lf\n", ops / tkern);
+        printf("Max GFlops: %lf\n", ops / min_tkern);
+    }
     return 0;
 }
