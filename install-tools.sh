@@ -94,7 +94,7 @@ function install_gcc {
     tar xvzf gcc-$version.tar.gz > /dev/null
     mkdir -p gcc-$version-build && cd gcc-$version-build
     export LD_LIBRARY_PATH=$T2S_PATH/install/lib:$T2S_PATH/install/lib64:$LD_LIBRARY_PATH
-    ../gcc-$version/configure --enable-languages=c,c++ --disable-multilib --prefix=$T2S_PATH/install/gcc-$version --with-gmp=$T2S_PATH/install --with-mpfr=$T2S_PATH/install --with-mpc=$T2S_PATH/install > /dev/null
+    ../gcc-$version/configure --enable-languages=c,c++ --disable-multilib --disable-libsanitizer  --prefix=$T2S_PATH/install/gcc-$version --with-gmp=$T2S_PATH/install --with-mpfr=$T2S_PATH/install --with-mpc=$T2S_PATH/install > /dev/null
     make -j`nproc` > /dev/null
     make install > /dev/null
     cd ..

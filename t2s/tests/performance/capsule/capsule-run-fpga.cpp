@@ -58,7 +58,7 @@ int main()
         }
     }
     Halide::Runtime::Buffer<float> o(COO, BB, MW, H*W, CO, MH, B);
-    CAPSULE(i, k, o);
+    capsule(i, k, o);
 
 #ifdef TINY
     // Validate the results

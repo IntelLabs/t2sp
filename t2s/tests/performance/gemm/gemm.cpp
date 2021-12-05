@@ -91,9 +91,9 @@ int main()
 
     // Compile the kernel to an FPGA bitstream, and expose a C interface for the host to invoke
 #ifdef GPU
-    C.compile_to_host("gemm-interface", { A, B }, "GEMM", IntelGPU);
+    C.compile_to_host("gemm-interface", { A, B }, "gemm", IntelGPU);
 #else
-    C.compile_to_host("gemm-interface", { A, B }, "GEMM", IntelFPGA);
+    C.compile_to_host("gemm-interface", { A, B }, "gemm", IntelFPGA);
 #endif
     printf("Success\n");
     return 0;

@@ -67,7 +67,7 @@ int main()
     }
 
     Halide::Runtime::Buffer<float> c(JJJ, III, JJ, II, J, I);
-    GEMM(a, b, c);
+    gemm(a, b, c);
 
 #ifdef TINY
     // Validate the results

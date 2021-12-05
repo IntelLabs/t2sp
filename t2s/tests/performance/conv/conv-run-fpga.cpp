@@ -66,7 +66,7 @@ int main()
         }
     }
     Halide::Runtime::Buffer<float> o(COO, YY, XXP, COP, Y, X, YP, XP, XX, CO, N);
-    CONV(i, k, o);
+    conv(i, k, o);
 
 #ifdef TINY
     // Validate the results

@@ -55,7 +55,7 @@ int main(int argc, char *argv[]) {
 
     // Creates a CmProgram object consisting of the kernel loaded from the code buffer.
     CmProgram *program = nullptr;
-    std::string isa_code = cm::util::isa::loadFile("CAPSULE_genx.isa");
+    std::string isa_code = cm::util::isa::loadFile("capsule_genx.isa");
     cm_result_check(device->LoadProgram(const_cast<char*>(isa_code.data()), isa_code.size(), program));
 
     // Creates the cmNBody kernel.

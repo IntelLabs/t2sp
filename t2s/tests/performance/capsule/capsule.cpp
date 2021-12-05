@@ -103,9 +103,9 @@ int main(void)
 
     // Compile the kernel to an FPGA bitstream, and expose a C interface for the host to invoke
 #ifdef GPU
-    O.compile_to_host("capsule-interface", { I, K }, "CAPSULE", IntelGPU);
+    O.compile_to_host("capsule-interface", { I, K }, "capsule", IntelGPU);
 #else
-    O.compile_to_host("capsule-interface", { I, K }, "CAPSULE", IntelFPGA);
+    O.compile_to_host("capsule-interface", { I, K }, "capsule", IntelFPGA);
 #endif
     printf("Success\n");
     return 0;
