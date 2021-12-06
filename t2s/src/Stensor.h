@@ -57,6 +57,8 @@ struct Stensor
     void compile_jit(Starget t);
     void compile_to_host(string file_name, const vector<Argument> &args,
                          const std::string fn_name, Starget t);
+    void compile_to_oneapi(const vector<Argument> &args,
+                         const std::string fn_name, Starget t);
     Stensor &scope(Var v);
     Stensor &bankwidth(Var v);
     Stensor &banks(const std::vector<Var> &banks);

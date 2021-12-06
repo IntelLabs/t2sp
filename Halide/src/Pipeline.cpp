@@ -341,15 +341,17 @@ void Pipeline::compile_to_c(const string &filename,
     m.compile(single_output(filename, m, Output::c_source));
 }
 
-void Pipeline::compile_to_oneapi(const string &filename,
-                            const vector<Argument> &args,
+void Pipeline::compile_to_oneapi(const vector<Argument> &args,
                             const string &fn_name,
                             const Target &target) {
     // (TODO) check that target has IntelFPGA and OneAPI targets set. Else throw an error
-    user_assert( target.has_feature((Target::OneAPI)) ) << "OneAPI Target not found.\n";
+    user_assert( target.has_feature(Target::IntelFPGA) || target.has_feature(Target::IntelGPU) ) << " IntelFPGA or IntelGPU Target not found.\n";
+    user_assert( target.has_feature((Target::OneAPI)) ) << " OneAPI Target not found.\n";
+    debug(2) << "OneAPI-compiling for: " << target << "\n";
     Module m = compile_to_module(args, fn_name, target);
     auto ext = get_output_info(target);
-    m.compile(single_output(filename + ext.at(Output::oneapi).extension, m, Output::oneapi));
+    // (TODO) eventually have a way for user to pass in filename such as what is done with `compile_to_host()`
+    m.compile(single_output( "" + ext.at(Output::oneapi).extension, m, Output::oneapi));
 }
 
 void Pipeline::print_loop_nest() {

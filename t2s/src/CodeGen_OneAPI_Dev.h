@@ -7,10 +7,10 @@
 
 #include <sstream>
 
-#include "CodeGen_C.h"
-#include "CodeGen_GPU_Dev.h"
-#include "Target.h"
-#include "IRMutator.h"
+#include "../../Halide/src/CodeGen_C.h"
+#include "../../Halide/src/CodeGen_GPU_Dev.h"
+#include "../../Halide/src/Target.h"
+#include "../../Halide/src/IRMutator.h"
 
 namespace Halide {
 namespace Internal {
@@ -52,25 +52,13 @@ public:
 
     std::string print_gpu_name(const std::string &name) override;
 
-
-
-
-
-
-
-
-
-
-
-
-
-
+    std::vector<char> compile_to_src_module(const LoweredFunc &f);
 
 
 protected:
-    class CodeGen_OpenCL_OneAPI_C : public CodeGen_C {  // (TODO) Eventually inherit directly from CodeGen_C
+    class CodeGen_OneAPI_C : public CodeGen_C {
     public:
-        CodeGen_OpenCL_OneAPI_C(std::ostream &s, Target t)
+        CodeGen_OneAPI_C(std::ostream &s, Target t)
             : CodeGen_C(s, t) {
         }
         void add_kernel(Stmt stmt,
@@ -78,6 +66,8 @@ protected:
                         const std::vector<DeviceArgument> &args);
         void print_global_data_structures_before_kernel(const Stmt *op);
         void gather_shift_regs_allocates(const Stmt *op);
+
+        std::string compile_oneapi_lower(const LoweredFunc &f, std::string str);
 
     protected:
         using CodeGen_C::visit;
@@ -93,7 +83,7 @@ protected:
         class DefineVectorStructTypes : public IRMutator {
             using IRMutator::visit;
         private:
-            CodeGen_OpenCL_OneAPI_C* parent;
+            CodeGen_OneAPI_C* parent;
         public:
             // Definitions of non-standard vector types.
             std::string vectors;
@@ -101,7 +91,7 @@ protected:
             // Definitions of the struct types.
             std::string structs;
             
-            DefineVectorStructTypes(CodeGen_OpenCL_OneAPI_C* parent) : parent(parent) {}
+            DefineVectorStructTypes(CodeGen_OneAPI_C* parent) : parent(parent) {}
             Expr mutate(const Expr &expr) override;
             Stmt mutate(const Stmt &stmt) override;
         };
@@ -114,21 +104,21 @@ protected:
         class DeclareChannels : public IRVisitor {
             using IRVisitor::visit;
         private:
-            CodeGen_OpenCL_OneAPI_C* parent;
+            CodeGen_OneAPI_C* parent;
         public:
             std::string channels;
-            DeclareChannels(CodeGen_OpenCL_OneAPI_C* parent) : parent(parent) {}
+            DeclareChannels(CodeGen_OneAPI_C* parent) : parent(parent) {}
             void visit(const Realize *op) override;
         };
 
         // For declaring temporary array variable
         class DeclareArrays : public IRVisitor {
             using IRVisitor::visit;
-            CodeGen_OpenCL_OneAPI_C* parent;
+            CodeGen_OneAPI_C* parent;
             std::set<std::string> array_set;
         public:
             std::ostringstream arrays;
-            DeclareArrays(CodeGen_OpenCL_OneAPI_C* parent) : parent(parent) {}
+            DeclareArrays(CodeGen_OneAPI_C* parent) : parent(parent) {}
             void visit(const Call *op) override;
         };
 
@@ -136,14 +126,14 @@ protected:
         class CheckConditionalChannelAccess : public IRVisitor {
             using IRVisitor::visit;
         private:
-            CodeGen_OpenCL_OneAPI_C* parent;
+            CodeGen_OneAPI_C* parent;
             std::string current_loop_name;
         public:
             bool in_if_then_else;       // The current IR is in a branch
             bool conditional_access;    // There is a conditional execution of channel read/write inside the current loop
             bool irregular_loop_dep;    // There is a irregular loop inside the current loop and the irregular bound 
                                         // depends on current loop var
-            CheckConditionalChannelAccess(CodeGen_OpenCL_OneAPI_C* parent, std::string current_loop_name) : parent(parent), current_loop_name(current_loop_name) {
+            CheckConditionalChannelAccess(CodeGen_OneAPI_C* parent, std::string current_loop_name) : parent(parent), current_loop_name(current_loop_name) {
                 in_if_then_else = false;
                 conditional_access = false;
                 irregular_loop_dep = false;
@@ -157,12 +147,12 @@ protected:
         class GatherShiftRegsAllocates : public IRVisitor {
             using IRVisitor::visit;
         private:
-            CodeGen_OpenCL_OneAPI_C* parent;
+            CodeGen_OneAPI_C* parent;
             std::map<std::string, std::vector<std::string>> &shift_regs_allocates; // For all shift regs
             std::map<std::string, size_t> &shift_regs_bounds; // Only for shift regs whose types are nonstandard_vectors
             std::map<std::string, std::vector<Expr>> &space_vars;
         public:
-            GatherShiftRegsAllocates(CodeGen_OpenCL_OneAPI_C* parent, std::map<std::string, std::vector<std::string>> &shift_regs_allocates,
+            GatherShiftRegsAllocates(CodeGen_OneAPI_C* parent, std::map<std::string, std::vector<std::string>> &shift_regs_allocates,
                 std::map<std::string, size_t> &shift_regs_bounds, std::map<std::string, std::vector<Expr>> &space_vars) :
                     parent(parent), shift_regs_allocates(shift_regs_allocates), shift_regs_bounds(shift_regs_bounds), space_vars(space_vars) {}
             void visit(const Call *op) override;
@@ -174,6 +164,9 @@ protected:
         std::map<std::string, std::vector<Expr>> space_vars; // For shift regs with irregular bounds
         // For saving the pointer args streamed from scehduler
         std::map<std::string, std::string> pointer_args;
+        std::vector<DeviceArgument> buffer_args;
+        const std::string OneAPIDefineVectorStructTypes = "\n// CodeGen_OneAPI DefineVectorStructTypes \n";
+        const std::string OneAPIDeclareChannels = "\n// CodeGen_OneAPI DeclareChannels \n";
 
         void visit(const For *) override;
         void visit(const Ramp *op) override;
@@ -203,11 +196,12 @@ protected:
         void visit_binop(Type t, Expr a, Expr b, const char *op) override;
         void cast_to_bool_vector(Type bool_type, Type other_type, std::string other_var);
         std::string vector_index_to_string(int idx);
+        std::string print_load_assignment(Type t, const std::string &rhs);
     };
 
     std::ostringstream src_stream_oneapi;
     std::string cur_kernel_name_oneapi;
-    CodeGen_OpenCL_OneAPI_C one_clc;
+    CodeGen_OneAPI_C one_clc;
 
 private:
 

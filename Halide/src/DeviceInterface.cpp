@@ -152,7 +152,7 @@ Expr make_device_interface_call(DeviceAPI device_api) {
         interface_name = "halide_opencl_device_interface";
         break;
     case DeviceAPI::OneAPI:
-        interface_name = "halide_opencl_device_interface";
+        interface_name = "halide_oneapi_device_interface";
         break;
     case DeviceAPI::Metal:
         interface_name = "halide_metal_device_interface";

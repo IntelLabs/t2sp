@@ -1004,8 +1004,7 @@ public:
     /** Statically compile this function to DPCPP source code.
      * This relies on the original OpenCL device code wrapped in DPCPP/SYCL calls/
      * To compile this code, one will need to install Intel's OneAPI with DPCPP. */
-    void compile_to_oneapi(const std::string &filename,
-                      const std::vector<Argument> &,
+    void compile_to_oneapi(const std::vector<Argument> &,
                       const std::string &fn_name = "",
                       const Target &target = get_target_from_environment());
 

@@ -7,7 +7,7 @@
 #include "CodeGen_GPU_Host.h"
 #include "CodeGen_X86.h"
 #include "CodeGen_OpenCL_Dev.h"
-#include "CodeGen_OneAPI_Dev.h"
+#include "../../t2s/src/CodeGen_OneAPI_Dev.h"
 
 #include "CodeGen_C.h"
 #include "CodeGen_Internal.h"
@@ -659,6 +659,7 @@ void Module::compile(const std::map<Output, std::string> &output_files) const {
         debug(1) << "Module.compile(): oneapi_dev " << output_files.at(Output::oneapi) << "\n";
         llvm::LLVMContext context;
         auto t = target();
+        t.set_feature(Target::OpenCL, false);
         CodeGen_LLVM *ret = new CodeGen_GPU_Host<CodeGen_X86>(t);
         ret->set_context(context);
         ret->compile_to_devsrc(*this);

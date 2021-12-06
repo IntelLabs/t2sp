@@ -834,7 +834,7 @@ class SpaceTimeTransformer : public IRMutator {
                 // marked as Vectorized originally; for all the other cases, set the
                 // loop as Unrolled.
                 ForType for_type = ForType::Unrolled;
-                if (target.has_feature(Target::IntelGPU) || target.has_feature(Target::IntelFPGA)) {
+                if (target.has_feature(Target::IntelGPU) || target.has_feature(Target::IntelFPGA) || target.has_feature(Target::OneAPI)) {
                     if (k == 0 && vectorized_loop_name != "") {
                         std::string new_vectorized_loop_name = vectorized_loop_name.substr(0, vectorized_loop_name.find('.')) + ".s0." + param.dst_vars[k];
                         internal_assert(new_vectorized_loop_name == name) << "After space time transformation, the vectorized loop "

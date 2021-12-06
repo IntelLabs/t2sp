@@ -2,19 +2,19 @@
 #include <sstream>
 #include <fstream>
 
-#include "CSE.h"
-#include "CodeGen_Internal.h"
+#include "../../Halide/src/CSE.h"
+#include "../../Halide/src/CodeGen_Internal.h"
 #include "CodeGen_OneAPI_Dev.h"
-#include "Debug.h"
-#include "EliminateBoolVectors.h"
-#include "EmulateFloat16Math.h"
-#include "ExprUsesVar.h"
-#include "IRMutator.h"
-#include "IROperator.h"
-#include "Simplify.h"
-#include "Substitute.h"
-#include "../../t2s/src/DebugPrint.h"
-#include "../../t2s/src/Utilities.h"
+#include "../../Halide/src/Debug.h"
+#include "../../Halide/src/EliminateBoolVectors.h"
+#include "../../Halide/src/EmulateFloat16Math.h"
+#include "../../Halide/src/ExprUsesVar.h"
+#include "../../Halide/src/IRMutator.h"
+#include "../../Halide/src/IROperator.h"
+#include "../../Halide/src/Simplify.h"
+#include "../../Halide/src/Substitute.h"
+#include "DebugPrint.h"
+#include "Utilities.h"
 
 namespace Halide {
 namespace Internal {
@@ -43,20 +43,34 @@ void CodeGen_OneAPI_Dev::add_kernel(Stmt s,
 
 
 vector<char> CodeGen_OneAPI_Dev::compile_to_src() {
-    const Target &target = one_clc.get_target();
-    if (target.has_feature(Target::OneAPI)) {
-        compile_to_aocx_oneapi(src_stream_oneapi);
-    }
+    // const Target &target = one_clc.get_target();
+    // if (target.has_feature(Target::OneAPI)) {
+    //     compile_to_aocx_oneapi(src_stream_oneapi);
+    // }
 
     string str = src_stream_oneapi.str();
     debug(1) << "OneAPI kernel:\n"
              << str << "\n";
     vector<char> buffer(str.begin(), str.end());
-    buffer.push_back(0);
+    // buffer.push_back(0); // Not needed as we do not compile to a binary rn
+    return buffer;
+}
+
+vector<char> CodeGen_OneAPI_Dev::compile_to_src_module(const LoweredFunc &f) {
+
+    // Use a special CodeGen_OneAPI_C function to create the function wrapper
+    debug(1) << "Creating function wrapper around kernels\n";
+    string str = src_stream_oneapi.str();
+    string src = one_clc.compile_oneapi_lower(f, str);
+
+    debug(1) << "OneAPI kernel:\n"
+             << src << "\n";
+    vector<char> buffer(src.begin(), src.end());
     return buffer;
 }
 
 /* Methods only for generating OpenCL code for Intel FPGAs */
+// (TODO) Replace with method to create dpcpp code and compile
 void CodeGen_OneAPI_Dev::compile_to_aocx_oneapi(std::ostringstream &src_stream) {
     // If BITSTREAM env var or $HOME/tmp/a.aocx indicates an existing file, do nothing.
     // Otherwise, dump the source code to ~/tmp/a.cl and compile it to ~/tmp/a.aocx.
@@ -77,6 +91,8 @@ void CodeGen_OneAPI_Dev::compile_to_aocx_oneapi(std::ostringstream &src_stream) 
         fp.close();
         return;
     }
+
+    // (TODO) Remove creating bitstream from function as OneAPI generatur uses `void CodeGen_GPU_Host<CodeGen_CPU>::compile_func` to a dpcpp fat binary
 
     // Bitstream was generated ahead of time. Check the file exists.
     // Note that we do not check if the aocx file is really good or up to date with the
@@ -149,12 +165,20 @@ void CodeGen_OneAPI_Dev::init_module() {
     if (overlay_kenrel != NULL) return;
 
     // This identifies the program as OpenCL C (as opposed to SPIR).
-    src_stream_oneapi << "/*OneAPI OpenCL C " << target.to_string() << "*/\n";
+    src_stream_oneapi << "/*OneAPI C++ " << target.to_string() << "*/\n";
+
+    // Setting up OneAPI DPCPP dependencies 
+    src_stream_oneapi << "#include <CL/sycl.hpp>\n";
+    src_stream_oneapi << "#include <sycl/ext/intel/fpga_extensions.hpp>\n";
+    src_stream_oneapi << "#include \"dpc_common.hpp\"\n";
+    src_stream_oneapi << "#include \"pipe_array.hpp\"\n";
+    src_stream_oneapi << "using namespace sycl;\n\n";
 
     src_stream_oneapi << "#pragma OPENCL FP_CONTRACT ON\n";
 
     // Write out the Halide math functions.
-    src_stream_oneapi << "#define float_from_bits(x) as_float(x)\n"
+    src_stream_oneapi << "// #define float_from_bits(x) as_float(x)\n"
+               << "#define float_from_bits(x) cl_float(x)\n"
                << "inline float nan_f32() { return NAN; }\n"
                << "inline float neg_inf_f32() { return -INFINITY; }\n"
                << "inline float inf_f32() { return INFINITY; }\n"
@@ -260,15 +284,18 @@ void CodeGen_OneAPI_Dev::init_module() {
 
     one_clc.add_common_macros(src_stream_oneapi);
 
-    if (!target.has_feature(Target::IntelFPGA)) {
-        // Add at least one kernel to avoid errors on some implementations for functions
-        // without any GPU schedules.
-        src_stream_oneapi << "__kernel void _at_least_one_kernel(int x) { }\n";
-    }
+    // Not needed for OneAPI DPCPP SYCL
+    // if (!target.has_feature(Target::IntelFPGA)) {
+    //     Add at least one kernel to avoid errors on some implementations for functions
+    //     without any GPU schedules.
+    //     src_stream_oneapi << "__kernel void _at_least_one_kernel(int x) { }\n";
+    //     // src_stream_oneapi << "// __kernel void _at_least_one_kernel(int x) { }\n";
+    // }
 
     if (target.has_feature(Target::IntelFPGA)) {
         //enable channels support
         src_stream_oneapi << "#pragma OPENCL EXTENSION cl_intel_channels : enable\n";
+        //src_stream_oneapi << "// #pragma OPENCL EXTENSION cl_intel_channels : enable\n";
     }
 
     char *kernel_num = getenv("HL_KERNEL_NUM");
@@ -502,7 +529,7 @@ __kernel void scheduler() {
 
 
 
-//=============== CodeGen_OpenCL_OneAPI_C ==> CodeGen_OpenCL_OneAPI_C ===============
+//=============== CodeGen_OpenCL_OneAPI_C ==> CodeGen_OneAPI_C ===============
 
 
 namespace {
@@ -571,7 +598,7 @@ class IsAutorun : public IRVisitor {
 
 
 
-std::string CodeGen_OneAPI_Dev::CodeGen_OpenCL_OneAPI_C::vector_index_to_string(int idx) {
+std::string CodeGen_OneAPI_Dev::CodeGen_OneAPI_C::vector_index_to_string(int idx) {
     std::ostringstream oss;
     if (idx >= 10 && idx < 16) {
         char c = idx - 10 + 'a';
@@ -582,7 +609,7 @@ std::string CodeGen_OneAPI_Dev::CodeGen_OpenCL_OneAPI_C::vector_index_to_string(
     return std::move(oss.str());
 }
 
-bool CodeGen_OneAPI_Dev::CodeGen_OpenCL_OneAPI_C::is_standard_opencl_type(Type type) {
+bool CodeGen_OneAPI_Dev::CodeGen_OneAPI_C::is_standard_opencl_type(Type type) {
     int bits = type.bits();
     int lanes = type.lanes();
     bool standard_bits = false;
@@ -605,7 +632,7 @@ bool CodeGen_OneAPI_Dev::CodeGen_OpenCL_OneAPI_C::is_standard_opencl_type(Type t
     return standard_bits && standard_lanes;
 }
 
-string CodeGen_OneAPI_Dev::CodeGen_OpenCL_OneAPI_C::print_type(Type type, AppendSpaceIfNeeded space) {
+string CodeGen_OneAPI_Dev::CodeGen_OneAPI_C::print_type(Type type, AppendSpaceIfNeeded space) {
     ostringstream oss;
     if (type.is_generated_struct()) {
         int type_id = type.bits();
@@ -677,10 +704,10 @@ string CodeGen_OneAPI_Dev::CodeGen_OpenCL_OneAPI_C::print_type(Type type, Append
 }
 
 // These are built-in types in OpenCL
-void CodeGen_OneAPI_Dev::CodeGen_OpenCL_OneAPI_C::add_vector_typedefs(const std::set<Type> &vector_types) {
+void CodeGen_OneAPI_Dev::CodeGen_OneAPI_C::add_vector_typedefs(const std::set<Type> &vector_types) {
 }
 
-Expr CodeGen_OneAPI_Dev::CodeGen_OpenCL_OneAPI_C::DefineVectorStructTypes::mutate(const Expr &op) {
+Expr CodeGen_OneAPI_Dev::CodeGen_OneAPI_C::DefineVectorStructTypes::mutate(const Expr &op) {
     Type type = op.type();
 
     if (type.lanes() > 1 && !parent->is_standard_opencl_type(type)) {
@@ -726,11 +753,11 @@ Expr CodeGen_OneAPI_Dev::CodeGen_OpenCL_OneAPI_C::DefineVectorStructTypes::mutat
     return IRMutator::mutate(op);
 }
 
-Stmt CodeGen_OneAPI_Dev::CodeGen_OpenCL_OneAPI_C::DefineVectorStructTypes::mutate(const Stmt &op) {
+Stmt CodeGen_OneAPI_Dev::CodeGen_OneAPI_C::DefineVectorStructTypes::mutate(const Stmt &op) {
     return IRMutator::mutate(op);
 }
 
-string CodeGen_OneAPI_Dev::CodeGen_OpenCL_OneAPI_C::print_reinterpret(Type type, Expr e) {
+string CodeGen_OneAPI_Dev::CodeGen_OneAPI_C::print_reinterpret(Type type, Expr e) {
     ostringstream oss;
     oss << "as_" << print_type(type) << "(" << print_expr(e) << ")";
     return oss.str();
@@ -741,7 +768,7 @@ string CodeGen_OneAPI_Dev::CodeGen_OpenCL_OneAPI_C::print_reinterpret(Type type,
 
 
 
-void CodeGen_OneAPI_Dev::CodeGen_OpenCL_OneAPI_C::visit(const For *loop) {
+void CodeGen_OneAPI_Dev::CodeGen_OneAPI_C::visit(const For *loop) {
     if (is_gpu_var(loop->name)) {
         internal_assert((loop->for_type == ForType::GPUBlock) ||
                         (loop->for_type == ForType::GPUThread))
@@ -849,7 +876,7 @@ void CodeGen_OneAPI_Dev::CodeGen_OpenCL_OneAPI_C::visit(const For *loop) {
     }
 }
 
-void CodeGen_OneAPI_Dev::CodeGen_OpenCL_OneAPI_C::CheckConditionalChannelAccess::visit(const IfThenElse *op) {
+void CodeGen_OneAPI_Dev::CodeGen_OneAPI_C::CheckConditionalChannelAccess::visit(const IfThenElse *op) {
     bool old_cond = in_if_then_else;
     in_if_then_else = true;
     op->then_case.accept(this);
@@ -861,7 +888,7 @@ void CodeGen_OneAPI_Dev::CodeGen_OpenCL_OneAPI_C::CheckConditionalChannelAccess:
     in_if_then_else = old_cond;
 }
 
-void CodeGen_OneAPI_Dev::CodeGen_OpenCL_OneAPI_C::CheckConditionalChannelAccess::visit(const Call *op) {
+void CodeGen_OneAPI_Dev::CodeGen_OneAPI_C::CheckConditionalChannelAccess::visit(const Call *op) {
     if (op->is_intrinsic(Call::read_channel) || op->is_intrinsic(Call::write_channel) ||
         op->is_intrinsic(Call::read_channel_nb) || op->is_intrinsic(Call::write_channel_nb)) {
         conditional_access |= in_if_then_else;
@@ -869,7 +896,7 @@ void CodeGen_OneAPI_Dev::CodeGen_OpenCL_OneAPI_C::CheckConditionalChannelAccess:
     IRVisitor::visit(op);
 }
 
-void CodeGen_OneAPI_Dev::CodeGen_OpenCL_OneAPI_C::CheckConditionalChannelAccess::visit(const For *op) {
+void CodeGen_OneAPI_Dev::CodeGen_OneAPI_C::CheckConditionalChannelAccess::visit(const For *op) {
     if (op->for_type == ForType::Serial || op->for_type == ForType::Unrolled) {
         if (!is_const(op->min)) {
             irregular_loop_dep = true;
@@ -886,7 +913,7 @@ void CodeGen_OneAPI_Dev::CodeGen_OpenCL_OneAPI_C::CheckConditionalChannelAccess:
     IRVisitor::visit(op);
 }
 
-void CodeGen_OneAPI_Dev::CodeGen_OpenCL_OneAPI_C::visit(const Ramp *op) {
+void CodeGen_OneAPI_Dev::CodeGen_OneAPI_C::visit(const Ramp *op) {
     string id_base = print_expr(op->base);
     string id_stride = print_expr(op->stride);
 
@@ -909,10 +936,10 @@ void CodeGen_OneAPI_Dev::CodeGen_OpenCL_OneAPI_C::visit(const Ramp *op) {
     print_assignment(op->type.with_lanes(op->lanes), rhs.str());
 }
 
-void CodeGen_OneAPI_Dev::CodeGen_OpenCL_OneAPI_C::visit(const Broadcast *op) {
+void CodeGen_OneAPI_Dev::CodeGen_OneAPI_C::visit(const Broadcast *op) {
     string id_value = print_expr(op->value);
     if (is_standard_opencl_type(op->type)) {
-        print_assignment(op->type.with_lanes(op->lanes), id_value);
+            print_assignment(op->type.with_lanes(op->lanes), id_value);
     } else {
         string s = "{";
         for (int i = 0; i < op->lanes; i++) {
@@ -926,11 +953,11 @@ void CodeGen_OneAPI_Dev::CodeGen_OpenCL_OneAPI_C::visit(const Broadcast *op) {
 
 
 
-string CodeGen_OneAPI_Dev::CodeGen_OpenCL_OneAPI_C::get_memory_space(const string &buf) {
+string CodeGen_OneAPI_Dev::CodeGen_OneAPI_C::get_memory_space(const string &buf) {
     return "__address_space_" + print_name(buf);
 }
 
-void CodeGen_OneAPI_Dev::CodeGen_OpenCL_OneAPI_C::visit(const Call *op) {
+void CodeGen_OneAPI_Dev::CodeGen_OneAPI_C::visit(const Call *op) {
     if (op->is_intrinsic(Call::bool_to_mask)) {
         if (op->args[0].type().is_vector()) {
             // The argument is already a mask of the right width. Just
@@ -987,6 +1014,7 @@ void CodeGen_OneAPI_Dev::CodeGen_OpenCL_OneAPI_C::visit(const Call *op) {
         }
     } else if (op->is_intrinsic(Call::read_channel)) {
         std::string string_channel_index;
+        std::string string_pipe_index;
         const StringImm *v = op->args[0].as<StringImm>();
         for (unsigned i = 1; i < op->args.size(); i++ ){
             Expr e = op->args[i];
@@ -994,7 +1022,9 @@ void CodeGen_OneAPI_Dev::CodeGen_OpenCL_OneAPI_C::visit(const Call *op) {
             std::string sindex = print_expr(e);
             assert(!sindex.empty());
             string_channel_index += "["+sindex+"]";
+            string_pipe_index += sindex + ",";
         }
+        if( string_pipe_index[string_pipe_index.size()-1] == ','){ string_pipe_index.pop_back(); }
         id = '_' + unique_name('_');
         int size = (v->value).rfind(".");
         std::string channel_name = v->value;
@@ -1021,7 +1051,15 @@ void CodeGen_OneAPI_Dev::CodeGen_OpenCL_OneAPI_C::visit(const Call *op) {
             type = print_name(channel_name + ".array.t");
         }
         string read_call = "read_channel_intel(" + print_name(channel_name) + string_channel_index + ")";
-        stream << get_indent() << type << " " << id << " = " << read_call << ";\n";
+        stream << get_indent() << "// " << type << " " << id << " = " << read_call << ";\n";
+        
+        string read_pipe_call = "";
+        if( string_pipe_index == ""){
+            read_pipe_call = print_name(channel_name) + "::read()";
+        } else {
+            read_pipe_call = print_name(channel_name) + "::PipeAt<" +  string_pipe_index + ">::read()";
+        }
+        stream << get_indent() << type << " " << id << " = " << read_pipe_call << ";\n";
     } else if (op->is_intrinsic(Call::read_channel_nb)) {
         std::string string_channel_index;
         const StringImm *v = op->args[0].as<StringImm>();
@@ -1063,6 +1101,8 @@ void CodeGen_OneAPI_Dev::CodeGen_OpenCL_OneAPI_C::visit(const Call *op) {
         const StringImm *v = op->args[0].as<StringImm>();
         // Do not directly print to stream: there might have been a cached value useable.
         ostringstream rhs;
+        ostringstream rhsPipe;
+        std::string pipeIndex = "";
         int size = (v->value).rfind(".");
         std::string channel_name = v->value;
         debug(4) << "channel name: " << channel_name << "\n";
@@ -1088,13 +1128,25 @@ void CodeGen_OneAPI_Dev::CodeGen_OpenCL_OneAPI_C::visit(const Call *op) {
             Expr e = op->args[i];
             assert(e.type() == Int(32));
             rhs << "[";
-            rhs << print_expr(e);
+            auto print_e = print_expr(e);
+            rhs << print_e;
             rhs << "]";
+            pipeIndex += print_e + ",";
         }
+        if( pipeIndex[pipeIndex.size()-1] == ','){ pipeIndex.pop_back(); }
         rhs << ", ";
         std::string write_data = print_expr(op->args[1]);
         rhs << write_data;
-        stream << get_indent() << "write_channel_intel(" << rhs.str() << ");\n";
+
+        if(pipeIndex == ""){
+            // Using regular pipes
+            rhsPipe << print_name(channel_name) << "::write( " << write_data << " );\n";
+        } else {
+            // Using pipe array 
+            rhsPipe << print_name(channel_name) << "::PipeAt<" << pipeIndex << ">" << "::write( " << write_data << " );\n";
+        }
+        stream << get_indent() << "// write_channel_intel(" << rhs.str() << ");\n";
+        stream << get_indent() << rhsPipe.str() ;
     } else if (op->is_intrinsic(Call::write_channel_nb)) {
         const StringImm *v = op->args[0].as<StringImm>();
         const StringImm *write_success = op->args[2].as<StringImm>();
@@ -1427,9 +1479,23 @@ void CodeGen_OneAPI_Dev::CodeGen_OpenCL_OneAPI_C::visit(const Call *op) {
         stream << get_indent() << addr_temp << " = " << addr_temp << " + " << offset << ";\n";
     } else if (op->is_intrinsic(Call::fpga_reg)) {
         ostringstream rhs;
-        rhs << "__fpga_reg(__fpga_reg(" << print_expr(op->args[0]) << "))";
+        // rhs << "__fpga_reg(__fpga_reg(" << print_expr(op->args[0]) << "))"; // (TODO) Remove once confident in OneAPI implementaiton
+        if( op->type.is_vector() ){
+            // Needed for complex types in sycl i.e. floatN types
+            std::string print_e = print_expr(op->args[0]);
+            auto num_lanes = op->type.lanes();
+            rhs << "(" << print_type(op->type) << "){\n";
+            for(int i = 0; i <num_lanes ; i++ ){
+                rhs << get_indent() << "  sycl::ext::intel::fpga_reg( sycl::ext::intel::fpga_reg(" << print_e << "["<< i << "]))";
+                if( i != num_lanes-1){ rhs << ","; }
+                rhs << "\n";
+            }
+            rhs << get_indent() << "}";
+        } else {
+            // Normal fpga register casting
+            rhs << "sycl::ext::intel::fpga_reg( sycl::ext::intel::fpga_reg(" << print_expr(op->args[0]) << "))"; 
+        }
         print_assignment(op->type, rhs.str());
-
     } else if (op->is_intrinsic(Call::overlay_switch)) {
         internal_assert(op->args.size() > 0);
 
@@ -1662,7 +1728,7 @@ void CodeGen_OneAPI_Dev::CodeGen_OpenCL_OneAPI_C::visit(const Call *op) {
     }
 }
 
-string CodeGen_OneAPI_Dev::CodeGen_OpenCL_OneAPI_C::print_extern_call(const Call *op) {
+string CodeGen_OneAPI_Dev::CodeGen_OneAPI_C::print_extern_call(const Call *op) {
     internal_assert(!function_takes_user_context(op->name));
     vector<string> args(op->args.size());
     for (size_t i = 0; i < op->args.size(); i++) {
@@ -1673,7 +1739,20 @@ string CodeGen_OneAPI_Dev::CodeGen_OpenCL_OneAPI_C::print_extern_call(const Call
     return rhs.str();
 }
 
-void CodeGen_OneAPI_Dev::CodeGen_OpenCL_OneAPI_C::visit(const Load *op) {
+string CodeGen_OneAPI_Dev::CodeGen_OneAPI_C::print_load_assignment(Type t, const std::string &rhs){
+    auto cached = cache.find(rhs);
+    if (cached == cache.end()) {
+        id = unique_name('_');
+        stream << get_indent() << print_type(t, AppendSpace) << id << ";\n"
+               << get_indent() << id << rhs << ";\n";
+        cache[rhs] = id;
+    } else {
+        id = cached->second;
+    }
+    return id;
+}
+
+void CodeGen_OneAPI_Dev::CodeGen_OneAPI_C::visit(const Load *op) {
     user_assert(is_one(op->predicate)) << "Predicated load is not supported inside OpenCL kernel.\n";
 
     // If we're loading a contiguous ramp into a vector, use vload instead.
@@ -1689,13 +1768,18 @@ void CodeGen_OneAPI_Dev::CodeGen_OpenCL_OneAPI_C::visit(const Load *op) {
             rhs << "*((" << get_memory_space(op->name) << " "
                    << print_type(op->type) << "*)(" << print_name(op->name)
                    << " + " << id_ramp_base << "))";
+            print_assignment(op->type, rhs.str());
         } else {
-            rhs << "vload" << op->type.lanes()
-                << "(0, (" << get_memory_space(op->name) << " "
-                << print_type(op->type.element_of()) << "*)"
-                << print_name(op->name) << " + " << id_ramp_base << ")";
+            // rhs << "vload" << op->type.lanes()
+            //     << "(0, (" << get_memory_space(op->name) << " "
+            //     << print_type(op->type.element_of()) << "*)"
+            //     << print_name(op->name) << " + " << id_ramp_base << ")";
+
+
+            rhs << ".load( " << id_ramp_base << "/" << op->type.lanes() << " , " << print_name(op->name) << ".get_pointer() )";
+            print_load_assignment(op->type, rhs.str());
         }
-        print_assignment(op->type, rhs.str());
+        // print_assignment(op->type, rhs.str());
         return;
     }
 
@@ -1747,7 +1831,7 @@ void CodeGen_OneAPI_Dev::CodeGen_OpenCL_OneAPI_C::visit(const Load *op) {
     }
 }
 
-void CodeGen_OneAPI_Dev::CodeGen_OpenCL_OneAPI_C::visit(const Store *op) {
+void CodeGen_OneAPI_Dev::CodeGen_OneAPI_C::visit(const Store *op) {
     user_assert(is_one(op->predicate)) << "Predicated store is not supported inside OpenCL kernel.\n";
 
     if (emit_atomic_stores) {
@@ -1869,12 +1953,15 @@ void CodeGen_OneAPI_Dev::CodeGen_OpenCL_OneAPI_C::visit(const Store *op) {
                    << print_type(t) << "*)(" << print_name(op->name)
                    << " + " << id_ramp_base << ")) = " << id_value << ";\n";
         } else {
-            stream << get_indent() << "vstore" << t.lanes() << "("
+            stream << get_indent() << "// vstore" << t.lanes() << "("
                    << id_value << ", "
                    << 0 << ", (" << get_memory_space(op->name) << " "
                    << print_type(t.element_of()) << "*)"
                    << print_name(op->name) << " + " << id_ramp_base
                    << ");\n";
+            stream << get_indent() << id_value << ".store( " << id_ramp_base 
+                   << "/" << t.lanes() 
+                   << " , " << print_name(op->name) << ".get_pointer() );\n";
         }
     } else if (op->index.type().is_vector()) {
         // If index is a vector, scatter vector elements.
@@ -1927,7 +2014,7 @@ void CodeGen_OneAPI_Dev::CodeGen_OpenCL_OneAPI_C::visit(const Store *op) {
 // like this:
 //      int16  x = y == z;                   // y and z are int16
 //      bool16 b = {x.s0, x.s1, ..., x.s15}; // convert from int16 to bool16
-void CodeGen_OneAPI_Dev::CodeGen_OpenCL_OneAPI_C::cast_to_bool_vector(Type bool_type, Type other_type, string other_var) {
+void CodeGen_OneAPI_Dev::CodeGen_OneAPI_C::cast_to_bool_vector(Type bool_type, Type other_type, string other_var) {
     if (bool_type.is_vector() && bool_type.bits() == 1 && other_type.bits() != 1) {
         internal_assert(other_type.is_vector() && other_type.lanes() == bool_type.lanes());
         std::ostringstream oss;
@@ -1939,7 +2026,7 @@ void CodeGen_OneAPI_Dev::CodeGen_OpenCL_OneAPI_C::cast_to_bool_vector(Type bool_
     }
 }
 
-void CodeGen_OneAPI_Dev::CodeGen_OpenCL_OneAPI_C::visit_binop(Type t, Expr a, Expr b, const char *op) {
+void CodeGen_OneAPI_Dev::CodeGen_OneAPI_C::visit_binop(Type t, Expr a, Expr b, const char *op) {
     string sa = print_expr(a);
     string sb = print_expr(b);
     if (is_standard_opencl_type(t) && is_standard_opencl_type(a.type())) {
@@ -1957,37 +2044,37 @@ void CodeGen_OneAPI_Dev::CodeGen_OpenCL_OneAPI_C::visit_binop(Type t, Expr a, Ex
     }
 }
 
-void CodeGen_OneAPI_Dev::CodeGen_OpenCL_OneAPI_C::visit(const EQ *op) {
+void CodeGen_OneAPI_Dev::CodeGen_OneAPI_C::visit(const EQ *op) {
     visit_binop(eliminated_bool_type(op->type, op->a.type()), op->a, op->b, "==");
     cast_to_bool_vector(op->type, op->a.type(), id);
 }
 
-void CodeGen_OneAPI_Dev::CodeGen_OpenCL_OneAPI_C::visit(const NE *op) {
+void CodeGen_OneAPI_Dev::CodeGen_OneAPI_C::visit(const NE *op) {
     visit_binop(eliminated_bool_type(op->type, op->a.type()), op->a, op->b, "!=");
     cast_to_bool_vector(op->type, op->a.type(), id);
 }
 
-void CodeGen_OneAPI_Dev::CodeGen_OpenCL_OneAPI_C::visit(const LT *op) {
+void CodeGen_OneAPI_Dev::CodeGen_OneAPI_C::visit(const LT *op) {
     visit_binop(eliminated_bool_type(op->type, op->a.type()), op->a, op->b, "<");
     cast_to_bool_vector(op->type, op->a.type(), id);
 }
 
-void CodeGen_OneAPI_Dev::CodeGen_OpenCL_OneAPI_C::visit(const LE *op) {
+void CodeGen_OneAPI_Dev::CodeGen_OneAPI_C::visit(const LE *op) {
     visit_binop(eliminated_bool_type(op->type, op->a.type()), op->a, op->b, "<=");
     cast_to_bool_vector(op->type, op->a.type(), id);
 }
 
-void CodeGen_OneAPI_Dev::CodeGen_OpenCL_OneAPI_C::visit(const GT *op) {
+void CodeGen_OneAPI_Dev::CodeGen_OneAPI_C::visit(const GT *op) {
     visit_binop(eliminated_bool_type(op->type, op->a.type()), op->a, op->b, ">");
     cast_to_bool_vector(op->type, op->a.type(), id);
 }
 
-void CodeGen_OneAPI_Dev::CodeGen_OpenCL_OneAPI_C::visit(const GE *op) {
+void CodeGen_OneAPI_Dev::CodeGen_OneAPI_C::visit(const GE *op) {
     visit_binop(eliminated_bool_type(op->type, op->a.type()), op->a, op->b, ">=");
     cast_to_bool_vector(op->type, op->a.type(), id);
 }
 
-void CodeGen_OneAPI_Dev::CodeGen_OpenCL_OneAPI_C::visit(const Cast *op) {
+void CodeGen_OneAPI_Dev::CodeGen_OneAPI_C::visit(const Cast *op) {
     if (!target.has_feature(Target::CLHalf) &&
         ((op->type.is_float() && op->type.bits() < 32) ||
          (op->value.type().is_float() && op->value.type().bits() < 32))) {
@@ -2003,7 +2090,7 @@ void CodeGen_OneAPI_Dev::CodeGen_OpenCL_OneAPI_C::visit(const Cast *op) {
     }
 }
 
-void CodeGen_OneAPI_Dev::CodeGen_OpenCL_OneAPI_C::visit(const Select *op) {
+void CodeGen_OneAPI_Dev::CodeGen_OneAPI_C::visit(const Select *op) {
     // The branch(es) might contain actions with side effects like a channel read.
     // Thus we must guard the branch(es).
     // So first convert to if_then_else.
@@ -2014,7 +2101,7 @@ void CodeGen_OneAPI_Dev::CodeGen_OpenCL_OneAPI_C::visit(const Select *op) {
     c.accept(this);
 }
 
-void CodeGen_OneAPI_Dev::CodeGen_OpenCL_OneAPI_C::visit(const IfThenElse *op) {
+void CodeGen_OneAPI_Dev::CodeGen_OneAPI_C::visit(const IfThenElse *op) {
     string cond_id = print_expr(op->condition);
     stream << get_indent() << "if (" << cond_id << ")\n";
     open_scope();
@@ -2029,7 +2116,7 @@ void CodeGen_OneAPI_Dev::CodeGen_OpenCL_OneAPI_C::visit(const IfThenElse *op) {
     }
 }
 
-void CodeGen_OneAPI_Dev::CodeGen_OpenCL_OneAPI_C::visit(const Allocate *op) {
+void CodeGen_OneAPI_Dev::CodeGen_OneAPI_C::visit(const Allocate *op) {
     user_assert(!op->new_expr.defined()) << "Allocate node inside OpenCL kernel has custom new expression.\n"
                                          << "(Memoization is not supported inside GPU kernels at present.)\n";
 
@@ -2065,7 +2152,7 @@ void CodeGen_OneAPI_Dev::CodeGen_OpenCL_OneAPI_C::visit(const Allocate *op) {
 
         stream << get_indent() << print_type(op->type) << ' '
                << print_name(op->name) << "[" << size << "];\n";
-        stream << get_indent() << "#define " << get_memory_space(op->name) << " __private\n";
+        stream << get_indent() << "#define " << get_memory_space(op->name) << " __private\n"; // (TODO) Need to know when/how this is invoked and replace with OneAPI implementaiton
 
         Allocation alloc;
         alloc.type = op->type;
@@ -2080,7 +2167,7 @@ void CodeGen_OneAPI_Dev::CodeGen_OpenCL_OneAPI_C::visit(const Allocate *op) {
     }
 }
 
-void CodeGen_OneAPI_Dev::CodeGen_OpenCL_OneAPI_C::visit(const Free *op) {
+void CodeGen_OneAPI_Dev::CodeGen_OneAPI_C::visit(const Free *op) {
     if (op->name == "__shared") {
         return;
     } else {
@@ -2091,11 +2178,11 @@ void CodeGen_OneAPI_Dev::CodeGen_OpenCL_OneAPI_C::visit(const Free *op) {
     }
 }
 
-void CodeGen_OneAPI_Dev::CodeGen_OpenCL_OneAPI_C::visit(const AssertStmt *op) {
+void CodeGen_OneAPI_Dev::CodeGen_OneAPI_C::visit(const AssertStmt *op) {
     user_warning << "Ignoring assertion inside OpenCL kernel: " << op->condition << "\n";
 }
 
-void CodeGen_OneAPI_Dev::CodeGen_OpenCL_OneAPI_C::visit(const Shuffle *op) {
+void CodeGen_OneAPI_Dev::CodeGen_OneAPI_C::visit(const Shuffle *op) {
     int op_lanes = op->type.lanes();
     internal_assert(!op->vectors.empty());
     int arg_lanes = op->vectors[0].type().lanes();
@@ -2177,7 +2264,7 @@ void CodeGen_OneAPI_Dev::CodeGen_OpenCL_OneAPI_C::visit(const Shuffle *op) {
         if (!is_standard_opencl_type(op->type)) {
             stream << "{";
         } else {
-            stream << "(";
+            stream << "{";
         }
 
         for (int i = 0; i < op_lanes; ++i) {
@@ -2197,22 +2284,22 @@ void CodeGen_OneAPI_Dev::CodeGen_OpenCL_OneAPI_C::visit(const Shuffle *op) {
         if (!is_standard_opencl_type(op->type)) {
             stream << "};\n";
         } else {
-            stream << ");\n";
+            stream << "}; // Converted using c++ standard (){} instead of ()()\n";
         }
 
         // internal_error << "Shuffle not implemented.\n";
     }
 }
 
-void CodeGen_OneAPI_Dev::CodeGen_OpenCL_OneAPI_C::visit(const Max *op) {
+void CodeGen_OneAPI_Dev::CodeGen_OneAPI_C::visit(const Max *op) {
     print_expr(Call::make(op->type, "max", {op->a, op->b}, Call::Extern));
 }
 
-void CodeGen_OneAPI_Dev::CodeGen_OpenCL_OneAPI_C::visit(const Min *op) {
+void CodeGen_OneAPI_Dev::CodeGen_OneAPI_C::visit(const Min *op) {
     print_expr(Call::make(op->type, "min", {op->a, op->b}, Call::Extern));
 }
 
-void CodeGen_OneAPI_Dev::CodeGen_OpenCL_OneAPI_C::visit(const Atomic *op) {
+void CodeGen_OneAPI_Dev::CodeGen_OneAPI_C::visit(const Atomic *op) {
     // Most GPUs require all the threads in a warp to perform the same operations,
     // which means our mutex will lead to deadlock.
     user_assert(op->mutex_name.empty())
@@ -2231,11 +2318,11 @@ void CodeGen_OneAPI_Dev::CodeGen_OpenCL_OneAPI_C::visit(const Atomic *op) {
 
 
 
-void CodeGen_OneAPI_Dev::CodeGen_OpenCL_OneAPI_C::add_kernel(Stmt s,
+void CodeGen_OneAPI_Dev::CodeGen_OneAPI_C::add_kernel(Stmt s,
                                                       const string &name,
                                                       const vector<DeviceArgument> &args) {
 
-    debug(2) << "Adding OpenCL kernel " << name << "\n";
+    debug(2) << "Adding OneAPI kernel " << name << "\n";
 
     //debug(2) << "Eliminating bool vectors\n";
     //s = eliminate_bool_vectors(s);
@@ -2273,24 +2360,28 @@ void CodeGen_OneAPI_Dev::CodeGen_OpenCL_OneAPI_C::add_kernel(Stmt s,
 
 
     // Create preprocessor replacements for the address spaces of all our buffers.
-    stream << "// Address spaces for " << name << "\n";
+    stream << "\n\n// Address spaces for " << name << "\n";
     for (size_t i = 0; i < args.size(); i++) {
         if (args[i].is_buffer) {
+            buffer_args.push_back( args[i] );
             vector<BufferSize>::iterator constant = constants.begin();
             while (constant != constants.end() &&
                    constant->name != args[i].name) {
                 constant++;
             }
 
+            // (TODO) verify that we will never need this as we will be compiling using compile_oneapi_lower which will print out the addressSpace/Buffers as input arguments
             if (constant != constants.end()) {
-                stream << "#if " << constant->size << " <= MAX_CONSTANT_BUFFER_SIZE && "
+                stream << "// #if " << constant->size << " <= MAX_CONSTANT_BUFFER_SIZE && "
                        << constant - constants.begin() << " < MAX_CONSTANT_ARGS\n";
-                stream << "#define " << get_memory_space(args[i].name) << " __constant\n";
-                stream << "#else\n";
-                stream << "#define " << get_memory_space(args[i].name) << " __global\n";
-                stream << "#endif\n";
+                stream << "// #define " << get_memory_space(args[i].name) << " __constant\n"; // (TODO) Remove once confident in OneAPI implementaiton
+                stream << "// #else\n";
+                stream << "// #define " << get_memory_space(args[i].name) << " __global\n"; // (TODO) Remove once confident in OneAPI implementaiton
+                stream << "// #endif\n";
+                stream << "// sycl::buffer " << get_memory_space(args[i].name) << "(/*place existing host data here*/);\n"; // (TODO) Create a buffer either of varying size or known size passed by the user
             } else {
-                stream << "#define " << get_memory_space(args[i].name) << " __global\n";
+                stream << "// #define " << get_memory_space(args[i].name) << " __global\n"; // (TODO) Remove once confident in OneAPI implementaiton
+                stream << "// sycl::buffer " << get_memory_space(args[i].name) << "(/*place existing host data here*/);\n"; // (TODO) Create a buffer either of varying size or known size passed by the user
             }
         }
     }
@@ -2300,20 +2391,26 @@ void CodeGen_OneAPI_Dev::CodeGen_OpenCL_OneAPI_C::add_kernel(Stmt s,
     s.accept(&checker);
     char *overlay_kernel_name = getenv("HL_OVERLAY_KERNEL");
     if (checker.is_autorun || (overlay_kernel_name != NULL && args.size() == 0)) {
-        stream << "__attribute__((max_global_work_dim(0)))\n";
-        stream << "__attribute__((autorun))\n";
+        stream << "// __attribute__((max_global_work_dim(0)))\n";
+        stream << "// __attribute__((autorun))\n";
     }
 
-    stream << "__kernel void " << name << "(\n";
+    // stream << "__kernel void " << name << "(\n"; // (TODO) Remove once confident in OneAPI implementaiton
+    stream << "\n\n";
+    stream << get_indent() << "// " << name << "\n";
+    stream << get_indent() << "q_device.submit([&](sycl::handler &h){\n"; // (TODO) verify that kernel will be run on a device queue and not a host queue
+    indent += 2;
+
     for (size_t i = 0; i < args.size(); i++) {
-        if (args[i].is_buffer) {
-            stream << " " << get_memory_space(args[i].name) << " ";
+        if (args[i].is_buffer) { // use accessors for manipulating buffers
+            stream << get_indent() << "// " << get_memory_space(args[i].name) << " ";
             // TODO: Update buffer attributes if written in kernel ip
             char *overlay_num = getenv("HL_OVERLAY_NUM");
             if (!args[i].write && overlay_num == NULL) stream << "const ";
             stream << print_type(args[i].type) << " *"
                    << "restrict "
-                   << print_name(args[i].name);
+                   << print_name(args[i].name) << "\n";
+            stream << get_indent() << "sycl::accessor " << print_name(args[i].name) << "( " << get_memory_space(args[i].name) << ", h, sycl::read_write);\n";
             Allocation alloc;
             alloc.type = args[i].type;
             allocations.push(args[i].name, alloc);
@@ -2330,19 +2427,23 @@ void CodeGen_OneAPI_Dev::CodeGen_OpenCL_OneAPI_C::add_kernel(Stmt s,
             stream << " const "
                    << print_type(t)
                    << " "
-                   << print_name(name);
+                   << print_name(name) << ";\n";
         }
 
-        if (i < args.size() - 1) stream << ",\n";
+
+
+        // if (i < args.size() - 1) stream << ",\n"; // (TODO) remove compleley when confident what to do with input arguments
     }
     if (!target.has_feature(Target::IntelFPGA)) {
+        // (TODO) Remove once confident in OneAPI implementaiton
         // TOFIX: should not we add shared only when there is shared memory passed in?
-        stream << ",\n"
+        stream << "// " << ",\n"
                << " __address_space___shared int16* __shared";
     }
-    stream << ")\n";
+    // stream << ")\n";  // (TODO) remove compleley when confident what to do with input arguments
 
-    open_scope();
+    stream << get_indent() << "h.single_task<class " + name + ">([=]()\n";
+    open_scope(); 
 
     // Reinterpret half args passed as uint16 back to half
     for (size_t i = 0; i < args.size(); i++) {
@@ -2362,6 +2463,10 @@ void CodeGen_OneAPI_Dev::CodeGen_OpenCL_OneAPI_C::add_kernel(Stmt s,
     print(s);
     close_scope("kernel " + name);
 
+    stream << get_indent() << "); // h.single_task\n";
+    indent -= 2;
+    stream << get_indent() << "}); // q_device.submit\n"; 
+
     for (size_t i = 0; i < args.size(); i++) {
         // Remove buffer arguments from allocation scope
         if (args[i].is_buffer) {
@@ -2372,7 +2477,7 @@ void CodeGen_OneAPI_Dev::CodeGen_OpenCL_OneAPI_C::add_kernel(Stmt s,
     // Undef all the buffer address spaces, in case they're different in another kernel.
     for (size_t i = 0; i < args.size(); i++) {
         if (args[i].is_buffer) {
-            stream << "#undef " << get_memory_space(args[i].name) << "\n";
+            stream << "// " << "#undef " << get_memory_space(args[i].name) << "\n";
         }
     }
 }
@@ -2385,24 +2490,103 @@ void CodeGen_OneAPI_Dev::CodeGen_OpenCL_OneAPI_C::add_kernel(Stmt s,
 
 
 
-void CodeGen_OneAPI_Dev::CodeGen_OpenCL_OneAPI_C::print_global_data_structures_before_kernel(const Stmt *op) {
+void CodeGen_OneAPI_Dev::CodeGen_OneAPI_C::print_global_data_structures_before_kernel(const Stmt *op) {
     // Define the compiler-generated vector and struct types.
     DefineVectorStructTypes def(this);
     def.mutate(*op);
     stream << def.vectors + def.structs;
+    stream << OneAPIDefineVectorStructTypes;
 
     // Declare the output channels of the kernel.
     DeclareChannels decl(this);
     op->accept(&decl);
     stream << decl.channels;
+    stream << OneAPIDeclareChannels;
 }
 
-void CodeGen_OneAPI_Dev::CodeGen_OpenCL_OneAPI_C::DeclareChannels::visit(const Realize *op) {
+std::string CodeGen_OneAPI_Dev::CodeGen_OneAPI_C::compile_oneapi_lower(const LoweredFunc &f, std::string str){
+    // Wrapp existing q_device submit kernel code into a function
+    // See void CodeGen_C::compile(const LoweredFunc &f) and void CodeGen_C::compile(const Module &input) for similar implementation
+    std::ostringstream function_top;
+    std::ostringstream function_btm;
+
+    const std::vector<LoweredArgument> &args = f.args;
+
+    std::vector<std::string> namespaces;
+    std::string simple_name = extract_namespaces(f.name, namespaces);
+
+    // Assuming C++ & compiling with Target::CPlusPlusNameMangling. No need to check for is_c_plus_plus_interface()
+    if (!namespaces.empty()) {
+        for (const auto &ns : namespaces) {
+            function_top << "namespace " << ns << " {\n";
+        }
+        function_top << "\n";
+    }
+    // function_top << "HALIDE_FUNCTION_ATTRS\n";
+    function_top << "int " << simple_name << "(";
+
+    // Print q_device as input 
+    function_top << "sycl::queue &q_device";
+    if(buffer_args.size() > 0) function_top << ", ";
+
+    // Print needed buffers
+    for(size_t i = 0; i < buffer_args.size(); i++){
+        function_top << "sycl::buffer<" << print_type(buffer_args[i].type) << "> &" << get_memory_space(buffer_args[i].name);
+        if (i < buffer_args.size() - 1) function_top << ", ";
+    }
+
+    for (size_t i = 0; i < args.size(); i++) {
+        // Not needed to check as we store the buffer args in member variable buffer_args
+        // if (args[i].is_buffer()) {
+        //     function_top << "struct halide_buffer_t *"
+        //         << print_name(args[i].name)
+        //         << "_buffer";
+        // } 
+        if(!args[i].is_buffer()) {
+            function_top << print_type(args[i].type, AppendSpace)
+                << print_name(args[i].name);
+            if (i < args.size() - 1) function_top << ", ";
+        }
+    }
+
+    function_top << ") {\n";
+    function_btm << "return 0;\n";
+    function_btm << "}\n";
+
+    if (!namespaces.empty()) {
+        function_btm << "\n";
+        for (size_t i = namespaces.size(); i > 0; i--) {
+            function_btm << "}  // namespace " << namespaces[i - 1] << "\n";
+        }
+        function_btm << "\n";
+    }
+
+    // insert a wait after the last kernel 
+    const std::string task_str = "; // q_device.submit\n";
+    size_t wait_pos = str.rfind(task_str);
+    if(!(wait_pos == std::string::npos)){
+        str.insert( wait_pos , ".wait()" );
+    } else {
+        debug(2) << "No queue tasks found to insert wait into\n";
+    }
+
+    // wrap all the kernels with the function wrapper 
+    size_t top_pos = str.find(OneAPIDeclareChannels) + OneAPIDeclareChannels.size();
+    if(top_pos == std::string::npos) top_pos = 0;
+    str.insert( top_pos , function_top.str() );
+    str.append( function_btm.str() );
+
+    return str;
+}
+
+void CodeGen_OneAPI_Dev::CodeGen_OneAPI_C::DeclareChannels::visit(const Realize *op) {
     if (ends_with(op->name, ".channel") || ends_with(op->name, ".channel.array")) {
         // Get the bounds in which all bounds are for the dimensions of the channel array, except the last one is for the min depth.
         Region bounds = op->bounds;
         std::string bounds_str = "";
         std::string attributes = "";
+        std::string pipeAttributes = "";
+        std::string pipeBounds = "";
         for (size_t i = 0; i < bounds.size(); i++) {
             Range b = bounds[i];
             Expr extent = b.extent;
@@ -2411,16 +2595,28 @@ void CodeGen_OneAPI_Dev::CodeGen_OpenCL_OneAPI_C::DeclareChannels::visit(const R
             if (i < bounds.size() - 1) {
                 internal_assert(e_extent->value > 0);
                 bounds_str += "[" + std::to_string(e_extent->value) + "]";
+                pipeBounds += std::to_string(e_extent->value) + ",";
             } else {
                 attributes = " __attribute__((depth(" + std::to_string(e_extent->value) +  "))) ";
+                pipeAttributes = std::to_string(e_extent->value);
             }
         }
+        if( pipeBounds[pipeBounds.size()-1] == ','){ pipeBounds.pop_back(); }
         internal_assert(op->types.size() == 1) << "In generating Intel OpenCL for FPGAs, a single type is expected for a channel.\n";
         std::string type = parent->print_type(op->types[0]);
 
         std::ostringstream oss;
         if (ends_with(op->name, ".channel")) {
-            oss << "channel " << type << " " << parent->print_name(op->name) << bounds_str << attributes << ";\n";
+            // oss << "channel " << type << " " << parent->print_name(op->name) << bounds_str << attributes << ";\n";
+            oss << "// channel " << type << " " << parent->print_name(op->name) << bounds_str << attributes << ";\n";
+            oss << "// using " << parent->print_name(op->name) << " = sycl::ext::intel::pipe<std::class " << parent->print_name(op->name) << "Pipe, " << type << ", " << pipeAttributes <<  ">;\n";
+            if( pipeBounds != ""){
+                // Using pipe arrays 
+                oss << "using " << parent->print_name(op->name) << " = PipeArray<class " << parent->print_name(op->name) << "Pipe, " << type << ", " << pipeAttributes << ", " << pipeBounds << ">;\n";
+            } else {
+                // Using regular pipes 
+                oss << "using " << parent->print_name(op->name) << " = sycl::ext::intel::pipe<class " << parent->print_name(op->name) << "Pipe, " << type << ", " << pipeAttributes << ">;\n";
+            }
             channels += oss.str();
         } else {
             string printed_name = parent->print_name(op->name);
@@ -2428,14 +2624,15 @@ void CodeGen_OneAPI_Dev::CodeGen_OpenCL_OneAPI_C::DeclareChannels::visit(const R
             size_t pos_last_token = printed_name.rfind('_');
             string channel_name = printed_name.substr(0, pos_last_token);
             oss << "typedef struct { " << type << " s" << bounds_str << "; } " << type_name << ";\n";
-            oss << "channel " << type_name << " " << channel_name << attributes << ";\n";
+            oss << "// channel " << type_name << " " << channel_name << attributes << ";\n";
+            oss << "using " << channel_name << " = sycl::ext::intel::pipe<class " << channel_name << "Pipe, " << type_name << ", " << pipeAttributes <<  ">;\n";
             channels += oss.str();
         }
     }
     IRVisitor::visit(op);
 }
 
-void CodeGen_OneAPI_Dev::CodeGen_OpenCL_OneAPI_C::DeclareArrays::visit(const Call *op) {
+void CodeGen_OneAPI_Dev::CodeGen_OneAPI_C::DeclareArrays::visit(const Call *op) {
     if (op->is_intrinsic(Call::write_array)) {
         string printed_name = parent->print_name(op->args[0].as<StringImm>()->value);
         string type_name = printed_name + "_t";
@@ -2456,7 +2653,7 @@ e.g.    realize shift regs [k, J-k] [0, K] [0, T]
                 ...
 The corresponding systolic array of above case is triangular in shape.
 */
-bool CodeGen_OneAPI_Dev::CodeGen_OpenCL_OneAPI_C::is_irregular(Region &bounds) {
+bool CodeGen_OneAPI_Dev::CodeGen_OneAPI_C::is_irregular(Region &bounds) {
     bool irregular_bounds = false;
     for (int i = bounds.size()-1; i >= 0; i--) {
         Expr extent = bounds[i].extent;
@@ -2468,12 +2665,12 @@ bool CodeGen_OneAPI_Dev::CodeGen_OpenCL_OneAPI_C::is_irregular(Region &bounds) {
     return irregular_bounds;
 }
 
-void CodeGen_OneAPI_Dev::CodeGen_OpenCL_OneAPI_C::gather_shift_regs_allocates(const Stmt *op) {
+void CodeGen_OneAPI_Dev::CodeGen_OneAPI_C::gather_shift_regs_allocates(const Stmt *op) {
     GatherShiftRegsAllocates gatherer(this, shift_regs_allocates, shift_regs_bounds, space_vars);
     op->accept(&gatherer);
 }
 
-void CodeGen_OneAPI_Dev::CodeGen_OpenCL_OneAPI_C::GatherShiftRegsAllocates::print_irregular_bounds_allocates(std::string reg_name, std::string type, std::string name, Region space_bounds, Region time_bounds, int space_bound_level) {
+void CodeGen_OneAPI_Dev::CodeGen_OneAPI_C::GatherShiftRegsAllocates::print_irregular_bounds_allocates(std::string reg_name, std::string type, std::string name, Region space_bounds, Region time_bounds, int space_bound_level) {
     Expr min = space_bounds[space_bound_level].min;
     Expr extent = space_bounds[space_bound_level].extent;
     const IntImm *e_min = min.as<IntImm>();
@@ -2520,7 +2717,7 @@ void CodeGen_OneAPI_Dev::CodeGen_OpenCL_OneAPI_C::GatherShiftRegsAllocates::prin
 }
 
 // gather loop info from the annotation
-void CodeGen_OneAPI_Dev::CodeGen_OpenCL_OneAPI_C::GatherShiftRegsAllocates::visit(const Call *op) {
+void CodeGen_OneAPI_Dev::CodeGen_OneAPI_C::GatherShiftRegsAllocates::visit(const Call *op) {
     if (op->is_intrinsic(Call::annotate) && op->args[0].as<StringImm>()->value == "Bounds") {
         std::string reg_name = op->args[1].as<StringImm>()->value;
         std::vector<Expr> vars(op->args.begin() + 2, op->args.end());
@@ -2530,7 +2727,7 @@ void CodeGen_OneAPI_Dev::CodeGen_OpenCL_OneAPI_C::GatherShiftRegsAllocates::visi
     }
 }
 
-void CodeGen_OneAPI_Dev::CodeGen_OpenCL_OneAPI_C::GatherShiftRegsAllocates::visit(const Realize *op) {
+void CodeGen_OneAPI_Dev::CodeGen_OneAPI_C::GatherShiftRegsAllocates::visit(const Realize *op) {
     if (ends_with(op->name, ".channel") || ends_with(op->name, ".channel.array")) {
     } else if (ends_with(op->name, ".shreg")) {
         ostringstream rhs;
@@ -2619,7 +2816,7 @@ void CodeGen_OneAPI_Dev::CodeGen_OpenCL_OneAPI_C::GatherShiftRegsAllocates::visi
     IRVisitor::visit(op);
 }
 
-void CodeGen_OneAPI_Dev::CodeGen_OpenCL_OneAPI_C::visit(const Realize *op) {
+void CodeGen_OneAPI_Dev::CodeGen_OneAPI_C::visit(const Realize *op) {
     if (ends_with(op->name, ".channel") || ends_with(op->name, ".channel")) {
         // We have already declared the channel before the kernel with print_global_data_structures_before_kernel().
         // Just skip it and get into the body.
@@ -2656,10 +2853,14 @@ void CodeGen_OneAPI_Dev::CodeGen_OpenCL_OneAPI_C::visit(const Realize *op) {
         for(size_t i=0;i<op->types.size();i++) {
             std::string name = op->name.substr(0, op->name.length()-std::string(".ibuffer").size());
             string buffer_name = name + '.' + std::to_string(i) + ".ibuffer";
-            stream << get_indent() << print_type(op->types[i]) << " ";
+            stream << get_indent() << "// " << print_type(op->types[i]) << " ";
             stream << "__attribute__((memory, numbanks("
                    << access_exprs.back()
                    << "), singlepump, numwriteports(1), numreadports(1))) "
+                   << print_name(buffer_name) << string_bound << ";\n";
+            stream <<  get_indent() << "[[intel::fpga_memory(), " 
+                   << "intel::numbanks(" << access_exprs.back() << "), "
+                   << "intel::singlepump, intel::simple_dual_port]] " <<  print_type(op->types[i])  << " "
                    << print_name(buffer_name) << string_bound << ";\n";
         }
         print_stmt(op->body);
@@ -2672,7 +2873,7 @@ void CodeGen_OneAPI_Dev::CodeGen_OpenCL_OneAPI_C::visit(const Realize *op) {
     }
 }
 
-void CodeGen_OneAPI_Dev::CodeGen_OpenCL_OneAPI_C::visit(const Provide *op){
+void CodeGen_OneAPI_Dev::CodeGen_OneAPI_C::visit(const Provide *op){
     if (ends_with(op->name, ".ibuffer")) {
         internal_assert(op->values.size() == 1);
         string id_value = print_expr(op->values[0]);

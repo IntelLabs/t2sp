@@ -1103,7 +1103,15 @@ std::unique_ptr<llvm::Module> get_initial_module_for_target(Target t, llvm::LLVM
                 modules.push_back(get_initmod_cuda(c, bits_64, debug));
             }
         }
-        if (t.has_feature(Target::OpenCL) || t.has_feature(Target::OneAPI)) {
+        if (t.has_feature(Target::OpenCL)) {
+            if (t.os == Target::Windows) {
+                modules.push_back(get_initmod_windows_opencl(c, bits_64, debug));
+            } else {
+                modules.push_back(get_initmod_opencl(c, bits_64, debug));
+            }
+        }
+        // (TODO) Need to verify OneAPI works as this is simple a copy of OpenCL implementaiton
+        if (t.has_feature(Target::OneAPI)) {
             if (t.os == Target::Windows) {
                 modules.push_back(get_initmod_windows_opencl(c, bits_64, debug));
             } else {

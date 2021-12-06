@@ -6,7 +6,7 @@
 #include "CodeGen_Internal.h"
 #include "CodeGen_Metal_Dev.h"
 #include "CodeGen_OpenCL_Dev.h"
-#include "CodeGen_OneAPI_Dev.h"
+#include "../../t2s/src/CodeGen_OneAPI_Dev.h"
 #include "CodeGen_CM_Dev.h"
 #include "CodeGen_OpenGLCompute_Dev.h"
 #include "CodeGen_OpenGL_Dev.h"
@@ -163,21 +163,21 @@ void CodeGen_GPU_Host<CodeGen_CPU>::compile_func(const LoweredFunc &f,
         // FPGA only: A device kernel always starts with a set of realizes of channels.
         // These channels are the output channels of the kernel. Here we declare all the
         // compiler-generated vector and struct types in the kernel, and the channels.
-        if (target.has_feature(Target::IntelFPGA)) {
-            if( target.has_feature(Target::OneAPI) ){
-                internal_assert(cgdev.find(DeviceAPI::OneAPI) != cgdev.end());
-                ((CodeGen_OneAPI_Dev*)cgdev[DeviceAPI::OneAPI])->print_global_data_structures_before_kernel(&f.body);
+        if (target.has_feature(Target::IntelFPGA) && !target.has_feature(Target::OneAPI)) {
+            internal_assert(cgdev.find(DeviceAPI::OpenCL) != cgdev.end());
+            ((CodeGen_OpenCL_Dev*)cgdev[DeviceAPI::OpenCL])->print_global_data_structures_before_kernel(&f.body);
 
-                // Gather shift registers' allocations.
-                ((CodeGen_OneAPI_Dev*)cgdev[DeviceAPI::OneAPI])->gather_shift_regs_allocates(&f.body);
-            } else {
-                internal_assert(cgdev.find(DeviceAPI::OpenCL) != cgdev.end());
-                ((CodeGen_OpenCL_Dev*)cgdev[DeviceAPI::OpenCL])->print_global_data_structures_before_kernel(&f.body);
-
-                // Gather shift registers' allocations.
-                ((CodeGen_OpenCL_Dev*)cgdev[DeviceAPI::OpenCL])->gather_shift_regs_allocates(&f.body);
-            }
+            // Gather shift registers' allocations.
+            ((CodeGen_OpenCL_Dev*)cgdev[DeviceAPI::OpenCL])->gather_shift_regs_allocates(&f.body);
         }
+        if(target.has_feature(Target::IntelFPGA) && target.has_feature(Target::OneAPI)){
+            internal_assert(cgdev.find(DeviceAPI::OneAPI) != cgdev.end());
+            ((CodeGen_OneAPI_Dev*)cgdev[DeviceAPI::OneAPI])->print_global_data_structures_before_kernel(&f.body);
+
+            // Gather shift registers' allocations.
+            ((CodeGen_OneAPI_Dev*)cgdev[DeviceAPI::OneAPI])->gather_shift_regs_allocates(&f.body);
+        }
+
     }
 
     // Call the base implementation to create the function.
@@ -232,12 +232,18 @@ void CodeGen_GPU_Host<CodeGen_CPU>::compile_func(const LoweredFunc &f,
         }
 
         if(api_unique_name == "oneapi"){
+            debug(1) << "Currently, we do not implement OneAPI runtime, so we just emit source code.\n";
             debug(1) << "Emmiting " << api_unique_name << " code\n";
             std::ofstream file(simple_name + ".generated_oneapi_header.h", std::fstream::out);
-            std::string src(kernel_src.cbegin(), kernel_src.cend());
+
+            // Call a CodeGen_OneAPI specifically to get the wrapped code
+            std::vector<char> kernel_src_wrapped = ((CodeGen_OneAPI_Dev*)cgdev[DeviceAPI::OneAPI])->compile_to_src_module(f);
+            std::string src(kernel_src_wrapped.cbegin(), kernel_src_wrapped.cend());
+
             if (file.is_open())
                 file << src;
             file.close();
+            return;
         }
 
         Value *kernel_src_ptr =

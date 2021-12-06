@@ -848,7 +848,7 @@ std::vector<JITModule> JITSharedRuntime::get(llvm::Module *for_module, const Tar
         }
     }
     if (target.has_feature(Target::OneAPI)) {
-        auto kind = target.has_feature(Target::Debug) ? OpenCLDebug : OpenCL;;
+        auto kind = target.has_feature(Target::Debug) ? OpenCLDebug : OneAPI; // (TODO) Replace with OneAPI Implementation 
         JITModule m = make_module(for_module, target, kind, result, create);
         if (m.compiled()) {
             result.push_back(m);

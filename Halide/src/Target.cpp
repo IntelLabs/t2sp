@@ -663,7 +663,7 @@ bool Target::supported() const {
     bad |= has_feature(Target::CUDA);
 #endif
 #if !defined(WITH_OPENCL)
-    bad |= has_feature(Target::OpenCL) || has_feature(Target::OneAPI);
+    bad |= has_feature(Target::OpenCL) || has_feature(Target::OneAPI); // (TODO) Be able to seperate OneAPI from OpenCL
 #endif
 #if !defined(WITH_CM)
     bad |= has_feature(Target::IntelGPU);
