@@ -1,4 +1,4 @@
-# Design for OneAPU Integration
+# Design for OneAPI Integration
 
 By Hongbo Rong (hongbo.rong@intel.com),  Abenezer Wudenhe (awude001@ucr.edu)
 
@@ -74,7 +74,6 @@ function it calls.
   - string src = one_clc.compile_oneapi_lower(f, str); return vector<char> buffer(src.begin(), src.end());
 ```
 
-Within the `class CodeGen_OneAPI_Dev` inside of `./`
 
 ## Conversion
 
@@ -82,7 +81,7 @@ Major conversions include the following below.
 
 Note, these are examples but there may be multiple implementaitons of the same concept
 
-`CodeGen_OneAPI_Dev.h/.cpp`
+Within the `class CodeGen_OneAPI_Dev` inside of `./t2s/src/CodeGen_OneAPI_Dev.h/.cpp`
 
 ```c++
 // Added necessary OneAPI headers
