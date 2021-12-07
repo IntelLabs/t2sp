@@ -55,7 +55,7 @@
         #define CO          1
         #define YY_XX       10
         #define Y_X         5
-        #define NN          4
+        #define NN          1
     #endif
 #endif
 
