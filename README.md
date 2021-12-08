@@ -185,10 +185,6 @@ To remove all the temporary files generated during the regression testing:
 ```
 
 # Performance tests
-
-```
-cd t2s/tests/performance
-```
 Current release contains SGEMM, 2-D convolution and Capsule convolution on Arria 10 FPGA and GEN9.5 GPU. For every kernel, we write a **single** specification for the different hardwares. This reflects our concept of "**write a kernel once, and run with high performance across spatial and vector architectures**".
 
 Summary of throughput:
@@ -199,39 +195,44 @@ Summary of throughput:
 | 2-D convolution | 515 GFLOPS, 96% DSP efficiency | 437 GFLOPS, 95% machine peak |
 | Capsule convolution | 534 GFLOPS, 98% DSP efficiency | 414 GFLOPS, 90% machine peak |
 
-To reproduce the performance, follow one of the ways below:
-+ [On the DevCloud head node], submit job(s):
-  
+To reproduce the performance,
+```
+cd t2s/tests/performance
+```
+then 
++ [DevCloud head node] Submit job(s):
+
   ```
-  # Test all workloads, tiny and large inputs:
+  # Test all kernels
   ./devcloud-jobs.sh (a10|gen9)
     
-  # Or test individually:
+  # Or test 1 kernel
   ./devcloud-job.sh (gemm|conv|capsule) (a10|gen9) (tiny|large) (hw|emulator)
   ```
-+ [On a DevCloud compute node], test directly:
++ [A DevCloud compute node] Test directly:
   
   ```
-  # Test all workloads, tiny and large inputs:
+  # Test all kernels
   ./tests.sh devcloud (a10|gen9)
     
-  # Or test individually:
+  # Or test 1 kernel
   ./test.sh devcloud (gemm|conv|capsule) (a10|gen9) (tiny|large) (hw|emulator)
   ```
-+ [On a local machine], test directly:
++ [Local] Test directly:
   
   ```
-  # Test all workloads, all hardwares, tiny and large inputs:
+  # Test all kernels
   ./tests.sh local (a10|gen9)
     
-  # Or test individually:
+  # Or test 1 kernel
   ./test.sh local (gemm|conv|capsule) (a10|gen9) (tiny|large) (hw|emulator)
   ```
 
 Note:
-
-     + The emulator option is applicable only to FPGAs and tiny size.
-     + Synthesis of each FPGA design will take hours. So on DevCloud, we recommend submitting job(s) for testing on FPGAs.
+  + The emulator option is applicable only to FPGAs and tiny size.
+  + Synthesis of an FPGA design will take hours. So on DevCloud, we recommend submitting job(s) for testing on FPGAs.
+  + Look for the synthesis report of an FPGA design in `KERNEL/a/reports/report.html`. Here KERNEL is gemm, conv, etc. And look for the performance of an FPGA design in a roofline model that is automatically generated in `KERNEL/roofline.png`.
+  + Look for the performance of a GPU design from the standard output.
 
 # Features
 
