@@ -19,7 +19,7 @@ The compiler implements the above optimizations. In addition, the compiler autom
 - Identifying and rewriting the inner-product pattern
 - Moving  channel accesses at the boundaries of the systolic array outside the unrolled loops
 
-## [How to test the design](../../../REAME.md#Performance-tests)
+## [How to test the design](../../../../README.md#Performance-tests)
 
 ### References
 
