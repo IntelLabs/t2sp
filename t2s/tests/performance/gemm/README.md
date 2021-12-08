@@ -34,4 +34,4 @@ Each thread contains a systolic array as its compute engine. This systolic array
 
 Note that an abstract memory outputs a tensor each time. For example, `DA` outputs a vector of size `KKK` each time. So the abstract memory is named streaming tensor (stensor).   
 
-## [How to test the design](../../../REAME.md#Performance-tests)
+## [How to test the design](../../../../README.md#Performance-tests)
