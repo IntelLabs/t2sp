@@ -1,10 +1,10 @@
-T2SP (Temporal To Spatial Programming, previously called T2S) enables software programmers to build systolic arrays for dense tensor computes with portable performance across spatial architectures (like FPGAs) and vector architectures (like GPUs) in a constructive  and productive way.
+T2SP (Temporal To Spatial Programming, previously called T2S) enables software programmers to build systolic arrays for dense tensor computes with portable performance across spatial architectures (like FPGAs) and vector architectures (like GPUs) in a constructive  way.
 
 T2SP is available under a permissive license, the [BSD+Patent license](./LICENSE.md). 
 
 Currently, we support only Intel FPGAs and GPUs. We assume your device is local to you, or within Intel DevCloud, and the operating system is Linux. Other platforms might also work, but are not tested. 
 
-# [DevCloud] Open an account
+# [DevCloud] Open an account (once)
 
  + Register at [DevCloud](https://software.intel.com/content/www/us/en/develop/tools/devcloud/fpga.html). This will enable access to both FPGAs and GPUs in the cloud.
 
@@ -26,58 +26,43 @@ Currently, we support only Intel FPGAs and GPUs. We assume your device is local 
 
 # Clone T2SP (once)
 
-```
-git clone https://github.com/IntelLabs/t2sp 
-```
+   ```
+   git clone https://github.com/IntelLabs/t2sp 
+   ```
 
 # Install tools (once)
 
-+ Local machine with an FPGA: Install the Intel FPGA SDK for OpenCL, 19.1 or above:
++ [DevCloud] From the head node, submit a job to install all the tools needed:
 
-  + Download [Intel FPGA SDK for OpenCL](http://dl.altera.com/opencl/)
-
-  + Install
-
-    ```
-    tar -xvf AOCL-pro-*-linux.tar 
-    ./setup_pro.sh
-    ```
+  ```
+  cd $HOME/t2sp
+  ```
+  and choose one of the commands below, according to the device you will use: 
+  ```
+  qsub -q batch@v-qsvr-fpga -l nodes=arria10:ppn=2 ./install-tools.sh # for Arria 10 FPGA
+  qsub -q batch@v-qsvr-fpga -l nodes=darby:ppn=2 ./install-tools.sh   # for Stratix 10 FPGA
+  qsub -l nodes=1:gen9:ppn=2 ./install-tools.sh           # for GEN 9.5 GPU (Intel UHD Graphics P630)
+  qsub -l nodes=1:iris_xe_max:ppn=2 ./install-tools.sh    # for GEN 12 GPU ( Intel Iris Xe MAX Graphics)
+  ````
+This may take 1-2 hours on a DevCloud machine. 
   
-+ Local machine with an FPGA or a GPU: install all the other tools needed:
++ [Local machine with an FPGA or a GPU]
 
   ```
   cd $HOME/t2sp
   ./install-tools.sh
-  cd -
   ```
-
-+ DevCloud: install all the other tools needed (You should be at the head node for this step):
++ [Local machine with an FPGA] Also download [Intel FPGA SDK for OpenCL](http://dl.altera.com/opencl/), and install with
+  
   ```
-  cd $HOME/t2sp
-  
-  # Choose one of the commands below 
-  
-  # Do this if you will build T2S for A10 FPGA
-  qsub -q batch@v-qsvr-fpga -l nodes=arria10:ppn=2 ./install-tools.sh
-
-  # Or do this if you will build T2S for S10 FPGA
-
-  qsub -q batch@v-qsvr-fpga -l nodes=darby:ppn=2 ./install-tools.sh
-
-  # Or do this if you will build T2S for GEN9 GPU
-  qsub -l nodes=1:gen9:ppn=2 ./install-tools.sh
-
-  # Or do this if you will build T2S for GEN12 GPU
-  qsub -l nodes=1:iris_xe_max:ppn=2 ./install-tools.sh
-
-  cd -
-  ````
-  This may take 1-2 hours on a DevCloud machine. 
+  tar -xvf AOCL-pro-*-linux.tar 
+  ./setup_pro.sh
+  ```
 
 Note: 
 
 + We assume your system has python >= 2.7 already installed.
-+ The above `install-tools.sh` command installs llvm-clang >= 9.0, gcc >= 7.5.0, and python's numpy and matplotlib package. The command installs all of them and their dependencies we know to make the system self-contained, which saves us from any  dependence problem. If your system has some of the tools already installed, you could edit `install-tools.sh` to disable the installations of these tools.
++ The above `install-tools.sh` command installs llvm-clang >= 9.0, gcc >= 7.5.0, and python's numpy and matplotlib package. The command installs all of them and their dependencies we know to make the system self-contained. If your system has some of the tools already installed, you could edit `install-tools.sh` to disable the installations of these tools, then modify the environment setting as shown below.
 
 # Modify the environment setting (once)
 
@@ -87,7 +72,7 @@ cd $HOME/t2sp
 
 Here you would see a `setenv.sh`. 
 
-+ If you have your own gcc, llvm or clang and did not use the above `install-tools.sh` command to install them, in `setenv.sh`, modify the following path variables appropriately:
++ If you have your own gcc, llvm or clang and thus did not use the above `install-tools.sh` command to install them, in `setenv.sh`, modify the following path variables appropriately:
 
 ```
   GCC_PATH=...
@@ -105,25 +90,23 @@ Here you would see a `setenv.sh`.
   export LM_LICENSE_FILE=...
   ```
 
-  Note: here is an example how to find out the board package and board (Assume Intel FPGA SDK for OpenCL 19.1 was installed under directory `$HOME/intelFPGA_pro`):
+  Here is an example how to find out the board package and board (Assume Intel FPGA SDK for OpenCL 19.1 was installed under directory `$HOME/intelFPGA_pro`):
 
   ```
   $HOME/intelFPGA_pro/19.1/hld/bin/aoc -list-boards
-  Board list:
-  a10gx
-     Board Package: $HOME/intelFPGA_pro/19.1/hld/board/a10_ref
+     Board list:
+       a10gx
+         Board Package: $HOME/intelFPGA_pro/19.1/hld/board/a10_ref
     
-  a10gx_hostpipe
-     Board Package: $HOME/intelFPGA_pro/19.1/hld/board/a10_ref
+       a10gx_hostpipe
+         Board Package: $HOME/intelFPGA_pro/19.1/hld/board/a10_ref
   ```
 
   There are 1 board package and 2 boards in this case, and you should set `FPGA_BOARD_PACKAGE=a10_ref`, and either `export FPGA_BOARD=a10gx` or `export FPGA_BOARD=a10gx_hostpipe`.
 
 # Open a terminal on a compute node
 
-Local: open a bash shell
-
-DevCloud: from the head node, log into a **compute node**:
+[DevCloud] from the head node, log into a **compute node**:
 
 + FPGA: 
   ```
@@ -135,7 +118,7 @@ DevCloud: from the head node, log into a **compute node**:
     ```
     Enter the name of a node with Arria 10 Release 1.2.1, or with Stratix 10.
 
-+ GPU: to request a compute node with GEN9.5  (Intel UHD Graphics P630) or GEN12 ( Intel Iris Xe MAX Graphics),
++ GPU: to request a compute node with GEN 9.5 or GEN 12,
   
     ```
     qsub -I -l nodes=1:gen9:ppn=2  
@@ -147,16 +130,16 @@ DevCloud: from the head node, log into a **compute node**:
     qsub -I -l nodes=1:iris_xe_max:ppn=2
     ```
 
-For all the steps below, we assume you are either on a local machine, or on a compute node of DevCloud.
+[Local] Open a bash shell
+
+For all the steps below, we assume you are either on a compute node of DevCloud or on a local machine, except explicitly stated otherwise.
 
 # Set up the environment (whenever a terminal is open)
 
-with one of the following commands, according to if you are working on DevCloud or locally, to use an FPGA or a GPU:
-
 ```
-source ./setenv.sh devcloud fpga|gpu 
-source ./setenv.sh local    fpga|gpu 
+source ./setenv.sh (devcloud|local) (fpga|gpu)
 ```
+The options say if you are working on DevCloud or locally, and to use an FPGA or a GPU.
 
 # Build T2SP (whenever you change the source code)
 
@@ -176,7 +159,7 @@ cd -
 cd t2s/tests/correctness
 ./test.sh
 ```
-Each sub-directory there contains a success.txt and failure.txt, which have the command lines for compiling and running every test. These tests are small examples one can play with.
+After the testing, each sub-directory there will contain a success.txt and/or failure.txt, which have the command lines for compiling and running every test. These tests are small examples one can play with.
 
 To remove all the temporary files generated during the regression testing:
 
@@ -185,11 +168,11 @@ To remove all the temporary files generated during the regression testing:
 ```
 
 # Performance tests
-Current release contains SGEMM, 2-D convolution and Capsule convolution on Arria 10 FPGA and GEN9.5 GPU. For every kernel, we write a **single** specification for the different hardwares. This reflects our concept of "**write a kernel once, and run with high performance across spatial and vector architectures**".
+Current release contains SGEMM, 2-D convolution and Capsule convolution on Arria 10 FPGA and GEN 9.5 GPU. For every kernel, we write a **single** specification that gets mapped to the different kinds of hardware. This reflects our concept of "**write a kernel once, and run with high performance across spatial and vector architectures**".
 
 Summary of throughput:
 
-|     | A10 | GEN9.5 |
+|     | A10 | GEN 9.5 |
 | --- | :-: | :-:    |
 | SGEMM |  532 GFLOPS, 95% DSP efficiency  |  423 GFLOPS, 92% machine peak |
 | 2-D convolution | 515 GFLOPS, 96% DSP efficiency | 437 GFLOPS, 95% machine peak |
@@ -200,7 +183,7 @@ To reproduce the performance,
 cd t2s/tests/performance
 ```
 then 
-+ [DevCloud head node] Submit job(s):
++ [DevCloud head node] Submit a job:
 
   ```
   # Test all kernels
@@ -209,30 +192,22 @@ then
   # Or test 1 kernel
   ./devcloud-job.sh (gemm|conv|capsule) (a10|gen9) (tiny|large) (hw|emulator)
   ```
-+ [A DevCloud compute node] Test directly:
++ [A DevCloud compute node, or a local machine] Test directly:
   
   ```
   # Test all kernels
-  ./tests.sh devcloud (a10|gen9)
+  ./tests.sh (devcloud|local) (a10|gen9)
     
   # Or test 1 kernel
-  ./test.sh devcloud (gemm|conv|capsule) (a10|gen9) (tiny|large) (hw|emulator)
-  ```
-+ [Local] Test directly:
-  
-  ```
-  # Test all kernels
-  ./tests.sh local (a10|gen9)
-    
-  # Or test 1 kernel
-  ./test.sh local (gemm|conv|capsule) (a10|gen9) (tiny|large) (hw|emulator)
+  ./test.sh (devcloud|local) (gemm|conv|capsule) (a10|gen9) (tiny|large) (hw|emulator)
   ```
 
 Note:
-  + The emulator option is applicable only to FPGAs and tiny size.
-  + Synthesis of an FPGA design will take hours. So on DevCloud, we recommend submitting job(s) for testing on FPGAs.
-  + Look for the synthesis report of an FPGA design in `KERNEL/a/reports/report.html`. Here KERNEL is gemm, conv, etc. And look for the performance of an FPGA design in a roofline model that is automatically generated in `KERNEL/roofline.png`.
-  + Look for the performance of a GPU design from the standard output.
++ The emulator option is applicable only to FPGAs and tiny size.
++ Synthesis of an FPGA design will take hours. So on DevCloud, we recommend submitting a job for testing on FPGAs.
++ As for the results, look for the synthesis report of an FPGA design in `KERNEL/a/reports/report.html`. Here KERNEL is gemm, conv, etc. 
++ Look for the performance of an FPGA design in a roofline model that is automatically generated in `KERNEL/roofline.png`.
++ Look for the performance of a GPU design from the standard output.
 
 # Features
 
@@ -260,14 +235,13 @@ The current release contains the following features:
 
 # Tutorials
 
-A 10-minute video `intro.mp4`, located at the root of the repository, introduces the basic concept of T2SP.
-
-We have a set of [tutorials](https://github.com/intel/FPGA-Devcloud/tree/master/main/QuickStartGuides/T2S) at Intel DevCloud. A compiler binary is also there, and all dependencies have been installed, so you may start using the programming environment immediately.
+A 10-minute video `intro.mp4`, located at the root of the repository, introduces the basic concept of T2SP. There are also a set of [tutorials](https://github.com/intel/FPGA-Devcloud/tree/master/main/QuickStartGuides/T2S) at DevCloud. 
 
 # Next release
-We aim to release the following in December, 2021:
+We aim to release the following between December, 2021 and February, 2022:
 + Throughput numbers of SGEMM, 2-D convolution, and Capsule convolution on GEN 12 GPU.
 + Initial throughput numbers for Stratix 10 FPGA. 
++ Embedding of T2SP into OneAPI for kernel programming on FPGAs, GPUs and CPUs.
 
 # Citation
 
