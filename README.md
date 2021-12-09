@@ -44,7 +44,7 @@ Currently, we support only Intel FPGAs and GPUs. We assume your device is local 
   # For GEN 9.5 GPU
   qsub -l nodes=1:gen9:ppn=2 -d $HOME/t2sp $HOME/t2sp/install-tools.sh 
   
-# For GEN 12 GPU
+  # For GEN 12 GPU
   qsub -l nodes=1:iris_xe_max:ppn=2 -d $HOME/t2sp $HOME/t2sp/install-tools.sh
   ````
   This may take 1-2 hours on a DevCloud machine. 
