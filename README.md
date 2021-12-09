@@ -6,7 +6,7 @@ Currently, we support only Intel FPGAs and GPUs. We assume your device is local 
 
 # [DevCloud] Open an account (once)
 
- + Register at [DevCloud](https://software.intel.com/content/www/us/en/develop/tools/devcloud/fpga.html). This will enable access to both FPGAs and GPUs in the cloud.
+ + Register at [DevCloud](https://software.intel.com/content/www/us/en/develop/tools/devcloud/fpga.html). This will enable access to both FPGAs and GPUs in the cloud. Currently, the cloud offers Arria 10  and Stratix 10 FPGA, and GEN 9.5 (Intel UHD Graphics P630) and GEN 12 ( Intel Iris Xe MAX Graphics) GPU.
 
  + Follow the instructions of an approval email to set up your connection to DevCloud.
 
@@ -32,19 +32,22 @@ Currently, we support only Intel FPGAs and GPUs. We assume your device is local 
 
 # Install tools (once)
 
-+ [DevCloud] From the head node, submit a job to install all the tools needed:
++ [DevCloud] From the **head node**, submit a job with one of the following commands, based on the type of device you will use: 
 
   ```
-  cd $HOME/t2sp
-  ```
-  and choose one of the commands below, according to the device you will use: 
-  ```
-  qsub -q batch@v-qsvr-fpga -l nodes=arria10:ppn=2 ./install-tools.sh # for Arria 10 FPGA
-  qsub -q batch@v-qsvr-fpga -l nodes=darby:ppn=2 ./install-tools.sh   # for Stratix 10 FPGA
-  qsub -l nodes=1:gen9:ppn=2 ./install-tools.sh           # for GEN 9.5 GPU (Intel UHD Graphics P630)
-  qsub -l nodes=1:iris_xe_max:ppn=2 ./install-tools.sh    # for GEN 12 GPU ( Intel Iris Xe MAX Graphics)
+  # For Arria 10 FPGA
+  qsub -q batch@v-qsvr-fpga -l nodes=arria10:ppn=2 -d $HOME/t2sp $HOME/t2sp/install-tools.sh
+  
+  # For Stratix 10 FPGA
+  qsub -q batch@v-qsvr-fpga -l nodes=darby:ppn=2  -d $HOME/t2sp $HOME/t2sp/install-tools.sh
+  
+  # For GEN 9.5 GPU
+  qsub -l nodes=1:gen9:ppn=2 -d $HOME/t2sp $HOME/t2sp/install-tools.sh 
+  
+# For GEN 12 GPU
+  qsub -l nodes=1:iris_xe_max:ppn=2 -d $HOME/t2sp $HOME/t2sp/install-tools.sh
   ````
-This may take 1-2 hours on a DevCloud machine. 
+  This may take 1-2 hours on a DevCloud machine. 
   
 + [Local machine with an FPGA or a GPU]
 
