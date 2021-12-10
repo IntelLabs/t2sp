@@ -45,14 +45,14 @@ using namespace std;
 
 int main()
 {
-    Halide::Runtime::Buffer<float> I(MK, MX, TOTAL_CI, TOTAL_IY, TOTAL_IX, N), K(MY, MK, TOTAL_CI, TOTAL_CO, KY, KX);
+    Halide::Runtime::Buffer<float> P(MK, MX, TOTAL_CI, TOTAL_IY, TOTAL_IX, N), W(MY, MK, TOTAL_CI, TOTAL_CO, KY, KX);
     for (size_t n = 0; n < N; n++)
     for (size_t x = 0; x < TOTAL_IX; x++)
     for (size_t y = 0; y < TOTAL_IY; y++)
     for (size_t ci = 0; ci < TOTAL_CI; ci++) {
         for (size_t mx = 0; mx < MX; mx++) {
             for (size_t mk = 0; mk < MK; mk++) {
-                I(mk, mx, ci, y, x, n) = random();
+                P(mk, mx, ci, y, x, n) = random();
             }
         }
     }
@@ -62,12 +62,12 @@ int main()
     for (size_t ci = 0; ci < TOTAL_CI; ci++) {
         for (size_t mk = 0; mk < MK; mk++) {
             for (size_t my = 0; my < MY; my++) {
-                K(my, mk, ci, co, ky, kx) = random();
+                W(my, mk, ci, co, ky, kx) = random();
             }
         }
     }
-    Halide::Runtime::Buffer<float> O(COOO, YYY_XXX, YY_XX, Y_X, MY, MX, COO, CO, N);
-    capsule(I, K, O);
+    Halide::Runtime::Buffer<float> V(COOO, YYY_XXX, YY_XX, Y_X, MY, MX, COO, CO, N);
+    capsule(P, W, V);
 
 #ifdef TINY
     // Validate the results
@@ -90,9 +90,9 @@ int main()
             size_t total_iy = total_oy * 2 + ky;
             size_t total_ix = total_ox * 2 + kx;
             size_t total_co = cooo + COOO*coo + COOO*COO*co;
-            golden += I(mk, mx, ci, total_iy, total_ix, n) * K(my, mk, ci, total_co, ky, kx);
+            golden += P(mk, mx, ci, total_iy, total_ix, n) * W(my, mk, ci, total_co, ky, kx);
         }
-        assert(fabs(golden - O(cooo, yyy_xxx, yy_xx, y_x, my, mx, coo, co, n)) < 0.005*fabs(golden));
+        assert(fabs(golden - V(cooo, yyy_xxx, yy_xx, y_x, my, mx, coo, co, n)) < 0.005*fabs(golden));
     }
 #else
     // Report performance. DSPs, FMax and ExecTime are automatically figured out from the static analysis

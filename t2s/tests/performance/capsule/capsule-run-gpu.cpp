@@ -14,7 +14,7 @@
 #define SIZE_O_0    TOTAL_CO * MY * MX
 #define SIZE_O_1    OY * OX * N
 
-void check_correctness(float *i, float *k, float *o)
+void check_correctness(float *P, float *W, float *V)
 {
     for (int n = 0; n < N; n++)
     for (int x = 0; x < OX; x++)
@@ -33,11 +33,11 @@ void check_correctness(float *i, float *k, float *o)
             size_t i_1 = total_iy + (TOTAL_IY)*total_ix + (TOTAL_IY*TOTAL_IX)*n;
             size_t k_0 = co + (TOTAL_CO)*my;
             size_t k_1 = (ci % CII) + (CII)*ky + (CII*KY)*kx + (CII*KY*KX)*(ci/CII) + (CII*KY*KX*CI)*mk;
-            golden += i[i_0 + SIZE_I_0 * i_1] * k[k_0 + SIZE_K_0 * k_1];
+            golden += P[i_0 + SIZE_I_0 * i_1] * W[k_0 + SIZE_K_0 * k_1];
         }
         size_t o_0 = co + TOTAL_CO*my + TOTAL_CO*MY*mx;
         size_t o_1 = y + OY*x + OY*OX*n;
-        assert(fabs(golden - o[o_0 + SIZE_O_0 * o_1]) < 0.005*fabs(golden));
+        assert(fabs(golden - V[o_0 + SIZE_O_0 * o_1]) < 0.005*fabs(golden));
     }
 }
 
