@@ -138,6 +138,17 @@ struct FindVars
         return std::move(reuse_vars);
     }
 
+    // Find the first var below/above the given var v whose extent is not 1
+    Var find_non_trivial_var(Var v, bool above = true) {
+        size_t j = var_index(v);
+        while (j > 0 && j < free_vars.size()) {
+            auto bound = ure.function().get_bounds(free_vars[j].name());
+            if (!is_one(bound.second)) break;
+            j = above ? j + 1 : j - 1;
+        }
+        return free_vars[j];
+    }
+
     // Find variables appeared in the arguments of inputs
     class FindUsedVars : public IRVisitor
     {
@@ -171,11 +182,7 @@ struct FindVars
             if (f.function().has_merged_defs()) {
                 ure = f;
                 for (auto &d : f.function().definition().schedule().dims()) {
-                    // Skip loops whose extent == 1
-                    auto bound = f.function().get_bounds(d.var);
-                    if (!is_one(bound.second)) {
-                        free_vars.push_back(d.var);
-                    }
+                    free_vars.push_back(d.var);
                 }
             }
         }
@@ -405,30 +412,18 @@ class RealizeOnFPGA
     void check_inclusiveness(Schain &c) {
         if (!c.is_output) {
             // start from the outermost loop
-            Var scope("__outermost");
-            int i = fv.free_vars.size();
+            int i = fv.free_vars.size()-1;
             for (auto &s: c.stensors) {
                 if (!fv.exists(s.v_scope)) {
-                    s.v_scope = scope;
+                    s.v_scope = fv.free_vars[i];
                     continue;
                 }
                 int j = fv.var_index(s.v_scope);
                 user_assert(j > 0 && j <= i)
                     << "The scope of " << s.name << " is beyond its predecessor\n";
-                scope = s.v_scope;
-            }
-        } else {
-            Var scope(fv.free_vars[0].name());
-            int i = 0;
-            for (auto &s: c.stensors) {
-                if (!fv.exists(s.v_scope)) {
-                    s.v_scope = scope;
-                    continue;
-                }
-                int j = fv.var_index(s.v_scope);
-                user_assert(j > 0 && j >= i)
-                    << "The scope of " << s.name << " is below its predecessor\n";
-                scope = s.v_scope;
+                // Find a loop whose extent is not 1, otherwise this loop would be removed in lowering
+                s.v_scope = fv.find_non_trivial_var(s.v_scope);
+                i = j;
             }
         }
     }

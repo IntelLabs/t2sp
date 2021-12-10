@@ -162,7 +162,7 @@ class ChannelVisitor : public IRVisitor {
             // 2. var_0 == 0 (const)
             //    unrolled for (iii, 0, III)
             //      read/write_channel(name, 0)
-            //    The channel operation can be promoted out of iii (boarder)
+            //    The channel operation can be promoted out of iii (occured_loop)
             auto lhs = eq->a.as<Variable>();
             auto rhs = eq->b.as<Variable>();
             if ((lhs && rhs)
