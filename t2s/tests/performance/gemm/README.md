@@ -1,6 +1,9 @@
 # Matrix Multiply
 
-## Performance for single precision matrix multiply
+![Matrix multiply](figures/gemm-equation.png)
+
+## Performance (single precision)
+
 | Device | Frequency | Throughput | Logic utilization | DSPs | BRAMs | Efficiency | Matrix Size | Device compiler |
 | ------ | --------- | ------ | --------- | ---- | ----- | -------------- | ----- | -------------- |
 | Intel Arria 10 GX 1150 FPGA | 215 MHz | 532 GFLOPS | 211,199 / 427,200 ( 49 % ) | 1,304 / 1,518 ( 86 % ) | 2,087 / 2,713 ( 77 % ) | 95% DSP efficiency | 10K * 16K matrix times 16K * 8K matrix | aoc 19.4.0 |
@@ -8,19 +11,13 @@
 
 Note:
 
-- The DSP efficiency of an FPGA equals measured throughput/theoretical peak throughput.
+- The DSP efficiency of an FPGA equals measured throughput/theoretical peak throughput with the synthesized clock frequency.
   - Measured throughput in GFLOPS = #operations / execution time in nanoseconds.
-  - #operations =  2 (add + mul) * (#rows of matrix A) * (#columns of matrix A) * (#columns of matrix B).
-  - Theoretical peak throughput = frequency * 2 (add + mul)  * 1518 (#DSPs).
-- The machine peak of GEN9.5 for single-precision computes is calculated as 1200Mhz (peak frequency) * 2 (add + mul) * 2 (FPUs) * 4 (SIMD4) * 24 (EUs) = 460.8 GFlOPS.  Refer to [GEN architecture document](https://www.intel.com/content/dam/develop/external/us/en/documents/the-compute-architecture-of-intel-processor-graphics-gen9-v1d0.pdf) for more details.
+  - Given the definition of matrix multiply above, #operations =  2 * (size of matrix `C`) * (extent of `k` in the equation), where the factor 2 accounts for two operations: multiply and add.
+  - Theoretical peak throughput = frequency * 2 (multiply and add)  * 1518 (#DSPs).
+- The machine peak of GEN9.5 for single-precision computes is calculated as 1200Mhz (the GPU's clock frequency) * 2 (multiply and add) * 2 (FPUs) * 4 (SIMD4) * 24 (EUs) = 460.8 GFlOPS.  Refer to [GEN architecture document](https://www.intel.com/content/dam/develop/external/us/en/documents/the-compute-architecture-of-intel-processor-graphics-gen9-v1d0.pdf) for more details.
 
 ## Design
-
-Consider matrix multiply:
-
-![Matrix multiply](figures/gemm-equation.png)   (1)
-
-The following diagram shows the design:
 
 ![Design](figures/gemm-design.png)
 

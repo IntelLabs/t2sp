@@ -2,7 +2,7 @@ T2SP (Temporal To Spatial Programming, previously called T2S) enables software p
 
 T2SP is available under a permissive license, the [BSD+Patent license](./LICENSE.md). 
 
-Currently, we support only Intel FPGAs and GPUs. We assume your device is local to you, or within Intel DevCloud, and the operating system is Linux. Other platforms might also work, but are not tested. 
+Currently, we support only Intel FPGAs and GPUs. We assume your device is local to you, or within Intel DevCloud, and the operating system is Linux (We have tried Ubuntu 18.04 and CentOS 7.9, but our system is not really tied to any specific Linux system or version). Other platforms might also work, but are not tested. 
 
 # [DevCloud] Open an account (once)
 
@@ -47,7 +47,9 @@ Currently, we support only Intel FPGAs and GPUs. We assume your device is local 
   # For GEN 12 GPU
   qsub -l nodes=1:iris_xe_max:ppn=2 -d $HOME/t2sp $HOME/t2sp/install-tools.sh
   ````
-  This may take 1-2 hours on a DevCloud machine. 
+  This may take 1-5 hours on DevCloud, depending on the specific machine allocated for the job. 
+  
+  A known issue: on a GEN 9.5 GPU machine, it is possible to see some errors during installing `m4`, but it turns out that package is not necessary for that machine, and we can ignore the error.  
   
 + [Local machine with an FPGA or a GPU]
 
@@ -55,6 +57,7 @@ Currently, we support only Intel FPGAs and GPUs. We assume your device is local 
   cd $HOME/t2sp
   ./install-tools.sh
   ```
+  
 + [Local machine with an FPGA] Also download [Intel FPGA SDK for OpenCL](http://dl.altera.com/opencl/), and install with
   
   ```
