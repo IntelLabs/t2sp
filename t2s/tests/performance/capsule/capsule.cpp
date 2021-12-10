@@ -64,7 +64,7 @@ int main(void)
     // UREs
     Var cii("cii"), my("my"), mx("mx"), ky("ky"), kx("kx"), ci("ci"), mk("mk"), n("n");
     Var yyy_xxx("yyy_xxx"), yy_xx("yy_xx"), y_x("y_x"), cooo("cooo"), coo("coo"), co("co");
-    URE A("A", TTYPE, {P}), B("B", TTYPE, {Index}), C("C", TTYPE, {Index}), Out("Out");
+    URE A("A", TTYPE, {Index}), B("B", TTYPE, {Index}), C("C", TTYPE, {Index}), Out("Out");
     A(Index) = select(cooo == 0, P(Index_P), A(Index_co3_minus_1));
     B(Index) = select(yyy_xxx == 0, W(Index_W), B(Index_yx3_minus_1));
     C(Index) = select(cii == 0 && ci == 0 && mk == 0 && ky == 0 && kx == 0, 0,
