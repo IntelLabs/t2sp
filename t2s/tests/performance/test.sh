@@ -23,11 +23,13 @@ fi
 size=${size^^}
 
 echo ------------------- Testing $@
+set -x
 if [ "$target" == "a10" -o "$target" == "s10" ]; then
     generate_test_fpga_kernel
 else
     generate_test_gpu_kernel
 fi
+set +x
 
 cd $cur_dir
 
