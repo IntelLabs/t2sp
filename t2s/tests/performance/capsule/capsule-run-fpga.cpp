@@ -111,6 +111,10 @@ int main()
         cout << "Failed to draw roofline!\n";
         return 1;
     }
+    cout << "Size of tensor P: " << N << " * " << TOTAL_IX << " * " << TOTAL_IY << " * " << TOTAL_CI
+                                      << " * " << MX << " * " << MK << "\n";
+    cout << "Size of tensor W: " << KX << " * " << KY << " * " << TOTAL_CO << " * " << TOTAL_CI
+                                       << " * " << MK << " * " << MY << "\n";
 #endif
 
     printf("Success\n");

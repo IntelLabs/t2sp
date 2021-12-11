@@ -143,6 +143,10 @@ int main(int argc, char *argv[]) {
     if (ITER == 1) {
         printf("Pass!\n");
     } else {
+        cout << "Size of tensor P: " << N << " * " << TOTAL_IX << " * " << TOTAL_IY << " * " << TOTAL_CI
+                                          << " * " << MX << " * " << MK << "\n";
+        cout << "Size of tensor W: " << KX << " * " << KY << " * " << TOTAL_CO << " * " << TOTAL_CI
+                                           << " * " << MK << " * " << MY << "\n";
         printf("Average GFlops: %lf\n", ops / tkern);
         printf("Max GFlops: %lf\n", ops / min_tkern);
     }

@@ -142,6 +142,8 @@ int main(int argc, char *argv[]) {
     if (ITER == 1) {
         printf("Pass!\n");
     } else {
+        cout << "Size of matrix A: " << TOTAL_I << " * " << TOTAL_K << "\n";
+        cout << "Size of matrix B: " << TOTAL_K << " * " << TOTAL_J << "\n";
         printf("Average GFlops: %lf\n", ops / tkern);
         printf("Max GFlops: %lf\n", ops / min_tkern);
     }

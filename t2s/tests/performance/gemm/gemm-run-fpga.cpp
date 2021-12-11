@@ -99,6 +99,8 @@ int main()
         cout << "Failed to draw roofline!\n";
         return 1;
     }
+    cout << "Size of matrix A: " << TOTAL_I << " * " << TOTAL_K << "\n";
+    cout << "Size of matrix B: " << TOTAL_K << " * " << TOTAL_J << "\n";
 #endif
 
     printf("Success\n");
