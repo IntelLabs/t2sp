@@ -25,7 +25,7 @@ Below is the GPU design. The FPGA design is similar and skipped here.
 
 One may wonder why the drain loops do not contain reduction loops like `kx`, etc. and thread loops like `mx`, etc. This is because the results are already reduced and are drained per thread. 
 
-##[Understand the design](../README.md#how-to-understand-a-design)
+## [Understand the design](../README.md#how-to-understand-a-design)
 
 ## [Test the design](../../../../README.md#Performance-tests)
 

@@ -8,9 +8,9 @@ where `s` is the stride, operation `·` is scalar multiplication, and `O`, `I`, 
 
 ## Performance (single precision)
 
-| Device | Frequency | Throughput | Logic utilization | DSPs | BRAMs | Efficiency | Tensor Sizes | Device compiler |
+| Device | Frequency | Throughput | Logic utilization | DSP blocks | RAM blocks | Efficiency | Tensor Sizes | Device compiler |
 | ------ | --------- | ------ | --------- | ---- | ----- | -------------- | ----- | -------------- |
-| Intel Arria 10 GX 1150 FPGA | 206 MHz | 515 GFLOPS | 257,558 / 427,200 ( 60 % ) | 1,299 / 1,518 ( 86 % ) | 2,011 / 2,713 ( 74 % ) | 96%   | I(64,256,1x60+3,1x60+3) * K(256,256,3,3) | aoc 19.4.0 |
+| Intel Arria 10 GX 1150 FPGA | 207 MHz | 524 GFLOPS | 225,268 / 427,200 ( 53 % ) | 1,286 / 1,518 ( 85 % ) | 1,801 / 2,713 ( 66 % ) | 98%  | I(64,256,1x60+3,1x60+3) * K(256,256,3,3) | aoc 19.4.0 |
 | Intel GEN9.5 GPU | 1200 MHz | 437 GFLOPS | - | - | - | 95%   | I(64,256,1x64+3,1x64+3) * K(256,256,3,3) | CM Dev Package 20200119 |
 
 Note: when [measuring the performance](../README.md#Performance-metrics),
@@ -20,6 +20,8 @@ Note: when [measuring the performance](../README.md#Performance-metrics),
 ## Design
 
 ![Design](figures/conv-design.png)
+
+## [Understand the design](../README.md#how-to-understand-a-design)
 
 ## [Test the design](../../../../README.md#Performance-tests)
 
