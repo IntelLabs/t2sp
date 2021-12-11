@@ -22,6 +22,7 @@
 #define KY              3
 #define KX              3
 
+// Inner loop bounds, which are static constant parameters of the design
 #ifdef GPU
     #define CII         8
     #define CI          32
@@ -35,7 +36,6 @@
     #define Y           1
     #define X           32
 #else // FPGA
-    // Inner loop bounds, which are static constant parameters of the design
     #ifdef TINY // For verifying correctness only
         #define CII         4
         #define CI          4
