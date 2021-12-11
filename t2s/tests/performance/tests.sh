@@ -52,7 +52,7 @@ elif [ "$target" == "a10" ]; then
     ./test.sh $location conv $target tiny emulator
     ./test.sh $location capsule $target tiny emulator
     
-    # FPGA: Test perf with large matrices
+    # FPGA: Test perf with large matrices on real hardware
     ./test.sh $location gemm $target large hw
     ./test.sh $location conv $target large hw
     ./test.sh $location capsule $target large hw
