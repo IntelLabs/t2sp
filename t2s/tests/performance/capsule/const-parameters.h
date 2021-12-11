@@ -27,6 +27,7 @@
 #define MX              4
 #define MK              4
 
+// Inner loop bounds, which are static constant parameters of the design
 #ifdef GPU
     #define CII         4
     #define CI          8
@@ -37,7 +38,6 @@
     #define YY_XX       7
     #define Y_X         1
 #else // FPGA
-    // Inner loop bounds, which are static constant parameters of the design
     #ifdef TINY // For verifying correctness only
         #define CII         4
         #define CI          4
