@@ -15,7 +15,7 @@ where `s` is the stride, operation `·` is scalar multiplication, and `O`, `I`, 
 
 Note: when [measuring the performance](../README.md#Performance-metrics),
 
-- Given the above definition of 2-D convolution  above, #operations =  2 * (size of tensor `O` in the equation) * (multiplication of the extents of `kx`, `ky` and `ci` in the equation), where the factor 2 accounts for two operations: multiply and add.
+- Given the above definition of 2-D convolution, #operations =  2 * (size of tensor `O` in the equation) * (multiplication of the extents of `kx`, `ky` and `ci` in the equation), where the factor 2 accounts for two operations: multiply and add.
 
 ## Design
 
