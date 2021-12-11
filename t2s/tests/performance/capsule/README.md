@@ -8,9 +8,9 @@ where `s` is the stride, operation `·` is matrix multiplication, and `V`, `P`, 
 
 ## Performance (single precision)
 
-| Device | Frequency | Throughput | Logic utilization | DSPs | BRAMs | DSP Efficiency |
+| Device | Frequency | Throughput | Logic utilization | DSP blocks | RAM blocks | DSP Efficiency |
 | ------ | --------- | ------ | --------- | ---- | ----- | -------------- |
-| Intel Arria 10 GX 1150 FPGA | 210 MHz | 534 GFLOPS | 214,384 / 427,200 ( 53 % ) | 1,295 / 1,518 ( 85 % ) | 1,866 / 2,713 ( 69 % ) | 98%   |
+| Intel Arria 10 GX 1150 FPGA | 196 MHz | 487 GFLOPS | 250,555 / 427,200 ( 59 % ) | 1,317 / 1,518 ( 87 % ) | 1,505 / 2,713 ( 55 % ) | 94%  |
 | Intel GEN9.5 GPU | 1200 MHz | 414 GFLOPS | - | - | - | 90%   |
 
 Note:  when [measuring the performance](../README.md#Performance-metrics),
@@ -24,6 +24,8 @@ Below is the GPU design. The FPGA design is similar and skipped here.
 ![Design](figures/capsule-design.png)
 
 One may wonder why the drain loops do not contain reduction loops like `kx`, etc. and thread loops like `mx`, etc. This is because the results are already reduced and are drained per thread. 
+
+##[Understand the design](../README.md#how-to-understand-a-design)
 
 ## [Test the design](../../../../README.md#Performance-tests)
 
