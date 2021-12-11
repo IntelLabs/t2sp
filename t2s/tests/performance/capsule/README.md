@@ -15,7 +15,7 @@ where `s` is the stride, operation `·` is matrix multiplication, and `V`, `P`, 
 
 Note:  when [measuring the performance](../README.md#Performance-metrics),
 
-- Given the definition of capsule convolution above, #operations =  2 * (4 * 4 * 4) * (product of the extents of the 4 dimensions of tensor `V` in the equation) * (product of the extents of `kx`, `ky` and `ci` in the equation), where the factor 2 accounts for two operations: multiply and add.
+- Given the above definition of capsule convolution, #operations =  2 * (4 * 4 * 4) * (size of tensor `V` in the equation) * (product of the extents of `kx`, `ky` and `ci` in the equation), where the factor 2 accounts for two operations: multiply and add.
 
 ## Design
 
