@@ -34,7 +34,7 @@ Data move as the loops run. For matrix `A` and `B` ,  we create abstract memorie
 
 Each thread contains a systolic array as its compute engine. This systolic array is created with UREs and a space-time transform. After the systolic array finishes execution, its results are drained through two levels of abstract memories, `RC2` and `RC1`,  that are resident in registers, and into the last abstract memory, `DC`, which is on the device's DRAM.
 
-Note that an abstract memory outputs a tensor each time. For example, `DA` outputs a vector of size `KKK` each time. So the abstract memory is named streaming tensor (stensor).   
+Note that an abstract memory outputs a tensor each time. For example, `DA` outputs a vector of size `KKK` each time. So the abstract memory is named a streaming tensor (stensor).   
 
-## [Test the designs](../../../../README.md#Performance-tests)
+## [Test the designs](../../../README.md#Performance-tests)
 
