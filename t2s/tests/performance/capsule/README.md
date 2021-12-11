@@ -23,6 +23,8 @@ Below is the GPU design. The FPGA design is similar and skipped here.
 
 ![Design](figures/capsule-design.png)
 
+One may wonder why the drain loops do not contain reduction loops like `kx`, etc. and thread loops like `mx`, etc. This is because the results are already reduced and are drained per thread. 
+
 ## [Test the design](../../../../README.md#Performance-tests)
 
 ## References
