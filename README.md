@@ -2,11 +2,11 @@ T2SP (Temporal To Spatial Programming, previously called T2S) enables software p
 
 T2SP is available under a permissive license, the [BSD+Patent license](./LICENSE.md). 
 
-Currently, we support only Intel FPGAs and GPUs. We assume your device is local to you, or within Intel DevCloud, and the operating system is Linux (We have tried Ubuntu 18.04 and CentOS 7.9, but our system is not really tied to any specific Linux system or version). Other platforms might also work, but are not tested. 
+Currently, we support only Intel FPGAs and GPUs. We assume your device is local to you, or within Intel DevCloud, and the operating system is Linux (We have tried Ubuntu 18.04 and CentOS 7.9, but our system is not really tied to any specific Linux system or version). Other platforms might also work, although not tested. 
 
 # [DevCloud] Open an account (once)
 
- + Register at [DevCloud](https://software.intel.com/content/www/us/en/develop/tools/devcloud/fpga.html). This will enable access to both FPGAs and GPUs in the cloud. Currently, the cloud offers Arria 10  and Stratix 10 FPGA, and GEN 9.5 (Intel UHD Graphics P630) and GEN 12 ( Intel Iris Xe MAX Graphics) GPU.
+ + Register at the [Intel's FPGA DevCloud](https://software.intel.com/content/www/us/en/develop/tools/devcloud/fpga.html). This will enable access to both the FPGAs and the GPUs in the cloud. Currently, the cloud offers Arria 10  and Stratix 10 FPGAs, and GEN 9.5 (Intel UHD Graphics P630) and GEN 12 ( Intel Iris Xe MAX Graphics) GPUs.
 
  + Follow the instructions of an approval email to set up your connection to DevCloud.
 
@@ -72,11 +72,7 @@ Note:
 
 # Modify the environment setting (once)
 
-```
-cd $HOME/t2sp
-```
-
-Here you would see a `setenv.sh`. 
+The environment setting file is in `$HOME/t2sp/setenv.sh`. 
 
 + If you have your own gcc, llvm or clang and thus did not use the above `install-tools.sh` command to install them, in `setenv.sh`, modify the following path variables appropriately:
 
@@ -143,6 +139,7 @@ For all the steps below, we assume you are either on a compute node of DevCloud 
 # Set up the environment (whenever a terminal is open)
 
 ```
+cd $HOME/t2sp
 source ./setenv.sh (devcloud|local) (fpga|gpu)
 ```
 The options say if you are working on DevCloud or locally, and to use an FPGA or a GPU.

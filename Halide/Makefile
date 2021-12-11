@@ -812,8 +812,8 @@ T2S_SOURCE_FILES = \
   LateFuse.cpp \
   LoopRemoval.cpp \
   Math.cpp \
-  MergeUres.cpp \
   MemorySchedule.cpp \
+  MergeUres.cpp \
   MinimizeShregs.cpp \
   NoIfSimplify.cpp \
   Overlay.cpp \

@@ -154,7 +154,7 @@ int space_loop_extents() {
 class FuncInfoCollector : public IRVisitor
 {
     const map<string, Function> &env;
-    Expr cond = UIntImm::make(UInt(1), 1);          // used to pass value acorss multiple calls
+    Expr cond = UIntImm::make(UInt(1), 1);          // used to pass value across multiple calls
     Expr nested_cond = UIntImm::make(UInt(1), 1);   // used for code motion
     bool nested_select = true;
 
