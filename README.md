@@ -142,12 +142,12 @@ For all the steps below, we assume you are either on a compute node of DevCloud 
 cd $HOME/t2sp
 source ./setenv.sh (devcloud|local) (fpga|gpu)
 ```
-The options say if you are working on DevCloud or locally, and to use an FPGA or a GPU. After the environment is set, there is an environment variable `T2S_PATH` pointing to `$HOME/t2sp`. 
+The options say if you are working on DevCloud or locally, and to use an FPGA or a GPU. 
 
 # Build T2SP (whenever you change the source code)
 
 ```
-cd $T2S_PATH/Halide
+cd $HOME/t2sp/Halide
 make -j
 ```
 
@@ -158,7 +158,7 @@ make -j
 # Regression tests
 
 ```
-cd $T2S_PATH/t2s/tests/correctness
+cd $HOME/t2sp/t2s/tests/correctness
 ./test.sh
 ```
 After the testing, each sub-directory there will contain a success.txt and/or failure.txt, which have the command lines for compiling and running every test. These tests are small examples one can play with.
@@ -182,7 +182,7 @@ Summary of throughput:
 
 To reproduce the performance,
 ```
-cd $T2S_PATH/t2s/tests/performance
+cd $HOME/t2sp/t2s/tests/performance
 ```
 then 
 + [DevCloud head node] Submit a job:
