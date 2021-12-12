@@ -9,7 +9,7 @@ where `s` is the stride, operation `·` is matrix multiplication, and `V`, `P`, 
 ## Performance (single precision)
 
 | Device | Frequency | Throughput | Logic utilization | DSP blocks | RAM blocks | DSP Efficiency | Tensor Sizes | Device compiler |
-| ------ | --------- | ------ | --------- | ---- | ----- | -------------- |
+| ------ | --------- | ------ | --------- | ---- | ----- | -------------- |----- | -------------- |
 | Intel Arria 10 GX 1150 FPGA | 196 MHz | 487 GFLOPS | 250,555 / 427,200 ( 59 % ) | 1,317 / 1,518 ( 87 % ) | 1,505 / 2,713 ( 55 % ) | 94%  | P(64 * 32 * 15 * 15 * 4 * 4) * W( 32 * 32 * 3 * 3 * 4 * 4) | aoc 19.4.0 |
 | Intel GEN9.5 GPU | 1200 MHz | 414 GFLOPS | - | - | - | 90%   | P(64 * 32 * 15 * 15 * 4 * 4) * W(32 * 32 * 3 * 3 * 4 * 4) | CM Dev Package 20200119 |
 
