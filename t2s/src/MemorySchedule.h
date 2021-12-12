@@ -16,27 +16,22 @@
 *
 * SPDX-License-Identifier: BSD-2-Clause-Patent
 *******************************************************************************/
-#include "util.h"
+#ifndef T2S_MEM_FETCH_H
+#define T2S_MEM_FETCH_H
 
-int main(void) {
-  // A simple 2-D loop
-  Var i2, j2;
-  Func A2(Int(32), {i2, j2}), B2(Int(32), {i2, j2});
-  A2(i2, j2) = 10;
-  B2(i2, j2) = A2(i2, j2);
+namespace Halide {
+namespace Internal {
 
-  // Space-time-transform
-  A2.merge_ures(B2)
-    .set_bounds(i2, 0, SIZE)
-    .set_bounds(j2, 0, SIZE);
+struct Adaptor {
+    std::vector<Expr> &loop_vars;
+    std::vector<Expr> &loop_mins;
+    std::vector<Expr> &loop_extents;
+};
 
-  // Space loops should be at the innermost level.
-  try {
-      A2.space_time_transform(j2);
-  } catch (Halide::CompileError &e) {
-      cout << e.what() << "Success!\n";
-      exit(0);
-  }
-  cout << "Failed!\n";
-  exit(1);
-}
+Stmt do_prepare_memory_schedule(Stmt s, const std::map<std::string, Function> &env, const Adaptor &stt);
+Stmt do_memory_schedule(Stmt s, const std::map<std::string, Function> &env);
+
+} // namespace Internal
+} // namespace Halide
+
+#endif

@@ -48,6 +48,22 @@ string extract_last_token(const string &str) {
     return str.substr(i + 1, str.size() - i - 1);
 }
 
+string extract_token(const string &str, int num_tokens) {
+    size_t i, pre_i = 0;
+    int tokens = 0;
+    for (i = 0; i < str.size(); i++) {
+        if (str[i] == '.') {
+            if (tokens == num_tokens)
+                return str.substr(pre_i, i-pre_i);
+            tokens++;
+            pre_i = i+1;
+            
+        }
+    }
+    internal_assert(tokens == num_tokens);
+    return str.substr(pre_i, str.size()-pre_i);
+}
+
 string extract_before_tokens(const string &str, int num_tokens) {
     size_t i;
     int tokens = 0;

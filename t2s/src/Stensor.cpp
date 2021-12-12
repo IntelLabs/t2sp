@@ -16,9 +16,10 @@
 *
 * SPDX-License-Identifier: BSD-2-Clause-Patent
 *******************************************************************************/
-#include "DebugPrint.h"
-#include "Stensor.h"
-#include "Utilities.h"
+#include "./DebugPrint.h"
+#include "./Utilities.h"
+#include "./PreprocessBeforeLower.h"
+#include "./Stensor.h"
 
 namespace Halide {
 
@@ -41,16 +42,28 @@ Stensor &Stensor::scope(Var v) {
 }
 
 Stensor &Stensor::banks(const vector<Var> &v) {
+    if (v.empty()) {
+        // By default, this stensor will output a scalar each time.
+        return *this;
+    }
     v_banks = v;
     return *this;
 }
 
-Stensor &Stensor::bankwidth(Var v) {
-    v_width = v;
+Stensor &Stensor::out(const vector<Var> &v) {
+    if (v.empty()) {
+        // By default, this stensor will output a scalar each time.
+        return *this;
+    }
+    v_outs = v;
     return *this;
 }
 
 Stensor &Stensor::operator()(const vector<Expr> &d) {
+    if (d.empty()) {
+        // By default, this stensor will use the original layout.
+        return *this;
+    }
     dims = d;
     return *this;
 }
@@ -125,6 +138,17 @@ struct FindVars
         return std::move(reuse_vars);
     }
 
+    // Find the first var below/above the given var v whose extent is not 1
+    Var find_non_trivial_var(Var v, bool above = true) {
+        size_t j = var_index(v);
+        while (j > 0 && j < free_vars.size()) {
+            auto bound = ure.function().get_bounds(free_vars[j].name());
+            if (!is_one(bound.second)) break;
+            j = above ? j + 1 : j - 1;
+        }
+        return free_vars[j];
+    }
+
     // Find variables appeared in the arguments of inputs
     class FindUsedVars : public IRVisitor
     {
@@ -157,9 +181,8 @@ struct FindVars
             // UREs have the same iteration space, so we just check the one applied merge_ures
             if (f.function().has_merged_defs()) {
                 ure = f;
-                for (auto &e : f.function().definition().args()) {
-                    auto v = e.as<Variable>();
-                    free_vars.push_back(Var(v->name));
+                for (auto &d : f.function().definition().schedule().dims()) {
+                    free_vars.push_back(d.var);
                 }
             }
         }
@@ -215,18 +238,12 @@ class RealizeOnFPGA
 
     vector<Func> isolate_consumer(Schain &c) {
         vector<Func> consumers;
-        Func outf = c.outf;
-        // The output stensor inherits loops of the output URE, generally less than that of systolic array
-        // So we isolate the first consumer alone and apply space-time transform to regenerate loop structure,
-        // then the subsequent stensors could be isolated based on that
-        Func f_dev(c.stensors[0].name, Place::Device);
-        outf.isolate_consumer(f_dev);
-        debug(1) << outf.name() << ".isolate_consumer("
-                 << f_dev.name() << ");\n";
-        // generate_output_array(outf, f_dev);
-        f_dev.space_time_transform(c.stensors[0].v_banks);
-        outf = std::move(f_dev);
-
+        // Isolate subsequent consumers
+        for (auto &s : c.stensors) {
+            Place place = s.position == SMemType::HOST ? Place::Host : Place::Device;
+            Func f_dev(s.name, place);
+            consumers.push_back(std::move(f_dev));
+        }
         if (c.stensors.back().position != HOST) {
             // If the host stensor is not specified, we automatically generate it
             string host_name = c.outf.name() + "_deserializer";
@@ -234,17 +251,28 @@ class RealizeOnFPGA
             s_host.schain_idx = c.stensors[0].schain_idx;
             c.stensors.push_back(s_host);
         }
-        // Isolate subsequent consumers
-        for (size_t i = 1; i < c.stensors.size(); i++) {
-            auto &s = c.stensors[i];
-            Place place = s.position == SMemType::HOST ? Place::Host : Place::Device;
-            Func f_dev(s.name, place);
-            consumers.push_back(std::move(f_dev));
+
+        if (c.stensors[0].position == REG && !c.stensors[0].v_banks.empty()) {
+            // The output stensor inherits loops of the output URE, generally less than that of systolic array
+            // So we isolate the first consumer alone and apply space-time transform to regenerate loop structure,
+            // then the subsequent stensors could be isolated based on that
+            Func regf = consumers[0];
+            c.outf.isolate_consumer(regf);
+            debug(1) << c.outf.name() << ".isolate_consumer("
+                     << regf.name() << ");\n";
+            // generate_output_array(outf, f_dev);
+            regf.space_time_transform(c.stensors[0].v_banks);
+            debug(1) << regf.name() << ".space_time_transform("
+                     << names_to_string(c.stensors[0].v_banks) << ");\n";
+            vector<Func> other_cons(consumers.begin()+1, consumers.end());
+            regf.isolate_consumer_chain(other_cons);
+            debug(1) << regf.name() << ".isolate_consumer_chain("
+                     << names_to_string(other_cons);
+        } else {
+            c.outf.isolate_consumer_chain(consumers);
+            debug(1) << c.outf.name() << ".isolate_consumer_chain("
+                     << names_to_string(consumers) << ");\n";
         }
-        outf.isolate_consumer_chain(consumers);
-        debug(1) << outf.name() << ".isolate_consumer_chain("
-                 << names_to_string(consumers) << ");\n";
-        consumers.insert(consumers.begin(), outf);
         return std::move(consumers);
     }
 
@@ -338,12 +366,16 @@ class RealizeOnFPGA
 
     void vectorize(Schain &c, vector<Func> &funcs) {
         internal_assert(c.stensors.size() == funcs.size());
-        // In general, each stensors could independently specify bankwidth,
+        // In general, each stensor could independently specify bankwidth,
         // so we do not check the consistency between the producer and consumer,
         // NOTE: Currently the producer and consumer must be consistent with manual work,
         // and we leave the sophisticated vectorization to future work
         for (size_t i = 0; i < c.stensors.size(); i++) {
-            Var v_width = c.stensors[i].v_width;
+            if (c.stensors[i].v_width.size() == 0)
+                continue;
+            user_assert(c.stensors[i].v_width.size() == 1)
+                << "Currently we only support packing one dimension as a vector\n";
+            Var v_width = c.stensors[i].v_width[0];
             if (fv.exists(v_width)) {
                 funcs[i].vectorize(v_width);
                 debug(1) << funcs[i].name() << ".vectorize("
@@ -352,8 +384,9 @@ class RealizeOnFPGA
         }
 
         // To make UREs be consistent with its producer, we vectorize UREs as well
-        Var last_width = c.stensors.back().v_width;
-        if (!c.is_output && fv.exists(last_width)) {
+        auto &last_stensor = c.stensors.back();
+        if (!c.is_output && last_stensor.v_width.size() > 0) {
+            Var last_width = last_stensor.v_width[0];
             fv.ure.vectorize(last_width);
             debug(1) << fv.ure.name() << ".vectorize("
                      << last_width << ");\n";
@@ -379,30 +412,36 @@ class RealizeOnFPGA
     void check_inclusiveness(Schain &c) {
         if (!c.is_output) {
             // start from the outermost loop
-            Var scope("__outermost");
-            int i = fv.free_vars.size();
+            int i = fv.free_vars.size()-1;
             for (auto &s: c.stensors) {
                 if (!fv.exists(s.v_scope)) {
-                    s.v_scope = scope;
+                    s.v_scope = fv.free_vars[i];
                     continue;
                 }
                 int j = fv.var_index(s.v_scope);
                 user_assert(j > 0 && j <= i)
                     << "The scope of " << s.name << " is beyond its predecessor\n";
-                scope = s.v_scope;
+                // Find a loop whose extent is not 1, otherwise this loop would be removed in lowering
+                s.v_scope = fv.find_non_trivial_var(s.v_scope);
+                i = j;
             }
-        } else {
-            Var scope(fv.free_vars[0].name());
-            int i = 0;
-            for (auto &s: c.stensors) {
-                if (!fv.exists(s.v_scope)) {
-                    s.v_scope = scope;
-                    continue;
+        }
+    }
+
+    void find_banks(Schain &c) {
+        // The dst_vars includes space loops plus one time loop
+        auto dst_vars = fv.ure.function().definition().schedule().transform_params()[0].dst_vars;
+        for (auto &s : c.stensors) {
+            for (auto &v : s.v_outs) {
+                auto p = std::find_if(dst_vars.begin(), dst_vars.end()-1,
+                                    [&](string &n){ return v.name() == n; });
+                if (p != dst_vars.end()-1) {
+                    // Find it is in space loops, so we view it as a bank
+                    s.v_banks.push_back(Var(*p));
+                } else {
+                    // Otherwise view it as bankwidth
+                    s.v_width.push_back(Var(*p));
                 }
-                int j = fv.var_index(s.v_scope);
-                user_assert(j > 0 && j >= i)
-                    << "The scope of " << s.name << " is below its predecessor\n";
-                scope = s.v_scope;
             }
         }
     }
@@ -414,6 +453,7 @@ public:
         Func out;
         for (auto &c: schains) {
             check_inclusiveness(c);
+            find_banks(c);
             if (!c.is_output) {
                 vector<Func> producers;
                 producers = isolate_producer(c);
@@ -432,6 +472,50 @@ public:
             }
         }
         internal_assert(out.defined());
+        return out;
+    }
+};
+
+class RealizeOnGPU
+{
+    FindVars &fv;
+
+    void gpu_fetch(Schain &c) {
+        for (auto &s : c.stensors) {
+            // Currently, we realize SRAM with combined registers across threads
+            // The SRAM stensor determines the allocated registers
+            if (s.position == SRAM) {
+                c.imp.gpu_fetch(s.v_scope, MemoryType::Register, s.v_outs);
+                debug(1) << c.imp.name() << ".gpu_fetch("
+                         << s.v_scope.name() << ", {" << names_to_string(s.v_outs) << "});\n";
+            }
+        }
+    }
+
+    void gpu_store(Schain &c) {
+        for (auto &s : c.stensors) {
+            if (s.dims.size() > 0) {
+                c.outf.gpu_store(s.dims);
+                debug(1) << c.outf.name() << ".gpu_store("
+                         << to_string(s.dims) << ");\n";
+            }
+        }
+    }
+
+public:
+    RealizeOnGPU(FindVars &_f) : fv(_f) {}
+
+    Func realize() {
+        Func out;
+        for (auto &c : schains) {
+            // check_correctness(c);
+            if (!c.is_output) {
+                gpu_fetch(c);
+            } else {
+                gpu_store(c);
+                out = c.outf;
+            }
+        }
         return out;
     }
 };
@@ -459,12 +543,24 @@ Func Stensor::stensor_realize_wrapper(Starget t) {
     Func outf = schains[c].outf;
     env = outf.pipeline().compute_environment();
 
-    FindVars fv(env);
     Func f;
     if (t == Starget::IntelFPGA) {
+        FindVars fv(env);
         RealizeOnFPGA fpga(fv);
         f = fpga.realize();
         internal_assert(f.function().place() == Place::Host);
+    }
+    if (t == Starget::IntelGPU) {
+        for (auto &p : env) {
+            if (p.second.function().place() == Place::Device) {
+                // Placing on device is only valid for FPGAs
+                p.second.function().place(Place::Host);
+            }
+            reorder_gpu_loops(p.second);
+        }
+        FindVars fv(env);
+        RealizeOnGPU gpu(fv);
+        f = gpu.realize();
     }
     return f;
 }
@@ -476,6 +572,9 @@ void Stensor::realize(Buffer<> dst, Starget t) {
         acc.set_feature(Target::IntelFPGA);
         acc.set_feature(Target::EnableSynthesis);
         f.realize(dst, acc);
+    }
+    if (t == Starget::IntelGPU) {
+        user_error << "Currently the GPU runtime is under developement\n";
     }
 }
 
@@ -497,6 +596,13 @@ void Stensor::compile_to_host(string file_name, const vector<Argument> &args,
         acc.set_feature(Target::IntelFPGA);
         acc.set_feature(Target::EnableSynthesis);
         f.compile_to_host(file_name, args, fn_name, acc);
+    }
+    if (t == Starget::IntelGPU) {
+        user_warning << "Currently the GPU runtime is under developement, "
+                        "so we just emit out the source code in " << fn_name << "_genx.cpp\n";
+        Target acc = get_host_target();
+        acc.set_feature(Target::IntelGPU);
+        f.compile_to_cm(fn_name, std::move(args), acc);
     }
 }
 

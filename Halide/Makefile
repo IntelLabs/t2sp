@@ -812,6 +812,7 @@ T2S_SOURCE_FILES = \
   LateFuse.cpp \
   LoopRemoval.cpp \
   Math.cpp \
+  MemorySchedule.cpp \
   MergeUres.cpp \
   MinimizeShregs.cpp \
   NoIfSimplify.cpp \
@@ -841,6 +842,7 @@ T2S_HEADER_FILES = \
   LateFuse.h \
   LoopRemoval.h \
   Math.h \
+  MemorySchedule.h \
   MinimizeShregs.h \
   NoIfSimplify.h \
   Overlay.h \

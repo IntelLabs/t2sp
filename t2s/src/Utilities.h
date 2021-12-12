@@ -39,6 +39,9 @@ std::string extract_first_token(const std::string &str);
 // Return the substring after the last '.', or the whole string if there is no '.'.
 std::string extract_last_token(const std::string &str);
 
+// Return the substring at the given '.'. Error if the number of `.` are less than expected.
+std::string extract_token(const std::string &str, int num_tokens);
+
 // Return the substring before the given number of `.`. Error if the number of `.` are less than expected.
 std::string extract_before_tokens(const std::string &str, int num_tokens);
 

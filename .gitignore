@@ -3,10 +3,22 @@ downloads
 install
 
 # T2S generated tmp
-a.out
+*.out
 tmp.txt
+exec_time.txt
+profile.mon
 *.temp
 *.aocx
 *.aocr
 *.aoco
+*-interface.*
+*_genx.cpp
+temp*
+*.png
+*.o
+*.isa
+signed* 
+
+# If you modify this file for your local setting, do not check in unless your modification is general
+# To check in anyway, do "git add -f setenv.sh", followed by "git commit" 
 setenv.sh

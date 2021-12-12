@@ -34,6 +34,7 @@ namespace Internal {
 
 /** Any pre-processing of the Functions in the environment during compile/realize before reaching lower(). */
 extern void t2s_preprocess_before_lower(map<string, Func> &env, const Target &target);
+extern void reorder_gpu_loops(Func func);
 
 }
 }

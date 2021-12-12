@@ -20,23 +20,17 @@
 
 int main(void) {
   // A simple 2-D loop
-  Var i2, j2, k2;
-  Func A2(Int(32), {i2, j2, k2}), B2(Int(32), {i2, j2, k2});
-  A2(i2, j2, k2) = 10;
-  B2(i2, j2, k2) = A2(i2, j2, k2);
+  Var i2, j2;
+  Func A2(Int(32), {i2, j2}), B2(Int(32), {i2, j2});
+  A2(i2, j2) = 10;
+  B2(i2, j2) = A2(i2, j2);
 
   // Space-time-transform
   A2.merge_ures(B2)
     .set_bounds(i2, 0, SIZE)
-    .set_bounds(j2, 0, SIZE)
-    .set_bounds(k2, 0, SIZE);
+    .set_bounds(j2, 0, SIZE);
 
-  // Space loops should be adjacent to each other.
-  try {
-      A2.space_time_transform(i2, k2);
-  } catch (Halide::CompileError &e) {
-      cout << e.what() << "Success!\n";
-      exit(0);
-  }
-  return 1;
+  // Space loops should be at the innermost level.
+  A2.space_time_transform(j2);
+  cout << "Success!\n";
 }

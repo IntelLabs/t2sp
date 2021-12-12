@@ -274,6 +274,8 @@ class PredicateLoadStore : public IRMutator {
             // See: https://github.com/halide/Halide/issues/3534
             // return (bit_size == 32) && (lanes >= 4);
             return false;
+        } else if (target.has_feature(Target::IntelGPU)) {
+            return true;
         }
         // For other architecture, do not predicate vector load/store
         return false;
@@ -942,7 +944,7 @@ class VectorSubs : public IRMutator {
     Stmt visit(const For *op) override {
         ForType for_type = op->for_type;
         if (for_type == ForType::Vectorized) {
-            user_warning << "Warning: Encountered vector for loop over " << op->name
+            user_warning << "Encountered vector for loop over " << op->name
                          << " inside vector for loop over " << var << "."
                          << " Ignoring the vectorize directive for the inner for loop.\n";
             for_type = ForType::Serial;

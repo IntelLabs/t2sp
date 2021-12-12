@@ -39,7 +39,7 @@ struct RegBound {
 
 /* Transform the incoming loop by applying the space time transformation. Record the shift register info into reg_size_map. */
 extern Stmt apply_space_time_transform(Stmt s,
-                                       const std::map<std::string, Function> &env,
+                                       std::map<std::string, Function> &env,
                                        const Target &target,
                                        std::map<std::string, RegBound > &reg_size_map);
 
