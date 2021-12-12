@@ -11,7 +11,7 @@ where `s` is the stride, operation `·` is scalar multiplication, and `O`, `I`, 
 | Device | Frequency | Throughput | Logic utilization | DSP blocks | RAM blocks | Efficiency | Tensor Sizes | Device compiler |
 | ------ | --------- | ------ | --------- | ---- | ----- | -------------- | ----- | -------------- |
 | Intel Arria 10 GX 1150 FPGA | 207 MHz | 524 GFLOPS | 225,268 / 427,200 ( 53 % ) | 1,286 / 1,518 ( 85 % ) | 1,801 / 2,713 ( 66 % ) | 98%  | I(64,256,62,62) * K(256,256,3,3) | aoc 19.4.0 |
-| Intel GEN9.5 GPU | 1200 MHz | 437 GFLOPS | - | - | - | 95%   | I(4, 256, 66, 66) * K(256, 256, 3, 3) | CM Dev Package 20200119 |
+| Intel GEN9.5 GPU | 1200 MHz | 422 GFLOPS | - | - | - | 92%   | I(4, 256, 66, 66) * K(256, 256, 3, 3) | CM Dev Package 20200119 |
 
 Note: when [measuring the performance](../README.md#Performance-metrics),
 
