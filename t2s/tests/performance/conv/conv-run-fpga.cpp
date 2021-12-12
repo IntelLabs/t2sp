@@ -107,8 +107,8 @@ int main()
         cout << "Failed to draw roofline!\n";
         return 1;
     }
-    cout << "Size of tensor I: " << N << " * " << TOTAL_CI << " * " << TOTAL_IX << " * " << TOTAL_IY << "\n";
-    cout << "Size of tensor K: " << TOTAL_CI << " * " << TOTAL_CO << " * " << KX << " * " << KY << "\n";
+    cout << "Size of tensor I: " << N << ", " << TOTAL_CI << ", " << TOTAL_IX << ", " << TOTAL_IY << "\n";
+    cout << "Size of tensor K: " << TOTAL_CI << ", " << TOTAL_CO << ", " << KX << ", " << KY << "\n";
 #endif
 
     printf("Success\n");

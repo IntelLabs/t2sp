@@ -30,12 +30,18 @@
 #include "common/cm_rt_helpers.h"
 #include "common/isa_helpers.h"
 
+// For printing output
+#include <stdio.h>
+#include <iostream>
+
 #define TOTAL_I     III*II*I
 #define TOTAL_J     JJJ*JJ*J
 #define TOTAL_K     KKK*KK*K
 #define SIZE_A      TOTAL_I*TOTAL_K
 #define SIZE_B      TOTAL_J*TOTAL_K
 #define SIZE_C      TOTAL_I*TOTAL_J
+
+using namespace std;
 
 void check_correctness(float *a, float *b, float *c)
 {

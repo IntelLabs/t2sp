@@ -24,6 +24,10 @@
 #include "common/cm_rt_helpers.h"
 #include "common/isa_helpers.h"
 
+// For printing output
+#include <stdio.h>
+#include <iostream>
+
 #define N           4
 #define SIZE_I_0    TOTAL_CI * N
 #define SIZE_I_1    TOTAL_IY * TOTAL_IX
@@ -31,6 +35,8 @@
 #define SIZE_K_1    TOTAL_CI * KY
 #define SIZE_O_0    TOTAL_CO * N
 #define SIZE_O_1    TOTAL_OY * TOTAL_OX
+
+using namespace std;
 
 void check_correctness(float *i, float *k, float *o)
 {
@@ -140,8 +146,8 @@ int main(int argc, char *argv[]) {
     if (ITER == 1) {
         printf("Pass!\n");
     } else {
-        cout << "Size of tensor I: " << N << " * " << TOTAL_CI << " * " << TOTAL_IX << " * " << TOTAL_IY << "\n";
-        cout << "Size of tensor K: " << TOTAL_CI << " * " << TOTAL_CO << " * " << KX << " * " << KY << "\n";
+        cout << "Size of tensor I: " << N << ", " << TOTAL_CI << ", " << TOTAL_IX << ", " << TOTAL_IY << "\n";
+        cout << "Size of tensor K: " << TOTAL_CI << ", " << TOTAL_CO << ", " << KX << ", " << KY << "\n";
         printf("Average GFlops: %lf\n", ops / tkern);
         printf("Max GFlops: %lf\n", ops / min_tkern);
     }
