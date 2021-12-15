@@ -29,12 +29,12 @@
 #include <iostream>
 
 #define N           64
-#define SIZE_I_0    TOTAL_CI * MK * MX
-#define SIZE_I_1    TOTAL_IY * TOTAL_IX * N
-#define SIZE_K_0    TOTAL_CO * MY
-#define SIZE_K_1    TOTAL_CI * KY * KX * MK
-#define SIZE_O_0    TOTAL_CO * MY * MX
-#define SIZE_O_1    OY * OX * N
+#define SIZE_P_0    TOTAL_CI * MK * MX
+#define SIZE_P_1    TOTAL_IY * TOTAL_IX * N
+#define SIZE_W_0    TOTAL_CO * MY
+#define SIZE_W_1    TOTAL_CI * KY * KX * MK
+#define SIZE_V_0    TOTAL_CO * MY * MX
+#define SIZE_V_1    OY * OX * N
 
 using namespace std;
 
@@ -53,15 +53,15 @@ void check_correctness(float *P, float *W, float *V)
         for (int ci = 0; ci < TOTAL_CI; ci++) {
             size_t total_ix = x*2 + kx;
             size_t total_iy = y*2 + ky;
-            size_t i_0 = ci + (TOTAL_CI)*mk + (TOTAL_CI*MK)*mx;
-            size_t i_1 = total_iy + (TOTAL_IY)*total_ix + (TOTAL_IY*TOTAL_IX)*n;
-            size_t k_0 = co + (TOTAL_CO)*my;
-            size_t k_1 = (ci % CII) + (CII)*ky + (CII*KY)*kx + (CII*KY*KX)*(ci/CII) + (CII*KY*KX*CI)*mk;
-            golden += P[i_0 + SIZE_I_0 * i_1] * W[k_0 + SIZE_K_0 * k_1];
+            size_t p_0 = ci + (TOTAL_CI)*mk + (TOTAL_CI*MK)*mx;
+            size_t p_1 = total_iy + (TOTAL_IY)*total_ix + (TOTAL_IY*TOTAL_IX)*n;
+            size_t w_0 = co + (TOTAL_CO)*my;
+            size_t w_1 = (ci % CII) + (CII)*ky + (CII*KY)*kx + (CII*KY*KX)*(ci/CII) + (CII*KY*KX*CI)*mk;
+            golden += P[p_0 + SIZE_P_0 * p_1] * W[w_0 + SIZE_W_0 * w_1];
         }
-        size_t o_0 = co + TOTAL_CO*my + TOTAL_CO*MY*mx;
-        size_t o_1 = y + OY*x + OY*OX*n;
-        assert(fabs(golden - V[o_0 + SIZE_O_0 * o_1]) < 0.005*fabs(golden));
+        size_t v_0 = co + TOTAL_CO*my + TOTAL_CO*MY*mx;
+        size_t v_1 = y + OY*x + OY*OX*n;
+        assert(fabs(golden - V[v_0 + SIZE_V_0 * v_1]) < 0.005*fabs(golden));
     }
 }
 
@@ -85,34 +85,34 @@ int main(int argc, char *argv[]) {
     cm_result_check(device->CreateQueue( cmd_queue ));
     srand(time(NULL));
 
-    float *a = (float*)malloc(sizeof(float) * SIZE_I_0 * SIZE_I_1);
-    for (int i = 0; i < SIZE_I_0 * SIZE_I_1; ++i) {
+    float *a = (float*)malloc(sizeof(float) * SIZE_P_0 * SIZE_P_1);
+    for (int i = 0; i < SIZE_P_0 * SIZE_P_1; ++i) {
         a[i] = rand();
     }
     CmSurface2D *surf_a = nullptr;
     SurfaceIndex *surf_a_idx = nullptr;
-    cm_result_check(device->CreateSurface2D(SIZE_I_0, SIZE_I_1, CM_SURFACE_FORMAT_R32F, surf_a));
+    cm_result_check(device->CreateSurface2D(SIZE_P_0, SIZE_P_1, CM_SURFACE_FORMAT_R32F, surf_a));
     cm_result_check(surf_a->WriteSurface((unsigned char*)a, NULL));
     cm_result_check(surf_a->GetIndex(surf_a_idx));
 
-    float *b = (float*)malloc(sizeof(float) * SIZE_K_0 * SIZE_K_1);
-    for (int i = 0; i < SIZE_K_0 * SIZE_K_1; ++i) {
+    float *b = (float*)malloc(sizeof(float) * SIZE_W_0 * SIZE_W_1);
+    for (int i = 0; i < SIZE_W_0 * SIZE_W_1; ++i) {
         b[i] = rand();
     }
     CmSurface2D *surf_b = nullptr;
     SurfaceIndex *surf_b_idx = nullptr;
-    cm_result_check(device->CreateSurface2D(SIZE_K_0, SIZE_K_1, CM_SURFACE_FORMAT_R32F, surf_b));
+    cm_result_check(device->CreateSurface2D(SIZE_W_0, SIZE_W_1, CM_SURFACE_FORMAT_R32F, surf_b));
     cm_result_check(surf_b->WriteSurface((unsigned char*)b, NULL));
     cm_result_check(surf_b->GetIndex(surf_b_idx));
 
     CmSurface2D *surf_c = nullptr;
     SurfaceIndex *surf_c_idx = nullptr;
-    cm_result_check(device->CreateSurface2D(SIZE_O_0, SIZE_O_1, CM_SURFACE_FORMAT_R32F, surf_c));
+    cm_result_check(device->CreateSurface2D(SIZE_V_0, SIZE_V_1, CM_SURFACE_FORMAT_R32F, surf_c));
     cm_result_check(surf_c->GetIndex(surf_c_idx));
 
-    cm_result_check(kernel->SetKernelArg(0, sizeof(SurfaceIndex), surf_a_idx));
-    cm_result_check(kernel->SetKernelArg(1, sizeof(SurfaceIndex), surf_b_idx));
-    cm_result_check(kernel->SetKernelArg(2, sizeof(SurfaceIndex), surf_c_idx));
+    cm_result_check(kernel->SetKernelArg(0, sizeof(SurfaceIndex), surf_c_idx));
+    cm_result_check(kernel->SetKernelArg(1, sizeof(SurfaceIndex), surf_a_idx));
+    cm_result_check(kernel->SetKernelArg(2, sizeof(SurfaceIndex), surf_b_idx));
     UINT64 kernel_ns = 0;
     UINT64 min_tkern = SIZE_MAX;
     // Creates a CmTask object.
@@ -135,7 +135,7 @@ int main(int argc, char *argv[]) {
             min_tkern = tmp_kern_time;
         }
         if (ITER == 1) {
-            float *c = (float*)malloc(sizeof(float) * SIZE_O_0 * SIZE_O_1);
+            float *c = (float*)malloc(sizeof(float) * SIZE_V_0 * SIZE_V_1);
             cm_result_check(surf_c->ReadSurface((unsigned char *)c, sync_event));
             check_correctness(a, b, c);
         }
