@@ -151,10 +151,6 @@ cd $HOME/t2sp/Halide
 make -j
 ```
 
-+ For debugging the T2SP compiler with source code information, ```make -j OPTIMIZE="-O0 -g"``` instead.
-+ To debug runtime, ```make -j OPTIMIZE_RUNTIME="-O0 -g" ``` instead.
-+ To enable both of them, ```make -j OPTIMIZE="-O0 -g" OPTIMIZE_RUNTIME="-O0 -g" ``` instead.
-
 # Regression tests
 
 ```
