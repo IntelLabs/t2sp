@@ -17,6 +17,13 @@ if [ "$1" != "devcloud" -a "$1" != "local" ]; then
     return 
 fi
 
+if [ "$1" == "devcloud" ]; then
+    if [ "$HOSTNAME" == "login-2" ]; then
+        echo "Error: The script should be run on a compute node of DevCloud or a local machine, not on the head node of DevCloud (login-2)."
+        return
+    fi
+fi
+
 if [ "$2" != "fpga" -a "$2" != "gpu" ]; then
     show_usage
     return 
