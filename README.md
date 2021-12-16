@@ -153,6 +153,8 @@ make -j
 
 # Regression tests
 
+Currently the regressoin tests are for FPGAs only. On a machine with an FPGA, 
+
 ```
 cd $HOME/t2sp/t2s/tests/correctness
 ./test.sh
