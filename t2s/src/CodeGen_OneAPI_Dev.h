@@ -165,6 +165,9 @@ protected:
         // For saving the pointer args streamed from scehduler
         std::map<std::string, std::string> pointer_args;
         std::vector<DeviceArgument> buffer_args;
+
+        typedef std::vector< std::tuple<Stmt, std::string, std::vector<DeviceArgument> > > kernel_args_vector;
+        kernel_args_vector kernel_args;
         const std::string OneAPIDefineVectorStructTypes = "\n// CodeGen_OneAPI DefineVectorStructTypes \n";
         const std::string OneAPIDeclareChannels = "\n// CodeGen_OneAPI DeclareChannels \n";
 

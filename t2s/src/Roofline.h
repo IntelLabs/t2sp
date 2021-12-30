@@ -26,4 +26,8 @@ double FMax();
 double ExecTime();
 void roofline(double mem_bandwidth, double compute_roof, double number_ops, double number_bytes, double exec_time);
 
+// Used for FPGA report generated through DPC++ OneAPI
+int DSPs_oneapi();
+double FMax_oneapi();
+
 #endif

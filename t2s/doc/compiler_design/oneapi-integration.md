@@ -32,20 +32,22 @@ Simply `#include <fn_name>.generated_oneapi_header.h` and compile with `dpcpp`.
   - The OneAPI target is automatically added, even if user does not manually add it.
   - Eventually will extend to other targets.
 
-<!-- 
-## ToDo's
-
-- Construct something for the same for IntelGPU target
-- Eventually, will want to match the Halide `compile_to_host()` function with output file naming 
-- No runtime is built into the compiler for DPC++ currently so we just output a header file
-- Verify that accessors/buffers/pipe read & writes all work properly with basic Halide Implementaitons
- -->
 
 ## Code Structure
 
-Below you can fllow the structure of how the `Func/Stensor` object code run 
-`compile_to_oneapi()` function. Begining with the class function and what nested
-function it calls.
+Below you can fllow the structure of how the `Func/Stensor` types run 
+`compile_to_oneapi()` function in the following structure:
+
+```
+-> file_name.cpp/.h
+  - Calling function name
+  - nested calling function
+-> nested_calling_function_filename.cpp/.h
+  -
+and so on ...
+```
+
+
 
 ```c++
 -> Stensor.cpp
@@ -77,54 +79,12 @@ function it calls.
 
 ## Conversion
 
-Major conversions include the following below.
+Intel provides documentation on how to migrate opencl fpga designs to dpcpp
+[here](https://www.intel.com/content/www/us/en/develop/documentation/migrate-opencl-fpga-designs-to-dpcpp/top/flags-attributes-directives-and-extensions.html).
 
-Note, these are examples but there may be multiple implementaitons of the same concept
+The Code Generator the `class CodeGen_OneAPI_Dev` inside of `./t2s/src/CodeGen_OneAPI_Dev.h/.cpp`
 
-Within the `class CodeGen_OneAPI_Dev` inside of `./t2s/src/CodeGen_OneAPI_Dev.h/.cpp`
-
-```c++
-// Added necessary OneAPI headers
-// Note that "dpc_common.hpp" comes from dpcpp installation and 
-// "pipe_array.hpp" comes from https://github.com/oneapi-src/oneAPI-samples
-+    src_stream_oneapi << "#include <CL/sycl.hpp>\n";
-+    src_stream_oneapi << "#include <sycl/ext/intel/fpga_extensions.hpp>\n";
-+    src_stream_oneapi << "#include \"dpc_common.hpp\"\n";
-+    src_stream_oneapi << "#include \"pipe_array.hpp\"\n";
-
-// Changed "#define float_from_bits(x) as_float(x)" to "#define float_from_bits(x) cl_float(x)"
-+    src_stream_oneapi << "// #define float_from_bits(x) as_float(x)\n"
-+               << "#define float_from_bits(x) cl_float(x)\n"
-
-// Changed "__fpga_reg()" to "sycl::ext::intel::fpga_reg()" instead of 
-// When using sycl::ext::intel::fpga_reg(), must check if it s a complex type such as float<N>
-rhs << "sycl::ext::intel::fpga_reg( sycl::ext::intel::fpga_reg(" << print_expr(op->args[0]) << "))"; 
-
-// Using pipes instead of channels
-// PipeArrays are used for when Pipes have more than a depth dimension
-if( pipeBounds != ""){
-    // Using pipe arrays 
-    oss << "using " << parent->print_name(op->name) << " = PipeArray<class " << parent->print_name(op->name) << "Pipe, " << type << ", " << pipeAttributes << ", " << pipeBounds << ">;\n";
-} else {
-    // Using regular pipes 
-    oss << "using " << parent->print_name(op->name) << " = sycl::ext::intel::pipe<class " << parent->print_name(op->name) << "Pipe, " << type << ", " << pipeAttributes << ">;\n";
-}
-// Writting to the pipe simply involves passing data into the pipe's ::write() function
-rhsPipe << print_name(channel_name) << "::write( " << write_data << " );\n";
-rhsPipe << print_name(channel_name) << "::PipeAt<" << pipeIndex << ">" << "::write( " << write_data << " );\n";
-// Reading from the pipe simply uses the ::read() function
-read_pipe_call = print_name(channel_name) + "::read()";
-read_pipe_call = print_name(channel_name) + "::PipeAt<" +  string_pipe_index + ">::read()";
-
-// Each device function implementation is wrapped around in a q_device.submit and h.submit_task()
-stream << get_indent() << "q_device.submit([&](sycl::handler &h){\n";
-stream << get_indent() << "h.single_task<class " + name + ">([=]()\n";
-
-// Change address spaces to accessors to use the user defined dpcpp buffers
-__address_space__unloader float *restrict _unloader
-stream << get_indent() << "sycl::accessor " << print_name(args[i].name) << "( " << get_memory_space(args[i].name) << ", h, sycl::read_write);\n";
-```
-
+The OneAPI Code Generator is bassed of the `CodeGen_OpenCL_Dev.h/.cpp` class inside of `./Halide/src/CodeGen_OpenCL_Dev.h/.cpp`
 
 
 

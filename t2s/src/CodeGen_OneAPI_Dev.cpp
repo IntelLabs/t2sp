@@ -35,9 +35,7 @@ void CodeGen_OneAPI_Dev::add_kernel(Stmt s,
     debug(2) << "CodeGen_OneAPI_Dev::compile " << name << "\n";
 
     // TODO: do we have to uniquify these names, or can we trust that they are safe?
-    // cur_kernel_name = name; // (TODO) Remove when confident in one_clc & CodeGen_OneAPI_Dev
     cur_kernel_name_oneapi = name;
-    // clc.add_kernel(s, name, args); // (TODO) Remove when confident in one_clc
     one_clc.add_kernel(s, name, args);
 }
 
@@ -92,7 +90,6 @@ void CodeGen_OneAPI_Dev::compile_to_aocx_oneapi(std::ostringstream &src_stream) 
         return;
     }
 
-    // (TODO) Remove creating bitstream from function as OneAPI generatur uses `void CodeGen_GPU_Host<CodeGen_CPU>::compile_func` to a dpcpp fat binary
 
     // Bitstream was generated ahead of time. Check the file exists.
     // Note that we do not check if the aocx file is really good or up to date with the
@@ -1479,7 +1476,6 @@ void CodeGen_OneAPI_Dev::CodeGen_OneAPI_C::visit(const Call *op) {
         stream << get_indent() << addr_temp << " = " << addr_temp << " + " << offset << ";\n";
     } else if (op->is_intrinsic(Call::fpga_reg)) {
         ostringstream rhs;
-        // rhs << "__fpga_reg(__fpga_reg(" << print_expr(op->args[0]) << "))"; // (TODO) Remove once confident in OneAPI implementaiton
         if( op->type.is_vector() ){
             // Needed for complex types in sycl i.e. floatN types
             std::string print_e = print_expr(op->args[0]);
@@ -1770,13 +1766,19 @@ void CodeGen_OneAPI_Dev::CodeGen_OneAPI_C::visit(const Load *op) {
                    << " + " << id_ramp_base << "))";
             print_assignment(op->type, rhs.str());
         } else {
-            // rhs << "vload" << op->type.lanes()
-            //     << "(0, (" << get_memory_space(op->name) << " "
-            //     << print_type(op->type.element_of()) << "*)"
-            //     << print_name(op->name) << " + " << id_ramp_base << ")";
-
-
-            rhs << ".load( " << id_ramp_base << "/" << op->type.lanes() << " , " << print_name(op->name) << ".get_pointer() )";
+            // use simple method to implemement vector type instead of vload
+            rhs << " = { \n";
+            indent += 2;
+            for(int i = 0; i < op->type.lanes(); i++){
+                rhs << get_indent() << print_name(op->name) << "[" << id_ramp_base << "+" << i << "]";
+                if(i != op->type.lanes() -1){
+                    rhs << ",\n";
+                } else {
+                    rhs << "\n";
+                }
+            }
+            indent -= 2;
+            rhs << get_indent()  << "}";
             print_load_assignment(op->type, rhs.str());
         }
         // print_assignment(op->type, rhs.str());
@@ -1953,15 +1955,12 @@ void CodeGen_OneAPI_Dev::CodeGen_OneAPI_C::visit(const Store *op) {
                    << print_type(t) << "*)(" << print_name(op->name)
                    << " + " << id_ramp_base << ")) = " << id_value << ";\n";
         } else {
-            stream << get_indent() << "// vstore" << t.lanes() << "("
-                   << id_value << ", "
-                   << 0 << ", (" << get_memory_space(op->name) << " "
-                   << print_type(t.element_of()) << "*)"
-                   << print_name(op->name) << " + " << id_ramp_base
-                   << ");\n";
-            stream << get_indent() << id_value << ".store( " << id_ramp_base 
-                   << "/" << t.lanes() 
-                   << " , " << print_name(op->name) << ".get_pointer() );\n";
+            // using simple menthod to store data instead of vstore 
+            for(int i = 0; i < t.lanes(); i++){
+                stream << get_indent() << print_name(op->name) 
+                       << "[" << id_ramp_base << "+" << i << "] = " 
+                       <<  id_value << "["<< i << "]"<< ";\n";
+            }
         }
     } else if (op->index.type().is_vector()) {
         // If index is a vector, scatter vector elements.
@@ -2152,7 +2151,7 @@ void CodeGen_OneAPI_Dev::CodeGen_OneAPI_C::visit(const Allocate *op) {
 
         stream << get_indent() << print_type(op->type) << ' '
                << print_name(op->name) << "[" << size << "];\n";
-        stream << get_indent() << "#define " << get_memory_space(op->name) << " __private\n"; // (TODO) Need to know when/how this is invoked and replace with OneAPI implementaiton
+        stream << get_indent() << "#define " << get_memory_space(op->name) << " __private\n";
 
         Allocation alloc;
         alloc.type = op->type;
@@ -2324,6 +2323,9 @@ void CodeGen_OneAPI_Dev::CodeGen_OneAPI_C::add_kernel(Stmt s,
 
     debug(2) << "Adding OneAPI kernel " << name << "\n";
 
+    // Store the kernel information for a kernel wrapped function in compile_to_oneapi
+    kernel_args.push_back( std::tuple<Stmt, std::string, std::vector<DeviceArgument> >(s,name,args) );
+
     //debug(2) << "Eliminating bool vectors\n";
     //s = eliminate_bool_vectors(s);
     //debug(2) << "After eliminating bool vectors:\n"
@@ -2358,9 +2360,9 @@ void CodeGen_OneAPI_Dev::CodeGen_OneAPI_C::add_kernel(Stmt s,
         constants[i].size += constants[i - 1].size;
     }
 
-
+    // Store the buffer arguments so we can create a wrapper at a later time as well 
     // Create preprocessor replacements for the address spaces of all our buffers.
-    stream << "\n\n// Address spaces for " << name << "\n";
+    // stream << "\n\n// Address spaces for " << name << "\n";
     for (size_t i = 0; i < args.size(); i++) {
         if (args[i].is_buffer) {
             buffer_args.push_back( args[i] );
@@ -2369,20 +2371,17 @@ void CodeGen_OneAPI_Dev::CodeGen_OneAPI_C::add_kernel(Stmt s,
                    constant->name != args[i].name) {
                 constant++;
             }
-
-            // (TODO) verify that we will never need this as we will be compiling using compile_oneapi_lower which will print out the addressSpace/Buffers as input arguments
-            if (constant != constants.end()) {
-                stream << "// #if " << constant->size << " <= MAX_CONSTANT_BUFFER_SIZE && "
-                       << constant - constants.begin() << " < MAX_CONSTANT_ARGS\n";
-                stream << "// #define " << get_memory_space(args[i].name) << " __constant\n"; // (TODO) Remove once confident in OneAPI implementaiton
-                stream << "// #else\n";
-                stream << "// #define " << get_memory_space(args[i].name) << " __global\n"; // (TODO) Remove once confident in OneAPI implementaiton
-                stream << "// #endif\n";
-                stream << "// sycl::buffer " << get_memory_space(args[i].name) << "(/*place existing host data here*/);\n"; // (TODO) Create a buffer either of varying size or known size passed by the user
-            } else {
-                stream << "// #define " << get_memory_space(args[i].name) << " __global\n"; // (TODO) Remove once confident in OneAPI implementaiton
-                stream << "// sycl::buffer " << get_memory_space(args[i].name) << "(/*place existing host data here*/);\n"; // (TODO) Create a buffer either of varying size or known size passed by the user
-            }
+            // (TODO) Remove, not needed for OneAPI
+            // if (constant != constants.end()) {
+            //     stream << "// #if " << constant->size << " <= MAX_CONSTANT_BUFFER_SIZE && "
+            //            << constant - constants.begin() << " < MAX_CONSTANT_ARGS\n";
+            //     stream << "// #define " << get_memory_space(args[i].name) << " __constant\n";
+            //     stream << "// #else\n";
+            //     stream << "// #define " << get_memory_space(args[i].name) << " __global\n";
+            //     stream << "// #endif\n";
+            // } else {
+            //     stream << "// #define " << get_memory_space(args[i].name) << " __global\n";
+            // }
         }
     }
 
@@ -2395,22 +2394,20 @@ void CodeGen_OneAPI_Dev::CodeGen_OneAPI_C::add_kernel(Stmt s,
         stream << "// __attribute__((autorun))\n";
     }
 
-    // stream << "__kernel void " << name << "(\n"; // (TODO) Remove once confident in OneAPI implementaiton
-    stream << "\n\n";
-    stream << get_indent() << "// " << name << "\n";
-    stream << get_indent() << "q_device.submit([&](sycl::handler &h){\n"; // (TODO) verify that kernel will be run on a device queue and not a host queue
-    indent += 2;
 
+    stream << "\n\n";
+    stream << "sycl::event " << name << "(\n";
+    stream << get_indent() << " sycl::queue &q_device";
+    if(args.size() > 0) stream << ",\n";
     for (size_t i = 0; i < args.size(); i++) {
-        if (args[i].is_buffer) { // use accessors for manipulating buffers
-            stream << get_indent() << "// " << get_memory_space(args[i].name) << " ";
+        if (args[i].is_buffer) { 
+            // stream << get_indent() << " " << get_memory_space(args[i].name) << " ";
+            stream << get_indent() << " ";
             // TODO: Update buffer attributes if written in kernel ip
             char *overlay_num = getenv("HL_OVERLAY_NUM");
             if (!args[i].write && overlay_num == NULL) stream << "const ";
             stream << print_type(args[i].type) << " *"
-                   << "restrict "
-                   << print_name(args[i].name) << "\n";
-            stream << get_indent() << "sycl::accessor " << print_name(args[i].name) << "( " << get_memory_space(args[i].name) << ", h, sycl::read_write);\n";
+                   << print_name(args[i].name);          
             Allocation alloc;
             alloc.type = args[i].type;
             allocations.push(args[i].name, alloc);
@@ -2427,22 +2424,25 @@ void CodeGen_OneAPI_Dev::CodeGen_OneAPI_C::add_kernel(Stmt s,
             stream << " const "
                    << print_type(t)
                    << " "
-                   << print_name(name) << ";\n";
+                   << print_name(name);
         }
-
-
-
-        // if (i < args.size() - 1) stream << ",\n"; // (TODO) remove compleley when confident what to do with input arguments
+        if (i < args.size() - 1) stream << ",\n";
     }
-    if (!target.has_feature(Target::IntelFPGA)) {
-        // (TODO) Remove once confident in OneAPI implementaiton
-        // TOFIX: should not we add shared only when there is shared memory passed in?
-        stream << "// " << ",\n"
-               << " __address_space___shared int16* __shared";
-    }
-    // stream << ")\n";  // (TODO) remove compleley when confident what to do with input arguments
+    // (TODO) Remove once confident in OneAPI implementaiton
+    // if (!target.has_feature(Target::IntelFPGA)) {
+    //     // TOFIX: should not we add shared only when there is shared memory passed in?
+    //     stream << "// " << ",\n"
+    //            << " __address_space___shared int16* __shared";
+    // }
+    stream << ")\n";  
+    open_scope(); 
 
-    stream << get_indent() << "h.single_task<class " + name + ">([=]()\n";
+    // Emit OneAPI queue device submit tasks
+    stream << get_indent() << "// " << name << "\n";
+    stream << get_indent() << "sycl::event "<< name << "_event = q_device.submit([&](sycl::handler &h){\n";
+    indent += 2;
+
+    stream << get_indent() << "h.single_task<class " + name + "_class>([=]()\n";
     open_scope(); 
 
     // Reinterpret half args passed as uint16 back to half
@@ -2461,12 +2461,22 @@ void CodeGen_OneAPI_Dev::CodeGen_OneAPI_C::add_kernel(Stmt s,
     stream << da.arrays.str();
 
     print(s);
-    close_scope("kernel " + name);
 
+    // Close kernel and device queue
+    close_scope(name + "_class");
     stream << get_indent() << "); // h.single_task\n";
     indent -= 2;
     stream << get_indent() << "}); // q_device.submit\n"; 
 
+    // Return the queue task event
+    // If we are collecting kernel events from the compile_oneapi_lower() wrapper for all queue tasks 
+    stream << get_indent() << "return " << name << "_event;\n";
+
+    // Close kernel function wrapper
+    close_scope("kernel " + name);
+
+
+    // (TODO) Remove Not Needed for OneAPI code
     for (size_t i = 0; i < args.size(); i++) {
         // Remove buffer arguments from allocation scope
         if (args[i].is_buffer) {
@@ -2474,12 +2484,13 @@ void CodeGen_OneAPI_Dev::CodeGen_OneAPI_C::add_kernel(Stmt s,
         }
     }
 
+    // (TODO) Remove Not Needed for OneAPI code
     // Undef all the buffer address spaces, in case they're different in another kernel.
-    for (size_t i = 0; i < args.size(); i++) {
-        if (args[i].is_buffer) {
-            stream << "// " << "#undef " << get_memory_space(args[i].name) << "\n";
-        }
-    }
+    // for (size_t i = 0; i < args.size(); i++) {
+    //     if (args[i].is_buffer) {
+    //         stream << "// " << "#undef " << get_memory_space(args[i].name) << "\n";
+    //     }
+    // }
 }
 
 
@@ -2506,9 +2517,13 @@ void CodeGen_OneAPI_Dev::CodeGen_OneAPI_C::print_global_data_structures_before_k
 
 std::string CodeGen_OneAPI_Dev::CodeGen_OneAPI_C::compile_oneapi_lower(const LoweredFunc &f, std::string str){
     // Wrapp existing q_device submit kernel code into a function
-    // See void CodeGen_C::compile(const LoweredFunc &f) and void CodeGen_C::compile(const Module &input) for similar implementation
+    // See void CodeGen_C::compile(const LoweredFunc &f) and 
+    //     void CodeGen_C::compile(const Module &input) for similar implementation
+
     std::ostringstream function_top;
     std::ostringstream function_btm;
+
+    function_top << "\n\n";
 
     const std::vector<LoweredArgument> &args = f.args;
 
@@ -2522,37 +2537,198 @@ std::string CodeGen_OneAPI_Dev::CodeGen_OneAPI_C::compile_oneapi_lower(const Low
         }
         function_top << "\n";
     }
-    // function_top << "HALIDE_FUNCTION_ATTRS\n";
-    function_top << "int " << simple_name << "(";
 
-    // Print q_device as input 
-    function_top << "sycl::queue &q_device";
-    if(buffer_args.size() > 0) function_top << ", ";
-
-    // Print needed buffers
-    for(size_t i = 0; i < buffer_args.size(); i++){
-        function_top << "sycl::buffer<" << print_type(buffer_args[i].type) << "> &" << get_memory_space(buffer_args[i].name);
-        if (i < buffer_args.size() - 1) function_top << ", ";
+    // Emit the function prototype
+    if (f.linkage == LinkageType::Internal) {
+        // If the function isn't public, mark it static.
+        function_top << "static ";
     }
 
+    // function wrapper for device queue tasks 
+    function_top << "double " << simple_name << "(";
+
+    // Print q_device as first input 
+    function_top << "sycl::queue &q_device";
+    indent += 2;
+
+
+    // Print arguments
+    std::vector<LoweredArgument> buffer_input_args;
+    if(args.size() > 0){ function_top << ",\n"; }
     for (size_t i = 0; i < args.size(); i++) {
-        // Not needed to check as we store the buffer args in member variable buffer_args
-        // if (args[i].is_buffer()) {
-        //     function_top << "struct halide_buffer_t *"
-        //         << print_name(args[i].name)
-        //         << "_buffer";
-        // } 
+        if (i == 0){ function_top << get_indent(); }
         if(!args[i].is_buffer()) {
             function_top << print_type(args[i].type, AppendSpace)
                 << print_name(args[i].name);
-            if (i < args.size() - 1) function_top << ", ";
+        } else {
+            buffer_input_args.push_back( args[i] );
+            int dim = 1;
+            if( (int)args[i].dimensions < 3){
+                dim = (int)args[i].dimensions;
+            }
+            function_top << "sycl::buffer <" << print_type(args[i].type) << "," << dim  << "> "
+                         << print_name(args[i].name);
         }
+        if (i < args.size() - 1) function_top << ", ";
     }
 
     function_top << ") {\n";
-    function_btm << "return 0;\n";
-    function_btm << "}\n";
+    
 
+    // Allocade Deivce memory
+    function_top << "\n\n";
+    function_top << get_indent() << "std::cout << \"// Allocade Deivce memory\\n\";\n";
+    user_assert(buffer_input_args.size() == buffer_args.size()) << " Unable to match OneAPI wrapper inputs with device memory\n";
+    for(size_t i = 0; i < buffer_args.size(); i++){
+        function_top << get_indent() << print_type(buffer_args[i].type) << " *" << print_name(buffer_args[i].name) 
+                     << " = sycl::malloc_device<" << print_type(buffer_args[i].type) << ">(" 
+                     <<  print_name(buffer_input_args[i].name)  << ".byte_size(), q_device);\n";
+    }   
+
+
+    // Define dimentions of input buffers
+    function_top << "\n\n";
+    function_top << get_indent() << "std::cout << \"// define dimentions of input buffers\\n\";\n";
+    for(size_t i = 0; i < buffer_input_args.size(); i++){
+        size_t dim = 1;
+        if( (size_t)buffer_input_args[i].dimensions < 3 ){
+            dim = (size_t)buffer_input_args[i].dimensions;
+        }
+        for(size_t j = 0; j < dim; j++){
+            function_top << get_indent() 
+                         << "int " << print_name(buffer_input_args[i].name) << "_extent_" << j 
+                         << " = " <<  print_name(buffer_input_args[i].name) << ".get_range().get(" << j << ");\n";
+        }
+    }
+
+
+    // Create device queue for each of the kernels 
+    function_top << "\n\n" << get_indent() << "std::cout << \"// creating device queues\\n\";\n";
+    function_top << get_indent() << "sycl::device dev = q_device.get_device();\n";
+    for(size_t i = 0; i < kernel_args.size(); i++){
+        // Stmt s =  kernel_args[i].get<0>;
+        std::string k_name =  std::get<1>( kernel_args[i] );
+        // std::vector<DeviceArgument> = kernel_args[i].get<2>;
+        function_top << get_indent() << "sycl::queue q_" << k_name 
+                     << "(dev, dpc_common::exception_handler, sycl::property::queue::enable_profiling() );\n";
+
+    }
+
+
+    // Initiate host -> device memcpy copy and wait for completition
+    function_top << "\n\n";
+    function_top << get_indent() << "std::cout << \"// memcpy  host -> device\\n\";\n";
+    user_assert(buffer_input_args.size() == buffer_args.size()) << " Unable to match OneAPI wrapper inputs with device memory\n";
+    // create a host queue to do the memory copy
+    function_top << get_indent() << "std::vector<sycl::event> oneapi_memcpy_h2d_events;\n";
+    for(size_t i = 0; i < buffer_args.size(); i++){
+        // redefine the buffer to be 1 dimentional
+        function_top << get_indent() << "sycl::buffer " << print_name(buffer_input_args[i].name) << "_rnt = "
+                                    << print_name(buffer_input_args[i].name) << ".reinterpret<" << print_type(buffer_args[i].type) << ">"
+                                    << "( sycl::range<1>( " << print_name(buffer_input_args[i].name) << ".byte_size() / sizeof(" << print_type(buffer_args[i].type) << ") ) );\n";
+        
+        // create a queue task to copy the data from host->device memory
+        function_top << get_indent() << "sycl::event memcpy_h2d_event_"<< i <<" = q_device.submit([&](sycl::handler &h){\n"
+                     << get_indent() << "    sycl::accessor access( "<< print_name(buffer_input_args[i].name) << "_rnt" <<", h, sycl::read_write);\n"
+                     << get_indent() << "    auto buffer_size = access.get_size();\n"
+                     << get_indent() << "    h.parallel_for( (buffer_size/sizeof("<< print_type(buffer_args[i].type) <<")), [=](sycl::id<1> i){\n"
+                     << get_indent() << "        " << print_name(buffer_args[i].name) << "[i.get(0)] =  access[i];\n"
+                     << get_indent() << "    });\n"
+                     << get_indent() << "});\n";
+                    
+        // push the memcpy task event to the vector
+        function_top << get_indent() << "oneapi_memcpy_h2d_events.push_back( memcpy_h2d_event_" << i << " );\n";
+    }
+    // wait for all host -> device memcpy copy to finish
+    function_top << get_indent() << "for(size_t i = 0; i < oneapi_memcpy_h2d_events.size(); i++){\n"
+                 << get_indent() << "    oneapi_memcpy_h2d_events[i].wait();\n"
+                 << get_indent() << "}\n";
+
+
+    // Create sycl events vector to store all the input 
+    function_top << "\n\n";
+    function_top << get_indent() << "std::vector<sycl::event> oneapi_kernel_events;\n";
+
+    // submit each kernel with their required arguments. Storing each device into the oneapi_kernel_events vector
+    function_top << "\n\n";
+    function_top << get_indent() << "std::cout << \"// submit kernels to run\\n\";\n";
+    for(size_t i = 0; i < kernel_args.size(); i++){
+        Stmt k_s =  std::get<0>( kernel_args[i] );
+        std::string k_name =  std::get<1>( kernel_args[i] );
+        std::vector<DeviceArgument> k_args = std::get<2>( kernel_args[i] );
+        // submit and store kernel event
+        function_top << get_indent() << "oneapi_kernel_events.push_back( "
+                     << k_name << "( q_" << k_name;
+        // Kernel arguments are passed here
+        if( k_args.size() > 0){ function_top << ", "; }
+        for (size_t i = 0; i < k_args.size(); i++) {
+            function_top << print_name(k_args[i].name);
+            if (i < k_args.size() - 1){ function_top << ", "; };
+        }
+        function_top << ") );\n";
+    }
+
+    // Wait for all device event queue to finish 
+    function_top << "\n\n";
+    function_top << get_indent() << "std::cout << \"// wait for the kernel events to complete\\n\";\n";
+    function_top << get_indent() << "for(int i = 0; i < oneapi_kernel_events.size(); i++ ){\n"
+                 << get_indent() << "	oneapi_kernel_events.at(i).wait();\n"
+                 << get_indent() << "}\n";
+
+
+    // Initiate device -> host memoyr copy and wait for completition
+    function_top << "\n\n";
+    function_top << get_indent() << "std::cout << \"// memcpy  device -> host\\n\";\n" ;
+    user_assert(buffer_input_args.size() == buffer_args.size()) << " Unable to match OneAPI wrapper inputs with device memory\n";
+    // create a host queue to do the memory copy
+    function_top << get_indent() << "std::vector<sycl::event> oneapi_memcpy_d2h_events;\n";
+    for(size_t i = 0; i < buffer_args.size(); i++){
+
+        // create a queue task to copy the data from device->host memory
+        function_top << get_indent() << "sycl::event memcpy_d2h_event_"<< i <<" = q_device.submit([&](sycl::handler &h){\n"
+                     << get_indent() << "    sycl::accessor access( "<< print_name(buffer_input_args[i].name) << "_rnt" <<", h, sycl::read_write);\n"
+                     << get_indent() << "    auto buffer_size = access.get_size();\n"
+                     << get_indent() << "    h.parallel_for( (buffer_size/sizeof("<< print_type(buffer_args[i].type) <<")), [=](sycl::id<1> i){\n"
+                    //  << get_indent() << "        " << print_name(buffer_args[i].name) << "[i.get(0)] =  access[i];\n"
+                     << get_indent() << "        " << "access[i] = " << print_name(buffer_args[i].name) << "[i.get(0)];\n"
+                     << get_indent() << "    });\n"
+                     << get_indent() << "});\n";
+                    
+        // push the memcpy task event to the vector
+        function_top << get_indent() << "oneapi_memcpy_d2h_events.push_back( memcpy_d2h_event_" << i << " );\n";
+    }
+    // wait for all host -> device memcpy copy to finish
+    function_top << get_indent() << "for(size_t i = 0; i < oneapi_memcpy_d2h_events.size(); i++){\n"
+                 << get_indent() << "    oneapi_memcpy_d2h_events[i].wait();\n"
+                 << get_indent() << "}\n";
+
+            
+
+    // Get and return timing metrics
+    function_btm << "\n\n";
+    function_btm << get_indent() << "std::cout << \"// return the kernel execution time in nanoseconds\\n\";\n";
+    function_btm << ""
+                << get_indent() << "if(oneapi_kernel_events.size() > 0){\n"
+                << get_indent() << "	double k_earliest_start_time = oneapi_kernel_events.at(0).get_profiling_info<sycl::info::event_profiling::command_start>();\n"
+                << get_indent() << "	double k_latest_end_time = oneapi_kernel_events.at(0).get_profiling_info<sycl::info::event_profiling::command_end>();\n"
+                << get_indent() << "	for (unsigned i = 1; i < oneapi_kernel_events.size(); i++) {\n"
+                << get_indent() << "	  double tmp_start = oneapi_kernel_events.at(i).get_profiling_info<sycl::info::event_profiling::command_start>();\n"
+                << get_indent() << "	  double tmp_end = oneapi_kernel_events.at(i).get_profiling_info<sycl::info::event_profiling::command_end>();\n"
+                << get_indent() << "	  if (tmp_start < k_earliest_start_time) {\n"
+                << get_indent() << "         k_earliest_start_time = tmp_start;\n"
+                << get_indent() << "	  }\n"
+                << get_indent() << "	  if (tmp_end > k_latest_end_time) {\n"
+                << get_indent() << "         k_latest_end_time = tmp_end;\n"
+                << get_indent() << "	  }\n"
+                << get_indent() << "	}\n"
+                << get_indent() << "	// Get time in ns\n"
+                << get_indent() << "	double events_time = (k_latest_end_time - k_earliest_start_time);\n"
+                << get_indent() << "	return events_time;\n"
+                << get_indent() << "}\n"
+                << get_indent() << "return (double)0;\n"
+                << "}\n";
+
+    // close out any namespaces used
     if (!namespaces.empty()) {
         function_btm << "\n";
         for (size_t i = namespaces.size(); i > 0; i--) {
@@ -2561,20 +2737,13 @@ std::string CodeGen_OneAPI_Dev::CodeGen_OneAPI_C::compile_oneapi_lower(const Low
         function_btm << "\n";
     }
 
-    // insert a wait after the last kernel 
-    const std::string task_str = "; // q_device.submit\n";
-    size_t wait_pos = str.rfind(task_str);
-    if(!(wait_pos == std::string::npos)){
-        str.insert( wait_pos , ".wait()" );
-    } else {
-        debug(2) << "No queue tasks found to insert wait into\n";
-    }
+    indent -= 2;
 
-    // wrap all the kernels with the function wrapper 
-    size_t top_pos = str.find(OneAPIDeclareChannels) + OneAPIDeclareChannels.size();
-    if(top_pos == std::string::npos) top_pos = 0;
-    str.insert( top_pos , function_top.str() );
+
+    // Append the function to the end of all of this
+    str.append( function_top.str() );
     str.append( function_btm.str() );
+
 
     return str;
 }
@@ -2608,8 +2777,6 @@ void CodeGen_OneAPI_Dev::CodeGen_OneAPI_C::DeclareChannels::visit(const Realize 
         std::ostringstream oss;
         if (ends_with(op->name, ".channel")) {
             // oss << "channel " << type << " " << parent->print_name(op->name) << bounds_str << attributes << ";\n";
-            oss << "// channel " << type << " " << parent->print_name(op->name) << bounds_str << attributes << ";\n";
-            oss << "// using " << parent->print_name(op->name) << " = sycl::ext::intel::pipe<std::class " << parent->print_name(op->name) << "Pipe, " << type << ", " << pipeAttributes <<  ">;\n";
             if( pipeBounds != ""){
                 // Using pipe arrays 
                 oss << "using " << parent->print_name(op->name) << " = PipeArray<class " << parent->print_name(op->name) << "Pipe, " << type << ", " << pipeAttributes << ", " << pipeBounds << ">;\n";
@@ -2624,7 +2791,6 @@ void CodeGen_OneAPI_Dev::CodeGen_OneAPI_C::DeclareChannels::visit(const Realize 
             size_t pos_last_token = printed_name.rfind('_');
             string channel_name = printed_name.substr(0, pos_last_token);
             oss << "typedef struct { " << type << " s" << bounds_str << "; } " << type_name << ";\n";
-            oss << "// channel " << type_name << " " << channel_name << attributes << ";\n";
             oss << "using " << channel_name << " = sycl::ext::intel::pipe<class " << channel_name << "Pipe, " << type_name << ", " << pipeAttributes <<  ">;\n";
             channels += oss.str();
         }
