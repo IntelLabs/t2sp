@@ -120,6 +120,13 @@ public:
 
     OutputImageParam &set_bounds(const vector<int> &bounds);
 
+    void gpu_fetch(Var loop_level, MemoryType mem_type, vector<Var> outs, vector<Expr> reuse_args) {
+        func.gpu_fetch(loop_level, mem_type, outs, reuse_args);
+    }
+    void gpu_fetch(Var loop_level, MemoryType mem_type, vector<Var> outs) {
+        func.gpu_fetch(loop_level, mem_type, outs, {});
+    }
+
     template<typename... Args>
     HALIDE_NO_USER_CODE_INLINE typename std::enable_if<Internal::all_are_convertible<int, Args...>::value, OutputImageParam &>::type
     set_bounds(int x, Args... args) {

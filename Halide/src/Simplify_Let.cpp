@@ -81,6 +81,10 @@ Body Simplify::simplify_let(const LetOrLetStmt *op, ExprInfo *bounds) {
         debug(4) << "simplify let " << op->name << " = " << f.value << " in...\n";
 
         while (1) {
+            // reserved for creating register reference and variable
+            if (starts_with(f.new_name, "var.")
+                || starts_with(f.new_name, "val."))
+                break;
             const Variable *var = f.new_value.template as<Variable>();
             const Add *add = f.new_value.template as<Add>();
             const Sub *sub = f.new_value.template as<Sub>();

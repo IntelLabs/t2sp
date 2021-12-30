@@ -48,6 +48,14 @@ string to_string(const Expr &expr) {
     return s.str();
 }
 
+string to_string(const vector<Expr> &e) {
+    std::ostringstream s;
+    for (size_t i = 0; i < e.size(); i++) {
+        s << ((i==0) ? "" : ", ") << e[i] << "\n";
+    }
+    return s.str();
+}
+
 string to_string(const Stmt &stmt) {
     std::ostringstream s;
     s << stmt;

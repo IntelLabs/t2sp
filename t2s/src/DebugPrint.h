@@ -87,7 +87,6 @@ string names_to_string(const vector<Func> &v);
 string names_to_string(const vector<VarOrRVar> &v);
 string names_to_string(const vector<Var> &v);
 string to_string(const map<string, Box> &boxes);
-
 }
 }
 #endif

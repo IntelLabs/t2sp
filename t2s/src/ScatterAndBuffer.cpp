@@ -1151,14 +1151,8 @@ private:
         if (!params.empty()) {
             const auto &reverse = params[0].reverse;
             for (const auto &r : reverse) {
-                // The variables in the reverse map are in full names, e.g. A.s0.x --> A.s0.y
-                // Remove the prefix first, e.g. x --> y, because variables in the isolated operand
-                // have no prefixes.
-                string old_prefix = extract_before_tokens(r.first, 2) + ".";
-                Expr value =  replace_prefix(old_prefix, "", r.second);
-                string loop_name_before_stt = extract_after_tokens(r.first, 2);
-                opnd = substitute(loop_name_before_stt, value, opnd);
-                debug(4) << "  Replace " << to_string(loop_name_before_stt) << " with " << to_string(value) << " and get " << opnd << "\n";
+                opnd = substitute(r.first, r.second, opnd);
+                debug(4) << "  Replace " << r.first << " with " << r.second << " and get " << opnd << "\n";
             }
         }
         return opnd;

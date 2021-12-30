@@ -816,7 +816,9 @@ class RenormalizeGPULoops : public IRMutator {
     }
 
     Stmt visit(const LetStmt *op) override {
-        if (!in_gpu_loop) {
+        if (!in_gpu_loop
+            ||starts_with(op->name, "var.")
+            || starts_with(op->name, "val.")) {
             return IRMutator::visit(op);
         }
 

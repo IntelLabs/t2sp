@@ -547,6 +547,9 @@ Stmt remove_lets(const Stmt &s, bool remove_Lets, bool remove_LetStmts, bool fun
     return RemoveLets(remove_Lets, remove_LetStmts, funcs_only, serial_loop_only, funcs).mutate(s);
 }
 
+Expr remove_lets(const Expr &e) {
+    return RemoveLets(true, false, false, false, {}).mutate(e);
+}
 
 // Testing code.
 

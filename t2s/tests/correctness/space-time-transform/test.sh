@@ -9,7 +9,7 @@ NOCOLOR='\033[0m'
 # design
 regression=(
               2D-loop-1-1.cpp 1
-              2D-loop-1-2-negative.cpp 1
+              2D-loop-1-2.cpp 1
               2D-loop-1-3-negative.cpp 1
               2D-loop-1-4.cpp 1
               2D-loop-2-1.cpp 1
@@ -21,7 +21,7 @@ regression=(
               2D-loop-6.cpp 1
               3D-loop-1-1.cpp 1
               3D-loop-1-4.cpp 1
-              3D-loop-1-5-negative.cpp 1
+              3D-loop-1-5.cpp 1
               3D-loop-2-1.cpp 1
               3D-loop-2-4.cpp 1
               3D-loop-3-1.cpp 1

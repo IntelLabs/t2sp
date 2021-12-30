@@ -291,7 +291,10 @@ struct StageScheduleContents {
     std::vector<BufferItem> buffer_params;
     std::vector<CmdQueueItem> cmd_params;
     std::vector<std::string> remove_params;
+    StoreParams store_params;
+    FetchParams fetch_params;
     std::map<int, std::vector<Expr>> task_deps; // task dependency maps
+    bool is_remove;
     bool is_param_func;
     bool is_extended_ure;
     bool is_merged;
@@ -303,7 +306,7 @@ struct StageScheduleContents {
     bool override_atomic_associativity_test;
 
     StageScheduleContents()
-        : fuse_level(FuseLoopLevel()), is_param_func(false), is_extended_ure(false), is_merged(false),
+        : fuse_level(FuseLoopLevel()), is_remove(false), is_param_func(false), is_extended_ure(false), is_merged(false),
           touched(false), allow_race_conditions(false), atomic(false),
           override_atomic_associativity_test(false) {};
 
@@ -514,9 +517,12 @@ StageSchedule StageSchedule::get_copy() const {
     copy.contents->fused_pairs = contents->fused_pairs;
     copy.contents->is_param_func = contents->is_param_func;
     copy.contents->merged_ures = contents->merged_ures;
+    copy.contents->is_remove = contents->is_remove;
     copy.contents->is_merged = contents->is_merged;
     copy.contents->is_extended_ure = contents->is_extended_ure;
     copy.contents->transform_params = contents->transform_params;
+    copy.contents->fetch_params = contents->fetch_params;
+    copy.contents->store_params = contents->store_params;
     copy.contents->scatter_params = contents->scatter_params;
     copy.contents->buffer_params = contents->buffer_params; 
     copy.contents->gather_params = contents->gather_params; 
@@ -610,6 +616,37 @@ bool &StageSchedule::is_merged() {
 
 const bool &StageSchedule::is_merged() const {
     return contents->is_merged;
+}
+
+bool &StageSchedule::is_remove() {
+    return contents->is_remove;
+}
+
+bool StageSchedule::has_stt() const {
+    return !contents->transform_params.empty();
+}
+
+bool StageSchedule::has_fetch() const {
+    return !contents->fetch_params.store_at.empty();
+}
+
+bool StageSchedule::has_store() const {
+    return !contents->store_params.shape_args.empty();
+}
+
+const FetchParams &StageSchedule::fetch_params() const {
+    return contents->fetch_params;
+}
+
+FetchParams &StageSchedule::fetch_params() {
+    return contents->fetch_params;
+}
+StoreParams &StageSchedule::store_params() {
+    return contents->store_params;
+}
+
+const StoreParams &StageSchedule::store_params() const {
+    return contents->store_params;
 }
 
 bool StageSchedule::is_extended_ure() const {

@@ -981,10 +981,6 @@ bool Function::has_merged_defs() const {
     return !definition().schedule().merged_ures().empty();
 }
 
-bool Function::has_stt() const {
-    return !definition().schedule().transform_params().empty();
-}
-
 bool Function::has_shift_reg(bool is_set) {
     if (is_set)
         contents->shift_reg = true;

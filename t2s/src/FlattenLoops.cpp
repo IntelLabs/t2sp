@@ -802,7 +802,7 @@ private:
             internal_assert(producer_loops.find(name) != producer_loops.end());
             auto prod_loops = producer_loops[name];
             debug(2) << name << "\n";
-            internal_assert(current_loops.size() >= prod_loops.size());
+            // internal_assert(current_loops.size() >= prod_loops.size());
 
             Expr temp;
             temp = Call::make(Int(32), "addr.temp", {}, Call::PureIntrinsic);
