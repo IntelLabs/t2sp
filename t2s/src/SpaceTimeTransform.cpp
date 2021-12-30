@@ -19,18 +19,21 @@
 #include <vector>
 #include <algorithm>
 
+#include "../../Halide/src/CSE.h"
 #include "../../Halide/src/Func.h"
 #include "../../Halide/src/Function.h"
 #include "../../Halide/src/IR.h"
 #include "../../Halide/src/Simplify_Internal.h"
-#include "Simplify.h"
-#include "Substitute.h"
-#include "IRMutator.h"
+#include "../../Halide/src/Simplify.h"
+#include "../../Halide/src/Substitute.h"
+#include "../../Halide/src/IRMutator.h"
 #include "./DebugPrint.h"
 #include "./NoIfSimplify.h"
 #include "./SpaceTimeTransform.h"
-#include "Math.h"
+#include "./Math.h"
 #include "./Utilities.h"
+
+#include "MemorySchedule.h"
 
 namespace Halide {
 
@@ -47,43 +50,36 @@ void space_time_transform_helper(Func &f, const vector<Var> &vars, const vector<
     // Check if the number of vars exceeds the number of loops variables
     user_assert(vars.size() <= func_dims.size()) << "Too many loops (" << to_string<Var>(vars)
             << ") asked for than what are available in the func.\n";
-    user_assert(vars[0].name() == func_dims[0].var) << "Space loop " << vars[0]
-            << " is expected to be at the inner-most level.\n";
-    for (size_t i = 0; i < vars.size(); i++) {
-        user_assert(vars[i].name() == func_dims[i].var)
-            << "The " << i << "'th space loop is expected to be loop " << func_dims[i].var
-            << ", not loop " << vars[i].name()
-            << ". Make sure the space loops are specified in the same order as the Func arguments.\n";
-    }
     // Check if the number of coefficients is the same as the number of variables
     user_assert(vars.size() == coefficients.size()) << "Number of space variables (" << vars.size()
         << ") should be the same as number of coefficients (" << coefficients.size() << ").";
 
-    // Add the time loop variable
-    size_t src_size = vars.size() + 1;
-    Var t(func_dims[vars.size()].var);
+    string time_var;
+    for (auto &d : func_dims) {
+        auto p = std::find_if(vars.begin(), vars.end(), [&](const Var &v){ return v.name() == d.var; });
+        if (p == vars.end()) {
+            time_var = d.var;
+            break;
+        }
+    }
     vector<Var> src_vars(vars);
-    src_vars.push_back(t);
-    debug(3) << "add source var: " << t << "\n";
-
-    // Add the dst_vars
+    src_vars.push_back(Var(time_var));
     // Since it projects to n-1 dimension, we get n-1 space loops plus 1 time loop
-    size_t dst_size = vars.size() + 1;
-    vector<Var> dst_vars(dst_size);
-    for (size_t i = 0; i < dst_size-1; i++)
-        dst_vars[i] = Var(vars[i].name());
-    string t_name = (sch_vector_specified ? "t." : "") + func_dims[dst_size-1].var;
-    // string t_name = func.definition().schedule().dims()[dst_size-1].var + ".t";
-    dst_vars[dst_size-1] = Var(t_name);
-    // dst_vars[dst_size-1] = Var("dst");
+    vector<Var> dst_vars(vars);
+    string t_name = (sch_vector_specified ? "t." : "") + time_var;
+    dst_vars.push_back(Var(t_name));
 
     // Generate allocation matrix
-    Matrix::matrix_t alloc(dst_size, vector<int>(src_size));
-    for (size_t i = 0; i < dst_size-1; i++)
-        for (size_t j = 0; j < src_size; j++)
+    size_t size = vars.size();
+    Matrix::matrix_t alloc(size+1, vector<int>(size+1));
+    for (size_t i = 0; i < size; i++) {
+        for (size_t j = 0; j < size+1; j++)
             alloc[i][j] = (i == j ? 1 : 0);
-    alloc[dst_size-1] = coefficients;
-    alloc[dst_size-1].push_back(1);
+    }
+    for (size_t j = 0; j < size; j++) {
+        alloc[size][j] = coefficients[j];
+    }
+    alloc[size][size] = 1;
 
     f.space_time_transform(src_vars, dst_vars, alloc, {}, check);
 }
@@ -137,9 +133,17 @@ class ReverseDefChecker : public IRVisitor {
 
 Func& Func::space_time_transform(const vector<Var>& src_vars,
                                  const vector<Var>& dst_vars,
-                                 const vector<vector<int>> &coefficients,
+                                 const vector<int> &coefficients,
                                  SpaceTimeTransform check) {
-    return space_time_transform(src_vars, dst_vars, coefficients, {}, check);
+    vector<vector<int>> new_coefficients;
+    size_t src_size = src_vars.size();
+    size_t dst_size = dst_vars.size();
+    user_assert(coefficients.size() == src_size * dst_size);
+    for (size_t i = 0; i < dst_size; i++) {
+        new_coefficients.push_back(vector<int>(coefficients.begin()+i*src_size,
+                                   coefficients.begin()+(i+1)*src_size));
+    }
+    return space_time_transform(src_vars, dst_vars, new_coefficients, {}, check);
 }
 
 Func& Func::space_time_transform(const vector<Var>& src_vars,
@@ -154,12 +158,13 @@ Func& Func::space_time_transform(const vector<Var>& src_vars,
     user_assert(coefficients.size() == src_size * dst_size);
     user_assert(reverse.size() == src_size * 2);
 
-    for (size_t i = 0; i < dst_size; i++)
+    for (size_t i = 0; i < dst_size; i++) {
         new_coefficients.push_back(vector<int>(coefficients.begin()+i*src_size,
                                    coefficients.begin()+(i+1)*src_size));
-    for (size_t i = 0; i < src_size; i++)
+    }
+    for (size_t i = 0; i < src_size; i++) {
         new_reverse.push_back(std::make_pair(reverse[i*2], reverse[i*2+1]));
-
+    }
     return space_time_transform(src_vars, dst_vars, new_coefficients, new_reverse, check);
 }
 
@@ -176,39 +181,19 @@ Func& Func::space_time_transform(const vector<Var>& src_vars,
 
     size_t src_size = src_vars.size();
     size_t dst_size = dst_vars.size();
-    std::map<std::string, Expr> var_map;
+    user_assert(dst_size <= src_size);
 
     // Check if the number of vars exceeds the number of loops variables
     user_assert(src_size <= this->args().size())
         << "Number of space variables (" << src_size
         << ") exceeds the number of loop variables (" << this->args().size()<< ").";
 
-    // Check if the vars are given starting from the inner-most loops
-    for (size_t i = 0; i < src_size; i++) {
-        user_assert(src_vars[i].name() ==
-                    func.definition().schedule().dims()[i].var)
-            << "The " << i << "'th source loop (" << src_vars[i].name()
-            << ") does not match the " << i << "'th innermost loop ("
-            << func.definition().schedule().dims()[i].var << "). "
-            << "A space-time transform expects a contiguous set of source loops to be specified, "
-            << "starting from the innermost level.";
-        std::string name = func.name() + ".s0." + src_vars[i].name();
-        auto var = Variable::make(Int(32), name);
-        var_map.insert({src_vars[i].name(), var});
-    }
-
     vector<std::string> src_names(src_size);
+    vector<std::string> dst_names(dst_size);
     for (size_t i = 0; i < src_size; i++) {
         src_names[i] = src_vars[i].name();
     }
-
-    user_assert(dst_size <= src_size);
-    // Add prefix of variable name
-    vector<std::string> dst_names(dst_size);
     for (size_t i = 0; i < dst_size; i++) {
-        std::string name = func.name() + ".s0." + dst_vars[i].name();
-        auto var = Variable::make(Int(32), name);
-        var_map.insert({dst_vars[i].name(), var});
         dst_names[i] = dst_vars[i].name();
     }
 
@@ -241,10 +226,8 @@ Func& Func::space_time_transform(const vector<Var>& src_vars,
                 if (inv[i][j] != 0)
                     def += IntImm::make(Int(32), inv[i][j]) * dst_vars[j];
             }
-            string name = var_map[src_vars[i].name()].as<Variable>()->name;
-            def = simplify(substitute(var_map, def));
-            new_reverse.insert({ name, def });
-            debug(3) << "Var " << name
+            new_reverse.insert({ src_vars[i].name(), simplify(def) });
+            debug(3) << "Var " << src_vars[i].name()
                      << " = "  << def << "\n";
         }
     } else {
@@ -255,9 +238,8 @@ Func& Func::space_time_transform(const vector<Var>& src_vars,
             const Variable *src_var = reverse[i].first.as<Variable>();
             bool is_found = false;
             for (const Var& v : src_vars) {
-                if (src_var && v.name() == src_var->name) {
+                if (src_var && v.name() == src_var->name)
                     is_found = true;
-                }
             }
             user_assert(is_found)
                 << "The reverse definitions should have the following format:\n"
@@ -267,24 +249,23 @@ Func& Func::space_time_transform(const vector<Var>& src_vars,
             // Check if the variable used in the expr has been defined previously
             reverse[i].second.accept(&rev_chk);
             rev_chk.add_visited_var(src_var->name);
-
-            string name = var_map[src_var->name].as<Variable>()->name;
-            Expr def = substitute(var_map, reverse[i].second);
-            def = simplify(substitute(new_reverse, def));
-            new_reverse.insert({ name, def });
-            debug(3) << "Var " << name
-                     << " = "  << def << "\n";
+            // Eliminate reference to previously defined variables
+            Expr def = substitute(new_reverse, reverse[i].second);
+            new_reverse.insert({ src_var->name, def});
+            debug(3) << "Var " << src_var->name
+                     << " = "  << reverse[i].second << "\n";
         }
     }
 
     SpaceTimeTransformParams params;
-    params.sch_vector = sch_vector;
-    params.check_time = check;
-    params.proj_matrix = proj_matrix;
-    params.dst_vars = dst_names;
-    params.reverse = new_reverse;
+    params.num_space_vars   = src_size - 1;
+    params.sch_vector       = sch_vector;
+    params.src_vars         = src_names;
+    params.dst_vars         = dst_names;
+    params.proj_matrix      = proj_matrix;
+    params.reverse          = new_reverse;
+    params.check_time       = check;
     params.sch_vector_specified = true;
-    params.src_vars = src_names;
     param_vector.push_back(params);
 
     return *this;
@@ -294,6 +275,7 @@ Func& Func::space_time_transform(const vector<Var>& src_vars,
 
 namespace Internal {
 namespace {
+
 class SelectToIfConverter : public IRMutator {
   public:
     SelectToIfConverter() {}
@@ -317,21 +299,26 @@ class SelectToIfConverter : public IRMutator {
 class SpaceTimeTransformer : public IRMutator {
     using IRMutator::visit;
   public:
-    SpaceTimeTransformer(const std::map<std::string, Function>& _env)
+    SpaceTimeTransformer(std::map<std::string, Function>& _env)
         : env(_env), target(get_host_target()) {}
 
-    SpaceTimeTransformer(const std::map<std::string, Function>& _env,
+    SpaceTimeTransformer(std::map<std::string, Function>& _env,
                          const Target& _t)
         : env(_env), target(_t) {}
 
     std::map<std::string, RegBound > reg_size_map;
     std::map<std::string, std::vector<Expr>> reg_annotation_map;
+    size_t for_level;
+    vector<Expr> loop_vars;
+    vector<Expr> loop_mins;
+    vector<Expr> loop_extents;
 
   private:
-    const std::map<std::string, Function> &env;
+    std::map<std::string, Function> &env;
     const Target &target;
     // Space-time transformation related params
     bool in_scheduled_stt;
+    bool need_rewrite;
     std::string vectorized_loop_name;
     vector<SpaceTimeTransformParams> param_vector;
     size_t num_args;
@@ -342,10 +329,6 @@ class SpaceTimeTransformer : public IRMutator {
     size_t num_new_space_vars;
     // The current for loop level, inner-most is 0
     // loop_mins[0] is the loop min of the inner-most loop
-    size_t for_level;
-    vector<Expr> loop_vars;
-    vector<Expr> loop_mins;
-    vector<Expr> loop_extents;
     std::map<std::string, Expr> global_min;
     std::map<std::string, Expr> global_max;
     size_t new_for_level;
@@ -353,22 +336,16 @@ class SpaceTimeTransformer : public IRMutator {
     vector<Expr> new_loop_mins;
     vector<Expr> new_loop_extents; // loop extents after transformation
     vector<int> loop_var_pos;
+    vector<int> src_var_pos;
     // A list of variables that will be realized
-    vector<std::string> realize_names;
-    struct RealizeParams {
-        vector<Type> type;
-        MemoryType memory_type;
-        Expr condition;
-    };
-    std::map<std::string, RealizeParams > realize_map;
-    // std::map<std::string, std::pair<vector<Type>, MemoryType> > realize_map;
+    std::map<std::string, std::vector<Type>> realize_types;
     // A list of variables that are used
     std::map<std::string, bool> used_vars;
     // Check whether in isolated kernels
     bool in_input_or_output{true};
 
     // Helper functions
-    void recalculate_func_referrence_args(std::string func_name, vector<Expr>& args) {
+    bool recalculate_func_referrence_args(std::string func_name, vector<Expr>& args) {
         // special case when every loops are space loops
         // if (num_space_vars == num_args) return;
         // reorder the args if necessary
@@ -377,17 +354,19 @@ class SpaceTimeTransformer : public IRMutator {
             new_args[i] = args[loop_var_pos[i]];
         }
         // first, handle the time loops that are not transformed
-        SpaceTimeTransformParams param = param_vector[0];
+        SpaceTimeTransformParams &param = param_vector[0];
         size_t size = param.sch_vector.size();
         args.resize(num_args, 0);
         debug(3) << func_name << "(";
 
         // modify the index for space loops
-        const size_t t = num_new_space_vars;
+        size_t t = num_new_space_vars;
         for (size_t i = 0; i < t; i++) {
             Expr space_expr = IntImm::make(Int(32), 0);
-            for (size_t j = 0; j < size; j++)
-                space_expr += (loop_vars[j] - new_args[j]) * param.proj_matrix[i][j];
+            for (size_t j = 0; j < size; j++) {
+                size_t k = src_var_pos[j];
+                space_expr += (loop_vars[k] - new_args[k]) * param.proj_matrix[i][j];
+            }
             space_expr = new_loop_vars[i] - space_expr;
             args[i] = simplify(space_expr);
             debug(3) << args[i] << ", ";
@@ -395,12 +374,16 @@ class SpaceTimeTransformer : public IRMutator {
 
         // modify the index for time loops
         Expr time_expr = IntImm::make(Int(32), 0);
-        for (size_t j = 0; j < size; j++)
-            time_expr += (loop_vars[j] - new_args[j]) * param.sch_vector[j];
-        args[t] = simplify(time_expr);
+        for (size_t j = 0; j < size; j++) {
+            size_t k = src_var_pos[j];
+            time_expr += (loop_vars[k] - new_args[k]) * param.sch_vector[j];
+            debug(3) << "time expr: " << time_expr;
+            time_expr = simplify(time_expr);
+        }
+        args[t] = is_zero(time_expr) ? 0 : simplify(time_expr -1);
         debug(3) << args[t] << ", ";
 
-        for (size_t i = num_new_space_vars + 1; i < num_args; i++) {
+        for (size_t i = t+1; i < num_args; i++) {
             args[i] = 0;
             debug(3) << args[i] << ", ";
         }
@@ -418,6 +401,8 @@ class SpaceTimeTransformer : public IRMutator {
         debug(3) << "the time size: ("
                  << reg_size_map[func_name].mins[t] << ".."
                  << reg_size_map[func_name].maxs[t] << ")\n";
+
+        return is_zero(time_expr);
     }
 
     // Helper Classes
@@ -425,8 +410,9 @@ class SpaceTimeTransformer : public IRMutator {
       public:
         LoopInfoCollector(size_t for_level, vector<Expr>& loop_vars, vector<Expr>& loop_mins,
                 vector<Expr>& loop_extents, std::map<std::string, Expr>& global_min,
-                std::map<std::string, Expr>& global_max) : for_level(for_level),
-                loop_vars(loop_vars), loop_mins(loop_mins), loop_extents(loop_extents),
+                std::map<std::string, Expr>& global_max)
+                : for_level(for_level), loop_vars(loop_vars),
+                loop_mins(loop_mins), loop_extents(loop_extents),
                 global_min(global_min), global_max(global_max) {}
 
       private:
@@ -490,34 +476,16 @@ class SpaceTimeTransformer : public IRMutator {
     };
 
     Stmt visit(const Realize* op) override {
-        realize_names.push_back(op->name);
-        realize_map[op->name] = { op->types, op->memory_type, op->condition };
+        realize_types[op->name] = op->types;
         Stmt body = mutate(op->body);
         Region bounds = op->bounds;
 
         if (reg_size_map.find(op->name) != reg_size_map.end()) {
-            if (target.has_feature(Target::IntelGPU)) {
-#if 0
-                // Since stt rewrites buffer bounds which may cause bound infererence failed,
-                // we should save the original bounds via LetStmt
-                const Function& func = env.at(op->name);
-                internal_assert(func.args().size() == bounds.size());
-                for (size_t i = 0; i < bounds.size(); ++i) {
-                    string name = op->name + ".s0." + func.args().at(i) + ".def";
-                    auto b = func.get_bounds(func.args().at(i));
-                    body = LetStmt::make(name + ".max", b.second - 1, body);
-                    body = LetStmt::make(name + ".min", b.first, body);
-                }
-#endif
-                return body;
-            }
             bounds.clear();
             auto &mins = reg_size_map[op->name].mins;
             auto &maxs = reg_size_map[op->name].maxs;
-            for (size_t i = 0; i < mins.size(); i++) {
-                bounds.emplace_back(simplify(mins[i]),
-                                    simplify(maxs[i]+1));
-            }
+            for (size_t i = 0; i < mins.size(); i++)
+                bounds.emplace_back(simplify(mins[i]), simplify(maxs[i]+1));
         }
         body = Realize::make(op->name, op->types, op->memory_type, bounds, op->condition, body);
         // annotation to realizing shift registers
@@ -532,25 +500,30 @@ class SpaceTimeTransformer : public IRMutator {
 
     Stmt visit(const ProducerConsumer* op) override {
         Function func;
-        in_scheduled_stt = false;
+        need_rewrite = false;
         if (op->is_producer // we only care about producer
             && function_is_in_environment(op->name, env, func)
             && func.definition().schedule().transform_params().size() > 0) {
             // collect the information for later processing
             param_vector = func.definition().schedule().transform_params();
             in_scheduled_stt = param_vector[0].sch_vector_specified;
+            need_rewrite = true;
+            if (!in_scheduled_stt && target.has_feature(Target::IntelFPGA)) {
+                // offload to minimize_shift_reg phase on FPGAs
+                need_rewrite = false;
+            }
             // calculate the number of space loops and new time loops
-            num_args = func.args().size();
-            num_time_vars = 1;
-            num_space_vars = param_vector[0].sch_vector.size() - 1;
-            num_other_vars = num_args - num_space_vars - 1;
-            num_new_space_vars = param_vector[0].dst_vars.size() - 1;
-            num_new_args = param_vector[0].dst_vars.size() + num_other_vars;
+            num_args                = func.args().size();
+            num_time_vars           = 1;
+            num_space_vars          = param_vector[0].num_space_vars;
+            num_other_vars          = num_args - num_space_vars - num_time_vars;
+            num_new_space_vars      = param_vector[0].dst_vars.size() - num_time_vars;
+            num_new_args            = param_vector[0].dst_vars.size() + num_other_vars;
             internal_assert(num_space_vars > 0);
             // initialize useful variables
-            for_level = num_args;
-            new_for_level = num_new_args;
-            vectorized_loop_name = "";
+            for_level               = num_args;
+            new_for_level           = num_new_args;
+            vectorized_loop_name    = "";
             loop_vars.resize(for_level);
             loop_mins.resize(for_level);
             loop_extents.resize(for_level);
@@ -563,7 +536,7 @@ class SpaceTimeTransformer : public IRMutator {
             op->body.accept(&visitor);
             // Is the space vars' mins or extents not constant? Used only for unscheduled stt.
             bool space_is_dynamic = false;
-            if (!in_scheduled_stt) {
+            if (!need_rewrite) {
                 for (size_t i = 0; i < num_space_vars; i++) {
                     if (!is_const(loop_mins[i]) || !is_const(loop_extents[i])) {
                         space_is_dynamic = true;
@@ -572,15 +545,15 @@ class SpaceTimeTransformer : public IRMutator {
                 }
             }
             in_input_or_output = func.definition().schedule().is_output() || func.definition().schedule().is_input();
-            for (size_t i = 0; i < realize_names.size(); i++) {
+            for (auto &kv : realize_types) {
                 Function merged_func;
-                const string merged_func_name = realize_names[i];
+                const string merged_func_name = kv.first;
                 if (function_is_in_environment(merged_func_name, env, merged_func)
                     && (merged_func.definition().schedule().is_merged() || merged_func.has_merged_defs())
                     && !merged_func.definition().schedule().is_output()
                     && !merged_func.definition().schedule().is_input()
                     && reg_size_map.find(merged_func_name) == reg_size_map.end()) {
-                    if (in_scheduled_stt) {
+                    if (need_rewrite) {
                         vector<Expr> reg_size;
                         reg_size.resize(num_args, 0);
                         reg_size_map[merged_func_name].mins = reg_size;
@@ -602,80 +575,188 @@ class SpaceTimeTransformer : public IRMutator {
                     merged_func.has_shift_reg(true);
                 }
             }
+            auto &src_vars = param_vector[0].src_vars;
+            src_var_pos.resize(src_vars.size(), -1);
+            for (size_t i = 0; i < src_vars.size(); i++) {
+                for (size_t j = 0; j < loop_vars.size(); j++) {
+                    auto p = loop_vars[j].as<Variable>();
+                    internal_assert(p);
+                    if (extract_last_token(p->name) == src_vars[i]) {
+                        src_var_pos[i] = j;
+                        break;
+                    }
+                }
+            }
             used_vars.clear();
-            // visit the body
-            Stmt body = mutate(op->body);
-            if (!target.has_feature(Target::IntelGPU))
-                return ProducerConsumer::make(op->name, op->is_producer, body);
-            else
-                return body;
         }
         return IRMutator::visit(op);
     }
 
-    string get_func_name(const string &op_name, size_t *p_pos = 0) {
-        auto pos = op_name.find('.');
-        internal_assert(pos != op_name.npos)
-            << "Cannot find function name";
-        if (p_pos)
-            *p_pos = pos;
-        return op_name.substr(0, pos);
-    }
+    class EliminateTemp : public IRMutator {
+        string func;
+        bool eliminate_temp = true;
+        vector<string> &temp_regs;
+        const SpaceTimeTransformer &stt;
+    public:
+        using IRMutator::visit;
+        EliminateTemp(string &_f, vector<string> &_t, const SpaceTimeTransformer &_s)
+            : func(_f), temp_regs(_t), stt(_s) {}
 
-    Stmt process_time_loop(const For *op) {
-        Stmt body;
-        Expr min = 0;
-        Expr extent = 0;
-        SpaceTimeTransformParams param = param_vector[0];
-        // we are in the time loop
-        // 1. Create new time loop with the given variable
-        string name = op->name.substr(0, op->name.find('.'))
-               + ".s0." + param.dst_vars[num_new_space_vars];
-        new_loop_vars[num_new_space_vars] = Variable::make(Int(32), name);
-        // 2. Calculate the new bound
-        size_t size = param.sch_vector.size();
-        for (size_t i = 0; i < size; i++) {
-            int coeff = param.sch_vector[i];
-            if (coeff < 0) {
-                min = min + coeff * (loop_extents[i]-1);
-                extent = extent + coeff * loop_mins[i];
-            } else {
-                // TODO(hxc): reversed?
-                min = min + coeff * loop_mins[i];
-                extent = extent + coeff * (loop_extents[i]-1);
+        // The lhs refers to the new value and the rhs refers to the last value:
+        // W_temp(i, 0) = select(i == 0, w(j), W(i, 0))
+        // If W(i, 0) is not needed anymore, we can simply overwrite it as: W(i, 0) = select(...)
+        // Otherwise, like W_temp(i, 0) = select(i == 0, w(j), W(i-1, 0))
+        // W(i, 0) is needed by W(i+1, 0). Overwriting is wrong if loop i is sequentially executed.
+        // In general, skip overwriting if a positive distance on space loops exists.
+        Stmt visit(const Provide *op) override {
+            if (op->name == func + "_temp") {
+                // Step 1: determine to overwrite or not
+                eliminate_temp = true;
+                for (size_t i = 0; i < op->values.size(); i++) {
+                    mutate(op->values[i]);
+                }
+                if (eliminate_temp) {
+                    // Step 2: rewrite call nodes
+                    vector<Expr> values(op->values.size());
+                    temp_regs.erase(find(temp_regs.begin(), temp_regs.end(), func));
+                    for (size_t i = 0; i < op->values.size(); i++) {
+                        values[i] = mutate(op->values[i]);
+                    }
+                    // Step 3: rewrite the current node
+                    string name = op->name.substr(0, op->name.size()-5);
+                    vector<Expr> ori_args(op->args.begin(), op->args.end());
+                    ori_args.resize(stt.num_args, 0);
+                    return Provide::make(name, values, ori_args);
+                }
+            }
+            return IRMutator::visit(op);
+        }
+
+        Expr visit(const Call *op) override {
+            if (op->name == func + "_temp") {
+                // If no left-hand side contains this variable, eliminate it
+                auto pos = find(temp_regs.begin(), temp_regs.end(), func);
+                if (pos == temp_regs.end()) {
+                    vector<Expr> ori_args(op->args.begin(), op->args.end());
+                    ori_args.resize(stt.num_args, 0);
+                    return Call::make(op->type, func, ori_args, op->call_type);
+                }
+            }
+            if (op->name == func) {
+                // Note that it is valid if both lhs and rhs refers to the new value:
+                // W_temp(i, 0) = select(i == 0, w(j), W_temp(i-1, 0))
+                // So we only check positive dependence on the last value (W(i-1, 0) in this case)
+                for (size_t i = 0; i < stt.num_new_space_vars; i++) {
+                    Expr distance = simplify(stt.new_loop_vars[i] - op->args[i]);
+                    if (is_positive_const(distance)) {
+                        eliminate_temp = false;
+                        return op;
+                    }
+                }
+            }
+            return IRMutator::visit(op);
+        }
+    };
+
+    void process_new_loop_vars(const For *op) {
+        SpaceTimeTransformParams &param = param_vector[0];
+        // Add new space loops
+        for (size_t k = 0; k < num_new_space_vars; k++) {
+            size_t size = param.sch_vector.size();
+            // 1. Create new space loop with the given variable
+            string name = extract_first_token(op->name) + ".s0." + param.dst_vars[k];
+            new_loop_vars[k] = Variable::make(Int(32), name);
+            // 2. Calculate the new bound
+            Expr min = 0;
+            Expr extent = 0;
+            for (size_t i = 0; i < size; i++) {
+                int coeff = param.proj_matrix[k][i];
+                int j = src_var_pos[i];
+                if (coeff < 0) {
+                    min = min + coeff * (loop_extents[j]-1);
+                    extent = extent + coeff * loop_mins[j];
+                } else {
+                    min = min + coeff * loop_mins[j];
+                    extent = extent + coeff * (loop_extents[j]-1);
+                }
+            }
+            min = simplify(min);
+            extent = simplify(extent + 1);
+            new_loop_mins[k] = min;
+            new_loop_extents[k] = extent;
+            debug(3) << "loop: " << name << "("
+                                    << min << ".."
+                                    << extent << ")\n";
+            // 3. set the register size to be the same as the loop bound
+            for (auto &kv : reg_size_map) {
+                if (!in_input_or_output) {
+                    kv.second.mins[k] = min;
+                    kv.second.maxs[k] = extent-1;
+                    if (!is_const(min) || !is_const(extent))
+                        reg_annotation_map[kv.first] = {};
+                }
             }
         }
-        internal_assert(!is_zero(min) && !is_zero(extent));
+        // If the register size is not a const(caused by non-constant space loop extent),
+        // we need to add an annotation before realizing registers
+        // and handle this case differently in CodeGen.
+        for (auto &kv : reg_annotation_map) {
+            if (kv.second.empty()) {
+                std::vector<Expr> reg_vars(new_loop_vars.begin(), new_loop_vars.begin() + num_new_space_vars);
+                kv.second = reg_vars;
+            }
+        }
+
+        // Add new time loop
+        // 1. Create new time loop with the given variable
+        std::string loop_name = extract_first_token(op->name) + ".s0." + param.dst_vars.back();
+        new_loop_vars[num_new_space_vars] = Variable::make(Int(32), loop_name);
+        // 2. Calculate the new bound
+        Expr min = 0;
+        Expr extent = 0;
+        for (size_t i = 0; i < num_space_vars + 1; i++) {
+            int coeff = param.sch_vector[i];
+            int j = src_var_pos[i];
+            if (coeff < 0) {
+                min += coeff * (loop_extents[j]-1);
+                extent += coeff * loop_mins[j];
+            } else {
+                min += coeff * loop_mins[j];
+                extent += coeff * (loop_extents[j]-1);
+            }
+        }
         min = simplify(min);
         extent = simplify(extent + 1);
         new_loop_mins[num_new_space_vars] = min;
         new_loop_extents[num_new_space_vars] = extent;
-        debug(3) << "loop: " << name << "("
+        debug(3) << "loop: " << loop_name << "("
                              << min << ".."
                              << extent << ")\n";
-        if (op->for_type == ForType::Vectorized) {
-            internal_assert(vectorized_loop_name == "") << "Cannot vectorize more than one loops: "
-                                                        << vectorized_loop_name << " " << op->name << "\n";
-            vectorized_loop_name = op->name;
-            debug(3) << "loop " << op->name << " is vectorized. \n";
-        }
-        // 3. Visit the body
-        body = mutate(op->body);
-        // for the time loop, we need to add shift register logics
-        // we would generate logic like this
+    }
+
+    Stmt process_time_loop(const For *op, Stmt body) {
+        // We would generate shift register logic like this:
         // unrolled for (i, 0, N-1) // extend is N-1
         //   sr[N-i] = sr[N-i-1]
-        if (num_space_vars < num_args
-                && reg_size_map.size() > 0) {
+        if (reg_size_map.size() > 0) {
             Stmt sr_body = Stmt();
+            vector<string> temp_regs;
             for (auto kv : reg_size_map) {
                 std::string name = kv.first;
                 // check if the variable is used within the body
                 if (used_vars.find(name) == used_vars.end()) continue;
                 // the time dimension
-                Expr min = kv.second.mins[num_new_space_vars];
-                Expr size = kv.second.maxs[num_new_space_vars];
-                if (is_zero(size-min)) continue;
+                Expr reg_min = kv.second.mins[num_new_space_vars];
+                Expr reg_max = kv.second.maxs[num_new_space_vars];
+                Expr time_distance = simplify(reg_max - reg_min);
+                temp_regs.push_back(name);
+                if (is_zero(time_distance)) {
+                    // allocate only one register that can be reused for new value
+                    // so eliminate temp registers allocated previously
+                    EliminateTemp rewriter(name, temp_regs, *this);
+                    body = rewriter.mutate(body);
+                    continue;
+                }
                 // create a new loop var
                 // Note: below we give the new loop var's func prefix as some fake func
                 // name, instead of the current func's name, because this loop is not
@@ -691,15 +772,15 @@ class SpaceTimeTransformer : public IRMutator {
                     provide_args.push_back(new_loop_vars[i]);
                     call_args.push_back(new_loop_vars[i]);
                 }
-                provide_args.push_back(size-min-sr_var);
-                call_args.push_back(simplify(size-min-1-sr_var));
+                provide_args.push_back(simplify(time_distance -sr_var));
+                call_args.push_back(simplify(time_distance -1 -sr_var));
                 for (size_t i = num_new_space_vars+1; i < num_args; i++) {
                     provide_args.push_back(0);
                     call_args.push_back(0);
                 }
                 vector<Expr> calls;
-                for(size_t k = 0; k < realize_map[name].type.size(); k++){
-                    Type t = (realize_map[name].type)[k];
+                for (size_t k = 0; k < realize_types[name].size(); k++) {
+                    Type t = (realize_types[name])[k];
                     Expr call = Call::make(t, name, call_args, Call::CallType::Halide,
                                            FunctionPtr(), k, Buffer<>(), Parameter());
                     calls.push_back(call);
@@ -707,7 +788,7 @@ class SpaceTimeTransformer : public IRMutator {
 
                 Stmt provide = Provide::make(name, calls, provide_args);
                 // build the for loop
-                Stmt loop_body = For::make(sr_name, min, size,
+                Stmt loop_body = For::make(sr_name, reg_min, reg_max,
                                            ForType::Unrolled, DeviceAPI::None, provide);
                 if (sr_body.defined()) {
                     sr_body = Block::make(loop_body, sr_body);
@@ -715,139 +796,125 @@ class SpaceTimeTransformer : public IRMutator {
                     sr_body = loop_body;
                 }
             }
+            // store the value of temporary register into the corresponding shift register
+            for (auto& name : temp_regs) {
+                vector<Expr> args(new_loop_vars.begin(), new_loop_vars.begin() + num_new_space_vars);
+                string temp_name = name + "_temp";
+                Type func_type = env.at(name).output_types()[0];
+                Expr tmp_call = Call::make(func_type, temp_name, args, Call::CallType::Halide);
+                args.resize(num_args, 0);
+                Stmt tmp_prov = Provide::make(name, {tmp_call}, args);
+                sr_body = sr_body.defined() ? Block::make(sr_body, tmp_prov) : tmp_prov;
+            }
             // add the space loop
             if (sr_body.defined()) {
+                // add space loops
                 for (size_t i = 0; i < num_new_space_vars; i++) {
                     std::string sp_name = new_loop_vars[i].as<Variable>()->name;
                     vector<std::string> names = split_string(sp_name, ".");
                     // Note: below we give the new loop var's func prefix as some fake func
                     // name, instead of the current func's name, because this loop is not
                     // from the current func.
-                    std::string var_name = unique_name("DUMMY") + ".s0.s." + names[names.size()-1];
+                    std::string var_name = unique_name("dummy") + ".s0.s." + names[names.size()-1];
                     sr_body = substitute(sp_name, Variable::make(Int(32), var_name), sr_body);
-                    // TODO: For GPU, maybe this can be vectorized for better efficiency
-                    ForType ftype = ForType::Unrolled;
+                    ForType ftype = (i == 0 && target.has_feature(Target::IntelGPU))
+                                        ? ForType::Vectorized :ForType::Unrolled;
                     sr_body = For::make(var_name, new_loop_mins[i], new_loop_extents[i],
                                         ftype, DeviceAPI::None, sr_body);
                 }
                 // merge with the main body
-                body = Block::make(sr_body, body);
+                body = Block::make(body, sr_body);
+                for (auto& name : temp_regs) {
+                    // realize registers to temporarily save value generated by systolic array
+                    Region bounds;
+                    RegBound reg_bounds;
+                    for (size_t i = 0; i < num_new_space_vars; i++) {
+                        Expr min = reg_size_map[name].mins[i];
+                        Expr max = simplify(reg_size_map[name].maxs[i]+1);
+                        bounds.emplace_back(min, max);
+                        reg_bounds.mins.emplace_back(min);
+                        reg_bounds.maxs.emplace_back(max);
+                    }
+                    string temp_name = name + "_temp";
+                    Function original = env.at(name);
+                    body = Realize::make(temp_name, original.output_types(), MemoryType::Auto,
+                                        bounds, const_true(), body);
+                    reg_size_map[temp_name] = reg_bounds;
+                    // create a new function temp_name and initialize it
+                    vector<Var> args;
+                    for (size_t i = 0; i < num_new_space_vars; i++) {
+                        string name = new_loop_vars[i].as<Variable>()->name;
+                        args.push_back(name);
+                    }
+                    Func temp(temp_name, original.place());
+                    temp(args) = 0;
+                    temp.compute_at(original.schedule().compute_level());
+                    temp.function().lock_loop_levels();
+                    env.insert({ temp_name, temp.function() });
+                }
             }
         }
-        for_level += 1;
-        return For::make(name, min, extent, ForType::Serial, op->device_api, body);
+        if (in_scheduled_stt) {
+            // Re-build time loop in scheduled space-time transform
+            size_t t = num_new_space_vars;
+            string name = new_loop_vars[t].as<Variable>()->name;
+            body = For::make(name, new_loop_mins[t], new_loop_extents[t],
+                            ForType::Serial, op->device_api, body);
+        }
+        return body;
     }
 
-    Stmt process_space_loop(const For *op) {
-        Stmt body;
-        Expr min = 0;
-        Expr extent = 0;
-        SpaceTimeTransformParams param = param_vector[0];
-        // we are in the space loops
-        // we must ensure that all the original loops are perfect loops
-        if (for_level == num_space_vars - 1) {
-            // the outermost space loop
-            for (size_t k = 0; k < num_new_space_vars; k++) {
-                size_t size = param.sch_vector.size();
-                // 1. Create new space loop with the given variable
-                string name = op->name.substr(0, op->name.find('.'))
-                        + ".s0." + param.dst_vars[k];
-                new_loop_vars[k] = Variable::make(Int(32), name);
-                // 2. Calculate the new bound
-                min = 0;
-                extent = 0;
-                for (size_t i = 0; i < size; i++) {
-                    int coeff = param.proj_matrix[k][i];
-                    if (coeff < 0) {
-                        min = min + coeff * (loop_extents[i]-1);
-                        extent = extent + coeff * loop_mins[i];
-                    } else {
-                        min = min + coeff * loop_mins[i];
-                        extent = extent + coeff * (loop_extents[i]-1);
-                    }
-                }
-                min = simplify(min);
-                extent = simplify(extent + 1);
-                new_loop_mins[k] = min;
-                new_loop_extents[k] = extent;
-                debug(3) << "loop: " << name << "("
-                                     << min << ".."
-                                     << extent << ")\n";
-                // 3. set the register size to be the same as the loop bound
-                for (auto &kv : reg_size_map) {
-                    if (!in_input_or_output) {
-                        kv.second.mins[k] = min;
-                        kv.second.maxs[k] = extent-1;
-                        if (!is_const(min) || !is_const(extent))
-                            reg_annotation_map[kv.first] = {};
-                    }
-                }
-            }
-            // If the register size is not a const(caused by non-constant space loop extent),
-            // we need to add an annotation before realizing registers
-            // and handle this case differently in CodeGen.
-            for (auto &kv : reg_annotation_map) {
-                if (kv.second.empty()) {
-                    std::vector<Expr> reg_vars(new_loop_vars.begin(), new_loop_vars.begin() + num_space_vars);
-                    kv.second = reg_vars;
-                }
-
+    Stmt process_space_loop(const For *op, Stmt body) {
+        // modify the innermost loop body
+        SpaceTimeTransformParams &param = param_vector[0];
+        if (param.check_time == SpaceTimeTransform::CheckTime) {
+            for (size_t k = 0; k <= num_space_vars; k++) {
+                Expr condition = (loop_vars[k] >= loop_mins[k])
+                                && (loop_vars[k] < loop_mins[k] + loop_extents[k]);
+                body = IfThenElse::make(simplify(condition), body);
             }
         }
-        if (op->for_type == ForType::Vectorized) {
-            internal_assert(vectorized_loop_name == "") << "Cannot vectorize more than one loops: "
-                                                        << vectorized_loop_name << " " << op->name << "\n";
-            vectorized_loop_name = op->name;
-            debug(3) << "loop " << op->name << " is vectorized. \n";
+        // update variables to the decorated form
+        map<string, Expr> var_map;
+        for (size_t k = 0; k < param.dst_vars.size(); k++) {
+            string var = param.dst_vars[k];
+            var_map.insert({ var, new_loop_vars[k] });
         }
-        body = mutate(op->body);
-
-        if (for_level == 0) {
-            if (param.check_time == SpaceTimeTransform::CheckTime) {
-                for (size_t k = 0; k <= num_space_vars; k++) {
-                    Expr condition = (loop_vars[k] >= loop_mins[k])
-                                    && (loop_vars[k] < loop_mins[k] + loop_extents[k]);
-                    // condition = substitute(param_vector[0].reverse, condition);
-                    body = IfThenElse::make(simplify(condition), body);
-                }
-            }
-            map<string, Expr> var_map;
-            string ori = get_func_name(param.reverse.begin()->first);
-            string cur = get_func_name(op->name);
-            for (size_t i = 0; i < param.dst_vars.size(); i++) {
-                string ori_name = ori + ".s0." + param.dst_vars[i];
-                string cur_name = cur + ".s0." + param.dst_vars[i];
-                var_map.insert({ ori_name, Variable::make(Int(32), cur_name) });
-            }
-            for (auto &p : param.reverse) {
-                size_t pos;
-                get_func_name(p.first, &pos);
-                string name = cur + p.first.substr(pos);
-                Expr def = substitute(var_map, p.second);
-                body = LetStmt::make(name, def, body);
-            }
+        // insert reverse definition
+        for (auto &p : param.reverse) {
+            string name = extract_first_token(op->name) + ".s0." + p.first;
+            Expr def = substitute(var_map, p.second);
+            body = LetStmt::make(name, def, body);
+        }
+        if (in_scheduled_stt) {
+            // In scheduled space-time transform, space loops are rebuilt according to projection matrix,
+            // which is required to be consecutive starting from the innermost level.
             for (size_t k = 0; k < num_new_space_vars; k++) {
-                // the inner most loop, we emit all the space loops
                 string name = new_loop_vars[k].as<Variable>()->name;
                 // Need to set the space loop as unrolled or vectorized: for IntelGPU and FPGA,
                 // set the loop as Vectorized if the loop is at innermost level after stt and is
                 // marked as Vectorized originally; for all the other cases, set the
                 // loop as Unrolled.
-                ForType for_type = ForType::Unrolled;
-                if (target.has_feature(Target::IntelGPU) || target.has_feature(Target::IntelFPGA) || target.has_feature(Target::OneAPI)) {
-                    if (k == 0 && vectorized_loop_name != "") {
-                        std::string new_vectorized_loop_name = vectorized_loop_name.substr(0, vectorized_loop_name.find('.')) + ".s0." + param.dst_vars[k];
-                        internal_assert(new_vectorized_loop_name == name) << "After space time transformation, the vectorized loop "
-                                                                      << vectorized_loop_name
-                                                                      << " must be at the inner-most level. \n"
-                                                                      << R"(e.g. The original loop oreder is {k, j, i} and we apply sapce time transformation like 
-A.space_time_transform({k, j}, 
-               {j, t}, 
-               {0, 1, 
-                1, 0}, 
-               {k, t, 
+                ForType for_type = target.has_feature(Target::IntelFPGA) ? ForType::Unrolled : ForType::Serial;
+                if (k == 0) {
+                    if ((target.has_feature(Target::IntelFPGA) || target.has_feature(Target::OneAPI)) && vectorized_loop_name != "") {\
+                        debug(4) << "Vectorize loop: " << vectorized_loop_name << "\n";
+                        internal_assert(extract_last_token(vectorized_loop_name) == param.dst_vars[k])
+                        << "After space time transformation, the vectorized loop "
+                        << vectorized_loop_name
+                        << " must be at the inner-most level. \n"
+                        << R"(e.g. The original loop oreder is {k, j, i} and we apply sapce time transformation like
+A.space_time_transform({k, j},
+               {j, t},
+               {0, 1,
+                1, 0},
+               {k, t,
                 j, j}))"
-                                                                      << "\nWe can not vectorize loop k which is not inner-most loop after stt. \n";
+                        << "\nWe can not vectorize loop k which is not inner-most loop after stt. \n";
+                        for_type = ForType::Vectorized;
+                    }
+                    if (target.has_feature(Target::IntelGPU)) {
+                        // automatically vectorize the innermost space loop even if not specified
                         for_type = ForType::Vectorized;
                     }
                 }
@@ -855,36 +922,42 @@ A.space_time_transform({k, j},
                                  for_type, op->device_api, body);
             }
         }
-        for_level += 1;
-        debug(3) << "For body: " << body;
         return body;
     }
 
     Stmt visit(const For* op) override {
-        if (in_scheduled_stt) {
-            // handle loop related information
+        if (need_rewrite) {
             for_level -= 1;
-            // rebuild the loop if necessary
-            if (for_level < num_time_vars + num_space_vars && for_level >= num_space_vars) {
-                return process_time_loop(op);
-            }
-            if (for_level < num_space_vars) {
-                return process_space_loop(op);
-            }
 
+            // Special handling of vectorized loop
+            if (op->for_type == ForType::Vectorized) {
+                internal_assert(vectorized_loop_name == "") << "Cannot vectorize more than one loops: "
+                                                            << vectorized_loop_name << " " << op->name << "\n";
+                vectorized_loop_name = op->name;
+                debug(3) << "loop " << op->name << " is vectorized. \n";
+            }
+            if (for_level == 0) {
+                // Add new variables used for transforming loop body
+                process_new_loop_vars(op);
+            }
             Stmt body = mutate(op->body);
-            if (target.has_feature(Target::IntelGPU) && op->for_type == ForType::GPUThread) {
-                for (auto& kv : realize_map) {
-                    if (reg_size_map.find(kv.first) != reg_size_map.end()) {
-                        Region bounds;
-                        const auto &reg_bound = reg_size_map[kv.first];
-                        for (size_t i = 0; i < reg_bound.mins.size(); i++)
-                            bounds.emplace_back(simplify(reg_bound.mins[i]),
-                                                simplify(reg_bound.maxs[i]+1));
-                        body = ProducerConsumer::make(kv.first, true, body);
-                        body = Realize::make(kv.first, kv.second.type, MemoryType::Register,
-                                                bounds, kv.second.condition, body);
-                    }
+            auto src_vars = param_vector[0].src_vars;
+            // The time loop is the first non-space loop starting from innermost,
+            // which is recorded by the one following the last space var.
+            size_t time_var = src_var_pos[param_vector[0].num_space_vars];
+            if (for_level == 0) {
+                body = process_space_loop(op, body);
+            }
+            if (for_level == time_var) {
+                body = process_time_loop(op, body);
+            }
+            // Skipping the original loops that are transformed into new space/time loops
+            if (in_scheduled_stt) {
+                auto end = src_var_pos.begin() + num_space_vars + num_time_vars;
+                auto pos = std::find(src_var_pos.begin(), end, for_level);
+                if (pos != end) {
+                    for_level += 1;
+                    return body;
                 }
             }
             for_level += 1;
@@ -897,20 +970,20 @@ A.space_time_transform({k, j},
         Function func;
         vector<Expr> args = op->args;
 
-        if (in_scheduled_stt) {
+        if (need_rewrite) {
             if (op->call_type == Call::CallType::Halide) {
                 if (function_is_in_environment(op->name, env, func)
                 && (func.definition().schedule().is_merged() || func.has_merged_defs())
                 && !func.definition().schedule().is_output()
                 && !func.definition().schedule().is_input()) {
                     used_vars[op->name] = true;
-                    // recalculate the index
-                    recalculate_func_referrence_args(op->name, args);
-                    debug(3) << op->name << "(";
-                    for (auto &arg : args)
-                        debug(3) << arg << ", ";
-                    debug(3) << ")\n";
-                    return Call::make(op->type, op->name, args, op->call_type, 
+                    // if time distance is zero, it refers to the latest value in temporary registers
+                    if (recalculate_func_referrence_args(op->name, args)) {
+                        string temp_name = op->name + "_temp";
+                        vector<Expr> temp_args(args.begin(), args.begin() + num_new_space_vars);
+                        return Call::make(op->type, temp_name, temp_args, op->call_type);
+                    }
+                    return Call::make(op->type, op->name, args, op->call_type,
                                       op->func, op->value_index, op->image, op->param);
                 }
             }
@@ -921,7 +994,7 @@ A.space_time_transform({k, j},
     }
 
     Stmt visit(const Provide* op) override {
-        if (in_scheduled_stt) {
+        if (need_rewrite) {
             vector<Expr> values(op->values.size());
             vector<Expr> args = op->args;
             // check if the loop vars are reordered
@@ -940,10 +1013,6 @@ A.space_time_transform({k, j},
                     }
                 }
             }
-            // mutate the values
-            for (size_t i = 0; i < op->values.size(); i++) {
-                values[i] = mutate(op->values[i]);
-            }
             // check if the provide node is the final realize
             Function func;
             if (function_is_in_environment(op->name, env, func)
@@ -951,32 +1020,140 @@ A.space_time_transform({k, j},
             && !func.definition().schedule().is_output()
             && !func.definition().schedule().is_input()) {
                 used_vars[op->name] = true;
-                // we need to recalculate the index
-                recalculate_func_referrence_args(op->name, args);
-                return Provide::make(op->name, values, args);
+                for (size_t i = 0; i < op->values.size(); i++) {
+                    values[i] = mutate(op->values[i]);
+                }
+                // save the value into temporary registers
+                internal_assert(recalculate_func_referrence_args(op->name, args));
+                string temp_name = op->name + "_temp";
+                vector<Expr> temp_args(args.begin(), args.begin() + num_new_space_vars);
+                return Provide::make(temp_name, std::move(values), std::move(temp_args));
             }
-            // the final realize -> no need to change the args
-            return Provide::make(op->name, values, op->args);
         }
         return IRMutator::visit(op);
     }
 
 };
 
+// We detect systolic pattern like this:
+// X(a) = select(a == 0, input, A(a-1))
+class PreRewriter : public IRMutator {
+  public:
+    PreRewriter(const std::map<std::string, Function>& _env)
+        : env(_env) {}
+
+  private:
+    using IRMutator::visit;
+    const std::map<std::string, Function> &env;
+
+    Stmt visit(const Provide *op) override {
+        Expr value = remove_lets(op->values[0]);
+        auto f_val = value.as<Select>();
+        if (!f_val) {
+            return IRMutator::visit(op);
+        }
+        // Check condition
+        auto cond = f_val->condition.as<EQ>();
+        if (!cond) {
+            return IRMutator::visit(op);
+        }
+        auto a = cond->a.as<Variable>();
+        if (!a || !is_zero(cond->b)) {
+            return IRMutator::visit(op);
+        }
+        // Check true value
+        auto true_val = f_val->true_value.as<Call>();
+        if (!true_val) {
+            return IRMutator::visit(op);
+        }
+        // Check false value
+        auto false_val = f_val->false_value.as<Call>();
+        if (!false_val || false_val->name != op->name) {
+            return IRMutator::visit(op);
+        }
+        auto call_args = false_val->args;
+        internal_assert(call_args.size() == op->args.size());
+
+        for (size_t i = 0; i < call_args.size(); i++) {
+            Expr diff = simplify(op->args[i] - call_args[i]);
+            auto var = op->args[i].as<Variable>();
+            internal_assert(var);
+            if (!is_zero(diff) && var->name != a->name) {
+                return IRMutator::visit(op);
+            }
+        }
+        return Provide::make(op->name, {f_val->true_value}, op->args);
+    }
+};
+
+// Move realize nodes inner the GPU thread loops
+// Otherwise the code generator cannot find them
+class PostRewriter : public IRMutator {
+  public:
+    PostRewriter(const std::map<std::string, Function>& _env)
+        : env(_env) {}
+
+  private:
+    using IRMutator::visit;
+
+    const std::map<std::string, Function> &env;
+    vector<const Realize*> realize_nodes;
+    std::string last_gpu_loop;
+
+    Stmt visit(const Realize *op) override {
+        realize_nodes.push_back(op);
+        return mutate(op->body);
+    }
+
+    Stmt visit(const ProducerConsumer *op) override {
+        return mutate(op->body);
+    }
+
+    Stmt visit(const For *op) override {
+        if (op->for_type == ForType::GPUThread) {
+            last_gpu_loop = op->name;
+        }
+
+        Stmt body = mutate(op->body);
+        if (op->name == last_gpu_loop) {
+            for (auto &r : realize_nodes) {
+                // body = ProducerConsumer::make(r->name, true, body);
+                body = Realize::make(r->name, r->types, r->memory_type, r->bounds, r->condition, body);
+            }
+        }
+        return For::make(op->name, op->min, op->extent, op->for_type, op->device_api, body);
+    }
+};
+
 } // namespace
 
 Stmt apply_space_time_transform(Stmt s,
-                                const std::map<std::string, Function> &env,
+                                std::map<std::string, Function> &env,
                                 const Target &target,
-                                std::map<std::string, RegBound > &reg_size_map) {
+                                std::map<std::string, RegBound> &reg_size_map) {
     // Simplify the incoming loop first
     SelectToIfConverter converter;
     debug(4) << converter.mutate(s);
     s = no_if_simplify(converter.mutate(s), true);
 
+    if (target.has_feature(Target::IntelGPU)) {
+        PreRewriter rewriter(env);
+        s = rewriter.mutate(s);
+        debug(4) << "Convert systolic into broadcast on GPUs:\n"
+                 << s << "\n";
+    }
     // Apply space time transformation
     SpaceTimeTransformer mutator(env, target);
     s = mutator.mutate(s);
+
+    if (target.has_feature(Target::IntelGPU)) {
+        PostRewriter rewriter(env);
+        s = rewriter.mutate(s);
+        // Export original loops to memory-related schedules,
+        // since transformed loops may confuse the bound inference on GPUs
+        Adaptor loops = {mutator.loop_vars, mutator.loop_mins, mutator.loop_extents};
+        s = do_prepare_memory_schedule(s, env, loops);
+    }
 
     // So far, the shift registers are still referenced as common memory like
     //    C(s.kkk, s.jj, s.ii, (15 - t), 0, 0, 0, 0, 0)

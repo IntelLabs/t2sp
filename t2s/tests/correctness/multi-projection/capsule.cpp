@@ -189,7 +189,6 @@ int main(void)
     Target target = get_host_target();
     Buffer<buf_t> result = Func_out.realize({LAYOUT_V}, target);
     check_equal_6D<buf_t>(golden, result);
-    Func_out.compile_to_assembly("capsule", { pose, weight }, "conv", target);
     printf("Success!\n");
 
     return 0;

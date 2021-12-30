@@ -108,8 +108,8 @@ private:
         if (ends_with(op->name, ".channel") ||
             ends_with(op->name, ".mem_channel") ||
             ends_with(op->name, ".shreg") ||
-            ends_with(op->name,".temp") ||
-            ends_with(op->name,".ibuffer")) {
+            ends_with(op->name, ".temp") ||
+            ends_with(op->name, ".ibuffer")) {
             Stmt body = mutate(op->body);
             debug(4) << "Not attempting to flatten " << op->name << " because it is a channel/shift register.\n";
             if (body.same_as(op->body)) {

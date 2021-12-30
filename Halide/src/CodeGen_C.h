@@ -152,10 +152,10 @@ protected:
     }
 
     /** Open a new C scope (i.e. throw in a brace, increase the indent) */
-    void open_scope();
+    virtual void open_scope();
 
     /** Close a C scope (i.e. throw in an end brace, decrease the indent) */
-    void close_scope(const std::string &comment);
+    virtual void close_scope(const std::string &comment);
 
     struct Allocation {
         Type type;

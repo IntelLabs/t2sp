@@ -71,9 +71,9 @@ LLVM_SYSTEM_LIBS=$(shell ${LLVM_CONFIG} --system-libs --link-static | sed -e 's/
 LLVM_AS = $(LLVM_BINDIR)/llvm-as
 LLVM_NM = $(LLVM_BINDIR)/llvm-nm
 LLVM_CXX_FLAGS = -std=c++11  $(filter-out -O% -g -fomit-frame-pointer -pedantic -W% -W, $(shell $(LLVM_CONFIG) --cxxflags | sed -e 's/\\/\//g' -e 's/\([a-zA-Z]\):/\/\1/g;s/-D/ -D/g;s/-O/ -O/g')) -I$(LLVM_SVN_LLD_INCLUDE_DIR) -I$(LLVM_GIT_LLD_INCLUDE_DIR)
-OPTIMIZE ?= -O3
+OPTIMIZE ?= -O0 -g #-O3
 OPTIMIZE_FOR_BUILD_TIME ?= -O0
-OPTIMIZE_RUNTIME ?= -O3
+OPTIMIZE_RUNTIME ?= -O0 -g #-O3
 
 # By default, T2S will generate OpenCL code for Intel FPGAs, where we need use multiple command queues.
 # To disable multiple command queues, set this variable to 0
@@ -813,6 +813,7 @@ T2S_SOURCE_FILES = \
   LateFuse.cpp \
   LoopRemoval.cpp \
   Math.cpp \
+  MemorySchedule.cpp \
   MergeUres.cpp \
   MinimizeShregs.cpp \
   NoIfSimplify.cpp \
@@ -843,6 +844,7 @@ T2S_HEADER_FILES = \
   LateFuse.h \
   LoopRemoval.h \
   Math.h \
+  MemorySchedule.h \
   MinimizeShregs.h \
   NoIfSimplify.h \
   Overlay.h \

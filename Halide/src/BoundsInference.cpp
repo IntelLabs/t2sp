@@ -1016,7 +1016,7 @@ public:
                      << "computed by: " << op->name << "\n";
             for (size_t k = 0; k < box.size(); k++)
                 debug(3) << "  " << box[k].min << " ... " << box[k].max << "\n";
-            internal_assert((int)box.size() == f.dimensions());
+            // internal_assert((int)box.size() == f.dimensions());
         }
 
         // Recurse.
@@ -1053,7 +1053,8 @@ public:
 
             // Finally, define the production bounds for the thing
             // we're producing.
-            if (producing >= 0 && !inner_productions.empty()) {
+            if (producing >= 0 && !inner_productions.empty()
+                && (int)box.size() == f.dimensions()) {
                 const vector<string> f_args = f.args();
                 for (size_t i = 0; i < box.size(); i++) {
                     internal_assert(box[i].is_bounded());
