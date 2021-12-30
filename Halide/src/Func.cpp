@@ -85,7 +85,7 @@ Func::Func(const string &name, Type return_type, const std::vector<Var> &args, P
 }
 
 Func::Func(Type return_type, const std::vector<Var> &args, Place place) :
-    Func(make_entity_name(this, "Halide::Func", 'f'), {return_type}, args, place) { }
+    Func(make_entity_name(this, "Halide::Func", 'f'), return_type, args, place) { }
 
 Func::Func(Function f, Place place)
     : func(f) {

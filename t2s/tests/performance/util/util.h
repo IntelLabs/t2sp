@@ -35,6 +35,40 @@ enum VALUES {
     CONSTANT
 };
 
+template<size_t N1, size_t N2>
+Buffer<unsigned char> new_characters(VALUES v) {
+    Buffer<unsigned char> b(N1, N2);
+    srand(time(0));
+    for (size_t i = 0; i < N1; i++) {
+        for (size_t j = 0; j < N2; j++) {
+            if (v == VALUES::RANDOM) {
+                b(i, j) = 'A' + (rand() % 26);
+            } else {
+                b(i, j) = 'A';
+            }
+        }
+    }
+    return b;
+}
+
+// T can only be float or double here
+template<typename T, size_t N1, size_t N2>
+Buffer<T> new_probability(VALUES v) {
+    Buffer<T> b(N1, N2);
+    srand(time(0));
+    for (size_t i = 0; i < N1; i++) {
+        for (size_t j = 0; j < N2; j++) {
+            if (v == VALUES::RANDOM) {
+                b(i, j) = (T) (((T)(rand() * 1.0)) / ((T)(RAND_MAX * 1.0)));
+            } else {
+                // b(i, j) = (T) (((T)((i * N2 + j) * 1.0)) / ((T)(N1 * N2 * 1.0)));
+                b(i, j) = 1.0;
+            }
+        }
+    }
+    return b;
+}
+
 template<typename T, size_t N>
 Buffer<T> new_data(VALUES v) {
     Buffer<T> b(N);

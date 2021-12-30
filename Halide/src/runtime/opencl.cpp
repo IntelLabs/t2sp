@@ -788,7 +788,7 @@ void AOCL_CreateProgramWithSource(void               *user_context,
     program = clCreateProgramWithBinary(opencl_context, 1, devices, lengths,
                                         (const unsigned char **)binaries,
                                         status, p_err);
-
+    debug(user_context) << status[0] << "\n";
     halide_assert(user_context, status[0] == CL_SUCCESS);
 }
 

@@ -55,7 +55,8 @@ extern Stmt replace_references_with_channels(Stmt s, const std::map<std::string,
                                              const LoopBounds &global_bounds);
 
 extern Stmt replace_references_with_mem_channels(Stmt s, const std::map<std::string, Function> &env,
-                                                 map<string, Place> &funcs_using_mem_channels);
+                                                 map<string, Place> &funcs_using_mem_channels,
+                                                 vector<std::pair<string, Expr>> &letstmts_backup);
 
 /* Replace accesses to shift registers, so far as common memory, in write/read_shift_reg instead. */
 extern Stmt replace_references_with_shift_registers(Stmt s, const map<string, Function> &env,

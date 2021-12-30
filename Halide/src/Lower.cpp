@@ -350,38 +350,11 @@ Module lower(const vector<Function> &output_funcs,
         debug(1) << "Skipping rewriting memoized allocations...\n";
     }
 
-    if (t.has_gpu_feature() ||
-        t.has_feature(Target::OpenGLCompute) ||
-        t.has_feature(Target::OpenGL) ||
-        t.has_feature(Target::HexagonDma) ||
-        (t.arch != Target::Hexagon && (t.features_any_of({Target::HVX_64, Target::HVX_128})))) {
-        debug(1) << "Selecting a GPU API for GPU loops...\n";
-        s = select_gpu_api(s, t);
-        debug(2) << "Lowering after selecting a GPU API:\n"
-                 << s << "\n\n";
-
-        debug(1) << "Injecting host <-> dev buffer copies...\n";
-        s = inject_host_dev_buffer_copies(s, t, env);
-        debug(2) << "Lowering after injecting host <-> dev buffer copies:\n"
-                 << s << "\n\n";
-
-        debug(1) << "Selecting a GPU API for extern stages...\n";
-        s = select_gpu_api(s, t);
-        debug(2) << "Lowering after selecting a GPU API for extern stages:\n"
-                 << s << "\n\n";
-    } else {
-        // Always mark buffers host dirty. Buffers will otherwise not be correctly copied for
-        // other pipelines with device feature enabled.
-        debug(1) << "Injecting host <-> dev buffer copies...\n";
-        s = inject_host_dev_buffer_copies(s, t, env);
-        debug(2) << "Lowering after injecting host <-> dev buffer copies:\n"
-                    << s << "\n\n";
-    }
-
     map<string, Place> funcs_using_mem_channels;
+    vector<std::pair<string, Expr>> letstmts_backup;
     if (t.has_feature(Target::IntelFPGA)) {
         debug(1) << "Replacing references with mem channels...\n";
-        s = replace_references_with_mem_channels(s, env, funcs_using_mem_channels);
+        s = replace_references_with_mem_channels(s, env, funcs_using_mem_channels, letstmts_backup);
         debug(2) << "Lowering after replacing references with mem channels:\n" << s << "\n\n";
     }
 
@@ -424,6 +397,7 @@ Module lower(const vector<Function> &output_funcs,
 
     debug(1) << "Combining channels ...\n";
     s = combine_channels(s);
+    s = simplify(s);
     debug(2) << "Lowering after combining channels:\n" << s << "\n\n";
 
     debug(1) << "Trimming loops to the region over which they do something...\n";
@@ -504,6 +478,39 @@ Module lower(const vector<Function> &output_funcs,
     debug(2) << "Lowering after simplifying correlated differences:\n"
              << s << '\n';
 
+    debug(1) << "Replace memory channel with references...\n";
+    s = replace_mem_channels(s, env, letstmts_backup);
+    debug(2) << "Lowering after replacing memory channels:\n"
+             << s << "\n\n";
+
+    if (t.has_gpu_feature() ||
+        t.has_feature(Target::OpenGLCompute) ||
+        t.has_feature(Target::OpenGL) ||
+        t.has_feature(Target::HexagonDma) ||
+        (t.arch != Target::Hexagon && (t.features_any_of({Target::HVX_64, Target::HVX_128})))) {
+        debug(1) << "Selecting a GPU API for GPU loops...\n";
+        s = select_gpu_api(s, t);
+        debug(2) << "Lowering after selecting a GPU API:\n"
+                 << s << "\n\n";
+
+        debug(1) << "Injecting host <-> dev buffer copies...\n";
+        s = inject_host_dev_buffer_copies(s, t, env);
+        debug(2) << "Lowering after injecting host <-> dev buffer copies:\n"
+                 << s << "\n\n";
+
+        debug(1) << "Selecting a GPU API for extern stages...\n";
+        s = select_gpu_api(s, t);
+        debug(2) << "Lowering after selecting a GPU API for extern stages:\n"
+                 << s << "\n\n";
+    } else {
+        // Always mark buffers host dirty. Buffers will otherwise not be correctly copied for
+        // other pipelines with device feature enabled.
+        debug(1) << "Injecting host <-> dev buffer copies...\n";
+        s = inject_host_dev_buffer_copies(s, t, env);
+        debug(2) << "Lowering after injecting host <-> dev buffer copies:\n"
+                    << s << "\n\n";
+    }
+
     debug(1) << "Bounding small allocations...\n";
     s = bound_small_allocations(s);
     debug(2) << "Lowering after bounding small allocations:\n"
@@ -561,11 +568,6 @@ Module lower(const vector<Function> &output_funcs,
     // we don't need this for code generation
     //s = loop_invariant_code_motion(s);
     debug(1) << "Lowering after final simplification:\n"
-             << s << "\n\n";
-
-    debug(1) << "Replace memory channel with references...\n";
-    s = replace_mem_channels(s, env, funcs_using_mem_channels);
-    debug(2) << "Lowering after replacing memory channels:\n"
              << s << "\n\n";
 
     debug(1) << "Promoting channels...\n";

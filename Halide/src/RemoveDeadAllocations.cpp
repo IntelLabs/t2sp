@@ -23,6 +23,9 @@ class RemoveDeadAllocations : public IRMutator {
                 }
             }
         }
+        if (ends_with(op->name, ".temp") && allocs.contains(op->name)) {
+            allocs.pop(op->name);
+        }
 
         return IRMutator::visit(op);
     }

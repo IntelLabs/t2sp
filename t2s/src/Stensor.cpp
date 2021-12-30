@@ -31,7 +31,7 @@ using std::string;
 struct Schain {
     bool is_output;                 // Output chain needs different primitives
     Func outf;                      // The output chain starts from a function
-    ImageParam imp;                 // The input chain starts from external input
+    vector<ImageParam> imp;         // The input chain starts from external input
     vector<Stensor> stensors;
 };
 vector<Schain> schains;
@@ -64,7 +64,7 @@ Stensor &Stensor::operator>>(Stensor &s) {
     return schains[c].stensors.back();
 }
 
-Stensor &operator>>(const ImageParam &im, Stensor &s) {
+Stensor &operator>>(const vector<ImageParam> &im, Stensor &s) {
     Schain tmp;
     s.schain_idx = schains.size();
     tmp.is_output = false;
@@ -72,6 +72,10 @@ Stensor &operator>>(const ImageParam &im, Stensor &s) {
     tmp.stensors.push_back(s);
     schains.push_back(std::move(tmp));
     return schains.back().stensors.back();
+}
+
+Stensor &operator>>(const ImageParam &im, Stensor &s) {
+    return vector<ImageParam>{im} >> s;
 }
 
 Stensor &operator>>(Func &f, Stensor &s) {
@@ -177,7 +181,7 @@ class RealizeOnFPGA
         if (c.stensors[0].position != HOST) {
             // The device stensors needs serialized inputs
             // If the host stensor is not specified, we automatically generate it
-            string host_name = c.imp.name() + "_serializer";
+            string host_name = c.imp[0].name() + "_serializer";
             Stensor s_host(host_name);
             s_host.schain_idx = c.stensors[0].schain_idx;
             c.stensors.insert(c.stensors.begin(), s_host);
@@ -188,9 +192,11 @@ class RealizeOnFPGA
             Func isolated_func(s.name, place);
             producers.push_back(std::move(isolated_func));
         }
-        fv.ure.isolate_producer_chain({c.imp}, producers);
+        vector<FuncOrExpr> imp;
+        std::copy(c.imp.begin(), c.imp.end(), std::back_inserter(imp));
+        fv.ure.isolate_producer_chain(imp, producers);
         debug(1) << fv.ure.name() << ".isolate_producer_chain({"
-                 << c.imp.name() << "}, " << names_to_string(producers) << ");\n";
+                 << names_to_string(c.imp) << "}, " << names_to_string(producers) << ");\n";
         return std::move(producers);
     }
 
@@ -254,7 +260,7 @@ class RealizeOnFPGA
         Var scope = c.stensors.back().v_scope;
 
         for (int i = producers.size()-2; i >= 0; i--) {
-            loops = fv.find_reuse_vars(c.imp.name(), scope);
+            loops = fv.find_reuse_vars(c.imp[0].name(), scope);
             producers[i].remove(loops);
             debug(1) << producers[i].name() << ".remove("
                      << names_to_string(loops) << ");\n";
@@ -448,9 +454,12 @@ class RealizeOnGPU
                 int width_idx = fv.var_index(s.v_width);
                 int max_idx = banks_idx < width_idx ? width_idx : banks_idx;
                 Var dim = fv.free_vars[max_idx + 1];
-                c.imp.mem_fetch(dim, MemoryType::Register);
-                debug(1) << c.imp.name() << ".mem_fetch("
+
+                for (auto &im : c.imp) {
+                    im.mem_fetch(dim, MemoryType::Register);
+                    debug(1) << im.name() << ".mem_fetch("
                          << dim << ");\n";
+                }
             }
         }
     }

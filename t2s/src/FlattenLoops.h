@@ -34,7 +34,7 @@ using std::vector;
 namespace Halide {
 namespace Internal {
 
-Stmt replace_mem_channels(Stmt s, const std::map<std::string, Function> &env, const std::map<string, Place> &funcs_using_mem_channels);
+Stmt replace_mem_channels(Stmt s, const std::map<std::string, Function> &env, const vector<std::pair<string, Expr>> &letstmts_backup);
 Stmt flatten_loops(Stmt s, const std::map<std::string, Function> &env);
 
 }

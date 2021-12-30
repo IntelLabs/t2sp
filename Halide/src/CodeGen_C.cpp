@@ -2349,7 +2349,7 @@ void CodeGen_C::visit(const Call *op) {
             rhs << "(&" << struct_name << ")";
         }
     } else if (op->is_intrinsic(Call::read_field)) {
-        rhs << print_expr(op->args[0]) << ".f" << std::to_string((op->args[1]).as<UIntImm>()->value);
+        rhs << print_expr(op->args[0]) << ".f" << std::to_string((op->args[1]).as<IntImm>()->value);
     } else if (op->is_intrinsic(Call::stringify)) {
         // Rewrite to an snprintf
         vector<string> printf_args;

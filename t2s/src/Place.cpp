@@ -22,6 +22,7 @@
 #include "./DebugPrint.h"
 #include "./SpaceTimeTransform.h"
 #include "./Utilities.h"
+#include "Substitute.h"
 #include "IRMutator.h"
 #include <algorithm>
 
@@ -152,8 +153,9 @@ class ReplaceReferencesWithMemChannels : public IRMutator {
     using IRMutator::visit;
 public:
     ReplaceReferencesWithMemChannels(const set<string> &_mem_channels,
-                                    const map<string, Function> &_env) :
-        mem_channels(_mem_channels), env(_env) { 
+                                    const map<string, Function> &_env,
+                                    vector<std::pair<string, Expr>> &_lets) :
+        mem_channels(_mem_channels), env(_env), letstmts_backup(_lets) {
             user_assert(env.size() > 0);
             is_set_bounds = true;
         }
@@ -163,7 +165,16 @@ private:
     const map<string, Function> &env;
     vector<string> enclosing_unrolled_loops;
     set<string> channels;
+    vector<std::pair<string, Expr>> &letstmts_backup;
     bool is_set_bounds;
+
+    string get_channel(string name) {
+        for (auto &m : mem_channels) {
+            if (starts_with(name, m))
+                return m;
+        }
+        return "";
+    }
 
     Stmt visit(const For *op) override {
         bool tmp = is_set_bounds;
@@ -182,19 +193,59 @@ private:
         return stmt;
     }
 
+    // Mark the memory channel with a special name
+    Stmt visit(const Allocate *op) override {
+        string target_chn = get_channel(op->name);
+        if (!target_chn.empty()) {
+            Stmt body = mutate(op->body);
+            if (is_set_bounds) {
+                string name = op->name + ".mem_channel";
+                return Allocate::make(name, op->type, op->memory_type, op->extents,
+                                    op->condition, body, op->new_expr, op->free_function);
+            }
+            return Allocate::make(op->name, op->type, op->memory_type, op->extents,
+                                op->condition, body, op->new_expr, op->free_function);
+        }
+        return IRMutator::visit(op);
+    }
+
+    Stmt visit(const LetStmt *op) override {
+        string target_chn = get_channel(op->name);
+        if (!target_chn.empty()) {
+            Stmt body = mutate(op->body);
+            if (is_set_bounds) {
+                string func_name = extract_first_token(op->name);
+                string new_func_name = func_name + ".mem_channel";
+                string name = op->name;
+                Expr value = op->value;
+                name = name.replace(name.find(func_name), func_name.length(), new_func_name);
+                if (extract_token(op->name, 2) == "stride") {
+                    int idx = atoi(extract_token(op->name, 3).c_str());
+                    string last_dim = func_name +".stride." +to_string(idx -1);
+                    string new_last_dim = new_func_name +".stride." +to_string(idx -1);
+                    value = substitute(last_dim, Variable::make(Int(32), new_last_dim), value);
+                }
+                letstmts_backup.push_back({ name, value });
+            }
+            return LetStmt::make(op->name, op->value, body);
+        }
+        return IRMutator::visit(op);
+    }
+
     Stmt visit(const Store *op) override {
-        if (mem_channels.find(op->name) != mem_channels.end() && is_set_bounds) {
+        if (!get_channel(op->name).empty() && is_set_bounds) {
             vector<Expr> args;
             vector<string> loops;
-            args.push_back(Expr(op->name));
+            args.push_back(Expr(op->name + ".mem_channel"));
             Expr value = mutate(op->value);
             args.push_back(value);
             for (auto &l : enclosing_unrolled_loops) {
                 Expr var = Variable::make(Int(32), l);
                 args.push_back(var);
             }
-            internal_assert(channels.find(op->name) == channels.end());
-            channels.insert(op->name);
+            if (channels.find(op->name) == channels.end()) {
+                channels.insert(op->name);
+            }
             Stmt write_call = Evaluate::make(Call::make(value.type(), Call::write_mem_channel, args, Call::Intrinsic, FunctionPtr(), 0, Buffer<> (), op->param));
             return write_call;
         } else {
@@ -203,10 +254,10 @@ private:
     }
 
     Expr visit(const Load *op) override {
-        if (mem_channels.find(op->name) != mem_channels.end() && is_set_bounds) {
+        if (!get_channel(op->name).empty() && is_set_bounds) {
             internal_assert(channels.find(op->name) != channels.end());
             vector<Expr> args;
-            args.push_back(Expr(op->name));
+            args.push_back(Expr(op->name + ".mem_channel"));
             for (auto &l : enclosing_unrolled_loops) {
                 Expr var = Variable::make(Int(32), l);
                 args.push_back(var);
@@ -549,7 +600,6 @@ void identify_funcs_outputting_to_channels(Stmt s, const map<string, Function>  
                     if (consumer_func.place() == Place::Device) {
                         funcs_outputting_to_channels.push_back(func_name);
                     }
-                    
                 } else {
                     // So far, we restrict a channel can have only one write and only one read site.
                     // When there is more than one read site, the producer and consumer function can communicate only through memory.
@@ -771,7 +821,6 @@ set<string> identify_funcs_outputting_to_mem_channels(Stmt s, const map<string, 
                 }
             }
         }
-        
     }
     // std::map<std::string, bool> used_in_producer;
     // std::map<std::string, bool> used_in_consumer;
@@ -883,7 +932,9 @@ Stmt replace_references_with_channels(Stmt s, const std::map<std::string, Functi
     return s;
 }
 
-Stmt replace_references_with_mem_channels(Stmt s, const std::map<std::string, Function> &env, map<string, Place> &funcs_using_mem_channels) {
+Stmt replace_references_with_mem_channels(Stmt s, const std::map<std::string, Function> &env,
+                                        map<string, Place> &funcs_using_mem_channels,
+                                        vector<std::pair<string, Expr>> &letstmts_backup) {
     map<string, vector<string>> call_graph = build_call_graph(env); // a function to all the functions it calls.
     map<string, vector<string>> reverse_call_graph = build_reverse_call_graph(call_graph); // a function to the all the functions calling it.
     vector<string> loops_to_serialize;
@@ -891,7 +942,7 @@ Stmt replace_references_with_mem_channels(Stmt s, const std::map<std::string, Fu
     find_loops_to_serialize_by_gathering(env, loops_to_serialize);
     set<string> mem_channels = identify_funcs_outputting_to_mem_channels(s, env, reverse_call_graph,
                                                                          funcs_using_mem_channels, loops_to_serialize);
-    ReplaceReferencesWithMemChannels replacer(mem_channels, env);
+    ReplaceReferencesWithMemChannels replacer(mem_channels, env, letstmts_backup);
     s = replacer.mutate(s);
     return s;
 }

@@ -19,7 +19,7 @@
 #include "./CombineChannels.h"
 #include "./DebugPrint.h"
 #include "./StructType.h"
-#include "./Util.h"
+#include "./Utilities.h"
 #include "../../Halide/src/IRMutator.h"
 #include "../../Halide/src/IREquality.h"
 #include "../../Halide/src/Substitute.h"
@@ -143,6 +143,14 @@ private:
                                     channel, func, op->type, condition, std::move(args), loops};
             channel_accesses.push_back(std::move(access));
         }
+        if (op->is_intrinsic(Call::read_mem_channel) || op->is_intrinsic(Call::write_mem_channel)) {
+            const StringImm *v = op->args[0].as<StringImm>();
+            string channel = v->value;
+            vector<Expr> args;
+            ChannelAccess access = {op->is_intrinsic(Call::write_mem_channel),
+                                    channel, func, op->type, condition, args, loops};
+            channel_accesses.push_back(std::move(access));
+        }
         IRVisitor::visit(op);
     }
 
@@ -171,6 +179,17 @@ private:
     void visit(const Realize *op) override {
         if (ends_with(op->name, ".channel")) {
             channel_to_bounds[op->name] = op->bounds;
+        }
+        IRVisitor::visit(op);
+    }
+
+    void visit(const Allocate *op) override {
+        if (ends_with(op->name, ".mem_channel")) {
+            Region bounds;
+            for (auto &e : op->extents) {
+                bounds.push_back(Range(0, e));
+            }
+            channel_to_bounds[op->name] = std::move(bounds);
         }
         IRVisitor::visit(op);
     }
@@ -392,7 +411,8 @@ void decide_channels_to_combine(const vector<ChannelAccess>  &channel_accesses,
                 continue;
             }
             if (combined.original_channel_writes.empty()) {
-                combined.combined_channel = unique_name(c1.func) + ".channel";
+                string suffix = ends_with(c1.channel, ".mem_channel") ? ".mem_channel" : ".channel";
+                combined.combined_channel = unique_name(c1.func) + suffix;
                 combined.original_channel_writes.push_back(c1);
                 combined.producer = c1.func;
                 combined.consumer = consumer1;
@@ -434,7 +454,6 @@ public:
 
 private:
     const map<string, CombinedChannel> &channel_to_combined;
-
     string func; // The current func
 
 public:
@@ -474,6 +493,24 @@ public:
         return stmt;
     }
 
+    Stmt visit(const Allocate *op) override {
+        if (channel_to_combined.find(op->name) == channel_to_combined.end()) {
+            return IRMutator::visit(op);
+        }
+        const CombinedChannel &combined = channel_to_combined.at(op->name);
+
+        // Remove this Allocate. If this channel is the first of several channels combined, insert
+        // a Realize for the combined channel
+        Stmt stmt = IRMutator::mutate(op->body);
+        if (op->name == combined.original_channel_writes[0].channel) {
+            vector<Expr> extents;
+            for (size_t i = 0; i < combined.bounds.size(); i++)
+                extents.push_back(combined.bounds[i].extent - combined.bounds[i].min);
+            stmt = Allocate::make(combined.combined_channel, combined.struct_type, op->memory_type, std::move(extents), const_true(), stmt);
+        }
+        return stmt;
+    }
+
     Stmt visit(const For* op) override {
         Stmt new_body = IRMutator::mutate(op->body);
 
@@ -493,7 +530,9 @@ public:
             processed.push_back(combined.combined_channel);
             vector<Expr> args = combined.read_args;
             args.insert(args.begin(), combined.combined_channel);
-            Expr new_call = Call::make(combined.struct_type, Call::read_channel, args, Call::Intrinsic);
+            auto call_op = ends_with(combined.combined_channel, ".mem_channel")
+                                    ? Call::read_mem_channel : Call::read_channel;
+            Expr new_call = Call::make(combined.struct_type, call_op, args, Call::Intrinsic);
             Stmt read = Provide::make(combined.temporary_for_read, {new_call}, {Expr(0)});
             if (!equal(combined.read_condition, const_true())) {
                 read = IfThenElse::make(combined.read_condition, read, Stmt());
@@ -513,14 +552,14 @@ public:
             if (combined.producer == func && combined.outermost_write_loop == op->name) {
                 for (size_t i = 0; i < combined.temporary_for_writes.size(); i++) {
                     const ChannelAccess &write = combined.original_channel_writes[i];
-                    s = Realize::make(combined.temporary_for_writes[i], {write.type}, MemoryType::Auto,
-                                            {Range(0, 1)}, const_true(), s);
+                    s = Realize::make(combined.temporary_for_writes[i], { write.type },
+                                        MemoryType::Auto, { Range(0, 1) }, const_true(), s);
                 }
                 processed.push_back(combined.combined_channel);
             }
             if (combined.consumer == func && combined.outermost_read_loop == op->name) {
-                s = Realize::make(combined.temporary_for_read, {combined.struct_type}, MemoryType::Auto,
-                                        {Range(0, 1)}, const_true(), s);
+                s = Realize::make(combined.temporary_for_read, { combined.struct_type },
+                                    MemoryType::Auto, { Range(0, 1) }, const_true(), s);
                 processed.push_back(combined.combined_channel);
             }
         }
@@ -528,7 +567,7 @@ public:
     }
 
     Expr visit(const Call* op) override {
-        if (op->is_intrinsic(Call::read_channel)) {
+        if (op->is_intrinsic(Call::read_channel) || op->is_intrinsic(Call::read_mem_channel)) {
             const StringImm *v = op->args[0].as<StringImm>();
             internal_assert(v);
             string channel = v->value;
@@ -543,7 +582,7 @@ public:
                 }
             }
             Expr get_temp = Call::make(combined.struct_type, combined.temporary_for_read, {Expr(0)}, Call::PureIntrinsic);
-            Expr e = Call::make(op->type, Call::read_field, {get_temp, Expr(i)}, Call::PureIntrinsic);
+            Expr e = Call::make(op->type, Call::read_field, {get_temp, IntImm::make(Int(32), i)}, Call::PureIntrinsic);
             return e;
         }
         return IRMutator::visit(op);
@@ -559,7 +598,7 @@ public:
             return IRMutator::mutate(stmt);
         }
         const Call *call = eval->value.as<Call>();
-        if (!call || !call->is_intrinsic(Call::write_channel)) {
+        if (!call || (!call->is_intrinsic(Call::write_channel) && !call->is_intrinsic(Call::write_mem_channel))) {
             return IRMutator::mutate(stmt);
         }
         const StringImm *v = call->args[0].as<StringImm>();
@@ -596,7 +635,8 @@ public:
         for (auto a : combined.write_args) {
             args.push_back(a);
         }
-        Stmt write = Evaluate::make(Call::make(combined.struct_type, Call::write_channel, args, Call::Intrinsic));
+        auto call_op = ends_with(combined.combined_channel, ".mem_channel") ? Call::write_mem_channel : Call::write_channel;
+        Stmt write = Evaluate::make(Call::make(combined.struct_type, call_op, args, Call::Intrinsic));
         Stmt block = Block::make(provide, write);
         return block;
     }
