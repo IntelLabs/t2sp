@@ -22,7 +22,7 @@ RED='\033[0;31m'
 GREEN='\033[0;32m'
 NOCOLOR='\033[0m'
 
-features=(aot buffer FPGA Func gather gemm integrate isolation LU multi-projection overlay qrd roofline scatter space-time-transform vectorize oneapi-integration)
+features=(aot buffer FPGA Func gather gemm integrate isolation LU multi-projection overlay qrd roofline scatter space-time-transform vectorize)
 echo "**** Testing for regression ****"
 
 index=0
