@@ -1551,7 +1551,7 @@ public:
             Expr _tmp = Variable::make(TYPE, "_tmp");
             vector<Stmt> writes(buffers_info.size());
             for (size_t i = 0; i < buffers_info.size(); i++) {
-                Expr field = Call::make(buffers_info[i].type, Call::read_field, {_tmp, Expr(i)}, Call::PureIntrinsic);
+                Expr field = Call::make(buffers_info[i].type, Call::read_field, {_tmp, IntImm::make(Int(32), i)}, Call::PureIntrinsic);
                 writes[i] = Provide::make(buffers_info[i].name, {field}, buffers_info[i].write_args);
             }
             write_buffer = Block::make(writes);

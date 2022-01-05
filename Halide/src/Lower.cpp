@@ -397,7 +397,6 @@ Module lower(const vector<Function> &output_funcs,
 
     debug(1) << "Combining channels ...\n";
     s = combine_channels(s);
-    s = simplify(s);
     debug(2) << "Lowering after combining channels:\n" << s << "\n\n";
 
     debug(1) << "Trimming loops to the region over which they do something...\n";

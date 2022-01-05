@@ -37,6 +37,8 @@ Stmt common_subexpression_elimination(const Stmt &, bool lift_all = false);
 Stmt remove_lets(const Stmt &s, bool remove_Lets, bool remove_LetStmts, bool funcs_only,
                  bool serial_loop_only, const std::set<std::string> &funcs);
 
+Expr remove_lets(const Expr &e);
+
 void cse_test();
 
 }  // namespace Internal

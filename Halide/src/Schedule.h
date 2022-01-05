@@ -464,6 +464,7 @@ struct FetchParams {
     std::string store_at;
     MemoryType store_in;
     size_t rw_len;
+    std::vector<std::string> out_dims;
     std::vector<Expr> reuse_args;
 };
  

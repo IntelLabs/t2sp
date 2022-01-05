@@ -19,6 +19,7 @@
 #include <vector>
 #include <algorithm>
 
+#include "../../Halide/src/CSE.h"
 #include "../../Halide/src/Func.h"
 #include "../../Halide/src/Function.h"
 #include "../../Halide/src/IR.h"
@@ -1003,6 +1004,8 @@ A.space_time_transform({k, j},
                     for (size_t j = 0; j < num_args; j++) {
                         const Variable* old_arg = args[i].as<Variable>();
                         const Variable* new_arg = loop_vars[j].as<Variable>();
+                        internal_assert(old_arg);
+                        internal_assert(new_arg);
                         if (old_arg->name == new_arg->name) {
                             loop_var_pos[j] = i;
                             break;
@@ -1044,7 +1047,8 @@ class PreRewriter : public IRMutator {
     const std::map<std::string, Function> &env;
 
     Stmt visit(const Provide *op) override {
-        auto f_val = op->values[0].as<Select>();
+        Expr value = remove_lets(op->values[0]);
+        auto f_val = value.as<Select>();
         if (!f_val) {
             return IRMutator::visit(op);
         }

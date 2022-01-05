@@ -41,8 +41,9 @@ struct Stensor
     std::string name;
     SMemType position;
     Var v_scope;
-    Var v_width;
+    vector<Var> v_width;
     vector<Var> v_banks;
+    vector<Var> v_outs;
     vector<Expr> dims;
     int schain_idx = -1;
     int fifo_depth = 0;
@@ -58,8 +59,8 @@ struct Stensor
     void compile_to_host(string file_name, const vector<Argument> &args,
                          const std::string fn_name, Starget t);
     Stensor &scope(Var v);
-    Stensor &bankwidth(Var v);
     Stensor &banks(const std::vector<Var> &banks);
+    Stensor &out(const std::vector<Var> &bankwidth_and_banks);
     Stensor &operator()(const std::vector<Expr> &dims);
 
     template<typename... Args>
@@ -73,6 +74,12 @@ struct Stensor
     banks(Var v, Args &&... args) {
         std::vector<Var> collected_args{v, std::forward<Args>(args)...};
         return this->banks(collected_args);
+    }
+    template<typename... Args>
+    HALIDE_NO_USER_CODE_INLINE typename std::enable_if<Internal::all_are_convertible<Var, Args...>::value, Stensor &>::type
+    out(Var v, Args &&... args) {
+        std::vector<Var> collected_args{v, std::forward<Args>(args)...};
+        return this->out(collected_args);
     }
 
     Stensor &operator>>(Stensor &s);

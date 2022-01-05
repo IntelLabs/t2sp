@@ -86,7 +86,7 @@ private:
             if(op->types.size() == 1){
                 Stmt stmt = Realize::make(op->name + ".channel", op->types, op->memory_type, channel2bounds.at(op->name), mutate(op->condition), mutate(op->body));
                 return stmt;
-			} else {
+            } else {
                 multiple_values[op->name] = op->types.size();
                 Stmt stmt = mutate(op->body);
                 for (size_t i = 0; i < op->types.size(); i++) {
@@ -94,8 +94,8 @@ private:
                     types.push_back(op->types[i]);
                     stmt = Realize::make(op->name + "." + std::to_string(i) + ".channel", types, op->memory_type, channel2bounds.at(op->name), mutate(op->condition), stmt);
                 }
-				return stmt;
-			}
+                return stmt;
+            }
         } else {
             Stmt stmt = Realize::make(op->name, op->types, op->memory_type, op->bounds, mutate(op->condition), mutate(op->body));
             return stmt;
@@ -104,7 +104,7 @@ private:
 
     Stmt visit(const Provide *op) override {
         if (channel2write_args.find(op->name) != channel2write_args.end()) {
-        	if(op->values.size() == 1){
+            if(op->values.size() == 1){
                 // internal_assert(op->values.size() == 1) << "Values of a Provide is expected to have been combined into a tuple before writing to a channel\n";
                 Expr value = mutate(op->values[0]);
                 vector<Expr> args(channel2write_args.at(op->name));
@@ -126,8 +126,8 @@ private:
                         write_call = Evaluate::make(Call::make(value.type(), Call::write_channel, args, Call::Intrinsic));
                     }
                 }
-				return write_call;
-			}
+                return write_call;
+            }
         } else {
             return IRMutator::visit(op);
         }
@@ -168,16 +168,15 @@ private:
     vector<std::pair<string, Expr>> &letstmts_backup;
     bool is_set_bounds;
 
-    string get_channel(string name) {
+    string get_channel_name(string name) {
         for (auto &m : mem_channels) {
-            if (starts_with(name, m))
+            if (extract_first_token(name) == m)
                 return m;
         }
         return "";
     }
 
     Stmt visit(const For *op) override {
-        bool tmp = is_set_bounds;
         vector<string> names = split_string(op->name, ".");
         if ((op->for_type == ForType::Vectorized) && names.size() > 2) {
             enclosing_unrolled_loops.push_back(op->name);
@@ -186,7 +185,6 @@ private:
             is_set_bounds = false;
         }
         Stmt stmt = IRMutator::visit(op);
-        is_set_bounds = tmp;
         if ((op->for_type == ForType::Vectorized) && names.size() > 2) {
             enclosing_unrolled_loops.pop_back();
         }
@@ -195,45 +193,40 @@ private:
 
     // Mark the memory channel with a special name
     Stmt visit(const Allocate *op) override {
-        string target_chn = get_channel(op->name);
-        if (!target_chn.empty()) {
-            Stmt body = mutate(op->body);
-            if (is_set_bounds) {
-                string name = op->name + ".mem_channel";
-                return Allocate::make(name, op->type, op->memory_type, op->extents,
-                                    op->condition, body, op->new_expr, op->free_function);
-            }
-            return Allocate::make(op->name, op->type, op->memory_type, op->extents,
+        is_set_bounds = true;
+        Stmt body = mutate(op->body);
+        if (!get_channel_name(op->name).empty() && is_set_bounds) {
+            string name = op->name + ".mem_channel";
+            return Allocate::make(name, op->type, op->memory_type , op->extents,
                                 op->condition, body, op->new_expr, op->free_function);
         }
-        return IRMutator::visit(op);
+        return Allocate::make(op->name, op->type, op->memory_type, op->extents,
+                            op->condition, body, op->new_expr, op->free_function);
     }
 
     Stmt visit(const LetStmt *op) override {
-        string target_chn = get_channel(op->name);
-        if (!target_chn.empty()) {
-            Stmt body = mutate(op->body);
-            if (is_set_bounds) {
-                string func_name = extract_first_token(op->name);
-                string new_func_name = func_name + ".mem_channel";
-                string name = op->name;
-                Expr value = op->value;
-                name = name.replace(name.find(func_name), func_name.length(), new_func_name);
-                if (extract_token(op->name, 2) == "stride") {
-                    int idx = atoi(extract_token(op->name, 3).c_str());
-                    string last_dim = func_name +".stride." +to_string(idx -1);
-                    string new_last_dim = new_func_name +".stride." +to_string(idx -1);
-                    value = substitute(last_dim, Variable::make(Int(32), new_last_dim), value);
-                }
-                letstmts_backup.push_back({ name, value });
+        Stmt body = mutate(op->body);
+        string name = op->name;
+        Expr value = op->value;
+        if (!get_channel_name(op->name).empty() && is_set_bounds) {
+            string func_name = extract_first_token(op->name);
+            string new_func_name = func_name + ".mem_channel";
+            name = name.replace(name.find(func_name), func_name.length(), new_func_name);
+            if (extract_token(op->name, 2) == "stride") {
+                int idx = atoi(extract_token(op->name, 3).c_str());
+                string last_dim = func_name + ".stride." + to_string(idx -1);
+                string new_last_dim = new_func_name + ".stride." + to_string(idx -1);
+                value = substitute(last_dim, Variable::make(Int(32), new_last_dim), value);
             }
-            return LetStmt::make(op->name, op->value, body);
+            letstmts_backup.push_back({ name, value });
+        } else {
+            letstmts_backup.push_back({ name, value });
         }
-        return IRMutator::visit(op);
+        return LetStmt::make(name, value, body);
     }
 
     Stmt visit(const Store *op) override {
-        if (!get_channel(op->name).empty() && is_set_bounds) {
+        if (!get_channel_name(op->name).empty() && is_set_bounds) {
             vector<Expr> args;
             vector<string> loops;
             args.push_back(Expr(op->name + ".mem_channel"));
@@ -254,7 +247,7 @@ private:
     }
 
     Expr visit(const Load *op) override {
-        if (!get_channel(op->name).empty() && is_set_bounds) {
+        if (!get_channel_name(op->name).empty() && is_set_bounds) {
             internal_assert(channels.find(op->name) != channels.end());
             vector<Expr> args;
             args.push_back(Expr(op->name + ".mem_channel"));
@@ -418,19 +411,19 @@ private:
                 }
             }
 
-			if(op->types.size() == 1) {
+            if(op->types.size() == 1) {
                 Stmt stmt = Realize::make(op->name + ".shreg", op->types, op->memory_type, bounds, mutate(op->condition), mutate(op->body));
                 return stmt;
-			} else {
+            } else {
                 multiple_values[op->name] = op->types.size();
-				Stmt stmt = mutate(op->body);
+                Stmt stmt = mutate(op->body);
                 for (size_t i = 0; i < op->types.size(); i++) {
                     std::vector<Type> types;
                     types.push_back(op->types[i]);
                     stmt = Realize::make(op->name + "." + std::to_string(i) + ".shreg", types, op->memory_type, bounds, mutate(op->condition), stmt);
                 }
-				return stmt;
-			}
+                return stmt;
+            }
         }
         return IRMutator::visit(op);
     }
@@ -482,8 +475,8 @@ private:
                         write_call = Evaluate::make(Call::make(value.type(), Call::write_shift_reg, args, Call::Intrinsic));
                     }
                 }
-				return write_call;
-			}
+                return write_call;
+            }
         }
         return IRMutator::visit(op);
     }

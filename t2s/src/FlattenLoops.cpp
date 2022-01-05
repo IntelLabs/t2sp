@@ -864,7 +864,7 @@ class ReplaceMemChannel : public IRMutator {
 
 public:
     ReplaceMemChannel(const map<string, Expr> &_mem_addr,
-                      const vector<std::pair<string, Expr>> &_lets)
+                      vector<std::pair<string, Expr>> &_lets)
         : mem_addr(_mem_addr), letstmts_backup(_lets) {
             in_function = false;
             on_device = false;
@@ -891,7 +891,7 @@ private:
     };
     map<string, CGSEntry> cgs_for_mem_channels;              // Combined memory channels are stored as a compiler_generated_struct (CGS, defined in StructType.h) type
     map<string, Expr> temp_val;                              // The variable with suffix ".temp" generated after combinning memory channels
-    const vector<std::pair<string, Expr>> &letstmts_backup;
+    vector<std::pair<string, Expr>> &letstmts_backup;
 
     // Some buffer-realted values are lost, and thus we need to re-generate them
     Stmt rebuild_buffer_stmt(string name, Type buf_t, int dims, Stmt body) {
@@ -1111,10 +1111,19 @@ public:
         return s;
     }
 
-    Stmt visit(const Allocate *op) override {
-        if (ends_with(op->name, ".mem_channel")) {
-            Stmt body = mutate(op->body);
+    Stmt visit(const LetStmt *op) override {
+        auto it = std::find_if(letstmts_backup.begin(), letstmts_backup.end(),
+                               [&](std::pair<string, Expr> &p){ return p.first == op->name; });
+        if (it != letstmts_backup.end()) {
+            // To avoid duplication, we remove existing values
+            letstmts_backup.erase(it);
+        }
+        return IRMutator::visit(op);
+    }
 
+    Stmt visit(const Allocate *op) override {
+        Stmt body = mutate(op->body);
+        if (ends_with(op->name, ".mem_channel")) {
             if (!op->type.is_generated_struct()) {
                 body = rebuild_letstmt(op->name, op->type, op->extents.size(), body);
                 return Allocate::make(op->name, op->type, op->memory_type, op->extents,
@@ -1126,8 +1135,15 @@ public:
             body = rebuild_letstmt(op->name, UInt(8), extents.size(), body);
             return Allocate::make(op->name, UInt(8), op->memory_type, extents,
                                 op->condition, body, op->new_expr, op->free_function);
+        } else {
+            for (auto p : letstmts_backup) {
+                if (extract_first_token(p.first) == op->name) {
+                    body = LetStmt::make(p.first, p.second, body);
+                }
+            }
+            return Allocate::make(op->name, op->type, op->memory_type, op->extents,
+                                op->condition, body, op->new_expr, op->free_function);
         }
-        return IRMutator::visit(op);
     }
 
     Stmt visit(const Realize *op) override {
@@ -1148,8 +1164,8 @@ public:
                 vector<Expr> args = call->args;
                 internal_assert(args[0].as<StringImm>());
                 string name = args[0].as<StringImm>()->value;
-                Expr value = mutate(args[1]);
                 in_mem_channel = name;
+                Expr value = mutate(args[1]);
 
                 Expr i = mutate(Call::make(Int(32), "addr.temp", {}, Call::Intrinsic));
                 auto make_cgs = value.as<Call>();
@@ -1212,7 +1228,7 @@ public:
     }
 };
 
-Stmt replace_mem_channels(Stmt s, const std::map<std::string, Function> &env, const vector<std::pair<string, Expr>> &letstmts_backup) {
+Stmt replace_mem_channels(Stmt s, const std::map<std::string, Function> &env, vector<std::pair<string, Expr>> &letstmts_backup) {
     map<string, Expr> mem_addr;
     FindAddressesOfMemChannels finder(mem_addr, env);
     s.accept(&finder);

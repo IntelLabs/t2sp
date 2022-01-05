@@ -1,123 +1,34 @@
-# Matrix Multiply
+# Capsule convolution
 
-## Performance for single precision matrix multiply
-| Device | Frequency | Throughput | Logic utilization | DSPs | BRAMs | DSP Efficiency |
-| ------ | --------- | ------ | --------- | ---- | ----- | -------------- |
-| Intel Arria 10 GX 1150 FPGA | 223 MHz | 540 GFLOPS | 211,417 / 427,200 ( 49 % ) | 1,304 / 1,518 ( 86 % ) | 2,087 / 2,713 ( 77 % ) | 92%   |
-| Intel GEN9.5 GPU | 1200 MHz | 423 GFLOPS | - | - | - | 92%   |
+Capsule convolution is defined as follows [1]:
 
-The test can be reproduced by logging into a compute node on Intel FPGA DevCloud with an A10 card and 1.2.1 software stack, and following the instructions below.
+![capsule-original-equation](figures/capsule-equation.png)
 
-## Key Implementation Details
+where `s` is the stride, operation `·` is matrix multiplication, and `V`, `P`, and `W` are all 4-dimensional arrays of 4x4 matrices.  In our design, we assume  stride `s=2`.  
 
-This design contains several important optimizations:
-- Generating a 10x8 systolic array with UREs and a space-time transform
-- Generating double buffers for input data, with multiple banks connected as a daisy chain
-- Vectorizing input data to utilize the bandwidth of the device's DRAM
-- Generating two-level output buffers in registers
+## Performance (single precision)
 
-The compiler implements the above optimizations. In addition, the compiler automatically performs the following optimizations so that the generated code lends itself to the downstream EDA tools for further optimizations:
-- Identifying and rewriting the inner-product pattern
-- Moving  channel accesses at the boundaries of the systolic array outside the unrolled loops
+| Device | Frequency | Throughput | Logic utilization | DSP blocks | RAM blocks | DSP Efficiency | Tensor Sizes | Device compiler |
+| ------ | --------- | ------ | --------- | ---- | ----- | -------------- |----- | -------------- |
+| Intel Arria 10 GX 1150 FPGA | 196 MHz | 487 GFLOPS | 250,555 / 427,200 ( 59 % ) | 1,317 / 1,518 ( 87 % ) | 1,505 / 2,713 ( 55 % ) | 94%  | P(64 * 32 * 15 * 15 * 4 * 4) * W( 32 * 32 * 3 * 3 * 4 * 4) | aoc 19.4.0 |
+| Intel GEN9.5 GPU | 1200 MHz | 398 GFLOPS | - | - | - | 87%   | P(64 * 32 * 15 * 15 * 4 * 4) * W(32 * 32 * 3 * 3 * 4 * 4) | CM Dev Package 20200119 |
 
-## Test the design
+Note:  when [measuring the performance](../README.md#Performance-metrics),
 
-This design is specified to compile ahead-of-time (AOT), since AOT mode makes sense for the time-consuming FPGA compilation, although we can slightly change the specification to make it work just-in-time (JIT) as well.
+- Given the above definition of capsule convolution, #operations =  2 * (4 * 4 * 4) * (size of tensor `V` in the equation) * (product of the extents of `kx`, `ky` and `ci` in the equation), where the factor 2 accounts for two operations: multiply and add.
 
-### 1. Run emulation for verifying correctness with a tiny systolic array and inputs:
-- Set up the environment in the T2SP directory, if not yet:
-    ```
-    source ../../../../setenv.sh (local | devcloud)
-    ```
-- Just to be safe, remove previously generated bitstream and intermediate files, if any:
-  
-    ```
-    rm -rf a.* a/ capsule-interface.* *.out exec_time.txt
-    ```
-- Compile the source code in this directory:
-    ```
-    g++ capsule.cpp -g -I ../util -I $T2S_PATH/Halide/include -L $T2S_PATH/Halide/bin $EMULATOR_LIBHALIDE_TO_LINK -lz -lpthread -ldl -std=c++11 -DTINY
-    ```
-- Generate a device bitstream for emulation, and a C interface for the host to invoke the matrix multiply kernel in the bitstream:
-    ```
-    env BITSTREAM=a.aocx AOC_OPTION="$EMULATOR_AOC_OPTION -board=$FPGA_BOARD -emulator-channel-depth-model=strict" ./a.out
-    ```
-    
-     The bitstream generated is `a.aocx`, as indicated by the environment variable, BITSTREAM.  The C interface generated is `capsule-interface.cpp`, as specified in `capsule.cpp`.
-    
-- Compile the host file (`capsule-run.cpp`) and link with the C interface (`capsule-interface.cpp`):
-  
-    ```
-    g++ capsule-run.cpp capsule-interface.cpp ../../../src/AOT-OpenCL-Runtime.cpp ../../../src/SharedUtilsInC.cpp -g -DLINUX -DALTERA_CL -fPIC -I../../../src/ -I $T2S_PATH/Halide/include -I$INTELFPGAOCLSDKROOT/examples_aoc/common/inc $INTELFPGAOCLSDKROOT/examples_aoc/common/src/AOCLUtils/opencl.cpp $INTELFPGAOCLSDKROOT/examples_aoc/common/src/AOCLUtils/options.cpp -I$INTELFPGAOCLSDKROOT/host/include -L$INTELFPGAOCLSDKROOT/linux64/lib -L$AOCL_BOARD_PACKAGE_ROOT/linux64/lib -L$INTELFPGAOCLSDKROOT/host/linux64/lib -lOpenCL -L $T2S_PATH/Halide/bin -lelf $EMULATOR_LIBHALIDE_TO_LINK -lz -lpthread -ldl -std=c++11 -DTINY -o ./b.out
-    ```
-- Emulate:
-    ```
-    env BITSTREAM=a.aocx CL_CONTEXT_EMULATOR_DEVICE_INTELFPGA=1 INTEL_FPGA_OCL_PLATFORM_NAME="$EMULATOR_PLATFORM" ./b.out
-    ```
-### 2. Synthesize and run for performance with a large systolic array and inputs:
-- Set up the environment in the T2SP directory, if not yet:
-    ```
-    source ../../../../setenv.sh (local | devcloud)
-    ```
-- Just to be safe, remove previously generated bitstream and intermediate files, if any.
-  
-    ```
-    rm -rf a.* a/ capsule-interface.* *.out exec_time.txt
-    ```
-    
-- Re-compile the source code with large size:
-    ```
-    g++ capsule.cpp -g -I ../util -I $T2S_PATH/Halide/include -L $T2S_PATH/Halide/bin $HW_LIBHALIDE_TO_LINK -lz -lpthread -ldl -std=c++11
-    ```
-    
-- Generate a device bitstream, and a C interface for the host to invoke the matrix multiply kernel in the bitstream:
+## Design
 
-    ```
-    env BITSTREAM=a.aocx AOC_OPTION="-v -profile -fpc -fp-relaxed -board=$FPGA_BOARD" ./a.out
-    ```
+Below is the GPU design. The FPGA design is similar and skipped here.
 
-    Look for the static analysis report in `a/reports/report.html`. For the options of the `aoc` command, refer to the [Best Practice Guide](https://www.intel.com/content/dam/www/programmable/us/en/pdfs/literature/hb/opencl-sdk/aocl-best-practices-guide.pdf).
+![Design](figures/capsule-design.png)
 
-    **DevCloud**: This step might take 4-6 hrs. To avoid the above command from being killed automatically by the system, exit your current compute node, and from the headnode `login-2`, submit a batch request. For example,  write a file at your home directory:
+One may wonder why the drain loops do not contain reduction loops like `kx`, etc. and thread loops like `mx`, etc. This is because the results are already reduced and are drained per thread. 
 
-    ```
-    # file batch.sh
-    cd path/to/t2sp
-    source setenv.sh devcloud
-    cd t2s/tests/performance/capsule
-    env BITSTREAM=a.aocx AOC_OPTION="-v -profile -fpc -fp-relaxed -board=$FPGA_BOARD" ./a.out
-    ```
+## [Understand the design](../README.md#how-to-understand-a-design)
 
-    Then submit a batch request like this:
-    ```
-    devcloud_login -b A10PAC 1.2.1 walltime=08:00:00 batch.sh
-    ```
+## [Test the design](../../../../README.md#Performance-tests)
 
-    See more details for [how to submit a batch job](https://github.com/intel/FPGA-Devcloud/tree/master/main/Devcloud_Access_Instructions#54-submitting-batch-jobs).
+## References
 
-    After the batch job is done, log into a compute node again, and re-source `setenv.sh` (Step 1).   
-
-    **DevCloud A10PAC 1.2.1 only**: further capsuleert the signed bitstream to unsigned:
-
-    ```
-    # Type `y` when prompted
-    source $AOCL_BOARD_PACKAGE_ROOT/linux64/libexec/sign_aocx.sh -H openssl_manager -i a.aocx -r NULL -k NULL -o a_unsigned.aocx 
-    mv a_unsigned.aocx a.aocx
-    ```
-
-    For more details, see a [pac_a10 tutorial](https://github.com/intel/FPGA-Devcloud/tree/master/main/QuickStartGuides/OpenCL_Program_PAC_Quickstart/Arria%2010).
-
-- Compile the host file (`capsule-run.cpp`) and link with the C interface (`capsule-interface.cpp`):
-    ```
-    g++ capsule-run.cpp capsule-interface.cpp ../../../src/AOT-OpenCL-Runtime.cpp ../../../src/Roofline.cpp ../../../src/SharedUtilsInC.cpp  -g -DLINUX -DALTERA_CL -fPIC -I../../../src/ -I $T2S_PATH/Halide/include -I$INTELFPGAOCLSDKROOT/examples_aoc/common/inc $INTELFPGAOCLSDKROOT/examples_aoc/common/src/AOCLUtils/opencl.cpp $INTELFPGAOCLSDKROOT/examples_aoc/common/src/AOCLUtils/options.cpp -I$INTELFPGAOCLSDKROOT/host/include -L$INTELFPGAOCLSDKROOT/linux64/lib -L$AOCL_BOARD_PACKAGE_ROOT/linux64/lib -L$INTELFPGAOCLSDKROOT/host/linux64/lib -lOpenCL -L $T2S_PATH/Halide/bin -lelf $HW_LIBHALIDE_TO_LINK -lz -lpthread -ldl -std=c++11 -o ./b.out
-    ```
-
-- Offload the bitstream to the device.
-    ```
-    aocl program acl0 a.aocx  
-    ```
-    
-- Run the host binary. The host offloads the bitstream to an FPGA and invokes the matrix multiply kernel there through the interface:
-    ```
-    env BITSTREAM=a.aocx INTEL_FPGA_OCL_PLATFORM_NAME="$HW_RUN_PLATFORM_NAME" AOC_OPTION="-board=$FPGA_BOARD" ./b.out
-    ```
+1. Paul Barham and Michael Isard. Machine learning systems are stuck in a rut. In Proceedings of the Workshop on Hot Topics in Operating Systems, pages 177–183, 2019.  

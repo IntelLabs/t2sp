@@ -18,29 +18,29 @@
 *******************************************************************************/
 #include "Halide.h"
 #include "util.h"
-#include "sizes.h"
+#include "const-parameters.h"
 
 using namespace Halide;
 
 int main(void)
 {
     // Dependences
-    #define P               r_cii,       coo,   bb,   mw, hw, co, r_ci,      r_mk,      r_kw,      r_kh,   mh, b
-    #define P_cii_minus_1   r_cii-1,     coo,   bb,   mw, hw, co, r_ci,      r_mk,      r_kw,      r_kh,   mh, b
-    #define P_ci_minus_1    r_cii+CII-1, coo,   bb,   mw, hw, co, r_ci-1,    r_mk,      r_kw,      r_kh,   mh, b
-    #define P_mk_minus_1    r_cii+CII-1, coo,   bb,   mw, hw, co, r_ci+CI-1, r_mk-1,    r_kw,      r_kh,   mh, b
-    #define P_kw_minus_1    r_cii+CII-1, coo,   bb,   mw, hw, co, r_ci+CI-1, r_mk+MK-1, r_kw-1,    r_kh,   mh, b
-    #define P_kh_minus_1    r_cii+CII-1, coo,   bb,   mw, hw, co, r_ci+CI-1, r_mk+MK-1, r_kw+KW-1, r_kh-1, mh, b
-    #define P_coo_minus_1   r_cii,       coo-1, bb,   mw, hw, co, r_ci,      r_mk,      r_kw,      r_kh,   mh, b
-    #define P_bb_minus_1    r_cii,       coo,   bb-1, mw, hw, co, r_ci,      r_mk,      r_kw,      r_kh,   mh, b
-    #define P_Out                        coo,   bb,   mw, hw, co,                                          mh, b
-
+    #define Index               cii,       cooo,   yyy_xxx,   yy_xx, y_x, my, mx, coo, ky,      kx,      ci,      mk,   co, n
+    #define Index_cii_minus_1   cii-1,     cooo,   yyy_xxx,   yy_xx, y_x, my, mx, coo, ky,      kx,      ci,      mk,   co, n
+    #define Index_ky_minus_1    cii+CII-1, cooo,   yyy_xxx,   yy_xx, y_x, my, mx, coo, ky-1,    kx,      ci,      mk,   co, n
+    #define Index_kx_minus_1    cii+CII-1, cooo,   yyy_xxx,   yy_xx, y_x, my, mx, coo, ky+KY-1, kx-1,    ci,      mk,   co, n
+    #define Index_ci_minus_1    cii+CII-1, cooo,   yyy_xxx,   yy_xx, y_x, my, mx, coo, ky+KY-1, kx+KX-1, ci-1,    mk,   co, n
+    #define Index_mk_minus_1    cii+CII-1, cooo,   yyy_xxx,   yy_xx, y_x, my, mx, coo, ky+KY-1, kx+KX-1, ci+CI-1, mk-1, co, n
+    #define Index_co3_minus_1   cii,       cooo-1, yyy_xxx,   yy_xx, y_x, my, mx, coo, ky,      kx,      ci,      mk,   co, n
+    #define Index_yx3_minus_1   cii,       cooo,   yyy_xxx-1, yy_xx, y_x, my, mx, coo, ky,      kx,      ci,      mk,   co, n
+    #define Index_Out                      cooo,   yyy_xxx,   yy_xx, y_x, my, mx, coo,                                  co, n
     // Linearized addresses
-    #define total_iw        ((hw % W)*2 + r_kw)
-    #define total_ih        ((hw / W)*2 + r_kh)
-    #define total_co        (coo + COO * co)
-    #define total_ci        (r_cii + CII * r_ci)
-    #define total_b         (bb + BB * b)
+    #define total_oy        ((yyy_xxx + YYY_XXX*yy_xx + YYY_XXX*YY_XX*y_x) % OY)
+    #define total_ox        ((yyy_xxx + YYY_XXX*yy_xx + YYY_XXX*YY_XX*y_x) / OY)
+    #define total_iy        (total_oy * 2 + ky)
+    #define total_ix        (total_ox * 2 + kx)
+    #define total_co        (cooo + COOO*coo + COOO*COO*co)
+    #define total_ci        (cii + CII*ci)
 
     // Type of the data to process in C and T2S
     #define CTYPE float
@@ -48,64 +48,69 @@ int main(void)
 
     // Inputs
 #ifdef GPU
-    ImageParam I("I", TTYPE, 2), K("K", TTYPE, 2);
-    #define P_I     (total_ci) + TOTAL_CI*(r_mk) + TOTAL_CI*MK*(mh), (total_b) + TOTAL_B*(total_iw) + TOTAL_B*TOTAL_IW*(total_ih)
-    #define P_K     (total_co) + TOTAL_CO*(r_mk) + TOTAL_CO*MK*(mw), (total_ci) + TOTAL_CI*(r_kw) + TOTAL_CI*KW*(r_kh)
-    #define P_O     (total_co) + TOTAL_CO*(mw) + TOTAL_CO*MW*(mh),   (total_b) + TOTAL_B*hw
-    #define UB      (I.dim(1).extent() % TOTAL_B)
+    ImageParam P("P", TTYPE, 2), W("W", TTYPE, 2);
+    #define Index_P     total_ci + (TOTAL_CI)*mk + (TOTAL_CI*MK)*mx, total_iy + (TOTAL_IY)*total_ix + (TOTAL_IY*TOTAL_IX)*n
+    #define Index_W     total_co + (TOTAL_CO)*my, cii + (CII)*ky + (CII*KY)*kx + (CII*KY*KX)*ci + (TOTAL_CI*KY*KX)*mk
+    #define Index_V     total_co + (TOTAL_CO)*my + (TOTAL_CO*MY)*mx, total_oy + (OY)*total_ox + (OY*OX)*n
+    #define UN          (P.dim(1).extent() / (TOTAL_IY*TOTAL_IX))
 #else
-    ImageParam I("I", TTYPE, 6), K("K", TTYPE, 6);
-    #define P_I     r_mk, mh, total_ci, total_iw, total_ih, total_b
-    #define P_K     mw, r_mk, total_ci, total_co, r_kw, r_kh
-    #define P_O     P_Out
-    #define UB      (I.dim(5).extent() / BB)
+    ImageParam P("P", TTYPE, 6), W("W", TTYPE, 6);
+    #define Index_P     mk, mx, total_ci, total_iy, total_ix, n
+    #define Index_W     my, mk, total_ci, total_co, ky, kx
+    #define Index_V     Index_Out
+    #define UN          (P.dim(5).extent())
 #endif
 
     // UREs
-    Var r_cii("r_cii"), coo("coo"), bb("bb"), mw("mw"), hw("hw"), co("co"), r_ci("r_ci"), r_mk("r_mk"), r_kw("r_kw"), r_kh("r_kh"), mh("mh"), b("b");
-    URE X("X", TTYPE, {P}), Y("Y", TTYPE, {P}), Z("Z", TTYPE, {P}), Out("Out");
-    X(P) = select(coo == 0, I(P_I), X(P_coo_minus_1));
-    Y(P) = select(bb == 0, K(P_K), Y(P_bb_minus_1));
-    Z(P) = select(r_cii == 0 && r_ci == 0 && r_mk == 0 && r_kw == 0 && r_kh == 0, 0,
-                select(r_cii == 0, select(r_ci == 0, select(r_mk == 0, select(r_kw == 0, Z(P_kh_minus_1), Z(P_kw_minus_1)), Z(P_mk_minus_1)), Z(P_ci_minus_1)), Z(P_cii_minus_1)))
-                + X(P) * Y(P);
-    Out(P_Out) = select(r_cii == CII-1 && r_ci == CI-1 && r_mk == MK-1 && r_kw == KW-1 && r_kh == KH-1, Z(P));
+    Var cii("cii"), my("my"), mx("mx"), ky("ky"), kx("kx"), ci("ci"), mk("mk"), n("n");
+    Var yyy_xxx("yyy_xxx"), yy_xx("yy_xx"), y_x("y_x"), cooo("cooo"), coo("coo"), co("co");
+    URE A("A", TTYPE, {Index}), B("B", TTYPE, {Index}), C("C", TTYPE, {Index}), Out("Out");
+    A(Index) = select(cooo == 0, P(Index_P), A(Index_co3_minus_1));
+    B(Index) = select(yyy_xxx == 0, W(Index_W), B(Index_yx3_minus_1));
+    C(Index) = select(cii == 0 && ci == 0 && mk == 0 && ky == 0 && kx == 0, 0,
+                select(cii == 0, select(ky == 0, select(kx == 0, select(ci == 0, C(Index_mk_minus_1), C(Index_ci_minus_1)), C(Index_kx_minus_1)), C(Index_ky_minus_1)), C(Index_cii_minus_1)))
+                + A(Index) * B(Index);
+    Out(Index_Out) = select(cii == CII-1 && ci == CI-1 && mk == MK-1 && ky == KY-1 && kx == KX-1, C(Index));
 
     // Put all the UREs inside the same loop nest of X.
-    X.merge_ures(Y, Z, Out);
+    A.merge_ures(B, C, Out);
 
     // Explicitly set the loop bounds
-    X.set_bounds(bb,    0, BB,  b,    0, UB)
-     .set_bounds(r_cii, 0, CII, r_ci, 0, CI)
-     .set_bounds(coo,   0, COO, co,   0, CO)
-     .set_bounds(r_kw,  0, KW,  r_kh, 0, KH)
-     .set_bounds(r_mk,  0, MK,  hw,   0, H*W)
-     .set_bounds(mw,    0, MW,  mh,   0, MH);
+    A.set_bounds(cooo,    0, COOO,    coo,   0, COO,   co,  0, CO)
+     .set_bounds(my,      0, MY,      mx,    0, MX,    mk,  0, MK)
+     .set_bounds(yyy_xxx, 0, YYY_XXX, yy_xx, 0, YY_XX, y_x, 0, Y_X)
+     .set_bounds(cii,     0, CII,     ci,    0, CI)
+     .set_bounds(ky,      0, KY,      kx,    0, KX)
+     .set_bounds(n,       0, UN);
+    A.space_time_transform(cooo, yyy_xxx, yy_xx);
 
-    // Create a systolic array
-    X.space_time_transform(coo, bb);
-
-    // GPU can have many threads running in parallel.
 #ifdef GPU
-    X.gpu_blocks(hw, co, b).gpu_threads(mw, mh);
+    // GPU can have many threads running in parallel.
+    A.gpu_blocks(co, n).gpu_threads(my, mx);
+    A.reorder(cii, cooo, y_x, my, mx, coo, ky, kx, yyy_xxx, yy_xx, ci, mk, co, n);
 #endif
 
     // I/O network
-    Stensor DI("iLoader", DRAM), SI("iFeeder", SRAM), DK("kLoader", DRAM), SK("kFeeder", SRAM);
-    Stensor RO2("drainer", REG), RO1("collector", REG), DO("unloader", DRAM), O("deserializer");
-    I >> DI.bankwidth(r_cii) >> FIFO(128)
-      >> SI.scope(r_kw).banks(bb).bankwidth(r_cii) >> FIFO(128);
-    K >> DK.bankwidth(r_cii) >> FIFO(128)
-      >> SK.scope(r_kw).banks(coo).bankwidth(r_cii) >> FIFO(128);
-    Out >> FIFO(1024) >> RO2.scope(mh).banks(coo, bb)
-        >> FIFO(128)  >> RO1.scope(bb).banks(coo)
-        >> FIFO(128)  >> DO >> O(P_O);
+    Stensor DP("PLoader", DRAM), SP("PFeeder", SRAM), DW("WLoader", DRAM), SW("WFeeder", SRAM);
+    Stensor RV2("drainer", REG), RV1("collector", REG), DV("unloader", DRAM), V("deserializer");
+#ifdef GPU
+    SP.scope(yy_xx);
+#else
+    SP.scope(ci);
+#endif
+    P >> DP.out(cii) >> FIFO(128)
+      >> SP.out(cii, yyy_xxx) >> FIFO(128);
+    W >> DW.out(cii) >> FIFO(128)
+      >> SW.scope(ci).out(cii, cooo) >> FIFO(128);
+    Out >> FIFO(1024) >> RV2.scope(yy_xx).out(cooo, yyy_xxx)
+        >> FIFO(128)  >> RV1.scope(yyy_xxx).out(cooo)
+        >> FIFO(128)  >> DV >> V(Index_V);
 
     // Compile the kernel to an FPGA bitstream, and expose a C interface for the host to invoke
 #ifdef GPU
-    O.compile_to_host("capsule-interface", { I, K }, "CAPSULE", IntelGPU);
+    V.compile_to_host("capsule-interface", { P, W }, "capsule", IntelGPU);
 #else
-    O.compile_to_host("capsule-interface", { I, K }, "CAPSULE", IntelFPGA);
+    V.compile_to_host("capsule-interface", { P, W }, "capsule", IntelFPGA);
 #endif
     printf("Success\n");
     return 0;

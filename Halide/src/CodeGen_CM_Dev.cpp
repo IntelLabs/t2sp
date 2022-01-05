@@ -338,27 +338,42 @@ void CodeGen_CM_Dev::CodeGen_CM_C::visit(const Evaluate *op) {
 }
 
 void CodeGen_CM_Dev::CodeGen_CM_C::print_media_block_rw(Type t, vector<Expr> args, bool is_write) {
-    int rows = args[5].as<IntImm>()->value;
-    int cols = args[6].as<IntImm>()->value;
+    int cols = args[5].as<IntImm>()->value;
+    int rows = args[6].as<IntImm>()->value;
     // internal_assert(cols <= 8);
     int bytes = t.bits() / 8;
-    int max = 256 / (cols*bytes);
+    int max_cols_at_once = (cols < 8 ? cols : 8);
+    int max_rows_at_once = 256 / (max_cols_at_once*bytes);
 
-    int idx = 0;
-    while (idx < rows) {
-        stream << get_indent() << (is_write ? "write(" : "read(");
-        stream << print_name(print_expr(args[0])) << ", ";
-        stream << print_expr(args[1] * bytes) << ", ";
-        stream << print_expr(args[2] + idx) << ", ";
-        auto ramp = args[4].as<Ramp>();
-        int load_rows = idx+max <= rows ?max :rows-idx;
-        stream << print_expr(args[3]) << ".select<"
+    for (int i = 0; i < rows; i += max_rows_at_once) {
+        int rows_at_once = i + max_rows_at_once <= rows ? max_rows_at_once : rows-i;
+        for (int j = 0; j < cols; j += max_cols_at_once) {
+            int cols_at_once = j + max_cols_at_once <= cols ? max_cols_at_once : cols-j;
+
+            stream << get_indent() << (is_write ? "write(" : "read(");
+            stream << print_name(print_expr(args[0])) << ", ";
+            stream << print_expr(args[1] * bytes) << ", ";
+            stream << print_expr(args[2] + i) << ", ";
+            auto ramp = args[4].as<Ramp>();
+            stream << print_expr(args[3]) << ".select<"
                << ramp->lanes << ", " << ramp->stride << ">(" << ramp->base << ")"
                << ".format<" << print_type(t) << ", " << rows << ", " << cols << ">()"
-               << ".select<" << load_rows << ", 1, " << cols << ", 1>("
-               << print_expr(idx) << ", 0));\n";
-        idx += max;
+               << ".select<" << rows_at_once << ", 1, " << cols_at_once << ", 1>("
+               << i << ", " << j << "));\n";
+        }
     }
+}
+
+string print_corr_buf_idx(vector<Expr> args, string id) {
+    ostringstream oss;
+    oss << "inline int cm_corr_buf_idx_" << id << "(int i) {\n";
+    auto &cond = args[1].as<Shuffle>()->vectors;
+    auto &acc = args[2].as<Shuffle>()->vectors;
+    for (size_t i = 0; i < cond.size(); i++) {
+        oss << "  if (i < " << cond[i] << ") return (i - " << acc[i] << ");\n";
+    }
+    oss << "  return i;\n}\n";
+    return oss.str();
 }
 
 void CodeGen_CM_Dev::CodeGen_CM_C::visit(const Call *op) {
@@ -372,6 +387,13 @@ void CodeGen_CM_Dev::CodeGen_CM_C::visit(const Call *op) {
     }
     if (op->is_intrinsic(Call::cm_store_2d)) {
         print_media_block_rw(op->type, op->args, true);
+        return;
+    }
+    if (op->is_intrinsic(Call::cm_corr_buf_idx)) {
+        string id = unique_name('f');
+        string rhs = "cm_corr_buf_idx_" + id + "(" + print_expr(op->args[0]) + ")";
+        init_funcs += print_corr_buf_idx(op->args, id);
+        print_assignment(op->type, rhs);
         return;
     }
     CodeGen_C::visit(op);
@@ -656,8 +678,9 @@ void CodeGen_CM_Dev::add_kernel(Stmt s,
     cur_kernel_name = name;
     clc.add_kernel(s, name, args);
 
-    string str = src_stream.str();
-    str = clc.init_vecs + "\n" + str;
+    string str;
+    str = clc.init_vecs + clc.init_funcs;
+    str += src_stream.str();
     src_stream.str(str);
 }
 

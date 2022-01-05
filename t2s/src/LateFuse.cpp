@@ -34,7 +34,7 @@ class LateFuse: public IRMutator {
 
 public:
     LateFuse(Function f, std::string v)
-        : fuse_func(f), fuse_level(v) {}
+        : fuse_func(f), fuse_level(v), producer_node(NULL), realize_node(NULL) {}
 
     Stmt visit(const For *op) override {
         if (starts_with(op->name, fuse_level)) {

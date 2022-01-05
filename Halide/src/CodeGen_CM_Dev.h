@@ -54,6 +54,7 @@ protected:
     class CodeGen_CM_C : public CodeGen_C {
     public:
         string init_vecs;
+        string init_funcs;
 
         CodeGen_CM_C(std::ostream &s, Target t)
             : CodeGen_C(s, t) {

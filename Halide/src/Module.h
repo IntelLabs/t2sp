@@ -36,7 +36,7 @@ enum class Output {
     static_library,
     stmt,
     stmt_html,
-    cm_devsrc,
+    dev_src,
     host_header,
     host_src
 };

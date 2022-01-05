@@ -621,7 +621,8 @@ void CodeGen_OpenCL_Dev::CodeGen_OpenCL_C::visit(const Call *op) {
         std::string arr_name = op->args[0].as<StringImm>()->value;
         // read the entire array as a whole
         if (op->args.size() == 1) {
-            id = print_name(arr_name);
+            std::string string_index = op->type.is_handle() ? "" : ".s";
+            id = print_name(arr_name) + string_index;
         } else {
             std::string string_index = ".s";
             for (size_t i = 1; i < op->args.size(); i++)
@@ -635,7 +636,8 @@ void CodeGen_OpenCL_Dev::CodeGen_OpenCL_C::visit(const Call *op) {
         // write the entire array as a whole
         if (op->args.size() == 2) {
             std::string write_data = print_expr(op->args[1]);
-            stream << get_indent() << print_name(arr_name) << " = " << write_data << ";\n";
+            std::string string_index = op->type.is_handle() ? "" : ".s";
+            stream << get_indent() << print_name(arr_name) << string_index << " = " << write_data << ";\n";
         } else {
             std::string write_data = print_expr(op->args[1]);
             std::string string_index = ".s";

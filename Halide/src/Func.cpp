@@ -2638,19 +2638,26 @@ Func &Func::fold_storage(Var dim, Expr factor, bool fold_forward) {
     return *this;
 }
 
-Func &Func::mem_fetch(Var loop_level, MemoryType mem_type, vector<Expr> reuse_args, size_t sz) {
+Func &Func::gpu_fetch(Var loop_level, MemoryType mem_type, vector<Var> outs, vector<Expr> reuse_args) {
     invalidate_cache();
 
     FetchParams &fp = func.definition().schedule().fetch_params();
     fp.store_at = loop_level.name();
     fp.store_in = mem_type;
-    fp.rw_len = sz;
+    // TODO: remove rw_len
+    fp.rw_len = 8;
     fp.reuse_args = reuse_args;
+
+    vector<string> out_dims;
+    for (auto &v : outs) {
+        out_dims.push_back(v.name());
+    }
+    fp.out_dims = out_dims;
 
     return *this;
 }
 
-Func &Func::mem_store(const vector<Expr> &args, size_t sz) {
+Func &Func::gpu_store(const vector<Expr> &args, size_t sz) {
     invalidate_cache();
 
     StoreParams &rp = func.definition().schedule().store_params();

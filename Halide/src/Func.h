@@ -2222,8 +2222,8 @@ public:
      * a given LoopLevel. */
     Func &compute_at(LoopLevel loop_level);
 
-    Func &mem_fetch(Var loop_level, MemoryType mem_type, vector<Expr> reuse_args, size_t sz = 16);
-    Func &mem_store(const vector<Expr> &args, size_t sz = 16);
+    Func &gpu_fetch(Var loop_level, MemoryType mem_type, vector<Var> outs, vector<Expr> reuse_args);
+    Func &gpu_store(const vector<Expr> &args, size_t sz = 16);
 
     /** Schedule the iteration over the initial definition of this function
      *  to be fused with another stage 's' from outermost loop to a
