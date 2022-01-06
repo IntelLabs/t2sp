@@ -16,6 +16,7 @@
 
 // For validation of results.
 #include <assert.h>
+#include "context.h"
 
 using namespace std;
 
@@ -31,43 +32,36 @@ Halide::Runtime::Buffer<unsigned char> new_characters() {
     return b;
 }
 
-template<typename T, size_t N1, size_t N2>
-Halide::Runtime::Buffer<T> new_probability() {
-    Halide::Runtime::Buffer<T> b(N1, N2);
-    srand(time(0));
-    for (size_t i = 0; i < N1; i++) {
-        for (size_t j = 0; j < N2; j++) {
-            b(i, j) = (T) (((T)(rand() * 1.0)) / ((T)(RAND_MAX * 1.0)));
-        }
-    }
-    return b;
-}
-
 int main()
 {
     // Generate random input numbers
     Halide::Runtime::Buffer<unsigned char> H = new_characters<HAP_LEN, NUM_HAPS>();
     Halide::Runtime::Buffer<unsigned char> R = new_characters<READ_LEN, NUM_READS>();
-    Halide::Runtime::Buffer<float> Q = new_probability<float, READ_LEN, NUM_READS>();
-    Halide::Runtime::Buffer<float> alpha = new_probability<float, READ_LEN, NUM_READS>();
-    Halide::Runtime::Buffer<float> delta = new_probability<float, READ_LEN, NUM_READS>();
-    Halide::Runtime::Buffer<float> zeta = new_probability<float, READ_LEN, NUM_READS>();
+    Halide::Runtime::Buffer<unsigned char> R_c = new_characters<READ_LEN, NUM_READS>();
+    Halide::Runtime::Buffer<unsigned char> R_i = new_characters<READ_LEN, NUM_READS>();
+    Halide::Runtime::Buffer<unsigned char> R_d = new_characters<READ_LEN, NUM_READS>();
+    Halide::Runtime::Buffer<unsigned char> R_q =  new_characters<READ_LEN, NUM_READS>();
     // Pre-compute some input numbers
+    Halide::Runtime::Buffer<float> delta(READ_LEN, NUM_READS);
+    Halide::Runtime::Buffer<float> zeta(READ_LEN, NUM_READS);
     Halide::Runtime::Buffer<float> eta(READ_LEN, NUM_READS);
     Halide::Runtime::Buffer<float> alpha_match(READ_LEN, NUM_READS);
     Halide::Runtime::Buffer<float> alpha_gap(READ_LEN, NUM_READS);
     Halide::Runtime::Buffer<float> beta_match(READ_LEN, NUM_READS);
     Halide::Runtime::Buffer<float> beta_gap(READ_LEN, NUM_READS);
 
-    int beta_val = 0.9f;
-    int eta_val = 0.1f;
+    Context<float> ctx;
     for (size_t i = 0; i < NUM_READS; i++) {
         for (size_t j = 0; j < READ_LEN; j++) {
-            alpha_match(j, i) = (1.0f - Q(j, i)) * alpha(j, i);
-            alpha_gap(j, i) = (Q(j, i) / 3) * alpha(j, i);
-            beta_match(j, i) = (1.0f - Q(j, i)) * beta_val;
-            beta_gap(j, i) = (Q(j, i) / 3) * beta_val;
-            eta(j, i) = eta_val;
+            float alpha = ctx.set_mm_prob(R_i(j, i), R_d(j, i));
+            float beta  = 1.0f - ctx.ph2pr[R_c(j, i)];
+            delta(j, i) = ctx.ph2pr[R_i(j, i)];
+            zeta(j, i)  = ctx.ph2pr[R_d(j, i)];
+            eta(j, i)   = ctx.ph2pr[R_c(j, i)];
+            alpha_match(j, i) = alpha * (1.0f - ctx.ph2pr[R_q(j, i)]);
+            alpha_gap(j, i)   = alpha * ctx.ph2pr[R_q(j, i)] / 3.0f;
+            beta_match(j, i)  = beta * (1.0f - ctx.ph2pr[R_q(j, i)]);
+            beta_gap(j, i)    = beta * ctx.ph2pr[R_q(j, i)] / 3.0f;
         }
     }
 
@@ -108,9 +102,9 @@ int main()
                 if (i == READ_LEN - 1 && j > 0) {
                     golden += M(READ_LEN-1, j) + I(READ_LEN-1, j);
                 }
-                assert(abs(golden - result(rr, hh, r, h)) < 1e-6);
             }
         }
+        assert(abs(golden - result(rr, hh, r, h)) < 1e-6);
     }
 #else
     double exec_time = ExecTime();

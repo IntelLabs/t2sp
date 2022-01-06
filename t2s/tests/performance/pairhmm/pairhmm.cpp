@@ -104,11 +104,11 @@ int main(void)
     Stensor DH("hLoader", DRAM), SH("hFeeder", SRAM), DR("rLoader", DRAM), SR("rFeeder", SRAM);
     Stensor DO("unloader", DRAM), O("deserializer");
     H >> DH >> FIFO(128)
-      >> SH.scope(i).out(jj) >> FIFO(128);
+      >> SH.scope(r).out(jj) >> FIFO(128);
     vector<ImageParam>{ R, delta, zeta, eta, alpha_match, alpha_gap, beta_match, beta_gap }
       >> DR >> FIFO(16)
-      >> SR.scope(i).out(ii) >> FIFO(16);
-    Out >> FIFO(16) >> DO >> O;
+      >> SR.scope(r).out(ii) >> FIFO(16);
+    Out >> FIFO(128) >> DO >> O;
 
     // Compile the kernel to an FPGA bitstream, and expose a C interface for the host to invoke
     O.compile_to_host("pairhmm-interface", { H, R, delta, zeta, eta, alpha_match, alpha_gap, beta_match, beta_gap }, "pairhmm", IntelFPGA);

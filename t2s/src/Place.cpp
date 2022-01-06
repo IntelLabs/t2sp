@@ -169,9 +169,22 @@ private:
     bool is_set_bounds;
 
     string get_channel_name(string name) {
+        string func_name = extract_first_token(name);
         for (auto &m : mem_channels) {
-            if (extract_first_token(name) == m)
+            // Multiple inputs can be isolated into the same function. For example,
+            // inputs A and B are isolated into function A_serializer:
+            // realize A_serializer_B_im
+            //   realize A_serializer
+            //     for (A_serializer.s0.i, 0, N)
+            //       A_serializer(A_serializer.s0.i) = A(A_serializer.s0.i)
+            //       A_serializer_B_im(A_serializer.s0.i) = B(A_serializer.s0.i)
+            // However, only A_serializer is identified as mem_channel.
+            // To help perform SoA to AoS optimization, we also replace B with mem_channel,
+            // and in the combine_channels stage, two mem_channels are combined together.
+            if (func_name == m || (starts_with(func_name, m) && ends_with(func_name, "_im"))) {
+                debug(4) << "Find references " << name << " associated with channel " << m << "\n";
                 return m;
+            }
         }
         return "";
     }

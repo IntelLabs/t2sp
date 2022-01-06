@@ -6,8 +6,8 @@
     #define OH          4
     #define OI          4
     #define OJ          4
-    #define RR          8
-    #define HH          5
+    #define RR          4
+    #define HH          4
     #define II          4
     #define JJ          4
 #else
