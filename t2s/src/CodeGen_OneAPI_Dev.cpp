@@ -780,10 +780,16 @@ void CodeGen_OneAPI_Dev::CodeGen_OneAPI_C::visit(const For *loop) {
     } else if (ends_with(loop->name, ".run_on_device")) {
         // The loop just tells the compiler to generate an OpenCL kernel for
         // the loop body.
-        std::vector<std::string> names = split_string(loop->name, ".");
-        if (shift_regs_allocates.find(names[0]) != shift_regs_allocates.end()) {
-            for (size_t i = 0; i < shift_regs_allocates[names[0]].size(); i++) {
-                stream << get_indent() << shift_regs_allocates[names[0]][i];
+        std::string name = extract_first_token(loop->name);
+        if (shift_regs_allocates.find(name) != shift_regs_allocates.end()) {
+            for (size_t i = 0; i < shift_regs_allocates[name].size(); i++) {
+                stream << get_indent() << shift_regs_allocates[name][i];
+            }
+        }
+        name += "_temp";
+        if (shift_regs_allocates.find(name) != shift_regs_allocates.end()) {
+            for (size_t i = 0; i < shift_regs_allocates[name].size(); i++) {
+                stream << get_indent() << shift_regs_allocates[name][i];
             }
         }
         loop->body.accept(this);
