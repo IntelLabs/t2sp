@@ -2568,6 +2568,7 @@ std::string CodeGen_OneAPI_Dev::CodeGen_OneAPI_C::compile_oneapi_lower(const Low
             }
             function_top << "sycl::buffer <" << print_type(args[i].type) << "," << dim  << "> "
                          << print_name(args[i].name);
+            function_top << ", int * " << print_name(args[i].name) << "_dim";
         }
         if (i < args.size() - 1) function_top << ", ";
     }
@@ -2590,14 +2591,12 @@ std::string CodeGen_OneAPI_Dev::CodeGen_OneAPI_C::compile_oneapi_lower(const Low
     function_top << "\n\n";
     function_top << get_indent() << "std::cout << \"// define dimentions of input buffers\\n\";\n";
     for(size_t i = 0; i < buffer_input_args.size(); i++){
-        size_t dim = 1;
-        if( (size_t)buffer_input_args[i].dimensions < 3 ){
-            dim = (size_t)buffer_input_args[i].dimensions;
-        }
+        size_t dim = (size_t)buffer_input_args[i].dimensions;
         for(size_t j = 0; j < dim; j++){
             function_top << get_indent() 
                          << "int " << print_name(buffer_input_args[i].name) << "_extent_" << j 
-                         << " = " <<  print_name(buffer_input_args[i].name) << ".get_range().get(" << j << ");\n";
+                        //  << " = " <<  print_name(buffer_input_args[i].name) << ".get_range().get(" << j << ");\n";
+                         << " = " <<  print_name(buffer_input_args[i].name) << "_dim[" << j << "]" << ";\n";
         }
     }
 
