@@ -70,7 +70,10 @@ protected:
 
         std::string compile_oneapi_lower(const LoweredFunc &f, std::string str);
 
-        void visit_For(const For *op);
+        std::string create_kernel_name(const For *op);
+        
+        void visit_For(const For *loop);
+
 
     protected:
         using CodeGen_C::visit;

@@ -2334,7 +2334,10 @@ void CodeGen_OneAPI_Dev::CodeGen_OneAPI_C::add_kernel(Stmt s,
     debug(2) << "Adding OneAPI kernel " << name << "\n";
 
     // Store the kernel information for a kernel wrapped function in compile_to_oneapi
-    kernel_args.push_back( std::tuple<Stmt, std::string, std::vector<DeviceArgument> >(s,name,args) );
+    // Only add device kernels to kernel_args
+    if((name.find("serializer") == std::string::npos) && (name.find("deserializer") == std::string::npos)){
+        kernel_args.push_back( std::tuple<Stmt, std::string, std::vector<DeviceArgument> >(s,name,args) );
+    }
 
     //debug(2) << "Eliminating bool vectors\n";
     //s = eliminate_bool_vectors(s);
@@ -2375,7 +2378,10 @@ void CodeGen_OneAPI_Dev::CodeGen_OneAPI_C::add_kernel(Stmt s,
     // stream << "\n\n// Address spaces for " << name << "\n";
     for (size_t i = 0; i < args.size(); i++) {
         if (args[i].is_buffer) {
-            buffer_args.push_back( args[i] );
+            // Only add device kernels to buffer_args
+            if((name.find("serializer") == std::string::npos) && (name.find("deserializer") == std::string::npos)){
+                buffer_args.push_back( args[i] );
+            }
             vector<BufferSize>::iterator constant = constants.begin();
             while (constant != constants.end() &&
                    constant->name != args[i].name) {
@@ -2757,11 +2763,78 @@ std::string CodeGen_OneAPI_Dev::CodeGen_OneAPI_C::compile_oneapi_lower(const Low
     return str;
 }
 
-void CodeGen_OneAPI_Dev::CodeGen_OneAPI_C::visit_For(const For *op){
-    // (Note) Implementation mimiced from void CodeGen_GPU_Host<CodeGen_CPU>::visit(const For *loop) in Halide/CodeGen_GPU_Host.cpp
-    debug(2) << "Kernel launch: " << op->name << "\n";
+std::string CodeGen_OneAPI_Dev::CodeGen_OneAPI_C::create_kernel_name(const For *op) {
+    // Remove already useless info from the loop name, so as to get a cleaner kernel name.
+    std::string loop_name = op->name;
+    std::string func_name = extract_first_token(loop_name);
+    std::string kernel_name = unique_name("kernel_" + func_name);
 
-    visit(op);
+    // If the kernel writes to memory, append "_WAIT_FINISH" so that the OpenCL runtime knows to wait for this
+    // kernel to finish.
+    // KernelStoresToMemory checker;
+    // op->body.accept(&checker);
+    // if (checker.stores_to_memory) {
+    //     // TOFIX: overlay does not work well with this change of name
+    //     // kernel_name += "_WAIT_FINISH";
+    // }
+
+    for (size_t i = 0; i < kernel_name.size(); i++) {
+        if (!isalnum(kernel_name[i])) {
+            kernel_name[i] = '_';
+        }
+    }
+    return kernel_name;
+}
+
+void CodeGen_OneAPI_Dev::CodeGen_OneAPI_C::visit_For(const For *loop){
+    // (Note) Implementation mimiced from void CodeGen_GPU_Host<CodeGen_CPU>::visit(const For *loop) in Halide/CodeGen_GPU_Host.cpp
+    debug(2) << "Kernel launch: " << loop->name << "\n";
+
+    // ExtractBounds bounds;
+    // loop->accept(&bounds);
+
+    // debug(2) << "Kernel bounds: ("
+    //             << bounds.num_threads[0] << ", "
+    //             << bounds.num_threads[1] << ", "
+    //             << bounds.num_threads[2] << ", "
+    //             << bounds.num_threads[3] << ") threads, ("
+    //             << bounds.num_blocks[0] << ", "
+    //             << bounds.num_blocks[1] << ", "
+    //             << bounds.num_blocks[2] << ", "
+    //             << bounds.num_blocks[3] << ") blocks\n";
+
+    // compile the kernel
+    string kernel_name = create_kernel_name(loop);
+
+    // compute a closure over the state passed into the kernel
+    HostClosure c(loop->body, loop->name);
+
+    // Determine the arguments that must be passed into the halide function
+    vector<DeviceArgument> closure_args = c.arguments();
+
+    // Sort the args by the size of the underlying type. This is
+    // helpful for avoiding struct-packing ambiguities in metal,
+    // which passes the scalar args as a struct.
+    std::sort(closure_args.begin(), closure_args.end(),
+        [](const DeviceArgument &a, const DeviceArgument &b) {
+            if (a.is_buffer == b.is_buffer) {
+                return a.type.bits() > b.type.bits();
+            } else {
+                return a.is_buffer < b.is_buffer;
+            }
+    });
+
+
+    // for (size_t i = 0; i < closure_args.size(); i++) {
+    //     if (closure_args[i].is_buffer && allocations.contains(closure_args[i].name)) {
+    //         closure_args[i].size = allocations.get(closure_args[i].name).constant_bytes;
+    //     }
+    // }
+    
+
+    debug(2) << "!!! loop kernel_name: " << kernel_name << "\n";
+    // visit(loop);
+    add_kernel(loop, kernel_name, closure_args);
 }
 
 void CodeGen_OneAPI_Dev::CodeGen_OneAPI_C::DeclareChannels::visit(const Realize *op) {

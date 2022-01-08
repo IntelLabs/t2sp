@@ -646,6 +646,9 @@ void CodeGen_GPU_Host<CodeGen_CPU>::visit(const For *loop) {
                                       halide_error_code_device_run_failed,
                                       result);
     } else {
+        if(target.has_feature(Target::OneAPI)){
+            ((CodeGen_OneAPI_Dev*)cgdev[DeviceAPI::OneAPI])->visit(loop);
+        }
         CodeGen_CPU::visit(loop);
     }
 }
