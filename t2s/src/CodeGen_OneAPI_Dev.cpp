@@ -67,6 +67,10 @@ vector<char> CodeGen_OneAPI_Dev::compile_to_src_module(const LoweredFunc &f) {
     return buffer;
 }
 
+void CodeGen_OneAPI_Dev::visit(const For *op){
+    one_clc.visit_For(op);
+}
+
 /* Methods only for generating OpenCL code for Intel FPGAs */
 // (TODO) Replace with method to create dpcpp code and compile
 void CodeGen_OneAPI_Dev::compile_to_aocx_oneapi(std::ostringstream &src_stream) {
@@ -2751,6 +2755,13 @@ std::string CodeGen_OneAPI_Dev::CodeGen_OneAPI_C::compile_oneapi_lower(const Low
 
 
     return str;
+}
+
+void CodeGen_OneAPI_Dev::CodeGen_OneAPI_C::visit_For(const For *op){
+    // (Note) Implementation mimiced from void CodeGen_GPU_Host<CodeGen_CPU>::visit(const For *loop) in Halide/CodeGen_GPU_Host.cpp
+    debug(2) << "Kernel launch: " << op->name << "\n";
+
+    visit(op);
 }
 
 void CodeGen_OneAPI_Dev::CodeGen_OneAPI_C::DeclareChannels::visit(const Realize *op) {

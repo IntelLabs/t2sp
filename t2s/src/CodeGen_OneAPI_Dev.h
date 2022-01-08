@@ -54,6 +54,7 @@ public:
 
     std::vector<char> compile_to_src_module(const LoweredFunc &f);
 
+    void visit(const For *op);
 
 protected:
     class CodeGen_OneAPI_C : public CodeGen_C {
@@ -68,6 +69,8 @@ protected:
         void gather_shift_regs_allocates(const Stmt *op);
 
         std::string compile_oneapi_lower(const LoweredFunc &f, std::string str);
+
+        void visit_For(const For *op);
 
     protected:
         using CodeGen_C::visit;
