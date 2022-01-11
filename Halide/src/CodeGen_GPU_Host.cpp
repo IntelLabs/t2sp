@@ -323,7 +323,7 @@ string create_kernel_name(const For *op) {
 
 template<typename CodeGen_CPU>
 void CodeGen_GPU_Host<CodeGen_CPU>::visit(const For *loop) {
-    if (CodeGen_GPU_Dev::is_gpu_var(loop->name) || ends_with(loop->name, ".run_on_device")) {
+    if (CodeGen_GPU_Dev::is_gpu_var(loop->name) || ends_with(loop->name, ".run_on_device") || target.has_feature(Target::OneAPI)) {
         // We're in the loop over outermost block dimension
         debug(2) << "Kernel launch: " << loop->name << "\n";
 
@@ -424,10 +424,24 @@ void CodeGen_GPU_Host<CodeGen_CPU>::visit(const For *loop) {
             }
         }
 
-        CodeGen_GPU_Dev *gpu_codegen = cgdev[loop->device_api];
+
+
+        CodeGen_GPU_Dev *gpu_codegen;
+        
+        if( target.has_feature(Target::OneAPI) ){
+            // OneAPI combines host and device code into the same file, so use that code generator 
+            // since there is no device API, force into OneAPI CodeGen
+            debug(2) << "Using <OneAPI> for : " << kernel_name << "\n";
+            gpu_codegen = ((CodeGen_OneAPI_Dev*)cgdev[DeviceAPI::OneAPI]);
+        } else {
+            gpu_codegen = cgdev[loop->device_api];
+        }
         user_assert(gpu_codegen != nullptr)
             << "Loop is scheduled on device " << loop->device_api
             << " which does not appear in target " << target.to_string() << "\n";
+        if( target.has_feature(Target::OneAPI) ){
+            
+        }
         gpu_codegen->add_kernel(loop, kernel_name, closure_args);
 
         if (ends_with(loop->name, ".autorun.run_on_device")) {
@@ -646,9 +660,7 @@ void CodeGen_GPU_Host<CodeGen_CPU>::visit(const For *loop) {
                                       halide_error_code_device_run_failed,
                                       result);
     } else {
-        if(target.has_feature(Target::OneAPI)){
-            ((CodeGen_OneAPI_Dev*)cgdev[DeviceAPI::OneAPI])->visit(loop);
-        }
+
         CodeGen_CPU::visit(loop);
     }
 }
