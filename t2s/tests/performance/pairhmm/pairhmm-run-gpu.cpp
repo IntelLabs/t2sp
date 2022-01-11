@@ -226,8 +226,6 @@ void check_correctness(float *out)
                 if (i == READ_LEN - 1 && j > 0) {
                     golden += M[READ_LEN-1][j] + I[READ_LEN-1][j];
                 }
-                // printf("Host-Input: (%d, %d) %c %c %lf %lf %lf %lf %lf %lf %lf\n", i, j, H[j][total_h], R[total_r][i], delta[total_r][i], zeta[total_r][i], eta[total_r][i], alpha_match[total_r][i], alpha_gap[total_r][i], beta_match[total_r][i], beta_gap[total_r][i]);
-                // printf("Host-Result: (%d, %d) %lf %lf %lf %lf\n", i, j, M[i][j], I[i][j], D[i][j], golden);
             }
         }
         assert(abs(golden - out[total_h + NUM_HAPS*total_r]) < 1e-6);
