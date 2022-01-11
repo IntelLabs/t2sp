@@ -61,7 +61,7 @@ string extract_token(const string &str, int num_tokens) {
             j = i + 1;
         }
     }
-    if (tokens +1 == num_tokens)
+    if (tokens + 1 == num_tokens)
         return str.substr(j, i-j);
     return "";
 }

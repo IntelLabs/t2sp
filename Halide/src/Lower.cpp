@@ -603,6 +603,10 @@ Module lower(const vector<Function> &output_funcs,
         debug(1) << "Skipping Hexagon offload...\n";
     }
 
+    debug(1) << "Remove lets...\n";
+    s = remove_lets(s, true, false, false, false, {});
+    debug(2) << "Lowering after removing lets:\n"
+            << s << '\n';
 
     if (!custom_passes.empty()) {
         for (size_t i = 0; i < custom_passes.size(); i++) {

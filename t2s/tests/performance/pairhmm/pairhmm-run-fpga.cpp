@@ -23,7 +23,6 @@ using namespace std;
 template<size_t N1, size_t N2>
 Halide::Runtime::Buffer<unsigned char> new_characters() {
     Halide::Runtime::Buffer<unsigned char> b(N1, N2);
-    srand(time(0));
     for (size_t i = 0; i < N1; i++) {
         for (size_t j = 0; j < N2; j++) {
             b(i, j) = 'A' + (rand() % 26);
@@ -32,23 +31,54 @@ Halide::Runtime::Buffer<unsigned char> new_characters() {
     return b;
 }
 
-int main()
+// T can only be float or double here
+template<size_t N1, size_t N2>
+Halide::Runtime::Buffer<float> new_probability() {
+    Halide::Runtime::Buffer<float> b(N1, N2);
+    for (size_t i = 0; i < N1; i++) {
+        for (size_t j = 0; j < N2; j++) {
+            b(i, j) = (float)(rand() * 1.0) / (float)(RAND_MAX * 1.0);
+        }
+    }
+    return b;
+}
+
+Halide::Runtime::Buffer<unsigned char> H(NUM_HAPS, HAP_LEN), R(READ_LEN, NUM_READS);
+Halide::Runtime::Buffer<float> delta(READ_LEN, NUM_READS), zeta(READ_LEN, NUM_READS), eta(READ_LEN, NUM_READS);
+Halide::Runtime::Buffer<float> alpha_match(READ_LEN, NUM_READS), alpha_gap(READ_LEN, NUM_READS);
+Halide::Runtime::Buffer<float> beta_match(READ_LEN, NUM_READS), beta_gap(READ_LEN, NUM_READS);
+
+void set_pseudo_input()
 {
-    // Generate random input numbers
-    Halide::Runtime::Buffer<unsigned char> H = new_characters<HAP_LEN, NUM_HAPS>();
-    Halide::Runtime::Buffer<unsigned char> R = new_characters<READ_LEN, NUM_READS>();
+    // Generate random input string
+    H = new_characters<NUM_HAPS, HAP_LEN>();
+    R = new_characters<READ_LEN, NUM_READS>();
+    delta = new_probability<READ_LEN, NUM_READS>();
+    zeta = new_probability<READ_LEN, NUM_READS>();
+    eta = new_probability<READ_LEN, NUM_READS>();
+
+    for (size_t i = 0; i < NUM_READS; i++) {
+        for (size_t j = 0; j < READ_LEN; j++) {
+            float Q = (float)(rand() * 1.0) / (float)(RAND_MAX * 1.0);
+            float alpha = (float)(rand() * 1.0) / (float)(RAND_MAX * 1.0);
+            float beta = (float)(rand() * 1.0) / (float)(RAND_MAX * 1.0);
+            alpha_match(j, i) = (1.0f - Q) * alpha;
+            alpha_gap(j, i) = (Q / 3) * alpha;
+            beta_match(j, i) = (1.0f - Q) * beta;
+            beta_gap(j, i) = (Q / 3) * beta;
+        }
+    }
+}
+
+void set_real_input()
+{
+    // Generate random input string
+    H = new_characters<NUM_HAPS, NUM_HAPS>();
+    R = new_characters<READ_LEN, NUM_READS>();
     Halide::Runtime::Buffer<unsigned char> R_c = new_characters<READ_LEN, NUM_READS>();
     Halide::Runtime::Buffer<unsigned char> R_i = new_characters<READ_LEN, NUM_READS>();
     Halide::Runtime::Buffer<unsigned char> R_d = new_characters<READ_LEN, NUM_READS>();
     Halide::Runtime::Buffer<unsigned char> R_q =  new_characters<READ_LEN, NUM_READS>();
-    // Pre-compute some input numbers
-    Halide::Runtime::Buffer<float> delta(READ_LEN, NUM_READS);
-    Halide::Runtime::Buffer<float> zeta(READ_LEN, NUM_READS);
-    Halide::Runtime::Buffer<float> eta(READ_LEN, NUM_READS);
-    Halide::Runtime::Buffer<float> alpha_match(READ_LEN, NUM_READS);
-    Halide::Runtime::Buffer<float> alpha_gap(READ_LEN, NUM_READS);
-    Halide::Runtime::Buffer<float> beta_match(READ_LEN, NUM_READS);
-    Halide::Runtime::Buffer<float> beta_gap(READ_LEN, NUM_READS);
 
     Context<float> ctx;
     for (size_t i = 0; i < NUM_READS; i++) {
@@ -64,8 +94,12 @@ int main()
             beta_gap(j, i)    = beta * ctx.ph2pr[R_q(j, i)] / 3.0f;
         }
     }
+}
 
-    Halide::Runtime::Buffer<float> result(RR, HH, OR, OH);
+int main()
+{
+    set_real_input();
+    Halide::Runtime::Buffer<float> result(HH, RR, OH, OR);
     pairhmm(H, R, delta, zeta, eta, alpha_match, alpha_gap, beta_match, beta_gap, result);
 
 #ifdef TINY
@@ -93,8 +127,8 @@ int main()
                     D(0, j) = 1.0 / (HAP_LEN - 1);
                 }
                 if (j != 0 && i != 0) {
-                    float alpha = (R(i, total_r) == H(j, total_h)) ? alpha_match(i, total_r) : alpha_gap(i, total_r);
-                    float beta  = (R(i, total_r) == H(j, total_h)) ? beta_match(i, total_r) : beta_gap(i, total_r);
+                    float alpha = (R(i, total_r) == H(total_h, j)) ? alpha_match(i, total_r) : alpha_gap(i, total_r);
+                    float beta  = (R(i, total_r) == H(total_h, j)) ? beta_match(i, total_r) : beta_gap(i, total_r);
                     M(i, j) = alpha * M(i - 1, j - 1) +  beta * (I(i - 1, j - 1) + D(i - 1, j - 1));
                     I(i, j) = delta(i, total_r) * M(i - 1, j) + eta(i, total_r) * I(i - 1, j);
                     D(i, j) = zeta(i, total_r) * M(i, j - 1) + eta(i, total_r) * D(i, j - 1);
@@ -104,11 +138,11 @@ int main()
                 }
             }
         }
-        assert(abs(golden - result(rr, hh, r, h)) < 1e-6);
+        assert(abs(golden - result(hh, rr, h, r)) < 1e-6);
     }
 #else
     double exec_time = ExecTime();
-    double number_ops = NUM_READS * READ_LEN * NUM_HAPS * HAP_LEN;
+    double number_ops = (double)NUM_READS * READ_LEN * NUM_HAPS * HAP_LEN;
     cout << "Length of read strings: " << NUM_READS << "*" << READ_LEN << "\n";
     cout << "Length of hap strings: " << NUM_HAPS << "*" << HAP_LEN << "\n";
     cout << "GCups: " << number_ops / exec_time << "\n";

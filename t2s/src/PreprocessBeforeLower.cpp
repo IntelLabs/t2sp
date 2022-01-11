@@ -141,7 +141,7 @@ void convert_removed_loops_to_unit_loops(Func &func) {
     }
 }
 
-void reorder_gpu_loops(Func func) {
+void reorder_gpu_loops(Func func, int &num_gpu_vars) {
     if (func.function().has_merged_defs()
         && func.function().definition().schedule().has_stt()
         && !func.function().definition().schedule().is_output()
@@ -163,6 +163,7 @@ void reorder_gpu_loops(Func func) {
         loops.insert(loops.end()-1, gpu_threads.begin(), gpu_threads.end());
         loops.insert(loops.end()-1, gpu_blocks.begin(), gpu_blocks.end());
         func.reorder(loops);
+        num_gpu_vars = gpu_threads.size() + gpu_blocks.size();
     }
 }
 
@@ -195,7 +196,8 @@ void t2s_preprocess_before_lower(map<string, Func> &env, const Target &target) {
 
         // GPU-related transform
         if (target.has_feature(Target::IntelGPU)) {
-            reorder_gpu_loops(func);
+            int num_gpu_vars = 0;
+            reorder_gpu_loops(func, num_gpu_vars);
             annotate_loop_type(func);
         }
         // Space-time transform

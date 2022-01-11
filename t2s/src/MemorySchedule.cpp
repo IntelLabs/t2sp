@@ -291,11 +291,13 @@ public:
             auto rhs = get_equation_rhs(conjuction, loop_vars[i]);
             Expr border_val = tmp_info.is_output ? loop_bounds[i].extent-1 : 0;
             bool is_border = equal(rhs, simplify(border_val));
+            if (is_one(loop_bounds[i].extent)) {
+                // The unit loop will be removed later
+                tmp_info.if_cond = simplify(substitute(loop_vars[i], border_val, tmp_info.if_cond));
+                continue;
+            }
             if (!is_border) {
-                // The one-shot loops will be removed later, so hoisting code above them is safe
-                // otherwise, we cannot further hoist it.
-                if (is_one(loop_bounds[i].extent)) continue;
-                else break;
+                break;
             }
             internal_assert(tmp_info.if_cond.defined());
             tmp_info.sink_loop = loop_vars[i];
@@ -1295,7 +1297,7 @@ private:
             const auto &ld_inst = info.iter_inst;
             // const auto &cp_inst = info.copy_inst;
 
-            if (extract_token(op->name, 2) == info.fp.store_at) {
+            if (extract_token(op->name, 3) == info.fp.store_at) {
                 // Build the loops bottom-up and insert copy instruction
                 // size_t sz = val(cp_inst.dest.extent);
                 // if (sz > 0) {
@@ -1447,7 +1449,9 @@ public:
 
     Stmt visit(const Store *op) override {
         auto it = func_info.find(op->name);
-        if (it != func_info.end() && !it->second.is_output) {
+        if (it != func_info.end()
+            && it->second.sink_loop != ""
+            && !it->second.is_output) {
             last_visited_ure = op->name;
             ures[last_visited_ure] = { op, 0 };
             // Transform the IR like this:
@@ -1525,7 +1529,7 @@ public:
     void visit(const For* op) override {
         op->body.accept(this);
         for (auto &v : loop_vars) {
-            if (extract_token(op->name, 2) == extract_token(v, 2)) {
+            if (extract_token(op->name, 3) == extract_token(v, 3)) {
                 new_loop_vars[v] = Variable::make(Int(32), op->name);
             }
         }

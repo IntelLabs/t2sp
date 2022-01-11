@@ -9,15 +9,15 @@ using namespace Halide;
 int main(void)
 {
     // Macros: for convenient use.
-    #define A                       ii,      jj,      rr,  hh,  i,   j,   r,  h
-    #define A_ii_minus_1            ii-1,    jj,      rr,  hh,  i,   j,   r,  h
-    #define A_jj_minus_1            ii,      jj-1,    rr,  hh,  i,   j,   r,  h
-    #define A_ii_minus_1_jj_minus_1 ii-1,    jj-1,    rr,  hh,  i,   j,   r,  h
-    #define A_last_ii               ii+II-1, jj,      rr,  hh,  i-1, j,   r,  h
-    #define A_last_ii_jj_minus_1    ii+II-1, jj-1,    rr,  hh,  i-1, j,   r,  h
-    #define A_last_jj               ii,      jj+JJ-1, rr,  hh,  i,   j-1, r,  h
-    #define A_ii_minus_1_last_jj    ii-1,    jj+JJ-1, rr,  hh,  i,   j-1, r,  h
-    #define A_last_ii_last_jj       ii+II-1, jj+JJ-1, rr,  hh,  i-1, j-1, r,  h
+    #define A                       jj,      ii,      hh,  rr,  j,   i,   h,  r
+    #define A_ii_minus_1            jj,      ii-1,    hh,  rr,  j,   i,   h,  r
+    #define A_jj_minus_1            jj-1,    ii,      hh,  rr,  j,   i,   h,  r
+    #define A_ii_minus_1_jj_minus_1 jj-1,    ii-1,    hh,  rr,  j,   i,   h,  r
+    #define A_last_ii               jj,      ii+II-1, hh,  rr,  j,   i-1, h,  r
+    #define A_last_ii_jj_minus_1    jj-1,    ii+II-1, hh,  rr,  j,   i-1, h,  r
+    #define A_last_jj               jj+JJ-1, ii,      hh,  rr,  j-1, i,   h,  r
+    #define A_ii_minus_1_last_jj    jj+JJ-1, ii-1,    hh,  rr,  j-1, i,   h,  r
+    #define A_last_ii_last_jj       jj+JJ-1, ii+II-1, hh,  rr,  j-1, i-1, h,  r
 
     // Linearized addresses
     #define total_i                 (i * II + ii)
@@ -47,7 +47,7 @@ int main(void)
     URE AlphaMatch("AlphaMatch", FLOAT_URE_DECL), AlphaGap("AlphaGap", FLOAT_URE_DECL);
     URE BetaMatch("BetaMatch", FLOAT_URE_DECL), BetaGap("BetaGap", FLOAT_URE_DECL);
 
-    Hap(A)        = select(ii == 0, H(total_j, total_h), Hap(A_ii_minus_1));
+    Hap(A)        = select(ii == 0, H(total_h, total_j), Hap(A_ii_minus_1));
     Read(A)       = select(jj == 0, R(total_i, total_r), Read(A_jj_minus_1));
     Delta(A)      = select(jj == 0, delta(total_i, total_r), Delta(A_jj_minus_1));
     Zeta(A)       = select(jj == 0, zeta(total_i, total_r), Zeta(A_jj_minus_1));
@@ -86,7 +86,7 @@ int main(void)
     Sum(A) = select(i_is_last,
                 select(j_is_0, 0.0f,
                     select(jj == 0, Sum(A_last_jj), Sum(A_jj_minus_1))) + M(A) + I(A), 0.0f);
-    Out(rr, hh, r, h) = select(i_is_last && j_is_last, Sum(A));
+    Out(hh, rr, h, r) = select(i_is_last && j_is_last, Sum(A));
 
     // Put all the UREs inside the same loop nest of Hap.
     Hap.merge_ures(Read, Delta, Zeta, Eta, AlphaMatch, AlphaGap, BetaMatch, BetaGap, Alpha, Beta, M, I, D, Sum, Out);
@@ -98,20 +98,28 @@ int main(void)
        .set_bounds(r,   0, OR,  h,  0, OH);
 
     // Create a systolic array
+#ifdef GPU
+    Hap.space_time_transform(hh);
+    Hap.gpu_blocks(h, r).gpu_threads(rr);
+#else
     Hap.space_time_transform({ii, jj}, {0, 0});
-
+#endif
     // I/O network
     Stensor DH("hLoader", DRAM), SH("hFeeder", SRAM), DR("rLoader", DRAM), SR("rFeeder", SRAM);
     Stensor DO("unloader", DRAM), O("deserializer");
     H >> DH >> FIFO(128)
-      >> SH.scope(r).out(jj) >> FIFO(128);
+      >> SH.scope(h).out(jj) >> FIFO(128);
     vector<ImageParam>{ R, delta, zeta, eta, alpha_match, alpha_gap, beta_match, beta_gap }
       >> DR >> FIFO(16)
-      >> SR.scope(r).out(ii) >> FIFO(16);
-    Out >> FIFO(128) >> DO >> O;
+      >> SR.scope(h).out(ii) >> FIFO(16);
+    Out >> FIFO(128) >> DO >> O(total_h, total_r);
 
     // Compile the kernel to an FPGA bitstream, and expose a C interface for the host to invoke
+#ifdef GPU
+    O.compile_to_host("pairhmm-interface", { H, R, delta, zeta, eta, alpha_match, alpha_gap, beta_match, beta_gap }, "pairhmm", IntelGPU);
+#else
     O.compile_to_host("pairhmm-interface", { H, R, delta, zeta, eta, alpha_match, alpha_gap, beta_match, beta_gap }, "pairhmm", IntelFPGA);
+#endif
     cout << "Success!\n";
     return 0;
 }

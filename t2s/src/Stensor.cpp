@@ -143,7 +143,7 @@ struct FindVars
     }
 
     // Find the first var below/above the given var v whose extent is not 1
-    Var find_non_trivial_var(Var v, bool above = true) {
+    Var find_non_unit_var(Var v, bool above = true) {
         size_t j = var_index(v);
         while (j > 0 && j < free_vars.size()) {
             auto bound = ure.function().get_bounds(free_vars[j].name());
@@ -186,7 +186,8 @@ struct FindVars
             if (f.function().has_merged_defs()) {
                 ure = f;
                 for (auto &d : f.function().definition().schedule().dims()) {
-                    free_vars.push_back(d.var);
+                    if (d.var != "__outermost")
+                        free_vars.push_back(d.var);
                 }
             }
         }
@@ -418,7 +419,7 @@ class RealizeOnFPGA
     void check_inclusiveness(Schain &c) {
         if (!c.is_output) {
             // start from the outermost loop
-            int i = fv.free_vars.size()-1;
+            int i = fv.free_vars.size();
             for (auto &s: c.stensors) {
                 if (!fv.exists(s.v_scope)) {
                     s.v_scope = fv.free_vars[i];
@@ -428,7 +429,7 @@ class RealizeOnFPGA
                 user_assert(j > 0 && j <= i)
                     << "The scope of " << s.name << " is beyond its predecessor\n";
                 // Find a loop whose extent is not 1, otherwise this loop would be removed in lowering
-                s.v_scope = fv.find_non_trivial_var(s.v_scope);
+                s.v_scope = fv.find_non_unit_var(s.v_scope);
                 i = j;
             }
         }
@@ -485,16 +486,43 @@ public:
 class RealizeOnGPU
 {
     FindVars &fv;
+    int num_gpu_vars;
+
+    // Check if the stensors are inclusive cache
+    // Namely, for input chain the scope of consumer cannot be beyond its predecessor,
+    // for output chain the scope of consumer cannot below its predecessor
+    // If not specified, the scope is inherited
+    void check_inclusiveness(Schain &c) {
+        if (!c.is_output) {
+            // start from the outermost loop
+            int i = fv.free_vars.size();
+            for (auto &s: c.stensors) {
+                if (!fv.exists(s.v_scope)) {
+                    s.v_scope = fv.free_vars[i];
+                    continue;
+                }
+                int j = fv.var_index(s.v_scope);
+                user_assert(j > 0 && j <= i)
+                    << "The scope of " << s.name << " is beyond its predecessor\n";
+                // Find a loop whose extent is not 1, otherwise this loop would be removed in lowering
+                s.v_scope = fv.find_non_unit_var(s.v_scope);
+                i = j;
+            }
+        }
+    }
 
     void gpu_fetch(Schain &c) {
         for (auto &s : c.stensors) {
-            // Currently, we realize SRAM with combined registers across threads
-            // The SRAM stensor determines the allocated registers
+            // Currently, we separately allocate registers in each thread, and view registers
+            // throughout threads as an unified SRAM storage, to realize stensors on GPUs.
             if (s.position == SRAM) {
-                internal_assert(c.imp.size() == 1);
-                c.imp[0].gpu_fetch(s.v_scope, MemoryType::Register, s.v_outs);
-                debug(1) << c.imp[0].name() << ".gpu_fetch("
-                         << s.v_scope.name() << ", {" << names_to_string(s.v_outs) << "});\n";
+            for (auto &p : c.imp) {
+                    int gpu_var_index = fv.free_vars.size() - num_gpu_vars;
+                    Var loop = fv.var_index(s.v_scope) < gpu_var_index ? s.v_scope : fv.free_vars[gpu_var_index];
+                    p.gpu_fetch(loop, MemoryType::Register, s.v_outs);
+                    debug(1) << p.name() << ".gpu_fetch("
+                             << loop.name() << ", {" << names_to_string(s.v_outs) << "});\n";
+                }
             }
         }
     }
@@ -510,12 +538,13 @@ class RealizeOnGPU
     }
 
 public:
-    RealizeOnGPU(FindVars &_f) : fv(_f) {}
+    RealizeOnGPU(FindVars &_f, int _n)
+        : fv(_f), num_gpu_vars(_n) {}
 
     Func realize() {
         Func out;
         for (auto &c : schains) {
-            // check_correctness(c);
+            check_inclusiveness(c);
             if (!c.is_output) {
                 gpu_fetch(c);
             } else {
@@ -558,15 +587,16 @@ Func Stensor::stensor_realize_wrapper(Starget t) {
         internal_assert(f.function().place() == Place::Host);
     }
     if (t == Starget::IntelGPU) {
+        int num_gpu_vars = 0;
         for (auto &p : env) {
             if (p.second.function().place() == Place::Device) {
                 // Placing on device is only valid for FPGAs
                 p.second.function().place(Place::Host);
             }
-            reorder_gpu_loops(p.second);
+            reorder_gpu_loops(p.second, num_gpu_vars);
         }
         FindVars fv(env);
-        RealizeOnGPU gpu(fv);
+        RealizeOnGPU gpu(fv, num_gpu_vars);
         f = gpu.realize();
     }
     return f;

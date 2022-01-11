@@ -376,7 +376,15 @@ class SpaceTimeTransformer : public IRMutator {
         Expr time_expr = IntImm::make(Int(32), 0);
         for (size_t j = 0; j < size; j++) {
             size_t k = src_var_pos[j];
-            time_expr += (loop_vars[k] - new_args[k]) * param.sch_vector[j];
+            Expr diff = simplify(loop_vars[k] - new_args[k]);
+            if (can_prove(diff >= loop_extents[k])) {
+                // The dependence distance on a dimension must be smaller than its extent.
+                // For example, the dependence jj+JJ-1, j-1 where J = 1 is illegal,
+                // and thus we skip to calculate distance in such cases
+                time_expr = 0;
+                break;
+            }
+            time_expr += diff * param.sch_vector[j];
             debug(3) << "time expr: " << time_expr;
             time_expr = simplify(time_expr);
         }
