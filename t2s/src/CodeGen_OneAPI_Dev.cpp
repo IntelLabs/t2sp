@@ -2444,7 +2444,6 @@ void CodeGen_OneAPI_Dev::CodeGen_OneAPI_C::add_kernel(Stmt s,
         assert( !(loadcheker.stores_to_memory && storechecker.stores_to_memory) );
 
         stream << "\n\n";
-        stream << get_indent() << "std::cout << \"// kernel " << name << "\\n\";\n";
 
         // Check if we need to copy before device kernel execution
         // Place a host->device is required before kernel execution
@@ -2457,6 +2456,7 @@ void CodeGen_OneAPI_Dev::CodeGen_OneAPI_C::add_kernel(Stmt s,
                             << print_name(args[i].name) << "_device, "   // dst
                             <<  print_name(args[i].name) << "_host, "    // src
                             <<  print_name(args[i].name) << "_size"      // size
+                            << "*sizeof(" << print_type(args[i].type) << ")"
                             <<  " ); }).wait();\n\n";
                 }
             }
@@ -2526,6 +2526,7 @@ void CodeGen_OneAPI_Dev::CodeGen_OneAPI_C::add_kernel(Stmt s,
         // Emit OneAPI queue device submit tasks
         //###################### q.submit start here
         stream << get_indent() << "// " << name << "\n";
+        stream << get_indent() << "std::cout << \"// kernel " << name << "\\n\";\n";
         stream << get_indent() << "oneapi_kernel_events.push_back( " << "q_device.submit([&](sycl::handler &h){\n";
         indent += 2;
 
@@ -2592,9 +2593,10 @@ void CodeGen_OneAPI_Dev::CodeGen_OneAPI_C::add_kernel(Stmt s,
                     stream << "\n\n";
                     stream << get_indent() << "std::cout << \"// device->host memcpy\\n\";\n";
                     stream << get_indent() << "q_device.submit([&](handler& h){ h.memcpy( " 
-                            << print_name(args[i].name) << "_host, "             // dst
+                            << print_name(args[i].name) << "_host, "            // dst
                             << print_name(args[i].name) << "_device, "          // src
-                            << print_name(args[i].name) << "_size" // size
+                            << print_name(args[i].name) << "_size"              // size
+                            << "*sizeof(" << print_type(args[i].type) << ")"
                             <<  " ); }).wait();\n";
                 }
             }
@@ -2817,7 +2819,7 @@ std::string CodeGen_OneAPI_Dev::CodeGen_OneAPI_C::compile_oneapi_lower(const Low
     // function wrapper for device queue tasks
     function_top << "double " << simple_name << "(";
 
-    // Print q_device as first input
+    // Print the deviceSelector as first input
     function_top << "const sycl::device_selector &deviceSelector";
     // Print arguments
     std::vector<LoweredArgument> buffer_input_args;
@@ -2870,7 +2872,8 @@ std::string CodeGen_OneAPI_Dev::CodeGen_OneAPI_C::compile_oneapi_lower(const Low
 
 
     // Allocade Deivce & Host memory
-    std::set<std::string> defined_pointers;
+    std::set<std::string> defined_pointers; // contains all defined pointers to be freed at the end
+    std::set<std::string> sylc_pointers;    // constins all created sycl malloc pointer names
     {
         function_top << "\n\n";
         function_top << get_indent() << "std::cout << \"// Allocating memory\\n\";\n";
@@ -2893,6 +2896,7 @@ std::string CodeGen_OneAPI_Dev::CodeGen_OneAPI_C::compile_oneapi_lower(const Low
                         <<  print_halide_buffer_name(buffer_input_args[i].name) << "->size_in_bytes(), q_device);\n";
             defined_pointers.insert( print_name(buffer_input_args[i].name) + "_host" );
             defined_pointers.insert( print_name(buffer_input_args[i].name) + "_device" );
+            sylc_pointers.insert( print_name(buffer_input_args[i].name) + "_device" );
         }
 
         function_top << "\n\n";
@@ -2928,6 +2932,7 @@ std::string CodeGen_OneAPI_Dev::CodeGen_OneAPI_C::compile_oneapi_lower(const Low
                             function_top << get_indent() << "size_t " << ptr_base << "_size = " << print_halide_buffer_name(buffer_input_args[input_buffer_index].name) << "->size_in_bytes();\n";
                         }
                         defined_pointers.insert( curr_ptr );
+                        sylc_pointers.insert( curr_ptr );
                     } else {
                         // Throw a user error when we are unable to figure out the memory
                         user_assert(false) << "unable to define memory `" << curr_ptr << "`\n";
@@ -2946,16 +2951,15 @@ std::string CodeGen_OneAPI_Dev::CodeGen_OneAPI_C::compile_oneapi_lower(const Low
     function_top << get_indent() << "int oneapi_kernel_events_index = 0;\n";
 
 
-    // Wait for all device event queue to finish..but where?...
-    // (TODO) Reimplement
+    // Free all defined sycl memory allocations
     {
-        // function_top << "\n\n";
-        // function_top << get_indent() << "std::cout << \"// wait for the kernel events to complete\\n\";\n";
-        // function_top << get_indent() << "for(int i = 0; i < oneapi_kernel_events.size(); i++ ){\n"
-        //             << get_indent() << "	oneapi_kernel_events.at(i).wait();\n"
-        //             << get_indent() << "}\n";
+        std::set<std::string>::iterator it = sylc_pointers.begin();
+        while (it != sylc_pointers.end())
+        {
+            function_btm << get_indent() <<  "sycl::free( " << (*it) << ", q_device);\n";
+            it++;
+        }
     }
-
 
     // Get and return timing metrics
     {
