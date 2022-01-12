@@ -2452,7 +2452,7 @@ void CodeGen_OneAPI_Dev::CodeGen_OneAPI_C::add_kernel(Stmt s,
                 if (args[i].is_buffer) {
                     // e.g. q_device.submit([&](handler& h) { h.memcpy(_I_serializer_device, _I_serializer_host,  _deserializer->size_in_bytes() ); }).wait();
                     stream << get_indent() << "std::cout << \"// host->device memcpy\\n\";\n";
-                    stream << get_indent() << "q_device.submit([&](handler& h){ h.memcpy( " 
+                    stream << get_indent() << "q_" << name << ".submit([&](handler& h){ h.memcpy( " 
                             << print_name(args[i].name) << "_device, "   // dst
                             <<  print_name(args[i].name) << "_host, "    // src
                             <<  print_name(args[i].name) << "_size"      // size
@@ -2527,7 +2527,7 @@ void CodeGen_OneAPI_Dev::CodeGen_OneAPI_C::add_kernel(Stmt s,
         //###################### q.submit start here
         stream << get_indent() << "// " << name << "\n";
         stream << get_indent() << "std::cout << \"// kernel " << name << "\\n\";\n";
-        stream << get_indent() << "oneapi_kernel_events.push_back( " << "q_device.submit([&](sycl::handler &h){\n";
+        stream << get_indent() << "oneapi_kernel_events.push_back( " << "q_" << name << ".submit([&](sycl::handler &h){\n";
         indent += 2;
 
         // Place anything you want before the kernel is submitied/defined here
@@ -2592,7 +2592,7 @@ void CodeGen_OneAPI_Dev::CodeGen_OneAPI_C::add_kernel(Stmt s,
                     // e.g. q_device.submit([&](handler& h) { h.memcpy(_I_serializer_device, _I_serializer_host,  _deserializer->size_in_bytes() ); }).wait();
                     stream << "\n\n";
                     stream << get_indent() << "std::cout << \"// device->host memcpy\\n\";\n";
-                    stream << get_indent() << "q_device.submit([&](handler& h){ h.memcpy( " 
+                    stream << get_indent() << "q_" << name << ".submit([&](handler& h){ h.memcpy( " 
                             << print_name(args[i].name) << "_host, "            // dst
                             << print_name(args[i].name) << "_device, "          // src
                             << print_name(args[i].name) << "_size"              // size
@@ -2866,6 +2866,21 @@ std::string CodeGen_OneAPI_Dev::CodeGen_OneAPI_C::compile_oneapi_lower(const Low
         function_top << get_indent() << "sycl::queue q_device(deviceSelector, dpc_common::exception_handler, sycl::property::queue::enable_profiling() );\n";
         function_top << get_indent() << "std::cout << \"//\\tHost: \" << q_host.get_device().get_info< sycl::info::device::name>() << \"\\n\";\n";
         function_top << get_indent() << "std::cout << \"//\\tDevice: \" << q_device.get_device().get_info< sycl::info::device::name>() << \"\\n\";\n";
+        function_top << get_indent() << "sycl::device dev = q_device.get_device();\n";
+        for(size_t i = 0; i < kernel_args.size(); i++){
+            Stmt s =  std::get<0>( kernel_args[i] );
+            std::string k_name =  std::get<1>( kernel_args[i] );
+            // std::vector<DeviceArgument> = kernel_args[i].get<2>;
+
+            // Check that it is a device kernel
+            IsRunOnDevice device_run_checker;
+            s.accept(&device_run_checker);
+            // Emmit Host Code
+            if(device_run_checker.is_run_on_device){
+                function_top << get_indent() << "sycl::queue q_" << k_name 
+                            << "(dev, dpc_common::exception_handler, {sycl::property::queue::enable_profiling(), sycl::property::queue::in_order()} );\n";
+            }
+        }
     }
 
 
