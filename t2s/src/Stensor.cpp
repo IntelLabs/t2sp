@@ -419,7 +419,7 @@ class RealizeOnFPGA
     void check_inclusiveness(Schain &c) {
         if (!c.is_output) {
             // start from the outermost loop
-            int i = fv.free_vars.size();
+            int i = fv.free_vars.size()-1;
             for (auto &s: c.stensors) {
                 if (!fv.exists(s.v_scope)) {
                     s.v_scope = fv.free_vars[i];
@@ -495,7 +495,7 @@ class RealizeOnGPU
     void check_inclusiveness(Schain &c) {
         if (!c.is_output) {
             // start from the outermost loop
-            int i = fv.free_vars.size();
+            int i = fv.free_vars.size()-1;
             for (auto &s: c.stensors) {
                 if (!fv.exists(s.v_scope)) {
                     s.v_scope = fv.free_vars[i];

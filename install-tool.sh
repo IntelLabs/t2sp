@@ -123,24 +123,8 @@ function install_python-packages {
 }
 
 function install_cm {
-    wget -c https://github.com/intel/cm-compiler/releases/download/Master/Linux_C_for_Metal_Development_Package_20200119.zip
-    unzip Linux_C_for_Metal_Development_Package_20200119.zip
-
-    cd Linux_C_for_Metal_Development_Package_20200119
-    chmod +x compiler/bin/cmc
-    
-    cd drivers/media_driver/release
-    mkdir extract
-    dpkg -X intel-media-u18.04-release.deb extract/
-    cd -
-    
-    cd drivers/IGC
-    mkdir extract
-    dpkg -X intel-igc.deb extract/    
-    cd -
-    
-    cd ..
-    cp -rf Linux_C_for_Metal_Development_Package_20200119 $T2S_PATH/install
+    wget -c https://01.org/sites/default/files/downloads/cmsdk20211028.zip
+    unzip -d $T2S_PATH/install cmsdk20211028.zip
 }
 
 # Below we install newer version of gcc and llvm-clang and their dependencies
@@ -180,5 +164,3 @@ if [ "$component" == "cm" ]; then
 fi
     
 cd ..
-
-

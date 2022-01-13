@@ -692,7 +692,8 @@ void CodeGen_CM_Dev::CodeGen_CM_C::add_kernel(Stmt s,
     stream << "extern \"C\" _GENX_MAIN_ void " << name << "(\n";
     for (size_t i = 0; i < args.size(); i++) {
         if (args[i].is_buffer) {
-            stream << "SurfaceIndex " << print_name(args[i].name);
+            stream << "SurfaceIndex " << print_name(args[i].name)
+                   << " [[type(\"image2d_t " << print_type(args[i].type) << "\")]]";
             Allocation alloc;
             alloc.type = args[i].type;
             alloc.memory_type = MemoryType::Heap;
