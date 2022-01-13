@@ -2456,7 +2456,6 @@ void CodeGen_OneAPI_Dev::CodeGen_OneAPI_C::add_kernel(Stmt s,
                             << print_name(args[i].name) << "_device, "   // dst
                             <<  print_name(args[i].name) << "_host, "    // src
                             <<  print_name(args[i].name) << "_size"      // size
-                            << "*sizeof(" << print_type(args[i].type) << ")"
                             <<  " ); }).wait();\n\n";
                 }
             }
@@ -2596,7 +2595,6 @@ void CodeGen_OneAPI_Dev::CodeGen_OneAPI_C::add_kernel(Stmt s,
                             << print_name(args[i].name) << "_host, "            // dst
                             << print_name(args[i].name) << "_device, "          // src
                             << print_name(args[i].name) << "_size"              // size
-                            << "*sizeof(" << print_type(args[i].type) << ")"
                             <<  " ); }).wait();\n";
                 }
             }
@@ -2889,6 +2887,7 @@ std::string CodeGen_OneAPI_Dev::CodeGen_OneAPI_C::compile_oneapi_lower(const Low
     // Allocade Deivce & Host memory
     std::set<std::string> defined_pointers; // contains all defined pointers to be freed at the end
     std::set<std::string> sylc_pointers;    // constins all created sycl malloc pointer names
+    std::set<std::string> std_pointers;
     {
         function_top << "\n\n";
         function_top << get_indent() << "std::cout << \"// Allocating memory\\n\";\n";
@@ -2907,7 +2906,7 @@ std::string CodeGen_OneAPI_Dev::CodeGen_OneAPI_C::compile_oneapi_lower(const Low
             function_top << get_indent() << print_type(buffer_input_args[i].type) << " *" << print_name(buffer_input_args[i].name)
                             << "_host = " << print_halide_buffer_name(buffer_input_args[i].name) << "->begin();\n";  
             function_top << get_indent() << print_type(buffer_input_args[i].type) << " *" << print_name(buffer_input_args[i].name)
-                        << "_device = sycl::malloc_device<" << print_type(buffer_input_args[i].type) << ">("
+                        << "_device = (" << print_type(buffer_input_args[i].type) << "*)sycl::malloc_device("
                         <<  print_halide_buffer_name(buffer_input_args[i].name) << "->size_in_bytes(), q_device);\n";
             defined_pointers.insert( print_name(buffer_input_args[i].name) + "_host" );
             defined_pointers.insert( print_name(buffer_input_args[i].name) + "_device" );
@@ -2935,19 +2934,20 @@ std::string CodeGen_OneAPI_Dev::CodeGen_OneAPI_C::compile_oneapi_lower(const Low
                     // write the pointer
                     if( input_buffer_index != -1){
                         function_top << get_indent() << "// " << curr_ptr << " derived from " << print_halide_buffer_name(buffer_input_args[input_buffer_index].name) << "\n";
-                        if( k == 0 ){
+                        if( k == 0 ){ // Device Malloc
                             function_top << get_indent() << print_type(buffer_input_args[input_buffer_index].type) << " *" << curr_ptr
-                                        << " = sycl::malloc_device<" << print_type(buffer_input_args[input_buffer_index].type) << ">("
+                                        << " = (" << print_type(buffer_input_args[input_buffer_index].type)  << "*)sycl::malloc_device("
                                         <<  print_halide_buffer_name(buffer_input_args[input_buffer_index].name) << "->size_in_bytes(), q_device);\n";
-                        } else {
+                            sylc_pointers.insert( curr_ptr );
+                        } else { // Host Malloc
                             function_top << get_indent() << print_type(buffer_input_args[input_buffer_index].type) << " *" << curr_ptr
-                                        << " = sycl::malloc_host<" << print_type(buffer_input_args[input_buffer_index].type) << ">("
-                                        <<  print_halide_buffer_name(buffer_input_args[input_buffer_index].name) << "->size_in_bytes(), q_device);\n";
+                                        << " = (" << print_type(buffer_input_args[input_buffer_index].type) << "*)std::malloc("
+                                        <<  print_halide_buffer_name(buffer_input_args[input_buffer_index].name) << "->size_in_bytes() );\n";
                             function_top << get_indent() << "// " << ptr_base << "_size derived from " << print_halide_buffer_name(buffer_input_args[input_buffer_index].name) << "\n";
                             function_top << get_indent() << "size_t " << ptr_base << "_size = " << print_halide_buffer_name(buffer_input_args[input_buffer_index].name) << "->size_in_bytes();\n";
+                            std_pointers.insert( curr_ptr );
                         }
                         defined_pointers.insert( curr_ptr );
-                        sylc_pointers.insert( curr_ptr );
                     } else {
                         // Throw a user error when we are unable to figure out the memory
                         user_assert(false) << "unable to define memory `" << curr_ptr << "`\n";
@@ -2972,6 +2972,12 @@ std::string CodeGen_OneAPI_Dev::CodeGen_OneAPI_C::compile_oneapi_lower(const Low
         while (it != sylc_pointers.end())
         {
             function_btm << get_indent() <<  "sycl::free( " << (*it) << ", q_device);\n";
+            it++;
+        }
+        it = std_pointers.begin();
+        while (it != std_pointers.end())
+        {
+            function_btm << get_indent() <<  "std::free( " << (*it) << ");\n";
             it++;
         }
     }
