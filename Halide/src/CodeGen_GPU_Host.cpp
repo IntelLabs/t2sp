@@ -353,10 +353,12 @@ void CodeGen_GPU_Host<CodeGen_CPU>::visit(const For *loop) {
         // which passes the scalar args as a struct.
         std::sort(closure_args.begin(), closure_args.end(),
                   [](const DeviceArgument &a, const DeviceArgument &b) {
-                      if (a.is_buffer == b.is_buffer) {
+                      if (a.is_buffer != b.is_buffer) {
+                          return a.is_buffer < b.is_buffer;
+                      } else if (a.type == b.type) {
                           return a.type.bits() > b.type.bits();
                       } else {
-                          return a.is_buffer < b.is_buffer;
+                          return a.type.is_float() < b.type.is_float();
                       }
                   });
 
