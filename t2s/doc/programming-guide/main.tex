@@ -1,0 +1,49 @@
+\documentclass{book}
+\usepackage[english]{babel}
+\usepackage[letterpaper,top=2cm,bottom=2cm,left=3cm,right=3cm,marginparwidth=1.75cm]{geometry}
+\usepackage{amsmath}
+\usepackage{graphicx}
+\usepackage[colorlinks=true, allcolors=blue]{hyperref}
+\usepackage{multirow}
+\usepackage{multicol}
+\usepackage{soul}
+\usepackage{minted}
+\usemintedstyle{perldoc}
+\usepackage{listings}
+
+\setminted[cpp] {
+    style=friendly,
+    fontfamily=tt,
+    linenos,
+    autogobble,
+    breaklines,
+    numbersep=2pt,
+    %framesep=2mm,
+    bgcolor=white,
+    fontsize=\small,
+    escapeinside=||,
+}
+\newenvironment{psmallmatrix}
+  {\left(\begin{smallmatrix}}
+  {\end{smallmatrix}\right)}
+  
+\setcounter{tocdepth}{4}
+\setcounter{secnumdepth}{4}
+
+\title{T2SP Programming Guide}
+\author{Hongbo Rong}
+
+\begin{document}
+\maketitle
+
+\tableofcontents
+
+\input{overview}
+\input{rewriting-math-equations-into-basic-ures}
+
+\bibliographystyle{plain}
+\bibliography{references}
+
+
+
+\end{document}

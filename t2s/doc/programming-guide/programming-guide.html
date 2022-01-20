@@ -14,9 +14,14 @@
 <h1 data-number="2" id="rewriting-math-equations-into-basic-ures"><span class="header-section-number">2</span> Rewriting math equations into basic UREs</h1>
 <p>Based on the work of Gusev and Evans <a href="#1">[1]</a><a href="#2">[2]</a>, we can translate math equations into UREs, following the simple steps below. Going through an example, we would find that this process is pretty much mechanical and intuitive, and only middle-school level of math knowledge is needed. So do not be scared by the math symbols. We strongly recommend a beginner repeats the steps of an example, during which the beginner would quickly master the skills. These skills are applicable to other real world problems, not limited to the examples here.</p>
 <p>Use auto-regressive filter for example:</p>
-<p><img src="./img/deriving-ures-for-auto-regressive-filter.png" /></p>
+<figure>
+<img src="./img/deriving-ures-for-auto-regressive-filter.png" id="Fig:deriving-ures-for-auto-regressive-filter" alt="Deriving ures" /><figcaption aria-hidden="true">Deriving ures</figcaption>
+</figure>
+<p>figure is here {Fig. <strong>¿fig:deriving-ures-for-auto-regressive-filter?</strong>}</p>
+<p><img src="./img/deriving-ures-for-auto-regressive-filter.png" id="tbl:deriving-ures-for-auto-regressive-filter" /></p>
 <h2 data-number="2.1" id="step-1-iterative-form"><span class="header-section-number">2.1</span> Step 1: Iterative form</h2>
 <p>First, write down the math equations of the original problem. Usually, these equations are to iterate over a domain (like <span class="math inline"><em>j</em> = 1, ..., <em>n</em></span>) and compute some variables (like <span class="math inline"><em>y</em><sub><em>i</em></sub></span>).</p>
+<p>table tbl. <strong>¿tbl:deriving-ures-for-auto-regressive-filter?</strong> is here</p>
 <h2 data-number="2.2" id="step-2-recursive-form"><span class="header-section-number">2.2</span> Step 2: Recursive form</h2>
 <p>Translate the iterative form to recursive form is straightforward: figure out the initial value of a variable (e.g. <span class="math inline"><em>y</em><sub><em>i</em></sub> = <em>x</em><sub><em>i</em></sub></span>), and update the variable every iteration with a new value based on its previous value (e.g. <span class="math inline"><em>y</em><sub><em>i</em></sub> = <em>y</em><sub><em>i</em></sub> + ...</span>).</p>
 <h2 data-number="2.3" id="step-3-dsa-dynamic-single-assignment"><span class="header-section-number">2.3</span> Step 3: DSA (Dynamic Single Assignment)</h2>
@@ -25,8 +30,27 @@
 <h2 data-number="2.4" id="step-4-full-index-form"><span class="header-section-number">2.4</span> Step 4: Full index form</h2>
 <p>Now variables are referenced with full indices, but constants are not: <span class="math inline"><em>c</em><sub><em>j</em></sub></span> and <span class="math inline"><em>x</em><sub><em>i</em></sub></span> are input values, never modified during the iterations. Give them full indices as well by adding 0’s: <span class="math inline"><em>c</em><sub><em>j</em></sub></span> and <span class="math inline"><em>x</em><sub><em>i</em></sub></span> are changed into <span class="math inline"><em>c</em><sub><em>j</em></sub><sup>0</sup></span> and <span class="math inline"><em>x</em><sub><em>i</em></sub><sup>0</sup></span>. After this, variables and constants will be processed in the same way.</p>
 <p>At this point, the equations we get are AREs (Affine Recurrence Equations), that is, every data flow (write after read dependence) has a distance vector in the form of <span class="math inline"><em>d</em> = <em>A</em><em>z</em> + <em>d</em><sub>0</sub></span>, where <span class="math inline"><em>A</em></span> is a matrix, <span class="math inline"><em>z</em></span> is the iteration indices, and <span class="math inline"><em>d</em><sub>0</sub></span> is a constant vector:</p>
-<p><img src="./img/affine-deps-of-auto-regressive-filter.png" id="id" class="class" width="600" /></p>
+<p><img src="./img/affine-deps-of-auto-regressive-filter.png" /></p>
 <h2 data-number="2.5" id="step-5-ures"><span class="header-section-number">2.5</span> Step 5: UREs</h2>
+<p>We translate AREs into UREs by converting a broadcast into a pipeline. After that, every dependence has a constant distance uniformly in the entire domain.</p>
+<p>There are two ways to convert a broadcast into a pipeline. First, we can draw the dataflow and intuitively change a broadcast into a pipeline. Say <span class="math inline"><em>n</em> = 3</span>. We can draw the dataflow for the second dependence, as shown below to the left. Every point is an iteration, and annotated with the indices (<span class="math inline"><em>i</em>, <em>j</em></span>). A datum (<span class="math inline"><em>c</em><sub><em>j</em></sub><sup>0</sup></span>) is broadcast to iterations <span class="math inline"><em>y</em><sub><em>i</em></sub><sup><em>j</em></sup></span> for all <span class="math inline"><em>i</em></span>. Equivalently, we can send a datum to an iteration at a boundary of the domain, and from that iteration, propagate the datum in a pipeline fashion to all the other iterations, as shown below to the right.</p>
+<p><img src="./img/broadcast-to-pipeline-arf.png" /></p>
+<p>As we can see from the dataflow graph, a datum <span class="math inline"><em>c</em><sub><em>j</em></sub><sup>0</sup></span> is loaded at a bounary iteration <span class="math inline">(1,<em>j</em>)</span>, and then is propagated to iteration <span class="math inline">(2,<em>j</em>)</span>, and from there to iteration <span class="math inline">(3,<em>j</em>)</span>, etc. Therefore, we can modify the full index form</p>
+<p>​ <span class="math inline"><em>y</em><sub><em>i</em></sub><sup><em>j</em></sup> = ...<em>c</em><sub><em>j</em></sub><sup>0</sup>...</span></p>
+<p>into</p>
+<p>​ <span class="math inline"><em>y</em><sub><em>i</em></sub><sup><em>j</em></sup> = ...<em>C</em><sub><em>i</em></sub><sup><em>j</em></sup>...</span></p>
+<p>where</p>
+<p>​ <span class="math inline"><em>C</em><sub><em>i</em></sub><sup><em>j</em></sup> = <em>C</em><sub><em>i</em> − 1</sub><sup><em>j</em></sup></span></p>
+<p>with an initial condition</p>
+<p>​ <span class="math inline"><em>C</em><sub><em>i</em> − 1</sub><sup><em>j</em></sup> = <em>c</em><sub><em>j</em></sub><sup>0</sup></span> when <span class="math inline"><em>i</em></span>=1</p>
+<p>In the same way, we can convert a broadcast due to the third dependence into a pipeline. An exercise: Can you draw a dataflow graph and make it yourself? After that, we get the UREs shown in the above table.</p>
+<p>Second, we can</p>
+<p><img src="./img/broadcast-to-pipeline.png" /></p>
+<p>slightly:</p>
+<p>What is shown</p>
+<p>In the above table, the second and third dependence are affine.</p>
+<p>The first dependence is already uniformA uniform distance</p>
+<p><span class="math inline">(<em>i</em>,<em>j</em>)<sup><em>T</em></sup><em>A</em><em>B</em><em>C</em> = minimum<em>X</em><em>Y</em><em>Z</em>, <em>Z</em><em>Y</em><em>X</em></span></p>
 <p>There are still some</p>
 <p>Of course, depending on the domain in a specific problem, one should</p>
 <p>This is because the three occurences of the variable <span class="math inline"><em>y</em></span></p>

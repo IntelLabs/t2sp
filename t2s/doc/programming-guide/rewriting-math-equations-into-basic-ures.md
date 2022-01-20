@@ -4,11 +4,17 @@ Based on the work of Gusev and Evans [[1]](#1)[[2]](#2),  we can translate math 
 
 Use auto-regressive filter for example:
 
-![](./img/deriving-ures-for-auto-regressive-filter.png)
+![Deriving ures](./img/deriving-ures-for-auto-regressive-filter.png){#Fig:deriving-ures-for-auto-regressive-filter}
+
+figure is here {@Fig:deriving-ures-for-auto-regressive-filter}
+
+![](./img/deriving-ures-for-auto-regressive-filter.png){#tbl:deriving-ures-for-auto-regressive-filter}
 
 ## Step 1: Iterative form
 
 First, write down the math equations of the original problem. Usually, these equations are to iterate over a domain (like $j=1,..., n$) and compute some variables (like $y_i$).
+
+table @tbl:deriving-ures-for-auto-regressive-filter is here
 
 ## Step 2: Recursive form
 
@@ -30,7 +36,46 @@ At this point, the equations we get are AREs (Affine Recurrence Equations), that
 
 ## Step 5: UREs
 
+We translate AREs into UREs by converting a broadcast into a pipeline. After that, every dependence has a constant distance uniformly in the entire domain.
+
+There are two ways to convert a broadcast into a pipeline. First, we can draw the dataflow and intuitively change a broadcast into a pipeline. Say $n=3$. We can draw the dataflow for the second dependence, as shown below to the left.  Every point is an iteration, and annotated with the indices ($i, j$). A datum ($c_j^0$) is broadcast to iterations $y_i^j$ for all $i$. Equivalently, we can send a datum to an iteration at a boundary of the domain, and from that iteration, propagate the datum in a pipeline fashion to all the other iterations, as shown below to the right.
+
+![](./img/broadcast-to-pipeline-arf.png)
+
+As we can see from the dataflow graph, a datum $c_j^0$ is  loaded at a bounary iteration $(1,j)$, and then is propagated to iteration $(2, j)$, and from there to iteration $(3, j)$, etc. Therefore, we can modify the full index form
+
+​                             $y_i^j=...c_j^0...$
+
+ into
+
+​                            $y_i^j=...C_i^j...$
+
+where
+
+​                           $C_i^j=C_{i-1}^j$
+
+ with an initial condition
+
+​                           $C_{i-1}^j=c_j^0$ when $i$=1
+
+In the same way, we can convert a broadcast due to the third dependence into a pipeline. An exercise: Can you draw a dataflow graph and make it yourself? After that, we get the UREs shown in the above table.
+
+Second, we can 
+
+![](./img/broadcast-to-pipeline.png)
+
+slightly:
+
  
+
+What is shown 
+
+In the above table, the second and third dependence are affine. 
+
+The first dependence is already uniformA uniform distance 
+
+$( i, j )^T  ABC = \mathrm{minimum}{\mathit{XYZ}, \mathit{ZYX}}$
+
 
 There are still some 
 
