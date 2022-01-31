@@ -595,12 +595,32 @@ protected:
             close_scope("");
         }
 
+        std::string RunTimeHeaders(){
+            std::ostringstream rhs;
+            rhs << "#include <CL/sycl.hpp>\n";
+            rhs << "#include <sycl/ext/intel/fpga_extensions.hpp>\n";
+            rhs << "#include \"dpc_common.hpp\"\n";
+            rhs << "#include \"pipe_array.hpp\"\n";
+            rhs << "using namespace sycl;\n";
+            rhs << "void halide_device_and_host_free_as_destructor(void *user_context, void *obj) {\n";
+            rhs << "}\n";
+            rhs << "struct device_handle {\n";
+            rhs << "    // Important: order these to avoid any padding between fields;\n";
+            rhs << "    // some Win32 compiler optimizer configurations can inconsistently\n";
+            rhs << "    // insert padding otherwise.\n";
+            rhs << "    uint64_t offset;\n";
+            rhs << "    void* mem;\n";
+            rhs << "};\n"; 
+            return rhs.str();        
+        }
+
 
     public:
         EmitOneAPIFunc(CodeGen_OneAPI_C* parent, std::ostringstream &s, Target t) : 
             CodeGen_OneAPI_C(s, t) {
                 parent = parent;
                 stream << EmitOneAPIFunc_Marker;
+                stream << RunTimeHeaders();
                 stream_ptr = &s;
                 ext_funcs.p = this;
                 currently_inside_kernel = false;
@@ -628,10 +648,11 @@ protected:
             // return everything after the EmitOneAPIFunc_Marker  
             // This removes any extra output returned from the parent class initalization
             std::string str = stream_ptr->str();
-            size_t pos = str.find(EmitOneAPIFunc_Marker) + EmitOneAPIFunc_Marker.size();
-            if(pos == std::string::npos) pos = 0;
-            std::string ret = str.substr(pos);
-            return ret;
+            // size_t pos = str.find(EmitOneAPIFunc_Marker) + EmitOneAPIFunc_Marker.size();
+            // if(pos == std::string::npos) pos = 0;
+            // std::string ret = str.substr(pos);
+            // return ret;
+            return str;
         };
 
     };  

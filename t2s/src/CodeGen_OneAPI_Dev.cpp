@@ -3298,21 +3298,6 @@ void CodeGen_OneAPI_Dev::CodeGen_OneAPI_C::add_kernel(Stmt s,
 
 ////////////////////////////////////////////////////////////////////////////////////
 
-std::string CodeGen_OneAPI_Dev::compile_oneapi(const Module &input){
-    // Initialize the module
-    init_module();
-
-    // OneAPI compile_to_devsrc() implementation
-    // see CodeGen_LLVM::compile_to_devsrc(const Module &input) for refrence
-    compile_oneapi_devsrc(input);
-
-
-    std::string str = src_stream_oneapi.str();
-    return str;
-}
-
-
-
 // CodeGen_OneAPI_Dev's MangledNames copied from CodeGen_LLVM.cpp
 namespace {
 
@@ -3365,7 +3350,52 @@ namespace {
 }  // namespace
 
 
+std::string CodeGen_OneAPI_Dev::compile_oneapi(const Module &input){
+    // Initialize the module
+    init_module();
 
+    std::ostringstream EmitOneAPIFunc_stream;
+    EmitOneAPIFunc em_visitor(&one_clc, EmitOneAPIFunc_stream, one_clc.get_target() ); 
+
+    // OneAPI compile_to_devsrc() implementation
+    // see CodeGen_LLVM::compile_to_devsrc(const Module &input) for refrence
+
+    // (TODO) Remove function
+    // compile_oneapi_devsrc(input);
+
+    // (NOTE) implementation is modeled after CodeGen_LLVM::compile_to_devsrc(const Module &input);
+    {
+        // init_codegen(input.name(), input.any_strict_float()); // Not Used 
+        // internal_assert(module && context && builder) << "The CodeGen_LLVM subclass should have made an initial module before calling CodeGen_LLVM::compile\n";
+        // add_external_code(input);
+
+        // for (const auto &b : input.buffers()) {
+        if (input.buffers().size() > 0) {
+            // compile_buffer(b);
+            // compile_oneapi_buffer(b);
+            internal_assert(false) << "OneAPI has no implementation to compile buffers at this time.\n";
+        }
+        for (const auto &f : input.functions()) {
+            // const auto names = get_mangled_names(f, one_clc.get_target() );
+            // compile_func(f, names.simple_name, names.extern_name);
+            // compile_oneapi_func(f, names.simple_name, names.extern_name);
+            em_visitor.print_global_data_structures_before_kernel(&f.body);
+            em_visitor.gather_shift_regs_allocates(&f.body);
+            em_visitor.compile(f);
+        }
+    }
+
+
+    std::string str = em_visitor.get_str() + "\n";
+    // std::string str = src_stream_oneapi.str();
+    return str;
+}
+
+
+
+
+
+// (TODO) Remove as it is a bit short to be a function and is only called by compile_oneapi()
 void CodeGen_OneAPI_Dev::compile_oneapi_devsrc(const Module &input){
     // (NOTE) implementation is modeled after CodeGen_LLVM::compile_to_devsrc(const Module &input);
 
@@ -3373,7 +3403,8 @@ void CodeGen_OneAPI_Dev::compile_oneapi_devsrc(const Module &input){
     // internal_assert(module && context && builder) << "The CodeGen_LLVM subclass should have made an initial module before calling CodeGen_LLVM::compile\n";
     // add_external_code(input);
 
-    for (const auto &b : input.buffers()) {
+    // for (const auto &b : input.buffers()) {
+    if (input.buffers().size() > 0) {        
         // compile_buffer(b);
         // compile_oneapi_buffer(b);
         internal_assert(false) << "OneAPI has no implementation to compile buffers at this time.\n";
