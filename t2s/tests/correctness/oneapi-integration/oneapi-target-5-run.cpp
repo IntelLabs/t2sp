@@ -132,7 +132,8 @@ int main(void){
 
     std::cout << "Start Run\n";
     double exec_time = 0;
-    exec_time = conv( device_selector, &i_h, &k_h, &o_h );
+    // exec_time = conv( device_selector, &i_h, &k_h, &o_h );
+    exec_time = conv( device_selector, i_h.raw_buffer() , k_h.raw_buffer()  , o_h.raw_buffer()  );
     std::cout << "Run completed!\n";
     std::cout << "kernel exec time: " << exec_time << "\n";
 

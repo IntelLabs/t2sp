@@ -657,13 +657,21 @@ void Module::compile(const std::map<Output, std::string> &output_files) const {
     }
     if (contains(output_files, Output::oneapi)) {
         debug(1) << "Module.compile(): oneapi_dev " << output_files.at(Output::oneapi) << "\n";
-        llvm::LLVMContext context;
         auto t = target();
         t.set_feature(Target::OpenCL, false);
-        CodeGen_LLVM *ret = new CodeGen_GPU_Host<CodeGen_X86>(t);
-        ret->set_context(context);
-        ret->compile_to_devsrc(*this);
-        delete ret;
+
+        // CodeGen_OneAPI expects to be compiled with DPC++ i.e. C++17
+        // So we hard set the featrues here
+        t.set_feature(Target::CPlusPlusMangling, true);
+
+        // We invoke compile() like method using the OneAPI CodeGenerator much like CodeGen_C 
+        // Unlike outputing the devsrc only as done in Output::cm_devsrc with CodeGen_GPU_Host<CodeGen_X86>(t)
+        // Since the CodeGen_OneAPI_C is protected class of CodeGen_OneAPI_Dev, 
+        // we use a public CodeGen_OneAPI_C method to do this
+        std::ofstream file(output_files.at(Output::oneapi));
+        Internal::CodeGen_OneAPI_Dev cg(t);
+        std::string out_str = cg.compile_oneapi(*this);
+        file << out_str;
     }
     if (contains(output_files, Output::host_header)) {
         debug(1) << "Module.compile(): host_header " << output_files.at(Output::host_header) << "\n";

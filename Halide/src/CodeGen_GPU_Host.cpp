@@ -165,6 +165,7 @@ void CodeGen_GPU_Host<CodeGen_CPU>::compile_func(const LoweredFunc &f,
         // compiler-generated vector and struct types in the kernel, and the channels.
         if (target.has_feature(Target::IntelFPGA) && !target.has_feature(Target::OneAPI)) {
             internal_assert(cgdev.find(DeviceAPI::OpenCL) != cgdev.end());
+            // Defines Pipes/Channels and their data types
             ((CodeGen_OpenCL_Dev*)cgdev[DeviceAPI::OpenCL])->print_global_data_structures_before_kernel(&f.body);
 
             // Gather shift registers' allocations.
@@ -235,11 +236,9 @@ void CodeGen_GPU_Host<CodeGen_CPU>::compile_func(const LoweredFunc &f,
             debug(1) << "Currently, we do not implement OneAPI runtime, so we just emit source code.\n";
             debug(1) << "Emmiting " << api_unique_name << " code\n";
             std::ofstream file(simple_name + ".generated_oneapi_header.h", std::fstream::out);
+            user_warning << "OneAPI CodeGenerator is ment to be used with compile_to_oneapi() function. Directly generating source code may not lead to unknown behavior."
 
-            // Call a CodeGen_OneAPI specifically to get the wrapped code
-            std::vector<char> kernel_src_wrapped = ((CodeGen_OneAPI_Dev*)cgdev[DeviceAPI::OneAPI])->compile_to_src_module(f);
-            std::string src(kernel_src_wrapped.cbegin(), kernel_src_wrapped.cend());
-
+            std::string src(kernel_src.cbegin(), kernel_src.cend());
             if (file.is_open())
                 file << src;
             file.close();

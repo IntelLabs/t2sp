@@ -95,7 +95,8 @@ int main(void){
 
     std::cout << "Start Run\n";
     double exec_time = 0;
-    exec_time = gemm(device_selector, &a_h, &b_h, &c_h);
+    // exec_time = gemm(device_selector, &a_h, &b_h, &c_h);
+    exec_time = gemm(device_selector, a_h.raw_buffer()  , b_h.raw_buffer() , c_h.raw_buffer() );
     std::cout << "Run completed!\n";
     std::cout << "kernel exec time: " << exec_time << "\n";
 

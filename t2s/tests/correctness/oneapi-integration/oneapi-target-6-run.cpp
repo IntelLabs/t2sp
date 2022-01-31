@@ -111,7 +111,8 @@ int main()
     std::cout << "Start Run\n";
     // capsule(P, W, V);
     double exec_time;
-    exec_time = capsule(device_selector, &P_h, &W_h, &V_h );
+    // exec_time = capsule(device_selector, &P_h, &W_h, &V_h );
+    exec_time = capsule(device_selector, P_h.raw_buffer() , W_h.raw_buffer() , V_h.raw_buffer() );
     std::cout << "Run completed!\n";
     std::cout << "kernel exec time: " << exec_time << "\n";
 

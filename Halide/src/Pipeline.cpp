@@ -351,7 +351,7 @@ void Pipeline::compile_to_oneapi(const vector<Argument> &args,
     debug(2) << "OneAPI-compiling for: " << target << "\n";
     Module m = compile_to_module(args, fn_name, target);
     auto ext = get_output_info(target);
-    m.compile(single_output( "" + ext.at(Output::oneapi).extension, m, Output::oneapi));
+    m.compile(single_output( fn_name + ext.at(Output::oneapi).extension, m, Output::oneapi));
 }
 
 void Pipeline::print_loop_nest() {
