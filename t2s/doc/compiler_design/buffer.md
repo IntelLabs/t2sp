@@ -26,7 +26,7 @@ A double buffer consists of a write buffer, which is written `WRITES` number of 
 
 With every `READS` cycles as a period, a double buffer works as shown below:
 
-![The execution of a double buffer](./img/double_buffering(READS>=WRITES).png)
+![The execution of a double buffer](./img/double_buffering_READS_more_than_or_equal_to_WRITES.png)
 
 Although not shown in the scheme, in the first period, there are only writes; in the last period, there are only reads.
 
@@ -222,7 +222,7 @@ __kernel void my_kernel()
 
 When `READS >= WRITES`, this modified code pattern won't change the scheme. As the condition `READS< WRITES`, the double buffer works with every `WRITES` cycles as a period: 
 
-![The execution of a double buffer2](./img/double_buffering(READS<WRITES).png)
+![The execution of a double buffer2](./img/double_buffering_READS_less_than_WRITES.png)
 
 ## Possible improvements to the code pattern
 
