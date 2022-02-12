@@ -516,6 +516,14 @@ public:
     }
 };
 
+class RelayItem {
+public:
+    std::string from_func;
+    std::string to_func;
+    std::string bank_loop;
+    RelayItem(std::string _from_func, std::string _to_func, std::string _bank_loop)
+        : from_func(_from_func), to_func(_to_func), bank_loop(_bank_loop) {}
+};
 
 class BufferItem{
 public:
@@ -790,6 +798,9 @@ public:
     const std::vector<GatherItem> &gather_params() const;
     std::vector<GatherItem> &gather_params();
     // @}
+
+    const std::vector<RelayItem> &relay_params() const;
+    std::vector<RelayItem> &relay_params();
     
     /**
      * specifying the command queue

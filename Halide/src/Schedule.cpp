@@ -288,6 +288,7 @@ struct StageScheduleContents {
     std::vector<SpaceTimeTransformParams> transform_params;
     std::vector<ScatterItem> scatter_params;
     std::vector<GatherItem> gather_params;
+    std::vector<RelayItem> relay_params;
     std::vector<BufferItem> buffer_params;
     std::vector<CmdQueueItem> cmd_params;
     std::vector<std::string> remove_params;
@@ -526,6 +527,7 @@ StageSchedule StageSchedule::get_copy() const {
     copy.contents->scatter_params = contents->scatter_params;
     copy.contents->buffer_params = contents->buffer_params; 
     copy.contents->gather_params = contents->gather_params; 
+    copy.contents->relay_params = contents->relay_params;
     copy.contents->remove_params = contents->remove_params; 
     copy.contents->cmd_params = contents->cmd_params;
     copy.contents->task_deps = contents->task_deps;
@@ -679,6 +681,14 @@ const std::vector<GatherItem> &StageSchedule::gather_params() const {
 
 std::vector<GatherItem> &StageSchedule::gather_params() {
     return contents->gather_params;
+}
+
+const std::vector<RelayItem> &StageSchedule::relay_params() const {
+    return contents->relay_params;
+}
+
+std::vector<RelayItem> &StageSchedule::relay_params() {
+    return contents->relay_params;
 }
 
 const std::vector<BufferItem> &StageSchedule::buffer_params() const {

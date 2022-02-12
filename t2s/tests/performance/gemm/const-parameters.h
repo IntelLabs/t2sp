@@ -35,7 +35,14 @@
         #define JJ          4
         #define II          4
         #define KK          4
-    #else
+    #elif S10
+        #define KKK         16
+        #define JJJ         16
+        #define III         14
+        #define JJ          32
+        #define II          32
+        #define KK          32
+    #else   // For A10
         #define KKK         16
         #define JJJ         8
         #define III         10

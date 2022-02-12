@@ -186,8 +186,7 @@ struct FindVars
             if (f.function().has_merged_defs()) {
                 ure = f;
                 for (auto &d : f.function().definition().schedule().dims()) {
-                    if (d.var != "__outermost")
-                        free_vars.push_back(d.var);
+                    free_vars.push_back(d.var);
                 }
             }
         }
@@ -196,10 +195,35 @@ struct FindVars
     }
 };
 
+// We assume an output function always follows such a pattern:
+// Out(...) = select(cond, Z(...)),
+// in this case, we find and set func_name as Z
+class FindProducerForOutput : public IRVisitor {
+    const map<string, Func> env;
+public:
+    using IRVisitor::visit;
+    Func producer;
+
+    void visit(const Select *op) override {
+        if (!op->false_value.defined()) {
+            auto call = op->true_value.as<Call>();
+            internal_assert(call);
+            if (call->call_type == Call::CallType::Halide) {
+                producer = env.at(call->name);
+            }
+        }
+    }
+
+    FindProducerForOutput(const map<string, Func> &_e)
+        : env(_e) {}
+};
+
+
 class RealizeOnFPGA
 {
     vector<Var> output_array_dims;
     FindVars &fv;
+    FindProducerForOutput &fpo;
 
     vector<Func> isolate_producer(Schain &c) {
         if (c.stensors[0].position != HOST) {
@@ -245,12 +269,6 @@ class RealizeOnFPGA
 
     vector<Func> isolate_consumer(Schain &c) {
         vector<Func> consumers;
-        // Isolate subsequent consumers
-        for (auto &s : c.stensors) {
-            Place place = s.position == SMemType::HOST ? Place::Host : Place::Device;
-            Func f_dev(s.name, place);
-            consumers.push_back(std::move(f_dev));
-        }
         if (c.stensors.back().position != HOST) {
             // If the host stensor is not specified, we automatically generate it
             string host_name = c.outf.name() + "_deserializer";
@@ -259,22 +277,51 @@ class RealizeOnFPGA
             c.stensors.push_back(s_host);
         }
 
-        if (c.stensors[0].position == REG && !c.stensors[0].v_banks.empty()) {
+        // Isolate subsequent consumers
+        for (auto &s : c.stensors) {
+            Place place = s.position == SMemType::HOST ? Place::Host : Place::Device;
+            Func new_func(s.name, place);
+            consumers.push_back(std::move(new_func));
+        }
+        if (c.stensors[0].v_banks.size() == 1) {
+            // This is a special case where the single dimension banks are inside systolic array
+            user_assert(c.stensors[1].position == SMemType::DRAM);
+            Var bank = c.stensors[0].v_banks[0];
+            c.outf.value().accept(&fpo);
+            c.outf.relay(fpo.producer, bank);
+            debug(1) << c.outf.name() << ".relay("
+                     << fpo.producer.name() << ", " << c.stensors[0].v_banks[0].name() << ");\n";
+            // Remove the first stensor as it is inside systolic array
+            c.stensors.erase(c.stensors.begin());
+            consumers.erase(consumers.begin());
+            // Similar to case with two-dimensional banks
+            Func first_func = consumers[0];
+            c.outf.isolate_consumer(first_func);
+            debug(1) << c.outf.name() << ".isolate_consumer("
+                     << first_func.name() << ");\n";
+            first_func.space_time_transform(bank);
+            debug(1) << first_func.name() << ".space_time_transform("
+                     << bank.name() << ");\n";
+            vector<Func> other_cons(consumers.begin()+1, consumers.end());
+            first_func.isolate_consumer_chain(other_cons);
+            debug(1) << first_func.name() << ".isolate_consumer_chain("
+                     << names_to_string(other_cons) << ");\n";
+        } else if (c.stensors[0].v_banks.size() == 2) {
             // The output stensor inherits loops of the output URE, generally less than that of systolic array
             // So we isolate the first consumer alone and apply space-time transform to regenerate loop structure,
             // then the subsequent stensors could be isolated based on that
-            Func regf = consumers[0];
-            c.outf.isolate_consumer(regf);
+            Func first_func = consumers[0];
+            c.outf.isolate_consumer(first_func);
             debug(1) << c.outf.name() << ".isolate_consumer("
-                     << regf.name() << ");\n";
+                     << first_func.name() << ");\n";
             // generate_output_array(outf, f_dev);
-            regf.space_time_transform(c.stensors[0].v_banks);
-            debug(1) << regf.name() << ".space_time_transform("
+            first_func.space_time_transform(c.stensors[0].v_banks);
+            debug(1) << first_func.name() << ".space_time_transform("
                      << names_to_string(c.stensors[0].v_banks) << ");\n";
             vector<Func> other_cons(consumers.begin()+1, consumers.end());
-            regf.isolate_consumer_chain(other_cons);
-            debug(1) << regf.name() << ".isolate_consumer_chain("
-                     << names_to_string(other_cons);
+            first_func.isolate_consumer_chain(other_cons);
+            debug(1) << first_func.name() << ".isolate_consumer_chain("
+                     << names_to_string(other_cons) << ");\n";
         } else {
             c.outf.isolate_consumer_chain(consumers);
             debug(1) << c.outf.name() << ".isolate_consumer_chain("
@@ -454,7 +501,8 @@ class RealizeOnFPGA
     }
 
 public:
-    RealizeOnFPGA(FindVars &_f) : fv(_f) {}
+    RealizeOnFPGA(FindVars &_v, FindProducerForOutput &_p)
+        : fv(_v), fpo(_p) {}
 
     Func realize() {
         Func out;
@@ -582,7 +630,8 @@ Func Stensor::stensor_realize_wrapper(Starget t) {
     Func f;
     if (t == Starget::IntelFPGA) {
         FindVars fv(env);
-        RealizeOnFPGA fpga(fv);
+        FindProducerForOutput fpo(env);
+        RealizeOnFPGA fpga(fv, fpo);
         f = fpga.realize();
         internal_assert(f.function().place() == Place::Host);
     }

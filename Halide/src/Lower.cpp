@@ -89,6 +89,7 @@
 #include "../../t2s/src/Overlay.h"
 #include "../../t2s/src/PatternMatcher.h"
 #include "../../t2s/src/Place.h"
+#include "../../t2s/src/Relay.h"
 #include "../../t2s/src/ScatterAndBuffer.h"
 #include "../../t2s/src/SpaceTimeTransform.h"
 #include "../../t2s/src/ScatterAndBuffer.h"
@@ -266,8 +267,13 @@ Module lower(const vector<Function> &output_funcs,
 
     if (t.has_feature(Target::IntelFPGA)) {
         debug(1) << "Minimizing shift registers...\n";
-        s = minimize_shift_registers(s, env);
+        map<string, ShiftRegAlloc> func_to_regalloc;
+        s = minimize_shift_registers(s, env, func_to_regalloc);
         debug(2) << "Lowering after minimizing shift registers:\n" << s << "\n\n";
+
+        debug(1) << "Relaying...\n";
+        s = relay_data(s, env, func_to_regalloc);
+        debug(2) << "Lowering after relaying:\n" << s << "\n\n";
     }
 
     debug(1) << "Performing storage folding optimization...\n";

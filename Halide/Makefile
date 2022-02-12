@@ -820,6 +820,7 @@ T2S_SOURCE_FILES = \
   PatternMatcher.cpp \
   Place.cpp \
   PreprocessBeforeLower.cpp \
+  Relay.cpp \
   ScatterAndBuffer.cpp \
   SliceExprTree.cpp \
   SpaceTimeTransform.cpp \
@@ -849,6 +850,7 @@ T2S_HEADER_FILES = \
   PatternMatcher.h \
   Place.h \
   PreprocessBeforeLower.h \
+  Relay.h \
   ScatterAndBuffer.h \
   SliceExprTree.h \
   SpaceTimeTransform.h \

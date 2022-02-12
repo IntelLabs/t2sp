@@ -2735,6 +2735,8 @@ public:
 
     Func &gather(Func f, VarOrRVar loop, GatherStrategy strategy = GatherStrategy::Up);
 
+    Func &relay(Func f, VarOrRVar loop);
+
     Func &command(int index, std::vector<Argument> inputs, std::vector<Argument> outputs, std::vector<Argument> inouts);
 
     Func &depend(Func &f, std::vector<Expr> &vars);

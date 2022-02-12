@@ -923,7 +923,7 @@ A.space_time_transform({k, j},
                     }
                     if (target.has_feature(Target::IntelGPU)) {
                         // automatically vectorize the innermost space loop even if not specified
-                        for_type = ForType::Vectorized;
+                        // for_type = ForType::Vectorized;
                     }
                 }
                 body = For::make(name, new_loop_mins[k], new_loop_extents[k],

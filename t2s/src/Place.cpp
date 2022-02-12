@@ -887,6 +887,13 @@ public:
             return Call::make(op->type, op->name, new_args, op->call_type);
         }
         if (op->is_intrinsic(Call::read_shift_reg) && write_args.size() > 0) {
+            auto read_name = op->args[0].as<StringImm>();
+            auto write_name = write_args[0].as<StringImm>();
+            internal_assert(read_name && write_name);
+            if (read_name->value != write_name->value) {
+                // Add flag_reg only if read/write to the same register
+                return IRMutator::visit(op);
+            }
             for (auto &v : space_loops) {
                 FindSpaceVar spv(v);
                 size_t iw = 1, end_w = write_args.size()-1;
