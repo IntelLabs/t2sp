@@ -16,7 +16,7 @@ function libhalide_to_link {
 function aoc_options {
     if [ "$platform" == "emulator" ]; then
         aoc_opt="$EMULATOR_AOC_OPTION -board=$FPGA_BOARD -emulator-channel-depth-model=strict"
-    else 
+    else
         aoc_opt="-v -profile -fpc -fp-relaxed -board=$FPGA_BOARD"
     fi
     echo "$aoc_opt"
@@ -25,7 +25,7 @@ function aoc_options {
 function generate_fpga_kernel {
     # Compile the specification
     g++ ${workload}.cpp -g -I ../util -I $T2S_PATH/Halide/include -L $T2S_PATH/Halide/bin $(libhalide_to_link) -lz -lpthread -ldl -std=c++11 -D$size
-    
+
     # Generate a device kernel, and a C interface for the host to invoke the kernel:
     # The bitstream generated is a.aocx, as indicated by the environment variable, BITSTREAM.
     # The C interface generated is ${workload}-interface.cpp, as specified in ${workload}.cpp.
@@ -34,7 +34,7 @@ function generate_fpga_kernel {
     # DevCloud A10PAC (1.2.1) only: further convert the signed bitstream to unsigned:
     if [ "$target" == "a10" -a "$platform" == "hw" ]; then
         cp a.aocx a_signed.aocx # Keep a signed copy in case the conversion fails below and we can look at the issue manually
-        { echo "Y"; echo "Y"; echo "Y"; echo "Y"; } | source $AOCL_BOARD_PACKAGE_ROOT/linux64/libexec/sign_aocx.sh -H openssl_manager -i a.aocx -r NULL -k NULL -o a_unsigned.aocx 
+        { echo "Y"; echo "Y"; echo "Y"; echo "Y"; } | source $AOCL_BOARD_PACKAGE_ROOT/linux64/libexec/sign_aocx.sh -H openssl_manager -i a.aocx -r NULL -k NULL -o a_unsigned.aocx
         mv a_unsigned.aocx a.aocx
     fi
 }
@@ -44,21 +44,24 @@ function test_fpga_kernel {
     g++ ${workload}-run-fpga.cpp ${workload}-interface.cpp ../../../src/AOT-OpenCL-Runtime.cpp ../../../src/Roofline.cpp ../../../src/SharedUtilsInC.cpp  -g -DLINUX -DALTERA_CL -fPIC -I../../../src/ -I $T2S_PATH/Halide/include -I$INTELFPGAOCLSDKROOT/examples_aoc/common/inc $INTELFPGAOCLSDKROOT/examples_aoc/common/src/AOCLUtils/opencl.cpp $INTELFPGAOCLSDKROOT/examples_aoc/common/src/AOCLUtils/options.cpp -I$INTELFPGAOCLSDKROOT/host/include -L$INTELFPGAOCLSDKROOT/linux64/lib -L$AOCL_BOARD_PACKAGE_ROOT/linux64/lib -L$INTELFPGAOCLSDKROOT/host/linux64/lib -lOpenCL -L $T2S_PATH/Halide/bin -lelf $(libhalide_to_link) -D$size -lz -lpthread -ldl -std=c++11 -o ./b.out
 
     if [ "$platform" == "emulator" ]; then
-        env BITSTREAM=a.aocx CL_CONTEXT_EMULATOR_DEVICE_INTELFPGA=1 INTEL_FPGA_OCL_PLATFORM_NAME="$EMULATOR_PLATFORM" ./b.out
-    else 
+        env BITSTREAM="$bitstream" CL_CONTEXT_EMULATOR_DEVICE_INTELFPGA=1 INTEL_FPGA_OCL_PLATFORM_NAME="$EMULATOR_PLATFORM" ./b.out
+    else
         # Offload the bitstream to the device.
-        aocl program acl0 a.aocx  
-    
+        aocl program acl0 "$bitstream"
+
         # Run the host binary. The host offloads the bitstream to an FPGA and invokes the kernel through the interface:
-        env BITSTREAM=a.aocx INTEL_FPGA_OCL_PLATFORM_NAME="$HW_PLATFORM" ./b.out
+        env BITSTREAM="$bitstream" INTEL_FPGA_OCL_PLATFORM_NAME="$HW_PLATFORM" ./b.out
     fi
 }
 
 function generate_test_fpga_kernel {
     source ../../../setenv.sh $location fpga
     cd $workload
-    cleanup
-    generate_fpga_kernel
+    if [ "$bitstream" == "" ]; then
+        cleanup
+        generate_fpga_kernel
+        bitstream="a.aocx"
+    fi
     test_fpga_kernel
 }
 
@@ -79,13 +82,13 @@ function generate_gpu_kernel {
     else
         GPU_ARCH=TGLLP
     fi
-    set -x 
+    set -x
     # Compile the specification
     g++ ${workload}.cpp -g -I ../util -I $T2S_PATH/Halide/include -L $T2S_PATH/Halide/bin $HW_LIBHALIDE_TO_LINK -lz -lpthread -ldl -std=c++11 -DGPU
 
     # Run the specification to generate  a device kernel file ${workload}_genx.cpp
     ./a.out
-    
+
     # Compile the kernel into binary
     cmc ${workload}_genx.cpp -fcmocl -mcpu=$GPU_ARCH -m64 -isystem ${CSDK_DIR}/usr/include -o ${workload}_genx.bin
 }

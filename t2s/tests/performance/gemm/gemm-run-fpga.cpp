@@ -66,7 +66,7 @@ int main()
         }
     }
 
-    Halide::Runtime::Buffer<float> c(JJJ, JJ, II, III, J, I);
+    Halide::Runtime::Buffer<float> c(JJJ, III, JJ, II, J, I);
     gemm(a, b, c);
 
 #ifdef TINY
@@ -82,7 +82,7 @@ int main()
                 float golden = 0.0f;
                 for (int k = 0; k < TOTAL_K; k++)
                     golden += a(k, total_i) * b(total_j, k);
-                assert(fabs(golden - c(jjj, jj, ii, iii, j, i)) < 0.005*fabs(golden));
+                assert(fabs(golden - c(jjj, iii, jj, ii, j, i)) < 0.005*fabs(golden));
             }
 #else
     // Report performance. DSPs, FMax and ExecTime are automatically figured out from the static analysis
@@ -93,8 +93,8 @@ int main()
     double number_bytes = (double)(KKK * III) * (double)(KK * II) * (double)(K * J * I) * 4 +
                           (double)(KKK * JJJ) * (double)(KK * JJ) * (double)(K * J * I) * 4 +
                           (double)(III * II * I) * (double)(JJJ * JJ * J) * 4;
-    double exec_time= ExecTime();
-    roofline(mem_bandwidth, compute_roof, number_ops, number_bytes,exec_time);
+    double exec_time = ExecTime("kernel_unloader");
+    roofline(mem_bandwidth, compute_roof, number_ops, number_bytes, exec_time);
     if (fopen("roofline.png", "r") == NULL) {
         cout << "Failed to draw roofline!\n";
         return 1;

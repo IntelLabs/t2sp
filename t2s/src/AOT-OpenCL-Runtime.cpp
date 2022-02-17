@@ -387,6 +387,9 @@ WEAK int32_t halide_opencl_wait_for_kernels_finish(void *user_context) {
         return -1;
     }
     fprintf(fp, "%f\n", k_overall_exec_time);
+    for (int i = 0; i < NUM_KERNELS_TO_CREATE; i++) {
+        fprintf(fp, "%s %lf\n", kernel_name[i], k_exec_time[i]);
+    }
     fclose(fp);
     free(bitstream_dir);
     free(exec_time_file);

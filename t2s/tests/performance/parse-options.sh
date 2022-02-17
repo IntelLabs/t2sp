@@ -1,8 +1,8 @@
 #!/bin/bash
 
 function show_usage {
-    echo "Options: (devcloud|local) (gemm|conv|capsule|pairhmm) (a10|s10|gen9|gen12) (tiny|large) (hw|emulator)"
-}       
+    echo "Options: (devcloud|local) (gemm|conv|capsule|pairhmm) (a10|s10|gen9|gen12) (tiny|large) (hw|emulator) (optional: bitstream)"
+}
 
 if [ $0 == $BASH_SOURCE ]; then
    echo "This script should be sourced, not run."
@@ -48,6 +48,10 @@ if [ "$5" != "hw" -a "$5" != "emulator" ]; then
     return
 else
     platform="$5"
+fi
+
+if [ "$6" != "" ]; then
+    bitstream="$6"
 fi
 
 if [ "$platform" == "emulator" ]; then

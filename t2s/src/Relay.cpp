@@ -103,9 +103,9 @@ class DataRelaying : public IRMutator {
     bool inside_pipe = false;
     struct {
         string name;
-        string flag_name;
         Type t;
-        Expr cond;
+        Expr valid_cond;
+        Expr lin_cond;
         Expr bank_extent;
         Expr PE_arg;
         Expr PE_extent;
@@ -114,11 +114,9 @@ class DataRelaying : public IRMutator {
     } pipe_alloc;
 
     void get_pipe_alloc() {
-        pipe_alloc.name = param.from_func + ".pipe.shreg";
-        pipe_alloc.flag_name = param.from_func + ".pipe.flag.shreg";
+        pipe_alloc.name = param.from_func + ".pipe";
         // Bank loop
-        auto bank_it = std::find(alloc.PE_dims.begin(), alloc.PE_dims.end(),
-                                get_dim(param.bank_loop, alloc));
+        auto bank_it = std::find(alloc.PE_dims.begin(), alloc.PE_dims.end(), get_dim(param.bank_loop, alloc));
         size_t bank = bank_it - alloc.PE_dims.begin();
         pipe_alloc.bank_extent = alloc.PE_extents[bank];
         // Other PE dims
@@ -129,14 +127,20 @@ class DataRelaying : public IRMutator {
                 pipe_alloc.PE_extent *= alloc.PE_extents[i];
             }
         }
-        pipe_alloc.PE_arg    = simplify(pipe_alloc.PE_arg);
-        pipe_alloc.PE_extent = simplify(pipe_alloc.PE_extent);
         // Linearized dims
         vector<Expr> lin_extents;
+        pipe_alloc.lin_cond = UIntImm::make(Bool(1), 1);
         for (auto &i : output_dims) {
             lin_extents.push_back(alloc.linearized_extents[i]);
+            for (auto &d : alloc.linearized_dims[i]) {
+                pipe_alloc.lin_cond = pipe_alloc.lin_cond && (alloc.args[d] == 0);
+            }
         }
         pipe_alloc.lin_extent = std::accumulate(lin_extents.begin(), lin_extents.end(), Expr(1), std::multiplies<Expr>());
+        // Simplify
+        pipe_alloc.lin_cond  = simplify(pipe_alloc.lin_cond);
+        pipe_alloc.PE_arg    = simplify(pipe_alloc.PE_arg);
+        pipe_alloc.PE_extent = simplify(pipe_alloc.PE_extent);
         pipe_alloc.lin_extent = simplify(pipe_alloc.lin_extent);
         pipe_alloc.depth = simplify(pipe_alloc.lin_extent * (pipe_alloc.PE_extent-1) + 1);
         debug(4) << "Pipe_alloc: "      << pipe_alloc.name
@@ -144,22 +148,18 @@ class DataRelaying : public IRMutator {
                  << "\n\t PE arg: "     << pipe_alloc.PE_arg
                  << "\n\t PE extent: "  << pipe_alloc.PE_extent
                  << "\n\t lin extent: " << pipe_alloc.lin_extent
+                 << "\n\t lin cond:"    << pipe_alloc.lin_cond
                  << "\n\t depth: "      << pipe_alloc.depth;
     }
 
     // unrolled for (Z.pipe.b, 0, pipe_alloc.bank_extent) {
-    //   unrolled for (Z.pipe.p, 0, pipe_alloc.PE_extent -1) {
+    //   unrolled for (Z.pipe.p, 0, pipe_alloc.PE_extent - 1) {
     //     unrolled for (Z.pipe.l, 0, pipe_alloc.lin_extent -1) {
     //       write_shift_reg(_Z.pipe, Z.pipe.b, Z.pipe.p*pipe_alloc.lin_extent + Z.pipe.l,  read_shift_reg(_Z.pipe, Z.pipe.b, Z.pipe.p*pipe_alloc.lin_extent + Z.pipe.l + 1));
-    //       if (Z.pipe.b == 0)
-    //         write_shift_reg(_Z.pipe.flag, Z.pipe.b, Z.pipe.p*pipe_alloc.lin_extent + Z.pipe.l, read_shift_reg(_Z.pipe.flag, Z.pipe.b, Z.pipe.p*pipe_alloc.lin_extent + Z.pipe.l + 1));
     //     } // Z.pipe.l
     //     write_shift_reg(_Z.pipe, Z.pipe.b, Z.pipe.p*pipe_alloc.lin_extent + pipe_alloc.lin_extent-1, fpga_reg(read_shift_reg(_Z.pipe, Z.pipe.b, Z.pipe.p*pipe_alloc.lin_extent + pipe_alloc.lin_extent)));
-    //     if (Z.pipe.b == 0)
-    //       write_shift_reg(_Z.pipe.flag, Z.pipe.b, Z.pipe.p*pipe_alloc.lin_extent + pipe_alloc.lin_extent-1, fpga_reg(read_shift_reg(_Z.pipe.flag, Z.pipe.b, Z.pipe.p*pipe_alloc.lin_extent + pipe_alloc.lin_extent)));
     //   } // Z.pipe.p
     // } // Z.pipe.b
-    // write_shift_reg(_Z.pipe.flag, 0, Z.pipe.depth-1, 0)
     //
     Stmt make_pipe_shift() {
         string lin_name  = pipe_alloc.name + ".l";
@@ -168,48 +168,31 @@ class DataRelaying : public IRMutator {
         Expr var_lin  = Variable::make(Int(32), lin_name);
         Expr var_PE   = Variable::make(Int(32), PE_name);
         Expr var_bank = Variable::make(Int(32), bank_name);
-        // Shift operation  
+        // Shift operation
         Expr arg_shift = simplify(var_PE * pipe_alloc.lin_extent + var_lin);
         Expr read_shift = Call::make(pipe_alloc.t, Call::IntrinsicOp::read_shift_reg,
-                                    { pipe_alloc.name, var_bank, arg_shift+1 }, Call::CallType::PureIntrinsic);
-        Expr write_shift = Call::make(pipe_alloc.t, Call::IntrinsicOp::write_shift_reg, 
-                                    { pipe_alloc.name, var_bank, arg_shift, read_shift }, Call::CallType::PureIntrinsic);
-        // Shift operation for flag
-        Expr read_flag_shift = Call::make(Bool(1), Call::IntrinsicOp::read_shift_reg, 
-                                    { pipe_alloc.flag_name, var_bank, arg_shift+1 }, Call::CallType::PureIntrinsic);
-        Expr write_flag_shift = Call::make(Bool(1), Call::IntrinsicOp::write_shift_reg,
-                                    { pipe_alloc.flag_name, var_bank, arg_shift, read_flag_shift }, Call::CallType::PureIntrinsic);
-        // Stmt bank_0 = IfThenElse::make(var_bank == 0, Evaluate::make(write_flag_shift));
+                                    { pipe_alloc.name+".shreg", var_bank, arg_shift+1 }, Call::CallType::PureIntrinsic);
+        Expr write_shift = Call::make(pipe_alloc.t, Call::IntrinsicOp::write_shift_reg,
+                                    { pipe_alloc.name+".shreg", var_bank, arg_shift, read_shift }, Call::CallType::PureIntrinsic);
         // Linear loop
-        Stmt block_lin = Block::make(Evaluate::make(write_shift), Evaluate::make(write_flag_shift));
-        Stmt for_lin = For::make(lin_name, 0, pipe_alloc.lin_extent-1, ForType::Unrolled, DeviceAPI::None, block_lin);
+        Stmt for_lin = For::make(lin_name, 0, pipe_alloc.lin_extent-1, ForType::Unrolled, DeviceAPI::None, Evaluate::make(write_shift));
         // Shift operation at PE edges
         Expr arg_edge = simplify(var_PE * pipe_alloc.lin_extent + (pipe_alloc.lin_extent-1));
         Expr read_edge = Call::make(pipe_alloc.t, Call::IntrinsicOp::read_shift_reg,
-                                    { pipe_alloc.name, var_bank, arg_edge+1 }, Call::CallType::PureIntrinsic);
+                                    { pipe_alloc.name+".shreg", var_bank, arg_edge+1 }, Call::CallType::PureIntrinsic);
         Expr read_edge_regs = Call::make(pipe_alloc.t, Call::IntrinsicOp::fpga_reg, { read_edge }, Call::CallType::PureIntrinsic);
         Expr write_edge = Call::make(pipe_alloc.t, Call::IntrinsicOp::write_shift_reg,
-                                    { pipe_alloc.name, var_bank, arg_edge, read_edge_regs }, Call::CallType::PureIntrinsic);
-        // Shift operation for flag at PE edges
-        Expr read_flag_edge = Call::make(Bool(1), Call::IntrinsicOp::read_shift_reg,
-                                    { pipe_alloc.flag_name, var_bank, arg_edge+1 }, Call::CallType::PureIntrinsic);
-        Expr read_flag_edge_regs = Call::make(pipe_alloc.t, Call::IntrinsicOp::fpga_reg, { read_flag_edge }, Call::CallType::PureIntrinsic);
-        Expr write_flag_edge = Call::make(Bool(1), Call::IntrinsicOp::write_shift_reg,
-                                    { pipe_alloc.flag_name, var_bank, arg_edge, read_flag_edge_regs }, Call::CallType::PureIntrinsic);
-        // Stmt edge_bank_0 = IfThenElse::make(var_bank == 0, Evaluate::make(write_flag_edge));
+                                    { pipe_alloc.name+".shreg", var_bank, arg_edge, read_edge_regs }, Call::CallType::PureIntrinsic);
         // PE loop
-        Stmt block_PE = Block::make({ for_lin, Evaluate::make(write_edge), Evaluate::make(write_flag_edge) });
-        Stmt for_PE = For::make(PE_name, 0, pipe_alloc.PE_extent-1, ForType::Unrolled, DeviceAPI::None, block_PE);
+        Stmt PE_body = Block::make(for_lin, Evaluate::make(write_edge));
+        Stmt for_PE = For::make(PE_name, 0, pipe_alloc.PE_extent-1, ForType::Unrolled, DeviceAPI::None, PE_body);
         // Bank loop
-        Expr write_flag_last = Call::make(Bool(1), Call::IntrinsicOp::write_shift_reg,
-                                    { pipe_alloc.flag_name, var_bank, pipe_alloc.depth-1, 0 }, Call::CallType::PureIntrinsic);
-        Stmt block_bank = Block::make(for_PE, Evaluate::make(write_flag_last));
-        Stmt for_bank = For::make(bank_name, 0, pipe_alloc.bank_extent, ForType::Unrolled, DeviceAPI::None, block_bank);
+        Stmt for_bank = For::make(bank_name, 0, pipe_alloc.bank_extent, ForType::Unrolled, DeviceAPI::None, for_PE);
         return for_bank;
     }
 
     // unrolled for (Z.pipe.b, 0, pipe_alloc.bank_extent) {
-    //   if (read_shift_reg(Z.pipe.flag, 0, 0)) {
+    //   if (pipe.iter - pipe.base < lin_extents * PE_extents) {
     //     write_channel(Out.channel, read_shift_reg(Z.pipe, jjj, 0), jjj, 0)
     //   }
     // }
@@ -218,37 +201,34 @@ class DataRelaying : public IRMutator {
         Expr var_bank = Variable::make(Int(32), bank_name);
         // Write data to channel
         Expr read_pipe = Call::make(pipe_alloc.t, Call::IntrinsicOp::read_shift_reg,
-                                    { pipe_alloc.name, var_bank, 0 }, Call::CallType::PureIntrinsic);
+                                    { pipe_alloc.name+".shreg", var_bank, 0 }, Call::CallType::PureIntrinsic);
         vector<Expr> write_args;
         write_args.push_back(param.to_func + ".channel");
         write_args.push_back(read_pipe);
         write_args.push_back(var_bank);
         Expr write_chn = Call::make(pipe_alloc.t, Call::IntrinsicOp::write_channel, write_args, Call::CallType::PureIntrinsic);
         // Flag is true
-        Expr read_flag = Call::make(Bool(1), Call::IntrinsicOp::read_shift_reg,
-                                    { pipe_alloc.flag_name, var_bank, 0 }, Call::CallType::PureIntrinsic);
-        Stmt if_flag = IfThenElse::make(read_flag, Evaluate::make(write_chn));
+        Expr read_iter = Call::make(Int(32), pipe_alloc.name+".iter.temp", {}, Call::Intrinsic);
+        Expr read_base = Call::make(Int(32), pipe_alloc.name+".base.temp", {}, Call::Intrinsic);
+        Expr bound = pipe_alloc.lin_extent * pipe_alloc.PE_extent;
+        Expr if_cond = simplify(read_iter - read_base < bound);
+        Stmt if_stmt = IfThenElse::make(if_cond, Evaluate::make(write_chn));
         // Bank loop
-        Stmt for_bank = For::make(bank_name, 0, pipe_alloc.bank_extent, ForType::Unrolled, DeviceAPI::None, if_flag);
+        Stmt for_bank = For::make(bank_name, 0, pipe_alloc.bank_extent, ForType::Unrolled, DeviceAPI::None, if_stmt);
         return for_bank;
     }
 
-    // unrolled for (Z.pipe.b, 0, pipe_alloc.bank_extent) {
-    //   unrolled for (Z.pipe.d, 0, pipe_alloc.depth) {
-    //     write_shift_reg(Z.pipe.flag, Z.pipe.b, Z.pipe.d, 0)
-    //   }
-    // }
-    Stmt make_flag_init() {
-        string bank_name = pipe_alloc.name + ".b";
-        string depth_name = pipe_alloc.name + ".d";
-        Expr var_bank = Variable::make(Int(32), bank_name);
-        Expr var_depth = Variable::make(Int(32), depth_name);
-        // Initialize
-        Expr write_flag = Call::make(Bool(1), Call::IntrinsicOp::write_shift_reg,
-                                    { pipe_alloc.flag_name, var_bank, var_depth, 0 }, Call::CallType::PureIntrinsic);
-        Stmt for_depth = For::make(depth_name, 0, pipe_alloc.depth, ForType::Unrolled, DeviceAPI::None, Evaluate::make(write_flag));
-        Stmt for_bank = For::make(bank_name, 0, pipe_alloc.bank_extent, ForType::Unrolled, DeviceAPI::None, for_depth);
-        return for_bank;
+    // pipe.iter = lin_extents * PE_extents
+    // pipe.base = 0
+    Stmt make_flag_init(Stmt body) {
+        Expr iter_value = pipe_alloc.lin_extent * pipe_alloc.PE_extent;
+        Stmt write_iter = Provide::make(pipe_alloc.name+".iter.temp", { iter_value }, {});
+        Stmt write_base = Provide::make(pipe_alloc.name+".base.temp", { 0 }, {});
+        body = Block::make({ write_iter, write_base, body });
+        // Number of iterations proceeded
+        body = Realize::make(pipe_alloc.name+".base.temp", { Int(32) }, MemoryType::Auto, {}, const_true(), body);
+        body = Realize::make(pipe_alloc.name+".iter.temp", { Int(32) }, MemoryType::Auto, {}, const_true(), body);
+        return body;
     }
 
 public:
@@ -258,7 +238,7 @@ public:
         if (op->is_intrinsic(Call::IntrinsicOp::read_channel)) {
             // Add a guarding condition to the read_channel
             if (inside_pipe) {
-                Expr sele = Select::make(pipe_alloc.cond, op, FloatImm::make(op->type, 0));
+                Expr sele = Select::make(pipe_alloc.valid_cond, op, FloatImm::make(op->type, 0));
                 return sele;
             }
             auto name = op->args[0].as<StringImm>();
@@ -282,19 +262,22 @@ public:
     Stmt visit(const Evaluate *op) override {
         auto call = op->value.as<Call>();
         if (call && call->is_intrinsic(Call::IntrinsicOp::write_channel)) {
-            // Replace the write_channel with write_shift_reg to the pipe
             auto p = call->args[0].as<StringImm>();
             internal_assert(p);
             if (inside_pipe && p->value == param.to_func + ".channel") {
+                // Replace the write_channel with write_shift_reg to the pipe
                 vector<Expr> args;
-                args.push_back(pipe_alloc.name);
+                args.push_back(pipe_alloc.name+".shreg");
                 args.push_back(alloc.args[get_dim(param.bank_loop, alloc)]);
                 args.push_back(pipe_alloc.lin_extent * pipe_alloc.PE_arg);
                 args.push_back(call->args[1]);    // Value
                 Expr write_pipe = Call::make(call->type, Call::IntrinsicOp::write_shift_reg, args, Call::CallType::PureIntrinsic);
-                args[0] = pipe_alloc.flag_name, args[3] = 1;
-                Expr write_flag = Call::make(Bool(1), Call::IntrinsicOp::write_shift_reg, args, Call::CallType::PureIntrinsic);
-                return Block::make(Evaluate::make(write_pipe), Evaluate::make(write_flag));
+                Stmt write_pipe_stmt = Evaluate::make(write_pipe);
+                // Update pipe.base to pipe.iter if lin_cond and valid_cond is true
+                Expr read_iter = Call::make(Int(32), pipe_alloc.name+".iter.temp", {}, Call::Intrinsic);
+                Stmt write_base = Provide::make(pipe_alloc.name+".base.temp", { read_iter }, {});
+                Stmt if_cond = IfThenElse::make(pipe_alloc.lin_cond && pipe_alloc.valid_cond, write_base);
+                return Block::make(write_pipe_stmt, if_cond);
             }
         }
         return IRMutator::visit(op);
@@ -303,20 +286,22 @@ public:
     Stmt visit(const For *op) override {
         // Record the outermost loop's extent to be used for guarding read_channel
         if (op->name == to_string(alloc.args.back())) {
-            pipe_alloc.cond = Variable::make(Int(32), op->name) < op->extent;
+            pipe_alloc.valid_cond = Variable::make(Int(32), op->name) < op->extent;
         }
         Stmt body = mutate(op->body);
-        // Modify the outermost loop's extent to keep the systolic array running 
+        // Modify the outermost loop's extent to keep the systolic array running
         // when all computations are finished, to relay data out of systolic array
         if (op->name == to_string(alloc.args.back())) {
             body = For::make(op->name, op->min, op->extent + 1,
                              op->for_type, op->device_api, body);
-            return Block::make(make_flag_init(), body);
+            return make_flag_init(body);
         }
         if (op->name == to_string(alloc.args[alloc.PE_dims.back()])) {
             body = For::make(op->name, op->min, op->extent,
                              op->for_type, op->device_api, body);
-            body = Block::make({ body, make_write(), make_pipe_shift() });
+            Expr read_iter = Call::make(Int(32), pipe_alloc.name+".iter.temp", {}, Call::Intrinsic);
+            Stmt inc_iter = Provide::make(pipe_alloc.name+".iter.temp", { read_iter+1 }, {});
+            body = Block::make({ body, make_write(), make_pipe_shift(), inc_iter });
             return body;
         }
         return IRMutator::visit(op);
@@ -351,9 +336,7 @@ public:
             Region pipe_bounds;
             pipe_bounds.push_back(Range(0, pipe_alloc.bank_extent));
             pipe_bounds.push_back(Range(0, pipe_alloc.depth));
-            body = Realize::make(pipe_alloc.name, op->types, op->memory_type, pipe_bounds, const_true(), body);
-            // Track status for each lanes
-            body = Realize::make(pipe_alloc.flag_name, { Bool(1) }, op->memory_type, pipe_bounds, const_true(), body);
+            body = Realize::make(pipe_alloc.name+".shreg", op->types, op->memory_type, pipe_bounds, const_true(), body);
         }
         return Realize::make(op->name, op->types, op->memory_type, op->bounds, op->condition, body);
     }
@@ -366,6 +349,7 @@ public:
 
 
 class LateReorder : public IRMutator {
+    const string &host_func;
     const vector<string> &funcs;
     const vector<string> &loops;
     int loop_level;
@@ -381,8 +365,8 @@ class LateReorder : public IRMutator {
 public:
     using IRMutator::visit;
 
-    LateReorder(const vector<string> &_f, const vector<string> &_l)
-        : funcs(_f), loops(_l) {}
+    LateReorder(const string &_h, const vector<string> &_f, const vector<string> &_l)
+        : host_func(_h), funcs(_f), loops(_l) {}
 
     Stmt visit(const ProducerConsumer *op) override {
         if (op->is_producer) {
@@ -409,7 +393,7 @@ public:
 
     Stmt visit(const Provide *op) override {
         auto it = std::find(funcs.begin(), funcs.end(), op->name);
-        if (it != funcs.end()) {
+        if (it != funcs.end() && op->name != host_func) {
             vector<Expr> values;
             for (auto &v : op->values) {
                 values.push_back(mutate(v));
@@ -424,43 +408,83 @@ public:
         return IRMutator::visit(op);
     }
 
+    Stmt visit(const Realize *op) override {
+        Stmt body = mutate(op->body);
+        auto it = std::find(funcs.begin(), funcs.end(), op->name);
+        if (it != funcs.end()) {
+            Region bounds;
+            for (auto &l : loops) {
+                auto &loop_info = ori_loops.at(l);
+                bounds.push_back(Range(loop_info.min, loop_info.extent));
+            }
+            return Realize::make(op->name, op->types, op->memory_type, bounds, op->condition, body);
+        }
+        return Realize::make(op->name, op->types, op->memory_type, op->bounds, op->condition, body);
+    }
+
     Stmt visit(const For *op) override {
         if (func.empty() || ends_with(op->name, "run_on_device")) {
             return IRMutator::visit(op);
         }
-        ori_loops[op->name] = { op->min, op->extent, op->for_type, op->device_api };
+        ori_loops[extract_last_token(op->name)] = { op->min, op->extent, op->for_type, op->device_api };
         loop_level -= 1;
         Stmt body = mutate(op->body);
         loop_level += 1;
 
         internal_assert(loop_level >= 0 && loop_level < (int)loops.size());
         string name = extract_before_tokens(op->name, 2) + "." + loops[loop_level];
-        LoopInfo &l = ori_loops.at(name);
+        LoopInfo &l = ori_loops.at(loops[loop_level]);
         return For::make(name, l.min, l.extent, l.for_type, l.device_api, body);
     }
 };
 
-Stmt late_reorder_along_consumer_chain(Stmt s, const std::map<std::string, Function> &env, string func, const vector<string> &loops) {
+Stmt late_reorder_along_consumer_chain(Stmt s, const std::map<std::string, Function> &env, string func_name, const vector<string> &loops) {
     // Construct the consumer chain
     vector<string> consumers;
+    string host_func;
     while (1) {
         bool is_last = true;
         for (auto &kv : env) {
-            if (kv.second.isolated_from_as_consumer() == func) {
+            if (kv.second.isolated_from_as_consumer() == func_name) {
                 is_last = false;
                 consumers.push_back(kv.first);
-                func = kv.first;
+                func_name = kv.first;
+                if (kv.second.place() == Place::Host) {
+                    internal_assert(host_func.empty())
+                        << "Only one host consumer is allowed.\n";
+                    host_func = kv.first;
+                }
                 break;
             }
         }
         if (is_last) break;
     }
-    LateReorder lr(consumers, loops);
+    // The following code is commented as we assume the host and device
+    // communicate with mem_channels, and thus no need to permute storage
+    // for (auto &name : consumers) {
+    //     Function func;
+    //     internal_assert(function_is_in_environment(name, env, func));
+    //     auto &storage_dims_old = func.schedule().storage_dims();
+    //     auto storage_dims = storage_dims_old;
+
+    //     for (size_t i = 0; i < loops.size(); i++) {
+    //         size_t j = 0;
+    //         for (; j < storage_dims.size(); j++) {
+    //             if (storage_dims_old[j] == loops[i]) break;
+    //         }
+    //         if (j < storage_dims.size()) {
+    //             storage_dims[i] = storage_dims_old[j];
+    //         }
+    //     }
+    //     storage_dims_old.swap(storage_dims);
+    // }
+
+    LateReorder lr(host_func, consumers, loops);
     s = lr.mutate(s);
     return s;
 }
 
-Stmt relay_data(Stmt s, const std::map<std::string, Function> &env, const map<string, ShiftRegAlloc> &func_to_regalloc) {
+Stmt relay_data(Stmt s, std::map<std::string, Function> &env, const map<string, ShiftRegAlloc> &func_to_regalloc) {
     for (auto &kv : env) {
         const vector<RelayItem> &relay_params = kv.second.definition().schedule().relay_params();
         if (!relay_params.empty()) {
