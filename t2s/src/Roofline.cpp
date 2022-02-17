@@ -145,8 +145,9 @@ void roofline(double mem_bandwidth, double compute_roof, double number_ops, doub
         printf("Roofline parameters Error!\n");
         return;
     }
+    printf("GFlops: %lf\n", number_ops / exec_time);
     sprintf(command, "python $T2S_PATH/t2s/src/Roofline.py %lf %lf %lf %lf %lf", mem_bandwidth, compute_roof, number_ops, number_bytes, exec_time);
-    printf("%s\n", command);
+    printf("Run command: %s\n", command);
     int ret = system(command);
     assert(ret != -1);
 }
