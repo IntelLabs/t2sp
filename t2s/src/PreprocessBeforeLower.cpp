@@ -19,6 +19,7 @@
 #include "IRMutator.h"
 #include "IRVisitor.h"
 #include "Simplify.h"
+#include "Substitute.h"
 #include <list>
 #include <vector>
 #include "./DebugPrint.h"
@@ -46,7 +47,8 @@ class SttChecker : public IRVisitor {
             Function func(op->func);
             if ((func.definition().schedule().is_merged() || func.has_merged_defs())
                 && !func.definition().schedule().is_output()
-                && !func.definition().schedule().is_input()) {
+                && !func.definition().schedule().is_input()
+                && !func.definition().schedule().is_extended_ure()) {
                 vector<Expr> call_args = op->args;
                 internal_assert(call_args.size() == args.size());
 
@@ -89,14 +91,21 @@ void check_space_time_transform(Func &func, Target target) {
                         "try to flatten the time loop...\n";
             Expr loop_bound = 0;
             auto func_dims = func.function().definition().schedule().dims();
+            std::map<std::string, Expr> global_min;
+            std::map<std::string, Expr> global_max;
+            for (size_t i = 0; i < func_dims.size()-1; i++) {
+                Expr min = func.function().get_bounds(func_dims[i].var).first;
+                Expr extent = func.function().get_bounds(func_dims[i].var).second;
+                global_max[func_dims[i].var] = simplify(min+extent-1);
+                global_min[func_dims[i].var] = simplify(min);
+            }
 
             // the original time loop bound
             for (size_t i = 0; i < param.sch_vector.size(); i++) {
                 string var = src_vars[i];
-                auto min_expr = func.function().get_bounds(var).first;
-                auto max_expr = func.function().get_bounds(var).second;
-                auto diff = simplify(max_expr - min_expr - 1);
-                loop_bound += param.sch_vector[i] * diff;
+                auto extent = func.function().get_bounds(var).second;
+                auto expr = simplify(Max::make(substitute(global_max, extent), substitute(global_min, extent)));
+                loop_bound += param.sch_vector[i] * expr;
             }
             loop_bound = simplify(loop_bound + 1);
 
@@ -115,9 +124,9 @@ void check_space_time_transform(Func &func, Target target) {
                                 << "Please provide a schedule vector covering all dependencies\n";
                         param.sch_vector.push_back(loop_bound.as<IntImm>()->value);
                     }
-                    auto min_expr = func.function().get_bounds(cur_dim).first;
-                    auto max_expr = func.function().get_bounds(cur_dim).second;
-                    loop_bound = simplify(loop_bound * (max_expr - min_expr));
+                    auto extent = func.function().get_bounds(cur_dim).second;
+                    auto expr = simplify(Max::make(substitute(global_max, extent), substitute(global_min, extent)));
+                    loop_bound = simplify(loop_bound * expr);
                 }
             }
         }

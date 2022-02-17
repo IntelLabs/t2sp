@@ -185,12 +185,12 @@ public:
                 }
             }
 
-            if (call_args.size() < args.size()) {
-                invalid_type = InvalidType::Lack;
-                is_ure = false;
-                invalid_call = call;
-                return;
-            }
+            // if (call_args.size() < args.size()) {
+            //     invalid_type = InvalidType::Lack;
+            //     is_ure = false;
+            //     invalid_call = call;
+            //     return;
+            // }
 
             // Compare the RHS order with LHS
             if (!args.empty() && !call_args.empty()) {
@@ -199,7 +199,11 @@ public:
                     if (args[i].name() == call_args[j]) {
                         i++, j++;
                     } else {
-                        j++;
+                        if (call_args.size() >= args.size()) {
+                            j++;
+                        } else {
+                            i++;
+                        }
                     }
                 }
                 if (i < args.size()) {

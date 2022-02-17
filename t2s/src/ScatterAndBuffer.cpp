@@ -628,21 +628,21 @@ class ScatterInserter: public IRMutator{
         Type data_type = iter->second.read_node.type();
         if(ends_with(op->name,".run_on_device")){
             Stmt new_body = IRMutator::mutate(op->body);
-            new_body = For::make(
-                shreg_name.substr(0,shreg_name.size() - string(".shreg").size()) +".run_on_device", 0, 1,
-                ForType::Parallel, DeviceAPI::OpenCL, new_body
-            );
+            // new_body = For::make(
+            //     shreg_name.substr(0,shreg_name.size() - string(".shreg").size()) +".run_on_device", 0, 1,
+            //     ForType::Parallel, DeviceAPI::OpenCL, new_body
+            // );
             new_body = For::make(
                 op->name,op->min,op->extent,op->for_type,op->device_api,new_body
             );
-            Region range_args;
-            for(auto index : unroll_loop_indexes){
-                range_args.push_back(Range(loop_mins[index], loop_extents[index]));
-            }
-            new_body = Realize::make(shreg_name,
-                    {data_type},
-                    MemoryType::Auto, range_args,
-                    const_true(), new_body);
+            // Region range_args;
+            // for(auto index : unroll_loop_indexes){
+            //     range_args.push_back(Range(loop_mins[index], loop_extents[index]));
+            // }
+            // new_body = Realize::make(shreg_name,
+            //         {data_type},
+            //         MemoryType::Auto, range_args,
+            //         const_true(), new_body);
             return new_body;
         }
         loop_level++;
@@ -699,13 +699,9 @@ class ScatterInserter: public IRMutator{
             // if (ii == 0)/(ii == I - 1)
             Expr cond_read = EQ::make(origin_loop_var, strategy_up ? scatter_loop_min : (scatter_loop_min + scatter_loop_extent - 1));
 
-            // if(cond_A)
-            //      if (ii == 0)/(ii == I - 1)
-            //          feederA[ii] = read inputA(ii->t)
-            //      else
-            //          feederA[ii] = feederA[ii-1]/feederA[ii+1]
             // if (ii == t)
-            //      consume feederA[ii] (typically, send it to the core systolic array via a channel.)
+            //      consume feederA.temp (typically, send it to the core systolic array via a channel.)
+            // feederA.temp = __fpga_reg(feederA.temp)
             // Basic Exprs
             Expr origin_call_node = iter->second.read_node;
             
@@ -790,13 +786,15 @@ class ScatterInserter: public IRMutator{
             // rw_block = rw_block.defined() ? Block::make(rw_block, rw_stmt) : Block::make({rw_stmt});
 
             // replace call_node in op->body
-            new_body = substitute(origin_call_node, read_from_shreg_now, new_body);
+            new_body = substitute(origin_call_node, read_from_channel, new_body);
 
             // update body: if (condition) RWStmt; if t == i updated_body
             if(!scatter_along_removed)
                 new_body = IfThenElse::make(EQ::make(scatter_var, origin_loop_var), new_body);
             
-            new_body = Block::make(write_shreg, new_body);
+            // new_body = Block::make(write_shreg, new_body);
+            Stmt pipeline_reg = Provide::make(producer + ".scatter.temp", {Call::make(data_type, Call::fpga_reg, {read_from_channel}, Call::Intrinsic)}, tmp_data_args);
+            new_body = Block::make(new_body, pipeline_reg);
 
             new_body = For::make(origin_loop_name,scatter_loop_min,scatter_loop_extent,ForType::Unrolled,op->device_api,new_body);
             

@@ -286,6 +286,7 @@ struct StageScheduleContents {
     std::vector<FusedPair> fused_pairs;
     std::vector<Func> merged_ures;
     std::vector<SpaceTimeTransformParams> transform_params;
+    std::vector<TriangularLoopParams> triangular_loop_params;
     std::vector<ScatterItem> scatter_params;
     std::vector<GatherItem> gather_params;
     std::vector<RelayItem> relay_params;
@@ -521,6 +522,7 @@ StageSchedule StageSchedule::get_copy() const {
     copy.contents->is_remove = contents->is_remove;
     copy.contents->is_merged = contents->is_merged;
     copy.contents->is_extended_ure = contents->is_extended_ure;
+    copy.contents->triangular_loop_params = contents->triangular_loop_params;
     copy.contents->transform_params = contents->transform_params;
     copy.contents->fetch_params = contents->fetch_params;
     copy.contents->store_params = contents->store_params;
@@ -713,6 +715,14 @@ const std::map<int, std::vector<Expr>> &StageSchedule::task_deps() const {
 
 std::map<int, std::vector<Expr>> &StageSchedule::task_deps() {
     return contents->task_deps;
+}
+
+const std::vector<TriangularLoopParams> &StageSchedule::triangular_loop_params() const {
+    return contents->triangular_loop_params;
+}
+
+std::vector<TriangularLoopParams> &StageSchedule::triangular_loop_params() {
+    return contents->triangular_loop_params;
 }
 
 const std::vector<SpaceTimeTransformParams> &StageSchedule::transform_params() const {

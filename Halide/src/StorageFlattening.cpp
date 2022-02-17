@@ -6,6 +6,10 @@
 #include "IROperator.h"
 #include "Parameter.h"
 #include "Scope.h"
+#include "Simplify.h"
+#include "Substitute.h"
+
+#include "../../t2s/src/Utilities.h"
 
 #include <sstream>
 
@@ -34,6 +38,8 @@ public:
 
 private:
     const map<string, pair<Function, int>> &env;
+    std::map<std::string, Expr> global_min;
+    std::map<std::string, Expr> global_max;
     set<string> outputs;
     const Target &target;
     Scope<> realizations, shader_scope_realizations;
@@ -129,9 +135,23 @@ private:
         Stmt body = mutate(op->body);
 
         // Compute the size
-        vector<Expr> extents;
+        vector<Expr> mins, extents;
         for (size_t i = 0; i < op->bounds.size(); i++) {
-            extents.push_back(op->bounds[i].extent);
+            auto min = op->bounds[i].min;
+            auto extent = op->bounds[i].extent;
+            if (min.as<IntImm>() == nullptr && !global_max.empty()) {
+                Expr max_substitute = substitute(global_max, min);
+                Expr min_substitute = substitute(global_min, min);
+                min = Min::make(max_substitute, min_substitute);
+            }
+            if (extent.as<IntImm>() == nullptr && !global_max.empty()) {
+                Expr max_substitute = substitute(global_max, extent);
+                Expr min_substitute = substitute(global_min, extent);
+                extent = Max::make(max_substitute, min_substitute);
+            }
+            mins.push_back(min);
+            mins[i] = mutate(mins[i]);
+            extents.push_back(extent);
             extents[i] = mutate(extents[i]);
         }
         Expr condition = mutate(op->condition);
@@ -222,7 +242,7 @@ private:
 
         // Assign the mins and extents stored
         for (size_t i = op->bounds.size(); i > 0; i--) {
-            stmt = LetStmt::make(min_name[i - 1], op->bounds[i - 1].min, stmt);
+            stmt = LetStmt::make(min_name[i - 1], mins[i - 1], stmt);
             stmt = LetStmt::make(extent_name[i - 1], extents[i - 1], stmt);
         }
         return stmt;
@@ -391,6 +411,18 @@ private:
             op->device_api == DeviceAPI::GLSL) {
             in_shader = true;
         }
+        Expr min = op->min;
+        Expr extent = op->extent;
+        if (extent.as<IntImm>() == nullptr && !global_max.empty()) {
+            Expr max_substitute = substitute(global_max, extent);
+            Expr min_substitute = substitute(global_min, extent);
+            extent = Max::make(max_substitute, min_substitute);
+            max_substitute = substitute(global_max, min);
+            min_substitute = substitute(global_min, min);
+            min = Min::make(max_substitute, min_substitute);
+        }
+        global_max[extract_last_token(op->name)] = simplify(extent);
+        global_min[extract_last_token(op->name)] = simplify(min);
         Stmt stmt = IRMutator::visit(op);
         in_shader = old_in_shader;
         return stmt;

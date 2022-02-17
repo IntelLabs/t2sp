@@ -30,10 +30,17 @@
 namespace Halide {
 namespace Internal {
 
+enum class RegStrategy {
+    Rotate,
+    Shift,
+    DirectAccess
+};
+
 // A register allocation decision for a variable.
 struct ShiftRegAlloc {
     Type                   type;                    // Type of a register.
     vector<Expr>           args;                    // Args of a (unique) write access to the variable.
+    vector<Expr>           args_without_prefix;
 
     // Dimensions of the shift registers.
     int                    vectorized_dim;          // Index to the vectorized loop. -1 if there is no vectorized loop
@@ -49,7 +56,7 @@ struct ShiftRegAlloc {
     vector<Expr>           PE_extents;              // Extents of the PE_dims.
 
     // Additional info for the linearized_dims
-    vector<bool>           rotate;                  // Should rotation be used for the corresponding linearized time_dims?
+    vector<RegStrategy> strategy;                   // Should rotation/shift/direct access be used for the corresponding linearized time_dims?
 };
 
 /* Minimize the sizes of shift registers. */

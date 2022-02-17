@@ -450,7 +450,7 @@ class SpaceTimeTransformer : public IRMutator {
                 min_substitute = substitute(global_min, loop_min);
                 loop_min = Min::make(max_substitute, min_substitute);
             }
-            global_max[op->name] = simplify(extent);
+            global_max[op->name] = simplify(loop_min+extent-1);
             global_min[op->name] = simplify(loop_min);
 
             current_loops.push_back(op->name);
@@ -569,9 +569,17 @@ class SpaceTimeTransformer : public IRMutator {
                     } else {
                         // Let the register bounds the same as the corresponding loop bounds (In unscheduled stt,
                         // at this moment, we do not change loops at all). We will minimize the bounds in a later phase.
-                        for (size_t j = 0; j < num_args; j++) {
-                            reg_size_map[merged_func_name].mins.push_back(loop_mins[j]);
-                            reg_size_map[merged_func_name].maxs.push_back(simplify(loop_extents[j] - 1));
+                        for (size_t j = 0; j < merged_func.args().size(); j++) {
+                            for (size_t k = 0; k < num_args; k++) {
+                                const Variable *loop_var = loop_vars[k].as<Variable>();
+                                if (ends_with(loop_var->name, merged_func.args()[j])) {
+                                    Expr min_expr = Min::make(substitute(global_max, loop_mins[k]), substitute(global_min, loop_mins[k]));
+                                    Expr ext_expr = Max::make(substitute(global_max, loop_extents[k]), substitute(global_min, loop_extents[k]));
+                                    reg_size_map[merged_func_name].mins.push_back(min_expr);
+                                    reg_size_map[merged_func_name].maxs.push_back(simplify(ext_expr - 1));
+                                    break;
+                                }
+                            }
                         }
                         if (!in_input_or_output) {
                             if (space_is_dynamic) {
@@ -700,8 +708,8 @@ class SpaceTimeTransformer : public IRMutator {
                 if (!in_input_or_output) {
                     kv.second.mins[k] = min;
                     kv.second.maxs[k] = extent-1;
-                    if (!is_const(min) || !is_const(extent))
-                        reg_annotation_map[kv.first] = {};
+                    // if (!is_const(min) || !is_const(extent))
+                    //     reg_annotation_map[kv.first] = {};
                 }
             }
         }

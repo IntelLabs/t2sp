@@ -383,6 +383,23 @@ Stmt build_loop_nest(
     return stmt;
 }
 
+string find_previous_ure(const map<string, Function> &env, string func_name) {
+    bool find = false;
+    for (auto element : env) {
+        const Function& f = element.second;
+        if (f.has_merged_defs()) {
+            string pre_func_name = "";
+            for (string name : f.merged_func_names()) {
+                if (func_name == name)
+                    return pre_func_name;
+                pre_func_name = name;
+            }
+        }
+    }
+    internal_assert(find);
+    return "";
+}
+
 string find_control_ure(const map<string, Function> &env, string func_name) {
     bool find = false;
     for (auto element : env) {
@@ -413,7 +430,13 @@ Stmt build_provide_loop_nest(const map<string, Function> &env,
     vector<Expr> values(def.values().size());
     for (size_t i = 0; i < values.size(); i++) {
         Expr v = def.values()[i];
-        if (def.schedule().is_extended_ure()) {
+        if (def.schedule().is_output() && def.schedule().is_extended_ure()) {
+            string control_ure_name = find_previous_ure(env, func.name());
+            std::vector<std::string> split_prefix = split_string(prefix, ".");
+            string stage = split_prefix[1];
+            string new_prefix = control_ure_name + "." + stage + ".";
+            v = qualify(new_prefix, v);
+        } else if (def.schedule().is_extended_ure()) {
             // const vector<Function>& merged_ures = def.schedule().merged_funcs();
             string control_ure_name = find_control_ure(env, func.name());
             std::vector<std::string> split_prefix = split_string(prefix, ".");
@@ -1332,7 +1355,7 @@ private:
             start_fuse = std::min(start_fuse, (size_t)(iter - dims.begin()));
 
             // Exetended ure syntax
-            int dim2_idx = 0;
+            // int dim2_idx = 0;
             // Should ignore the __outermost dummy dimension.
             for (size_t i = (size_t)(iter - dims.begin()); i < dims.size() - 1; ++i) {
                 string var_orig = pair.func_1 + ".s" + std::to_string(pair.stage_1) + "." + dims[i].var;
@@ -1341,9 +1364,14 @@ private:
                 // Original Halide method
                 // int dim2_idx = (int)(dims_2.size() - (dims.size() - i));
                 
-                // Exetended ure syntax
-                if (dim2_idx >= (int)dims_2.size() ||
-                    !var_name_match(dims[i].var, dims_2[dim2_idx].var)) {
+                int dim2_idx = -1;
+                for (size_t j = 0; j < dims_2.size(); j++) {
+                    if (var_name_match(dims[i].var, dims_2[j].var)) {
+                        dim2_idx = j;
+                    }
+                }
+
+                if (dim2_idx == -1) {
                     continue;
                 }
                 
@@ -1355,7 +1383,7 @@ private:
                 replacements.emplace(var + ".loop_max", val);
 
                 // Exetended ure syntax
-                dim2_idx++;
+                // dim2_idx++;
             }
         }
 

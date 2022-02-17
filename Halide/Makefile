@@ -826,6 +826,7 @@ T2S_SOURCE_FILES = \
   SpaceTimeTransform.cpp \
   Stensor.cpp \
   StructType.cpp \
+  TriangularLoopOptimize.cpp \
   Utilities.cpp
 
 T2S_HEADER_FILES = \
@@ -856,6 +857,7 @@ T2S_HEADER_FILES = \
   SpaceTimeTransform.h \
   Stensor.h \
   StructType.h \
+  TriangularLoopOptimize.h \
   Utilities.h
 
 OBJECTS += $(T2S_SOURCE_FILES:%.cpp=$(BUILD_DIR)/t2s/%.o)

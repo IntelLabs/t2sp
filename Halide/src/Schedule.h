@@ -489,6 +489,12 @@ struct SpaceTimeTransformParams {
                                    // stt, and the above sch_vector is what compiler automatically makes.
 };
 
+struct TriangularLoopParams {
+    std::string outer_loop_name;
+    std::string inner_loop_name;
+    int safelen;
+};
+
 /** Record arguments for each invocation. */
 class ScatterItem{
 public:
@@ -831,6 +837,9 @@ public:
     bool is_extended_ure() const;
     bool &is_extended_ure();
     // @}
+
+    const std::vector<TriangularLoopParams> &triangular_loop_params() const;
+    std::vector<TriangularLoopParams> &triangular_loop_params();
 
     /** Space time transform parameters **/
     const std::vector<SpaceTimeTransformParams> &transform_params() const;

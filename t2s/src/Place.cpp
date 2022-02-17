@@ -208,7 +208,7 @@ private:
     Stmt visit(const Allocate *op) override {
         is_set_bounds = true;
         Stmt body = mutate(op->body);
-        if (!get_channel_name(op->name).empty() && is_set_bounds) {
+        if (!get_channel_name(op->name).empty()) {
             string name = op->name + ".mem_channel";
             return Allocate::make(name, op->type, op->memory_type , op->extents,
                                 op->condition, body, op->new_expr, op->free_function);
@@ -221,7 +221,7 @@ private:
         Stmt body = mutate(op->body);
         string name = op->name;
         Expr value = op->value;
-        if (!get_channel_name(op->name).empty() && is_set_bounds) {
+        if (!get_channel_name(op->name).empty()) {
             string func_name = extract_first_token(op->name);
             string new_func_name = func_name + ".mem_channel";
             name = name.replace(name.find(func_name), func_name.length(), new_func_name);
@@ -239,7 +239,7 @@ private:
     }
 
     Stmt visit(const Store *op) override {
-        if (!get_channel_name(op->name).empty() && is_set_bounds) {
+        if (!get_channel_name(op->name).empty()) {
             vector<Expr> args;
             vector<string> loops;
             args.push_back(Expr(op->name + ".mem_channel"));
@@ -260,7 +260,7 @@ private:
     }
 
     Expr visit(const Load *op) override {
-        if (!get_channel_name(op->name).empty() && is_set_bounds) {
+        if (!get_channel_name(op->name).empty()) {
             internal_assert(channels.find(op->name) != channels.end());
             vector<Expr> args;
             args.push_back(Expr(op->name + ".mem_channel"));
