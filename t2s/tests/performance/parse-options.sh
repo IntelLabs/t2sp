@@ -36,11 +36,7 @@ if [ "$4" != "tiny" -a "$4" != "large" ]; then
     show_usage
     return
 else
-    if [ "$3" == "s10" ]; then
-        size="s10"
-    else
-        size="$4"
-    fi
+    size="$4"
 fi
 
 if [ "$5" != "hw" -a "$5" != "emulator" ]; then
