@@ -155,10 +155,7 @@ public:
     ReplaceReferencesWithMemChannels(const set<string> &_mem_channels,
                                     const map<string, Function> &_env,
                                     vector<std::pair<string, Expr>> &_lets) :
-        mem_channels(_mem_channels), env(_env), letstmts_backup(_lets) {
-            user_assert(env.size() > 0);
-            is_set_bounds = true;
-        }
+        mem_channels(_mem_channels), env(_env), letstmts_backup(_lets) {}
 
 private:
     const set<string> &mem_channels;
@@ -166,7 +163,6 @@ private:
     vector<string> enclosing_unrolled_loops;
     set<string> channels;
     vector<std::pair<string, Expr>> &letstmts_backup;
-    bool is_set_bounds;
 
     string get_channel_name(string name) {
         string func_name = extract_first_token(name);
@@ -194,9 +190,6 @@ private:
         if ((op->for_type == ForType::Vectorized) && names.size() > 2) {
             enclosing_unrolled_loops.push_back(op->name);
         }
-        if (op->device_api != DeviceAPI::OpenCL && (op->min.as<Variable>() || op->extent.as<Variable>())) {
-            is_set_bounds = false;
-        }
         Stmt stmt = IRMutator::visit(op);
         if ((op->for_type == ForType::Vectorized) && names.size() > 2) {
             enclosing_unrolled_loops.pop_back();
@@ -206,9 +199,8 @@ private:
 
     // Mark the memory channel with a special name
     Stmt visit(const Allocate *op) override {
-        is_set_bounds = true;
         Stmt body = mutate(op->body);
-        if (!get_channel_name(op->name).empty() && is_set_bounds) {
+        if (!get_channel_name(op->name).empty()) {
             string name = op->name + ".mem_channel";
             return Allocate::make(name, op->type, op->memory_type , op->extents,
                                 op->condition, body, op->new_expr, op->free_function);
@@ -221,7 +213,7 @@ private:
         Stmt body = mutate(op->body);
         string name = op->name;
         Expr value = op->value;
-        if (!get_channel_name(op->name).empty() && is_set_bounds) {
+        if (!get_channel_name(op->name).empty()) {
             string func_name = extract_first_token(op->name);
             string new_func_name = func_name + ".mem_channel";
             name = name.replace(name.find(func_name), func_name.length(), new_func_name);
@@ -239,7 +231,7 @@ private:
     }
 
     Stmt visit(const Store *op) override {
-        if (!get_channel_name(op->name).empty() && is_set_bounds) {
+        if (!get_channel_name(op->name).empty()) {
             vector<Expr> args;
             vector<string> loops;
             args.push_back(Expr(op->name + ".mem_channel"));
@@ -260,7 +252,7 @@ private:
     }
 
     Expr visit(const Load *op) override {
-        if (!get_channel_name(op->name).empty() && is_set_bounds) {
+        if (!get_channel_name(op->name).empty()) {
             internal_assert(channels.find(op->name) != channels.end());
             vector<Expr> args;
             args.push_back(Expr(op->name + ".mem_channel"));

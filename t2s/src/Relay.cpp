@@ -412,10 +412,10 @@ public:
         Stmt body = mutate(op->body);
         auto it = std::find(funcs.begin(), funcs.end(), op->name);
         if (it != funcs.end()) {
-            Region bounds;
-            for (auto &l : loops) {
-                auto &loop_info = ori_loops.at(l);
-                bounds.push_back(Range(loop_info.min, loop_info.extent));
+            Region bounds(op->bounds.size(), Range(0, 1));
+            for (size_t i = 0; i < loops.size(); i++) {
+                auto &loop_info = ori_loops.at(loops[i]);
+                bounds[i] = Range(loop_info.min, loop_info.extent);
             }
             return Realize::make(op->name, op->types, op->memory_type, bounds, op->condition, body);
         }
@@ -500,7 +500,15 @@ Stmt relay_data(Stmt s, std::map<std::string, Function> &env, const map<string, 
 
             // The data layout is altered after data relaying, so we reorder loops in the consumer
             vector<string> loops = find_output_loops(relay_params[0].bank_loop, output_dims, alloc);
-            internal_assert(loops.size() == dim_args.size()-1)
+            // The unit loops are not accounted
+            int num_unit_loops = 0;
+            for (auto &a : dim_args) {
+                auto ext_expr = kv.second.get_bounds(a.var).second;
+                if (is_one(ext_expr)) {
+                    num_unit_loops += 1;
+                }
+            }
+            internal_assert(loops.size() + num_unit_loops == dim_args.size()-1)
                 << "We are performing data relaying. However, your spec follows a pattern we have "
                 << "not seen before, and thus correctness cannot be guaranteed.\n";
             s = late_reorder_along_consumer_chain(s, env, kv.first, loops);

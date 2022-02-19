@@ -33,7 +33,7 @@ fi
 echo "cd $PATH_TO_SCRIPT && ./test.sh devcloud $workload $target $size $platform" > job.sh
 chmod a+x job.sh
 
-time_budget="12:00:00"
+time_budget="24:00:00"
 if [ "$platform" == "emulator" ]; then
     # We emulate only tiny size and the time should be in minutes
     time_budget="00:10:00"

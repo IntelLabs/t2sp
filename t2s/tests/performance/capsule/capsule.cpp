@@ -47,19 +47,11 @@ int main(void)
     #define TTYPE Float(32)
 
     // Inputs
-#ifdef GPU
     ImageParam P("P", TTYPE, 2), W("W", TTYPE, 2);
     #define Index_P     total_ci + (TOTAL_CI)*mk + (TOTAL_CI*MK)*mx, total_iy + (TOTAL_IY)*total_ix + (TOTAL_IY*TOTAL_IX)*n
-    #define Index_W     total_co + (TOTAL_CO)*my, cii + (CII)*ky + (CII*KY)*kx + (CII*KY*KX)*ci + (TOTAL_CI*KY*KX)*mk
+    #define Index_W     total_co + (TOTAL_CO)*my,                    total_ci + (TOTAL_CI)*ky + (TOTAL_CI*KY)*kx + (TOTAL_CI*KY*KX)*mk
     #define Index_V     total_co + (TOTAL_CO)*my + (TOTAL_CO*MY)*mx, total_oy + (OY)*total_ox + (OY*OX)*n
     #define UN          (P.dim(1).extent() / (TOTAL_IY*TOTAL_IX))
-#else
-    ImageParam P("P", TTYPE, 6), W("W", TTYPE, 6);
-    #define Index_P     mk, mx, total_ci, total_iy, total_ix, n
-    #define Index_W     my, mk, total_ci, total_co, ky, kx
-    #define Index_V     Index_Out
-    #define UN          (P.dim(5).extent())
-#endif
 
     // UREs
     Var cii("cii"), my("my"), mx("mx"), ky("ky"), kx("kx"), ci("ci"), mk("mk"), n("n");
@@ -92,19 +84,18 @@ int main(void)
 
     // I/O network
     Stensor DP("PLoader", DRAM), SP("PFeeder", SRAM), DW("WLoader", DRAM), SW("WFeeder", SRAM);
-    Stensor RV2("drainer", REG), RV1("collector", REG), DV("unloader", DRAM), V("deserializer");
+    Stensor RV("collector", REG), DV("unloader", DRAM), V("deserializer");
 #ifdef GPU
     SP.scope(yy_xx);
 #else
     SP.scope(ci);
 #endif
-    P >> DP.out(cii) >> FIFO(128)
-      >> SP.out(cii, yyy_xxx) >> FIFO(128);
-    W >> DW.out(cii) >> FIFO(128)
-      >> SW.scope(ci).out(cii, cooo) >> FIFO(128);
-    Out >> FIFO(1024) >> RV2.scope(yy_xx).out(cooo, yyy_xxx)
-        >> FIFO(128)  >> RV1.scope(yyy_xxx).out(cooo)
-        >> FIFO(128)  >> DV >> V(Index_V);
+    P >> DP.out(cii) >> FIFO(256)
+      >> SP.out(cii, yyy_xxx)        >> FIFO(256);
+    W >> DW.out(cii) >> FIFO(256)
+      >> SW.scope(ci).out(cii, cooo) >> FIFO(256);
+    Out >> RV.scope(yyy_xxx).out(cooo)
+        >> DV >> V(Index_V);
 
     // Compile the kernel to an FPGA bitstream, and expose a C interface for the host to invoke
 #ifdef GPU

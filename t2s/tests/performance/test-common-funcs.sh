@@ -17,7 +17,7 @@ function aoc_options {
     if [ "$platform" == "emulator" ]; then
         aoc_opt="$EMULATOR_AOC_OPTION -board=$FPGA_BOARD -emulator-channel-depth-model=strict"
     else
-        aoc_opt="-v -profile -fpc -fp-relaxed -board=$FPGA_BOARD"
+        aoc_opt="-v -profile -fpc -fp-relaxed -high-effort -board=$FPGA_BOARD"
     fi
     echo "$aoc_opt"
 }

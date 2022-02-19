@@ -46,12 +46,12 @@ using namespace std;
 
 int main()
 {
-    Halide::Runtime::Buffer<float> i(TOTAL_IY, TOTAL_IX, TOTAL_CI, N), k(KY, KX, TOTAL_CI, TOTAL_CO);
+    Halide::Runtime::Buffer<float> i(TOTAL_CI*N, TOTAL_IY*TOTAL_IX), k(TOTAL_CO*KX, TOTAL_CI*KY);
     for (size_t n = 0; n < N; n++) {
         for (size_t ci = 0; ci < TOTAL_CI; ci++) {
             for (size_t x = 0; x < TOTAL_IX; x++) {
                 for (size_t y = 0; y < TOTAL_IY; y++) {
-                    i(y, x, ci, n) = random();
+                    i(ci+TOTAL_CI*n, y+TOTAL_IY*x) = random();
                 }
             }
         }
@@ -60,7 +60,7 @@ int main()
         for (size_t ci = 0; ci < TOTAL_CI; ci++) {
             for (size_t kx = 0; kx < KX; kx++) {
                 for (size_t ky = 0; ky < KY; ky++) {
-                    k(ky, kx, ci, co) = random();
+                    k(co+TOTAL_CO*kx, ci+TOTAL_CI*ky) = random();
                 }
             }
         }
@@ -87,7 +87,7 @@ int main()
             size_t total_iy = (yyy + YYY*yy + YYY*YY*y + ky);
             size_t total_ix = (xxx + XXX*xx + XXX*XX*x + kx);
             size_t total_co = (cooo + COOO*coo + COOO*COO*co);
-            golden += i(total_iy, total_ix, ci, n) * k(ky, kx, ci, total_co);
+            golden += i(ci+TOTAL_CI*n, total_iy+TOTAL_IY*total_ix) * k(total_co+TOTAL_CO*kx, ci+TOTAL_CI*ky);
         }
         assert(fabs(golden - o(cooo, yyy, xxx, coo, yy, xx, y, x, co, n)) < 0.005*fabs(golden));
     }
@@ -101,7 +101,7 @@ int main()
     double number_ops = 2 * (long)(N * TOTAL_CO * TOTAL_OY * TOTAL_OX) * (long)(TOTAL_CI * KX * KY);
     double number_bytes = (long)(TOTAL_IY * TOTAL_IX * TOTAL_CI * N) * 4 + (long)(KY * KX * TOTAL_CI * TOTAL_CO) * 4
                         + (long)(TOTAL_OY * TOTAL_OX * TOTAL_CO * N) * 4;
-    double exec_time = ExecTime();
+    double exec_time = ExecTime("kernel_unloader");
     roofline(mem_bandwidth, compute_roof, number_ops, number_bytes, exec_time);
     if (fopen("roofline.png", "r") == NULL) {
         cout << "Failed to draw roofline!\n";

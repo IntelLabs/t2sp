@@ -93,10 +93,8 @@ void check_space_time_transform(Func &func, Target target) {
             // the original time loop bound
             for (size_t i = 0; i < param.sch_vector.size(); i++) {
                 string var = src_vars[i];
-                auto min_expr = func.function().get_bounds(var).first;
-                auto max_expr = func.function().get_bounds(var).second;
-                auto diff = simplify(max_expr - min_expr - 1);
-                loop_bound += param.sch_vector[i] * diff;
+                auto ext_expr = func.function().get_bounds(var).second;
+                loop_bound += param.sch_vector[i] * (ext_expr-1);
             }
             loop_bound = simplify(loop_bound + 1);
 

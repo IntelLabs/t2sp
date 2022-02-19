@@ -45,14 +45,14 @@ using namespace std;
 
 int main()
 {
-    Halide::Runtime::Buffer<float> P(MK, MX, TOTAL_CI, TOTAL_IY, TOTAL_IX, N), W(MY, MK, TOTAL_CI, TOTAL_CO, KY, KX);
+    Halide::Runtime::Buffer<float> P(TOTAL_CI*MK*MX, TOTAL_IY*TOTAL_IX*N), W(TOTAL_CO*MY, TOTAL_CI*KY*KX*MK);
     for (size_t n = 0; n < N; n++)
     for (size_t x = 0; x < TOTAL_IX; x++)
     for (size_t y = 0; y < TOTAL_IY; y++)
     for (size_t ci = 0; ci < TOTAL_CI; ci++) {
         for (size_t mx = 0; mx < MX; mx++) {
             for (size_t mk = 0; mk < MK; mk++) {
-                P(mk, mx, ci, y, x, n) = random();
+                P(ci+TOTAL_CI*mk+(TOTAL_CI*MK)*mx, y+TOTAL_IY*x+(TOTAL_IY*TOTAL_IX)*n) = random();
             }
         }
     }
@@ -62,7 +62,7 @@ int main()
     for (size_t ci = 0; ci < TOTAL_CI; ci++) {
         for (size_t mk = 0; mk < MK; mk++) {
             for (size_t my = 0; my < MY; my++) {
-                W(my, mk, ci, co, ky, kx) = random();
+                W(co+TOTAL_CO*my, ci+TOTAL_CI*ky+(TOTAL_CI*KY)*kx+(TOTAL_CI*KY*KX)*mk) = random();
             }
         }
     }
@@ -90,7 +90,8 @@ int main()
             size_t total_iy = total_oy * 2 + ky;
             size_t total_ix = total_ox * 2 + kx;
             size_t total_co = cooo + COOO*coo + COOO*COO*co;
-            golden += P(mk, mx, ci, total_iy, total_ix, n) * W(my, mk, ci, total_co, ky, kx);
+            golden += P(ci+TOTAL_CI*mk+(TOTAL_CI*MK)*mx, total_iy+TOTAL_IY*total_ix+(TOTAL_IY*TOTAL_IX)*n)
+                    * W(total_co+TOTAL_CO*my, ci+TOTAL_CI*ky+(TOTAL_CI*KY)*kx+(TOTAL_CI*KY*KX)*mk);
         }
         assert(fabs(golden - V(cooo, yyy_xxx, yy_xx, y_x, my, mx, coo, co, n)) < 0.005*fabs(golden));
     }
