@@ -1,3 +1,21 @@
+/*******************************************************************************
+* Copyright 2021 Intel Corporation
+*
+* Licensed under the BSD-2-Clause Plus Patent License (the "License");
+* you may not use this file except in compliance with the License.
+* You may obtain a copy of the License at
+*
+* https://opensource.org/licenses/BSDplusPatent
+*
+* Unless required by applicable law or agreed to in writing,
+* software distributed under the License is distributed on an "AS IS" BASIS,
+* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+* See the License for the specific language governing permissions
+* and limitations under the License.
+*
+*
+* SPDX-License-Identifier: BSD-2-Clause-Patent
+*******************************************************************************/
 #include <algorithm>
 #include <set>
 #include <string>
@@ -162,7 +180,7 @@ class TestGathering : public IRVisitor{
     void visit(const Shuffle *op) override{
         if (in_gather_func && !op->vectors.empty()){
             const Call* arg0 = op->vectors[0].as<Call>();
-            if(arg0->is_intrinsic(Call::read_channel)){
+            if(arg0 && arg0->is_intrinsic(Call::read_channel)){
                 const StringImm* channel_name = arg0->args[0].as<StringImm>();
                 assert(channel_name);
                 if(ends_with(channel_name->value, func_name + ".channel.0")){
@@ -311,10 +329,9 @@ class DataGathering : public IRMutator{
             // else
             //  if(ii > t)/(ii < t) for GatherStrategy::Down
             //     A[ii] = read_shreg(FIFO_A, ii - 1, ...)/(read_shreg(FIFO_A, ii + 1, ...)
-            Stmt pipeline_reg = Provide::make(iter->second.func_name + ".gather.temp", {Call::make(iter->second.call_node.type(), Call::fpga_reg, {Call::make(iter->second.call_node.type(),iter->second.func_name+".gather.temp",{},Call::PureIntrinsic)}, Call::Intrinsic)}, {});
             read_from_fifo = IfThenElse::make(EQ::make(gather_var, origin_loop_var),
-                                              Provide::make(iter->second.func_name + ".gather.temp",{iter->second.call_node},{}),
-                                              pipeline_reg);
+                                                substitute(read_shreg_modify, origin_read_shreg, write_channel),
+                                                read_from_fifo);
 
             // if (ii == II-1)/(ii == 0) for GatherStrategy::Down
             //      write A[ii] to output[t]
@@ -329,7 +346,7 @@ class DataGathering : public IRMutator{
             if(iter->second.unroll_names.back() == iter->second.gather_loop->name){
                 // write_to_consumer = substitute(write_node, const_true(), updated_body);
                 write_node = substitute(origin_loop_var,gather_var,write_node);
-                write_node = substitute(origin_read_shreg_t,Call::make(iter->second.call_node.type(),iter->second.func_name+".gather.temp",{},Call::PureIntrinsic),write_node);
+                write_node = substitute(origin_read_shreg_t,read_shreg,write_node);
                 if(strategy_up)
                     write_node = substitute(origin_loop_var,op->min + op->extent - 1,write_node);
                 else
@@ -349,11 +366,6 @@ class DataGathering : public IRMutator{
             }
 
             // updated_body = Block::make(read_from_fifo, write_to_consumer);
-        }
-
-        if (ends_with(op->name, ".run_on_device")) {
-            Region ranges;
-            updated_body = Realize::make(iter->second.func_name + ".gather.temp",{iter->second.call_node.type()},MemoryType::Auto,ranges,const_true(),updated_body);
         }
 
         updated_body = For::make(op->name, op->min, op->extent, op->for_type, op->device_api, updated_body);
@@ -391,14 +403,14 @@ class DataGathering : public IRMutator{
                         range_args.push_back(Range(0, item.second.call_node.type().lanes()));
                     }
                     wait_insert_device_loop = channel_name + ".run_on_device";
-                    // updated_body = Realize::make(channel_name + ".shreg",
-                    //                                 {item.second.vec_loop_name != "" ?
-                    //                                     item.second.call_node.type().element_of() :
-                    //                                     item.second.call_node.type()},
-                    //                                 MemoryType::Auto,
-                    //                                 range_args,
-                    //                                 const_true(),
-                    //                                 updated_body);
+                    updated_body = Realize::make(channel_name + ".shreg",
+                                                    {item.second.vec_loop_name != "" ?
+                                                        item.second.call_node.type().element_of() :
+                                                        item.second.call_node.type()},
+                                                    MemoryType::Auto,
+                                                    range_args,
+                                                    const_true(),
+                                                    updated_body);
                 }
             }
             updated_body = mutate(updated_body);
