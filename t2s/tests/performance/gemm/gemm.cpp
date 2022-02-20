@@ -81,11 +81,11 @@ int main()
     // I/O network
     Stensor DA("aLoader", DRAM), SA("aFeeder", SRAM), DB("bLoader", DRAM), SB("bFeeder", SRAM);
     Stensor RC("collector", REG), DC("unloader", DRAM), C("deserializer");
-    A >> DA.out(kkk) >> FIFO(512)
-      >> SA.scope(k).out(kkk, iii) >> FIFO(512);
-    B >> DB.out(kkk) >> FIFO(512)
-      >> SB.scope(k).out(kkk, jjj) >> FIFO(512);
-    Out >> RC.scope(iii).out(jjj)
+    A >> DA.out(kkk)                >> FIFO(256)
+      >> SA.scope(k).out(kkk, iii)  >> FIFO(256);
+    B >> DB.out(kkk)                >> FIFO(256)
+      >> SB.scope(k).out(kkk, jjj)  >> FIFO(256);
+    Out >> RC.scope(iii).out(jjj)   >> FIFO(256)
         >> DC >> C(total_j, total_i);
 
     // Compile the kernel to an FPGA bitstream, and expose a C interface for the host to invoke

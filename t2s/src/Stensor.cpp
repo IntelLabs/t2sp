@@ -291,6 +291,10 @@ class RealizeOnFPGA
             c.outf.relay(fpo.producer, bank);
             debug(1) << c.outf.name() << ".relay("
                      << fpo.producer.name() << ", " << bank.name() << ");\n";
+            // The channel is inside the systolic array
+            if (c.stensors[0].fifo_depth != 0) {
+                c.outf.min_depth(c.stensors[0].fifo_depth);
+            }
             // Remove the first stensor as it is inside systolic array
             c.stensors.erase(c.stensors.begin());
             consumers.erase(consumers.begin());

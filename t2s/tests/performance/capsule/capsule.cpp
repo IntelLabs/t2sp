@@ -90,11 +90,11 @@ int main(void)
 #else
     SP.scope(ci);
 #endif
-    P >> DP.out(cii) >> FIFO(256)
-      >> SP.out(cii, yyy_xxx)        >> FIFO(256);
-    W >> DW.out(cii) >> FIFO(256)
-      >> SW.scope(ci).out(cii, cooo) >> FIFO(256);
-    Out >> RV.scope(yyy_xxx).out(cooo)
+    P >> DP.out(cii)                    >> FIFO(256)
+      >> SP.out(cii, yyy_xxx)           >> FIFO(256);
+    W >> DW.out(cii)                    >> FIFO(256)
+      >> SW.scope(ci).out(cii, cooo)    >> FIFO(256);
+    Out >> RV.scope(yyy_xxx).out(cooo)  >> FIFO(256)
         >> DV >> V(Index_V);
 
     // Compile the kernel to an FPGA bitstream, and expose a C interface for the host to invoke

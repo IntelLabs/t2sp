@@ -326,7 +326,7 @@ public:
         if (op->name == param.to_func + ".channel") {
             Region channel_bounds;
             channel_bounds.push_back(Range(0, pipe_alloc.bank_extent));
-            channel_bounds.push_back(Range(0, pipe_alloc.lin_extent));
+            channel_bounds.push_back(op->bounds.back());
             return Realize::make(op->name, op->types, op->memory_type, channel_bounds, op->condition, body);
         }
         // We need to reserve sufficient space to accomodate output values
