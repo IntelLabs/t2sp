@@ -568,7 +568,7 @@ void make_zero_dims(const Function               &func,
     if (!alloc.PE_dims.empty()) {
         last_PE_dim = alloc.PE_dims.back();
     } else {
-        last_PE_dim = -1;
+        last_PE_dim = alloc.vectorized_dim;
     }
     int i = last_PE_dim + 1;
     while (i < outermost_non_zero_dim) {
