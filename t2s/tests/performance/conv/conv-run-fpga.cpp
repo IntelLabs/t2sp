@@ -46,12 +46,12 @@ using namespace std;
 
 int main()
 {
-    Halide::Runtime::Buffer<float> i(TOTAL_CI*N, TOTAL_IY*TOTAL_IX), k(TOTAL_CO*KX, TOTAL_CI*KY);
+    Halide::Runtime::Buffer<float> i(TOTAL_IY, TOTAL_IX, TOTAL_CI, N), k(KY, KX, TOTAL_CI, TOTAL_CO);
     for (size_t n = 0; n < N; n++) {
         for (size_t ci = 0; ci < TOTAL_CI; ci++) {
             for (size_t x = 0; x < TOTAL_IX; x++) {
                 for (size_t y = 0; y < TOTAL_IY; y++) {
-                    i(ci+TOTAL_CI*n, y+TOTAL_IY*x) = random();
+                    i(y, x, ci, n) = random();
                 }
             }
         }
@@ -60,12 +60,12 @@ int main()
         for (size_t ci = 0; ci < TOTAL_CI; ci++) {
             for (size_t kx = 0; kx < KX; kx++) {
                 for (size_t ky = 0; ky < KY; ky++) {
-                    k(co+TOTAL_CO*kx, ci+TOTAL_CI*ky) = random();
+                    k(ky, kx, ci, co) = random();
                 }
             }
         }
     }
-    Halide::Runtime::Buffer<float> o(COOO, YYY, XXX, COO, YY, XX, Y, X, CO, N);
+    Halide::Runtime::Buffer<float> o(COOO, YYY, XXX, COO, YY, XX, CO, Y, X, N);
     conv(i, k, o);
 
 #ifdef TINY
@@ -87,9 +87,9 @@ int main()
             size_t total_iy = (yyy + YYY*yy + YYY*YY*y + ky);
             size_t total_ix = (xxx + XXX*xx + XXX*XX*x + kx);
             size_t total_co = (cooo + COOO*coo + COOO*COO*co);
-            golden += i(ci+TOTAL_CI*n, total_iy+TOTAL_IY*total_ix) * k(total_co+TOTAL_CO*kx, ci+TOTAL_CI*ky);
+            golden += i(total_iy, total_ix, ci, n) * k(ky, kx, ci, total_co);
         }
-        assert(fabs(golden - o(cooo, yyy, xxx, coo, yy, xx, y, x, co, n)) < 0.005*fabs(golden));
+        assert(fabs(golden - o(cooo, yyy, xxx, coo, yy, xx, co, y, x, n)) < 0.005*fabs(golden));
     }
 #else
     // Report performance. DSPs, FMax and ExecTime are automatically figured out from the static analysis

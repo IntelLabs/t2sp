@@ -27,14 +27,14 @@ using namespace Halide;
 int main(void)
 {
     // Dependences
-    #define P               cii,       cooo,   yyy,   xxx, coo, yy, xx,  ky,      kx,      ci,   y, x, co, n
-    #define P_cii_minus_1   cii-1,     cooo,   yyy,   xxx, coo, yy, xx,  ky,      kx,      ci,   y, x, co, n
-    #define P_ky_minus_1    cii+CII-1, cooo,   yyy,   xxx, coo, yy, xx,  ky-1,    kx,      ci,   y, x, co, n
-    #define P_kx_minus_1    cii+CII-1, cooo,   yyy,   xxx, coo, yy, xx,  ky+KY-1, kx-1,    ci,   y, x, co, n
-    #define P_ci_minus_1    cii+CII-1, cooo,   yyy,   xxx, coo, yy, xx,  ky+KY-1, kx+KX-1, ci-1, y, x, co, n
-    #define P_cooo_minus_1  cii,       cooo-1, yyy,   xxx, coo, yy, xx,  ky,      kx,      ci,   y, x, co, n
-    #define P_yyy_minus_1   cii,       cooo,   yyy-1, xxx, coo, yy, xx,  ky,      kx,      ci,   y, x, co, n
-    #define P_Out                      cooo,   yyy,   xxx, coo, yy, xx,                          y, x, co, n
+    #define P               cii,       cooo,   yyy,   xxx, coo, yy, xx,  ky,      kx,      ci,   co, y, x, n
+    #define P_cii_minus_1   cii-1,     cooo,   yyy,   xxx, coo, yy, xx,  ky,      kx,      ci,   co, y, x, n
+    #define P_ky_minus_1    cii+CII-1, cooo,   yyy,   xxx, coo, yy, xx,  ky-1,    kx,      ci,   co, y, x, n
+    #define P_kx_minus_1    cii+CII-1, cooo,   yyy,   xxx, coo, yy, xx,  ky+KY-1, kx-1,    ci,   co, y, x, n
+    #define P_ci_minus_1    cii+CII-1, cooo,   yyy,   xxx, coo, yy, xx,  ky+KY-1, kx+KX-1, ci-1, co, y, x, n
+    #define P_cooo_minus_1  cii,       cooo-1, yyy,   xxx, coo, yy, xx,  ky,      kx,      ci,   co, y, x, n
+    #define P_yyy_minus_1   cii,       cooo,   yyy-1, xxx, coo, yy, xx,  ky,      kx,      ci,   co, y, x, n
+    #define P_Out                      cooo,   yyy,   xxx, coo, yy, xx,                          co, y, x, n
     // Linearized addresso
     #define total_iy        (yyy + YYY*yy + YYY*YY*y + ky)
     #define total_ix        (xxx + XXX*xx + XXX*XX*x + kx)
@@ -48,11 +48,21 @@ int main(void)
     #define TTYPE Float(32)
 
     // Inputs
+#ifdef GPU
     ImageParam I("I", TTYPE, 2), K("K", TTYPE, 2);
     #define P_I     total_ci + (TOTAL_CI) * n,  total_iy + (TOTAL_IY) * total_ix
     #define P_K     total_co + (TOTAL_CO) * kx, total_ci + (TOTAL_CI) * ky
     #define P_O     total_co + (TOTAL_CO) * n,  total_oy + (TOTAL_OY) * total_ox
     #define UN      (I.dim(0).extent() / TOTAL_CI)
+#else
+    ImageParam I("I", TTYPE, 4), K("K", TTYPE, 4);
+    #define P_I     total_iy, total_ix, total_ci, n
+    #define P_K     ky, kx, total_ci, total_co
+    #define P_O     P_Out
+    #define UN      (I.dim(3).extent())
+    #define UX      ((I.dim(1).extent()-KX+1) / (XXX*XX))
+    #define UY      ((I.dim(0).extent()-KY+1) / (YYY*YY))
+#endif
 
     // UREs
     Var cii("cii"), ci("ci"), cooo("cooo"), coo("coo"), co("co"), ky("ky"), kx("kx"), yyy("yyy"), xxx("xxx"), yy("yy"), xx("xx"), y("y"), x("x"), n("n");
@@ -73,7 +83,7 @@ int main(void)
      .set_bounds(cii,   0, CII,  ci,   0, CI)
      .set_bounds(yyy,   0, YYY,  xxx,  0, XXX)
      .set_bounds(yy,    0, YY,   xx,   0, XX)
-     .set_bounds(y,     0, Y,    x,    0, X)
+     .set_bounds(y,     0, UY,   x,    0, UX)
      .set_bounds(n,     0, UN);
 
     // Create a systolic array

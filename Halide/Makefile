@@ -803,6 +803,7 @@ T2S_SOURCE_FILES = \
   CombineChannels.cpp \
   CmdQueue.cpp \
   ComputeLoopBounds.cpp \
+  DeadDimRemoval.cpp \
   DebugPrint.cpp \
   Devectorize.cpp \
   FlattenLoops.cpp \
@@ -831,11 +832,13 @@ T2S_SOURCE_FILES = \
 T2S_HEADER_FILES = \
   AutorunKernels.h \
   BuildCallRelation.h \
+  ChannelPromotion.h \
   CheckFuncConstraints.h \
   CheckRecursiveCalls.h \
   CombineChannels.h \
   CmdQueue.h \
   ComputeLoopBounds.h \
+  DeadDimRemoval.h \
   DebugPrint.h \
   Devectorize.h \
   FlattenLoops.h \

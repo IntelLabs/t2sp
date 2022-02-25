@@ -77,6 +77,7 @@
 #include "../../t2s/src/CheckRecursiveCalls.h"
 #include "../../t2s/src/ComputeLoopBounds.h"
 #include "../../t2s/src/CombineChannels.h"
+#include "../../t2s/src/DeadDimRemoval.h"
 #include "../../t2s/src/DebugPrint.h"
 #include "../../t2s/src/Devectorize.h"
 #include "../../t2s/src/FlattenLoops.h"
@@ -568,7 +569,9 @@ Module lower(const vector<Function> &output_funcs,
     debug(2) << "Lowering after lowering unsafe promises:\n"
              << s << "\n\n";
 
+    debug(1) << "Removing dead allocationss and dimensions...\n";
     s = remove_dead_allocations(s);
+    s = remove_dead_dimensions(s);
     s = simplify(s);
     // we don't need this for code generation
     //s = loop_invariant_code_motion(s);

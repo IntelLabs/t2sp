@@ -192,9 +192,8 @@ bool check_is_single_PE(bool on_device, const Expr &cond, const vector<string> &
 }
 
 // Loop variable is a constant
-bool loop_var_is_constant_in_condition(const string &loop_name, const Expr &cond) {
+bool loop_var_is_constant_in_condition(const string &loop_name, const Expr &cond, Expr &value) {
     vector<Expr> conjuction = break_logic_into_conjunction(cond);
-    Expr value; // Value found for the loop var from the condition. Initially undefined.
     for (auto e : conjuction) {
         // Look for loop var == a constant
         const EQ * eq = e.as<EQ>();
