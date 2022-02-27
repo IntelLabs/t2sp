@@ -1,0 +1,81 @@
+\chapter{How to compile and run}
+\label{cha:compile-and-run}
+
+Suppose a specification file, named \texttt{a.cpp}, is ready, and it contains such statements:
+    \begin{markdown}
+        Func SomeKernel(Place::Device);
+        definition of SomeKernel
+        SomeKernel.compile_to_host("interface", parameters of SomeKernel, IntelFPGA);
+    \end{markdown}
+
+And suppose a host file \texttt{host.cpp} is ready to call \texttt{SomeKernel}.
+
+\begin{enumerate}
+\item {\bf Set up environment}.
+    
+    Under the T2SP root directory:
+    \begin{markdown}
+    source setenv.sh (local | devcloud) fpga
+    \end{markdown}
+    
+    \item {\bf Compile the specification}.
+    \begin{markdown}
+    # If you intend to emulate your design on a CPU:
+    g++ a.cpp $COMMON_OPTIONS_COMPILING_SPEC $EMULATOR_LIBHALIDE_TO_LINK
+    
+    # Or if you intend to execute it on real FPGA hardware:
+    g++ a.cpp $COMMON_OPTIONS_COMPILING_SPEC $HW_LIBHALIDE_TO_LINK
+    \end{markdown}
+
+    \item {\bf Run the specification to generate the kernel}.
+    \begin{markdown}
+    # For emulation:
+    env BITSTREAM=a.aocx AOC_OPTION="$COMMON_AOC_OPTION_FOR_EMULATION" ./a.out    
+    
+    # Or for execution:
+    env BITSTREAM=a.aocx AOC_OPTION="$COMMON_AOC_OPTION_FOR_EXECUTION" ./a.out    
+    \end{markdown}
+    For the kernel, this command generates an OpenCL file (named \texttt{a.cl} after name of the environment variable \texttt{BITSTREAM}), invokes Intel FPGA SDK for OpenCL to synthesize the OpenCL file into a device bitstream (\texttt{a.aocx}), and generates \texttt{interface.h/cpp} for the host to invoke the kernel, as if the kernel is a common CPU function.
+
+    You may modify the generated OpenCL file manually. After any modification, you may re-generate the bitstream in the following commands:
+    \begin{markdown}
+    # For emulation:
+    aoc $COMMON_AOC_OPTION_FOR_EMULATION a.cl -o a.aocx    
+    
+    # Or for execution:
+    rm -rf a.aoc* a/
+    aoc $COMMON_AOC_OPTION_FOR_EXECUTION a.cl -o a.aocx    
+    \end{markdown}
+
+    \item{\bf Comple the host file}
+    \begin{markdown}
+    # For emulation:
+    g++ host.cpp interface.cpp $COMMON_OPTIONS_COMPILING_HOST_FOR_EMULATION -o host.out
+    
+    # Or for execution:
+    g++ host.cpp interface.cpp $COMMON_OPTIONS_COMPILING_HOST_FOR_EXECUTION -o host.out
+    \end{markdown}
+    When compiling the host file, the kernel will be linked to the host code through the interface.
+
+    \item {Run the host file}
+    \begin{markdown}
+    # For emulation:
+    env BITSTREAM=a.aocx CL_CONTEXT_EMULATOR_DEVICE_INTELFPGA=1 \
+        INTEL_FPGA_OCL_PLATFORM_NAME="$EMULATOR_PLATFORM" ./host.out
+
+    # For execution:
+    # DevCloud A10PAC FPGA only: convert the signed bitstream to be unsigned first
+    #   Type `y` when prompted
+        source $AOCL_BOARD_PACKAGE_ROOT/linux64/libexec/sign_aocx.sh \ 
+               -H openssl_manager -i a.aocx -r NULL -k NULL -o a_unsigned.aocx
+        mv a_unsigned.aocx a.aocx
+    # Offload and run    
+    aocl program acl0 a.aocx
+    env BITSTREAM=a.aocx INTEL_FPGA_OCL_PLATFORM_NAME="$HW_PLATFORM" ./host.out
+    \end{markdown}
+\end{enumerate}
+
+Note: if you want to re-run the above commands, remove the previously generated bitstream and intermediate files:
+    \begin{markdown}
+        rm -rf a.* a/ *interface.* *.out exec_time.txt
+    \end{markdown}
