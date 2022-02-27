@@ -803,7 +803,6 @@ T2S_SOURCE_FILES = \
   CombineChannels.cpp \
   CmdQueue.cpp \
   ComputeLoopBounds.cpp \
-  DeadDimRemoval.cpp \
   DebugPrint.cpp \
   Devectorize.cpp \
   FlattenLoops.cpp \
@@ -822,6 +821,7 @@ T2S_SOURCE_FILES = \
   Place.cpp \
   PreprocessBeforeLower.cpp \
   Relay.cpp \
+  RemoveDeadDimensions.cpp \
   ScatterAndBuffer.cpp \
   SliceExprTree.cpp \
   SpaceTimeTransform.cpp \
@@ -838,7 +838,6 @@ T2S_HEADER_FILES = \
   CombineChannels.h \
   CmdQueue.h \
   ComputeLoopBounds.h \
-  DeadDimRemoval.h \
   DebugPrint.h \
   Devectorize.h \
   FlattenLoops.h \
@@ -854,6 +853,7 @@ T2S_HEADER_FILES = \
   Place.h \
   PreprocessBeforeLower.h \
   Relay.h \
+  RemoveDeadDimensions.h \
   ScatterAndBuffer.h \
   SliceExprTree.h \
   SpaceTimeTransform.h \

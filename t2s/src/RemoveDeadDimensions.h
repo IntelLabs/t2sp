@@ -16,8 +16,8 @@
 *
 * SPDX-License-Identifier: BSD-2-Clause-Patent
 *******************************************************************************/
-#ifndef T2S_DEAD_DIM_REMOVAL_H
-#define T2S_DEAD_DIM_REMOVAL_H
+#ifndef T2S_REMOVE_DEAD_DIMS_H
+#define T2S_REMOVE_DEAD_DIMS_H
 
 #include "../../Halide/src/IR.h"
 

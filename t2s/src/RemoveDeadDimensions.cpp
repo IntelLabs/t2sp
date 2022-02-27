@@ -16,10 +16,10 @@
 *
 * SPDX-License-Identifier: BSD-2-Clause-Patent
 *******************************************************************************/
-#include "DeadDimRemoval.h"
 #include "IR.h"
 #include "IRMutator.h"
 #include "IROperator.h"
+#include "RemoveDeadDimensions.h"
 #include "Utilities.h"
 
 namespace Halide {
@@ -119,7 +119,7 @@ public:
         if (op->is_intrinsic(Call::read_channel) || op->is_intrinsic(Call::write_channel)
         || op->is_intrinsic(Call::read_shift_reg) || op->is_intrinsic(Call::write_shift_reg)) {
             string name = op->args[0].as<StringImm>()->value;
-            // Trick: remove the postfix like .0
+            // Remove postfix like .0
             string postfix = extract_last_token(name);
             if (postfix != "channel" && postfix != "shreg") {
                 name = remove_postfix(name, "." + postfix);
@@ -146,23 +146,84 @@ public:
 
 class RemoveDeadDims : public IRMutator {
 
+    bool dead_dim(string name, size_t dim) {
+        auto &read_dims = get_stmt_info(name, false).const_dims;
+        auto &write_dims = get_stmt_info(name, true).const_dims;
+
+        if ((read_dims.size() > dim && read_dims[dim] == 0)
+            || (write_dims.size() > dim && write_dims[dim] == 0))
+            return true;
+        return false;
+    }
+
 public:
     using IRMutator::visit;
 
     // Shrink the dead dimension to Range(0, 1)
     Stmt visit(const Realize *op) override {
-        auto &read_dims = get_stmt_info(op->name, false).const_dims;
-        auto &write_dims = get_stmt_info(op->name, true).const_dims;
-
         Stmt body = mutate(op->body);
-        Region bounds = op->bounds;
-        for (size_t i = 0; i < bounds.size(); i++) {
-            if ((read_dims.size() > i && read_dims[i] == 0)
-            || (write_dims.size() > i && write_dims[i] == 0)) {
-                bounds[i] = Range(0, 1);
+        Region bounds;
+        for (size_t i = 0; i < op->bounds.size(); i++) {
+            if (!dead_dim(op->name, i)) {
+                bounds.push_back(op->bounds[i]);
             }
         }
         return Realize::make(op->name, op->types, op->memory_type, bounds, op->condition, body);
+    }
+
+    Stmt visit(const Provide *op) override {
+        if (ends_with(op->name, ".temp")) {
+            vector<Expr> values;
+            for (size_t i = 0; i < op->values.size(); i++) {
+                values.push_back(mutate(op->values[i]));
+            }
+            vector<Expr> args;
+            for (size_t i = 0; i < op->args.size(); i++) {
+                if (!dead_dim(op->name, i)) {
+                    args.push_back(op->args[i]);
+                }
+            }
+            return Provide::make(op->name, values, args);
+        }
+        return IRMutator::visit(op);
+    }
+
+    Expr visit(const Call *op) override {
+        if (op->is_intrinsic(Call::read_channel) || op->is_intrinsic(Call::write_channel)
+        || op->is_intrinsic(Call::read_shift_reg) || op->is_intrinsic(Call::write_shift_reg)) {
+            string name = op->args[0].as<StringImm>()->value;
+            // Remove postfix like .0
+            string postfix = extract_last_token(name);
+            if (postfix != "channel" && postfix != "shreg") {
+                name = remove_postfix(name, "." + postfix);
+            }
+            vector<Expr> args;
+            bool is_write = op->is_intrinsic(Call::write_channel) || op->is_intrinsic(Call::write_shift_reg);
+            size_t dim_pos = op->is_intrinsic(Call::write_channel) ? 2 : 1;
+            size_t num_dim = is_write ? op->args.size() -2 : op->args.size() -1;
+            args.push_back(op->args[0]);
+            for (size_t i = 0; i < num_dim; i++) {
+                if (!dead_dim(name, i)) {
+                    args.push_back(op->args[i + dim_pos]);
+                }
+            }
+            if (op->is_intrinsic(Call::write_shift_reg)) {
+                args.push_back(mutate(op->args.back()));
+            } else if(op->is_intrinsic(Call::write_channel)) {
+                args.insert(args.begin()+1, mutate(op->args[1]));
+            }
+            return Call::make(op->type, op->name, args, op->call_type);
+        }
+        if (ends_with(op->name, ".temp")) {
+            vector<Expr> args;
+            for (size_t i = 0; i < op->args.size(); i++) {
+                if (!dead_dim(op->name, i)) {
+                    args.push_back(op->args[i]);
+                }
+            }
+            return Call::make(op->type, op->name, args, op->call_type);
+        }
+        return IRMutator::visit(op);
     }
 };
 
