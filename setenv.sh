@@ -160,7 +160,7 @@ export COMMON_AOC_OPTION_FOR_EMULATION="$EMULATOR_AOC_OPTION -board=$FPGA_BOARD 
 export COMMON_AOC_OPTION_FOR_EXECUTION="-v -profile -fpc -fp-relaxed -board=$FPGA_BOARD"
 
 # Common options for comping a host file
-export COMMON_OPTIONS_COMPILING_HOST="$T2S_PATH/t2s/src/AOT-OpenCL-Runtime.cpp $T2S_PATH/t2s/src/SharedUtilsInC.cpp -DLINUX -DALTERA_CL -fPIC -I$T2S_PATH/t2s/src/ -I $T2S_PATH/Halide/include -I$INTELFPGAOCLSDKROOT/examples_aoc/common/inc $INTELFPGAOCLSDKROOT/examples_aoc/common/src/AOCLUtils/opencl.cpp $INTELFPGAOCLSDKROOT/examples_aoc/common/src/AOCLUtils/options.cpp -I$INTELFPGAOCLSDKROOT/host/include -L$INTELFPGAOCLSDKROOT/linux64/lib -L$AOCL_BOARD_PACKAGE_ROOT/linux64/lib -L$INTELFPGAOCLSDKROOT/host/linux64/lib -lOpenCL -L $T2S_PATH/Halide/bin -lelf -lz -lpthread -ldl -std=c++11"
+export COMMON_OPTIONS_COMPILING_HOST="$T2S_PATH/t2s/src/AOT-OpenCL-Runtime.cpp $T2S_PATH/t2s/src/Roofline.cpp $T2S_PATH/t2s/src/SharedUtilsInC.cpp -DLINUX -DALTERA_CL -fPIC -I$T2S_PATH/t2s/src/ -I $T2S_PATH/Halide/include -I$INTELFPGAOCLSDKROOT/examples_aoc/common/inc $INTELFPGAOCLSDKROOT/examples_aoc/common/src/AOCLUtils/opencl.cpp $INTELFPGAOCLSDKROOT/examples_aoc/common/src/AOCLUtils/options.cpp -I$INTELFPGAOCLSDKROOT/host/include -L$INTELFPGAOCLSDKROOT/linux64/lib -L$AOCL_BOARD_PACKAGE_ROOT/linux64/lib -L$INTELFPGAOCLSDKROOT/host/linux64/lib -lOpenCL -L $T2S_PATH/Halide/bin -lelf -lz -lpthread -ldl -std=c++11"
 export COMMON_OPTIONS_COMPILING_HOST_FOR_EMULATION="$COMMON_OPTIONS_COMPILING_HOST $EMULATOR_LIBHALIDE_TO_LINK"
 export COMMON_OPTIONS_COMPILING_HOST_FOR_EXECUTION="$COMMON_OPTIONS_COMPILING_HOST $HW_LIBHALIDE_TO_LINK"
 
