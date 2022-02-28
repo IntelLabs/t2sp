@@ -849,6 +849,7 @@ class RegCallInserter : public IRMutator {
     using IRMutator::visit;
     vector<string> space_loops;
     map<string, int> shift_dims;
+    bool insert_reg_call = false;
 
     Expr get_read_node(string write_name, Expr arg) {
         // To be safe, only three patterns are found:
@@ -911,8 +912,9 @@ public:
                 }
             }
             if (shift_dims.find(write_name->value) != shift_dims.end()) {
+                insert_reg_call = true;
                 Expr temp = mutate(op->args.back());
-                temp = Call::make(read_node->type, "fpga_reg", { temp }, Call::PureIntrinsic);
+                insert_reg_call = false;
                 write_args.back() = temp;
             }
             return Call::make(op->type, op->name, write_args, op->call_type);
@@ -924,7 +926,11 @@ public:
             if (shift_dims.find(read_name->value) != shift_dims.end()) {
                 read_args[shift_dims.at(read_name->value)] = 0;
             }
-            return Call::make(op->type, op->name, read_args, op->call_type);
+            Expr call_node = Call::make(op->type, op->name, read_args, op->call_type);
+            if (insert_reg_call) {
+                call_node = Call::make(op->type, "fpga_reg", { call_node }, Call::PureIntrinsic);
+            }
+            return call_node;
         }
         return IRMutator::visit(op);
     }
