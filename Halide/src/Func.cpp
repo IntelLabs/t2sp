@@ -2393,6 +2393,12 @@ Func &Func::reorder(const std::vector<VarOrRVar> &vars) {
                 f.reorder(out_var_order);
             }
         }
+        VarOrRVar innermost_loop = vars[0];
+        for (auto it = func.definition().schedule().merged_ures().rbegin(); it != func.definition().schedule().merged_ures().rend() - 1; it++) {
+            // Use compute_with iteratively to achieve merge_ure
+            it->compute_with(*(it + 1), innermost_loop);
+        }
+        func.definition().schedule().merged_ures()[0].compute_with(*this, innermost_loop);
     }
 
     return *this;

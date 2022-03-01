@@ -105,7 +105,7 @@ void check_space_time_transform(Func &func, Target target) {
                 string var = src_vars[i];
                 auto extent = func.function().get_bounds(var).second;
                 auto expr = simplify(Max::make(substitute(global_max, extent), substitute(global_min, extent)));
-                loop_bound += param.sch_vector[i] * expr;
+                loop_bound += param.sch_vector[i] * (expr - 1);
             }
             loop_bound = simplify(loop_bound + 1);
 

@@ -389,10 +389,17 @@ string find_previous_ure(const map<string, Function> &env, string func_name) {
         const Function& f = element.second;
         if (f.has_merged_defs()) {
             string pre_func_name = "";
-            for (string name : f.merged_func_names()) {
-                if (func_name == name)
-                    return pre_func_name;
-                pre_func_name = name;
+            for (auto func : f.definition().schedule().merged_funcs()) {
+                if (func_name == func.name()) {
+                    if (pre_func_name != "") {
+                        return pre_func_name;
+                    } else {
+                        return element.first;
+                    }
+                }
+                if (!func.definition().schedule().is_output()) {
+                    pre_func_name = func.name();
+                }
             }
         }
     }

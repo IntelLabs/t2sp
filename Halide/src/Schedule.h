@@ -49,7 +49,9 @@ enum class ScatterStrategy {
 
     /** Scatter data down along a loop. That is, scatter from the last iteration N
      * to iteration N-1, then from iteration N-1 to iteration N-2, etc.*/
-    Down
+    Down,
+
+    FPGAReg
 
     /** TODO: add some other scattering styles, e.g. tree style. */
 };
@@ -62,7 +64,9 @@ enum class GatherStrategy {
 
     /** Gather data down along a loop. That is, gather from the last iteration N
      * to iteration N-1, then from iteration N-1 to iteration N-2, etc.*/
-    Down
+    Down,
+
+    FPGAReg
 
     /** TODO: add some other gathering styles, e.g. tree style. */
 };
