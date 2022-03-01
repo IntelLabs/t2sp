@@ -37,6 +37,7 @@
     #define X           32
 #else // FPGA
     #ifdef TINY // For verifying correctness only
+        #define CIII        4
         #define CII         4
         #define CI          4
         #define COOO        4
@@ -49,29 +50,31 @@
         #define Y           1
         #define X           1
     #elif S10
-        #define CII         16
-        #define CI          16
+        #define CIII        16
+        #define CII         4
+        #define CI          4
         #define COOO        16
         #define COO         16
         #define CO          1
         #define YYY         14
-        #define XXX         14
-        #define YY          2
-        #define XX          2
-        #define X           3
-        #define Y           3
+        #define XXX         56
+        #define YY          1
+        #define XX          1
+        #define X           1
+        #define Y           4
     #else
-        #define CII         16
-        #define CI          16
+        #define CIII        16
+        #define CII         4
+        #define CI          4
         #define COOO        8
-        #define COO         16
-        #define CO          2
+        #define COO         32
+        #define CO          1
         #define YYY         10
-        #define XXX         10
-        #define YY          2
-        #define XX          2
-        #define X           3
-        #define Y           3
+        #define XXX         30
+        #define YY          1
+        #define XX          1
+        #define X           2
+        #define Y           6
     #endif
 #endif
 
@@ -80,6 +83,6 @@
 #define TOTAL_OX        (XXX * XX * X)
 #define TOTAL_OY        (YYY * YY * Y)
 #define TOTAL_CO        (COOO * COO * CO)
-#define TOTAL_CI        (CII * CI)
+#define TOTAL_CI        (CIII * CII * CI)
 
 #endif
