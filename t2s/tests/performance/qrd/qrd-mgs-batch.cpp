@@ -1,5 +1,5 @@
-// g++ qrd-mgs.cpp -g -I ../util  -I ../../../../Halide/include -L ../../../../Halide/bin $EMULATOR_LIBHALIDE_TO_LINK -lz -lpthread -ldl -std=c++11 -DVERBOSE_DEBUG
-// env HL_DEBUG_CODEGEN=4 CL_CONTEXT_EMULATOR_DEVICE_INTELFPGA=1 'INTEL_FPGA_OCL_PLATFORM_NAME=Intel(R) FPGA SDK for OpenCL(TM)' 'AOC_OPTION=-march=emulator -board=a10gx -emulator-channel-depth-model=strict ' ./a.out >& 1.txt
+// g++ qrd-mgs-batch.cpp -g -I ../util  -I ../../../../Halide/include -L ../../../../Halide/bin $EMULATOR_LIBHALIDE_TO_LINK -lz -lpthread -ldl -std=c++11 -DVERBOSE_DEBUG
+// env HL_DEBUG_CODEGEN=4 PRAGMAUNROLL=1 BITSTREAM="${HOME}/tmp/a.aocx" CL_CONTEXT_EMULATOR_DEVICE_INTELFPGA=1 INTEL_FPGA_OCL_PLATFORM_NAME="$EMULATOR_PLATFORM" AOC_OPTION="$EMULATOR_AOC_OPTION -board=${FPGA_BOARD} -emulator-channel-depth-model=strict " ./a.out
 
 // The only header file needed for including T2S.
 #include "Halide.h"
@@ -63,37 +63,37 @@ int main(void) {
     S(j, i, b) = select(j == i + 1, irXi(j, i, b), -X(K - 1, j, i, b)/Xi(j, i, b));
     R(j, i, b) = select(i < I - 1 && j > i, select(j == i + 1, sqrt(Xi(j, i, b)), irXi(j, i, b) * X(K - 1, j, i, b))); // Output matrix R
 
+    // Put all the UREs inside the same loop nest of vec_a.
     vec_a.merge_ures({j, j, j, k, j, j, j, j, j, j}, {vec_ai, vec_t, A, Q, vec_ti, X, Xi, irXi, S, R}, {Q, R});
+    // Explicitly set the loop bounds
     vec_a.set_bounds(b, 0, BATCH, i, -1, I + 1, j, max(0, i), J - max(0, i), k, 0, K);
     vec_a.space_time_transform(k);
     vec_a.triangular_loop_optimize(i, j, 64);
 
 
-    FuncType ASerializer("ASerializer", Place::Host), 
-             ALoader("ALoader", Place::Device),
+    FuncType ASerializer("ASerializer", Place::Host),
              AFeeder("AFeeder", Place::Device);
     FuncType QCollector("QCollector", Place::Device), 
-             RUnloader("RUnloader", Place::Device), QUnloader("QUnloader", Place::Device), 
+             RUnloader("RUnloader", Place::Device),
              RDeserializer("RDeserializer", Place::Host), QDeserializer("QDeserializer", Place::Host);
 
-    vec_a.isolate_producer_chain(a, ASerializer, ALoader, AFeeder);
-    ASerializer.set_bounds(b, 0, BATCH, i, -1, I + 1, j, 0, J, k, 0, K);
-    ALoader.set_bounds(b, 0, BATCH, i, -1, I + 1, j, 0, J, k, 0, K);
-    AFeeder.set_bounds(b, 0, BATCH, i, -1, I + 1, j, 0, J, k, 0, K);
-    AFeeder.scatter(ALoader, k, ScatterStrategy::FPGAReg);
+    vec_a.isolate_producer_chain(a, ASerializer, AFeeder);
+    ASerializer.set_bounds(b, 0, BATCH, i, -1, 1, j, 0, J, k, 0, K);
+    AFeeder.set_bounds(b, 0, BATCH, i, -1, 1, j, 0, J, k, 0, K);
+    AFeeder.scatter(ASerializer, k, ScatterStrategy::FPGAReg);
 
     Q.isolate_consumer(QCollector);
     QCollector.space_time_transform(k);
     QCollector.set_bounds(b, 0, BATCH, j, 0, J, k, 0, K);
     QCollector.gather(Q, k, GatherStrategy::FPGAReg);
-    QCollector.isolate_consumer_chain(QUnloader, QDeserializer);
+    QCollector.isolate_consumer_chain(QDeserializer);
 
     R.isolate_consumer_chain(RUnloader, RDeserializer);
     RUnloader.set_bounds(b, 0, BATCH, i, 0, I, j, i, J - i);
     RDeserializer.set_bounds(b, 0, BATCH, i, 0, I, j, 0, J);
 
-    AFeeder.late_fuse(vec_a, b);
-    QCollector.late_fuse(vec_a, b);
+    AFeeder.late_fuse(vec_a, b, 4);
+    QCollector.late_fuse(vec_a, b, 4);
 
     Target target = get_host_target();
     target.set_feature(Target::IntelFPGA);

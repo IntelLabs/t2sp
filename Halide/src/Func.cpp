@@ -2673,17 +2673,19 @@ Func &Func::gpu_store(const vector<Expr> &args, size_t sz) {
     return *this;
 }
 
-Func &Func::late_fuse(Func f) {
+Func &Func::late_fuse(Func f, int v_outs) {
     invalidate_cache();
     std::string name = f.name() + ".s0." + "run_on_device";
-    func.schedule().late_fuse_level() = name;
+    func.schedule().late_fuse_params().late_fuse_level = name;
+    func.schedule().late_fuse_params().v_outs = v_outs;
     return *this;
 }
 
-Func &Func::late_fuse(Func f, Var var) {
+Func &Func::late_fuse(Func f, Var var, int v_outs) {
     invalidate_cache();
     std::string name = f.name() + ".s0." + var.name();
-    func.schedule().late_fuse_level() = name;
+    func.schedule().late_fuse_params().late_fuse_level = name;
+    func.schedule().late_fuse_params().v_outs = v_outs;
     return *this;
 }
 

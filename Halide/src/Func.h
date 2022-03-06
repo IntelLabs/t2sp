@@ -2211,8 +2211,9 @@ public:
      * g.
      */
     Func &compute_at(Func f, Var var);
-    Func &late_fuse(Func f);
-    Func &late_fuse(Func f, Var var);
+  
+    Func &late_fuse(Func f, int v_outs = 1);
+    Func &late_fuse(Func f, Var var, int v_outs = 1);
 
     /** Schedule a function to be computed within the iteration over
      * some dimension of an update domain. Produces equivalent code

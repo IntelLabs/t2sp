@@ -56,8 +56,8 @@ using namespace aocl_utils;
     printf(__VA_ARGS__); \
     fflush(stdout);
 
-#define NUM_QUEUES_TO_CREATE    4
-#define NUM_KERNELS_TO_CREATE   4
+#define NUM_QUEUES_TO_CREATE    2
+#define NUM_KERNELS_TO_CREATE   2
 
 #define CHECK(status)                                       \
     if (status != CL_SUCCESS) {                             \
@@ -73,9 +73,7 @@ void *acl_aligned_malloc(size_t size) {
 }
 
 const char *kernel_name[] = {
-    "kernel_ALoader",
     "kernel_R",
-    "kernel_QUnloader",
     "kernel_RUnloader"    
 };
 
@@ -405,8 +403,7 @@ int main() {
         CHECK(status);
     }
     DPRINTF("All kernels created\n");
-
-    // ALoader
+    // QR
     status = clSetKernelArg(
         kernel[0],
         0,
@@ -419,37 +416,21 @@ int main() {
         sizeof(cl_mem),
         (void *)&input_A_buf);
     CHECK(status);
-
-    // QR
+    status = clSetKernelArg(
+        kernel[0],
+        2,
+        sizeof(cl_mem),
+        (void *)&output_Q_buf);
+    CHECK(status);
+    // RUnloader
     status = clSetKernelArg(
         kernel[1],
         0,
         sizeof(int),
         (void *)&batch_size);
     CHECK(status);
-
-    // QUnloader
     status = clSetKernelArg(
-        kernel[2],
-        0,
-        sizeof(int),
-        (void *)&batch_size);
-    CHECK(status);
-    status = clSetKernelArg(
-        kernel[2],
-        1,
-        sizeof(cl_mem),
-        (void *)&output_Q_buf);
-    CHECK(status);
-    // RUnloader
-    status = clSetKernelArg(
-        kernel[3],
-        0,
-        sizeof(int),
-        (void *)&batch_size);
-    CHECK(status);
-    status = clSetKernelArg(
-        kernel[3],
+        kernel[1],
         1,
         sizeof(cl_mem),
         (void *)&output_R_buf);

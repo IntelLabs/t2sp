@@ -499,6 +499,11 @@ struct TriangularLoopParams {
     int safelen;
 };
 
+struct LateFuseParams {
+    std::string late_fuse_level;
+    int v_outs;
+};
+
 /** Record arguments for each invocation. */
 class ScatterItem{
 public:
@@ -661,10 +666,10 @@ public:
     // @{
     const LoopLevel &store_level() const;
     const LoopLevel &compute_level() const;
-    const std::string &late_fuse_level() const;
+    const LateFuseParams &late_fuse_params() const;
     LoopLevel &store_level();
     LoopLevel &compute_level();
-    std::string &late_fuse_level();
+    LateFuseParams &late_fuse_params();
     // @}
 
     /** Pass an IRVisitor through to all Exprs referenced in the

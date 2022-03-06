@@ -218,7 +218,7 @@ struct FuncScheduleContents {
     mutable RefCount ref_count;
 
     LoopLevel store_level, compute_level;
-    std::string late_fuse_level;
+    LateFuseParams late_fuse_params;
     std::vector<StorageDim> storage_dims;
     std::vector<Bound> bounds;
     std::vector<Bound> estimates;
@@ -362,7 +362,7 @@ FuncSchedule FuncSchedule::deep_copy(
     copy.contents->memory_type = contents->memory_type;
     copy.contents->memoized = contents->memoized;
     copy.contents->async = contents->async;
-    copy.contents->late_fuse_level = contents->late_fuse_level;
+    copy.contents->late_fuse_params = contents->late_fuse_params;
 
     // Deep-copy wrapper functions.
     for (const auto &iter : contents->wrappers) {
@@ -451,12 +451,12 @@ LoopLevel &FuncSchedule::compute_level() {
     return contents->compute_level;
 }
 
-std::string &FuncSchedule::late_fuse_level() {
-    return contents->late_fuse_level;
+LateFuseParams &FuncSchedule::late_fuse_params() {
+    return contents->late_fuse_params;
 }
 
-const std::string &FuncSchedule::late_fuse_level() const {
-    return contents->late_fuse_level;
+const LateFuseParams &FuncSchedule::late_fuse_params() const {
+    return contents->late_fuse_params;
 }
 
 const LoopLevel &FuncSchedule::store_level() const {
