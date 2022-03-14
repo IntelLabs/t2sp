@@ -913,9 +913,8 @@ public:
             }
             if (shift_dims.find(write_name->value) != shift_dims.end()) {
                 insert_reg_call = true;
-                Expr temp = mutate(op->args.back());
+                write_args.back() = mutate(op->args.back());
                 insert_reg_call = false;
-                write_args.back() = temp;
             }
             return Call::make(op->type, op->name, write_args, op->call_type);
         }

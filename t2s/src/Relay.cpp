@@ -2,6 +2,7 @@
 #include <set>
 #include "DebugPrint.h"
 #include "Func.h"
+#include "FlattenLoops.h"
 #include "IR.h"
 #include "IRMutator.h"
 #include "IROperator.h"
@@ -99,7 +100,10 @@ class DataRelaying : public IRMutator {
     const RelayItem &param;
     const ShiftRegAlloc &alloc;
     const vector<int> &output_dims;
+    const std::map<std::string, Function> &env;
 
+    string flattened_loop;
+    int loop_level = 0;
     bool inside_pipe = false;
     struct {
         string name;
@@ -149,7 +153,38 @@ class DataRelaying : public IRMutator {
                  << "\n\t PE extent: "  << pipe_alloc.PE_extent
                  << "\n\t lin extent: " << pipe_alloc.lin_extent
                  << "\n\t lin cond:"    << pipe_alloc.lin_cond
-                 << "\n\t depth: "      << pipe_alloc.depth;
+                 << "\n\t depth: "      << pipe_alloc.depth << "\n";
+    }
+
+    void get_flatten_loop_level() {
+        Function func;
+        internal_assert(function_is_in_environment(param.from_func, env, func));
+
+        int loop_extents = 1;
+        int required_extents = pipe_alloc.depth.as<IntImm>()->value - 1;
+        for (size_t i = 0; i < alloc.args.size(); i++) {
+            auto var = alloc.args[i].as<Variable>();
+            internal_assert(var);
+            string var_name = extract_last_token(var->name);
+            bool is_vectorized = alloc.vectorized_dim == (int)i;
+            bool is_pe = std::find(alloc.PE_dims.begin(), alloc.PE_dims.end(), i) != alloc.PE_dims.end();
+            if (!is_vectorized && !is_pe) {
+                auto ext_expr = func.get_bounds(var_name).second;
+                user_assert(ext_expr.as<IntImm>())\
+                    << "Only outermost loops can have dynamic bounds\n";
+                loop_extents *= ext_expr.as<IntImm>()->value;
+                if (loop_extents >= required_extents) {
+                    internal_assert(i < alloc.args.size() -1);
+                    auto loop_var = alloc.args[i+1].as<Variable>();
+                    internal_assert(loop_var);
+                    flattened_loop = extract_last_token(loop_var->name);
+                    break;
+                }
+            }
+        }
+        user_assert(loop_extents >= required_extents)
+            << "Please ensure sufficient loops to have explicit bounds,"
+            << "otherwise the data relaying may be failed\n";
     }
 
     // unrolled for (Z.pipe.b, 0, pipe_alloc.bank_extent) {
@@ -273,10 +308,10 @@ public:
                 args.push_back(call->args[1]);    // Value
                 Expr write_pipe = Call::make(call->type, Call::IntrinsicOp::write_shift_reg, args, Call::CallType::PureIntrinsic);
                 Stmt write_pipe_stmt = Evaluate::make(write_pipe);
-                // Update pipe.base to pipe.iter if lin_cond and valid_cond is true
+                // Update pipe.base to pipe.iter if lin_cond is true
                 Expr read_iter = Call::make(Int(32), pipe_alloc.name+".iter.temp", {}, Call::Intrinsic);
                 Stmt write_base = Provide::make(pipe_alloc.name+".base.temp", { read_iter }, {});
-                Stmt if_cond = IfThenElse::make(pipe_alloc.lin_cond && pipe_alloc.valid_cond, write_base);
+                Stmt if_cond = IfThenElse::make(pipe_alloc.lin_cond, write_base);
                 return Block::make(write_pipe_stmt, if_cond);
             }
         }
@@ -284,14 +319,19 @@ public:
     }
 
     Stmt visit(const For *op) override {
+        if (ends_with(op->name, "run_on_device")) {
+            return IRMutator::visit(op);
+        }
         // Record the outermost loop's extent to be used for guarding read_channel
-        if (op->name == to_string(alloc.args.back())) {
+        if (inside_pipe && loop_level == 0) {
             pipe_alloc.valid_cond = Variable::make(Int(32), op->name) < op->extent;
         }
+        loop_level += 1;
         Stmt body = mutate(op->body);
+        loop_level -= 1;
         // Modify the outermost loop's extent to keep the systolic array running
         // when all computations are finished, to relay data out of systolic array
-        if (op->name == to_string(alloc.args.back())) {
+        if (inside_pipe && loop_level == 0) {
             body = For::make(op->name, op->min, op->extent + 1,
                              op->for_type, op->device_api, body);
             return make_flag_init(body);
@@ -310,7 +350,8 @@ public:
     Stmt visit(const ProducerConsumer *op) override {
         if (op->is_producer && op->name == param.from_func) {
             inside_pipe = true;
-            Stmt body = mutate(op->body);
+            Stmt body = flatten_outer_loops(op->body, flattened_loop, env);
+            body = mutate(body);
             inside_pipe = false;
             return ProducerConsumer::make(op->name, op->is_producer, body);
         }
@@ -341,12 +382,12 @@ public:
         return Realize::make(op->name, op->types, op->memory_type, op->bounds, op->condition, body);
     }
 
-    DataRelaying(const RelayItem &_p, const ShiftRegAlloc &_a, const vector<int> &_o)
-        : param(_p), alloc(_a), output_dims(_o) {
-            get_pipe_alloc();
-        }
+    DataRelaying(const RelayItem &_r, const ShiftRegAlloc &_s, const vector<int> &_o, const std::map<string, Function> &_e)
+        : param(_r), alloc(_s), output_dims(_o), env(_e) {
+        get_pipe_alloc();
+        get_flatten_loop_level();
+    }
 };
-
 
 class LateReorder : public IRMutator {
     const string &host_func;
@@ -495,7 +536,7 @@ Stmt relay_data(Stmt s, std::map<std::string, Function> &env, const map<string, 
             const auto &alloc = func_to_regalloc.at(from_func);
             auto output_dims = find_linearized_output_dims(dim_args, alloc);
 
-            DataRelaying dr(relay_params[0], alloc, output_dims);
+            DataRelaying dr(relay_params[0], alloc, output_dims, env);
             s = dr.mutate(s);
 
             // The data layout is altered after data relaying, so we reorder loops in the consumer

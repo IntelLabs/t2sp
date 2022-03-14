@@ -296,6 +296,61 @@ typedef struct DynamicForLoopContainer {
     Expr extent;
 } DynamicForLoopContainer_t;
 
+class FlattenOuterLoops : public IRMutator {
+    string loop_level;
+    bool up_loop_level = true;
+
+    std::vector<DynamicForLoopContainer_t> flattened_loops;
+
+public:
+    using IRMutator::visit;
+
+    FlattenOuterLoops(const string &_l)
+        : loop_level(_l) {}
+
+    Stmt visit(const For* op) override {
+        if (ends_with(op->name, ".infinite") || ends_with(op->name, ".run_on_device")) {
+            return IRMutator::visit(op);
+        }
+        if (extract_last_token(op->name) == loop_level && is_const(op->min)) {
+            internal_assert(op->for_type == ForType::Serial && is_const(op->min));
+            up_loop_level = false;
+            DynamicForLoopContainer_t f = {op->name, op->extent};
+            flattened_loops.push_back(f);
+
+            Stmt body = mutate(op->body);
+            string name = extract_before_tokens(op->name, 2);
+            Expr final_extent = 1;
+            for (auto &l : flattened_loops) {
+                name += "." + extract_after_tokens(l.name, 2);
+                final_extent *= l.extent;
+            }
+            final_extent = simplify(final_extent);
+
+            size_t num_loops = flattened_loops.size();
+            Expr mod_part = 1;
+            for (int i = num_loops-1; i >= 0; i--) {
+                Expr value = Variable::make(Int(32), name);
+                Expr div_part = mod_part;
+                mod_part *= flattened_loops[i].extent;
+                debug(4) << "mod part = " << mod_part << ", div part = " << div_part << "\n";
+                value = Mod::make(value, mod_part);
+                value = Div::make(value, div_part);
+                value = simplify(value);
+                body = LetStmt::make(flattened_loops[i].name, value, body);
+            }
+            return For::make(name, op->min, final_extent, op->for_type, op->device_api, body);
+        }
+        if (up_loop_level && op->for_type == ForType::Serial) {
+            internal_assert(op->body.as<For>());
+            DynamicForLoopContainer_t f = {op->name, op->extent};
+            flattened_loops.push_back(f);
+            return mutate(op->body);
+        }
+        return IRMutator::visit(op);
+    }
+};
+
 class FlattenDynamicLoops : public IRMutator {
     using IRMutator::visit;
 
@@ -1265,6 +1320,22 @@ Stmt flatten_loops(Stmt s, const std::map<std::string, Function> &env) {
     // debug(2) << "IR after dynamic loop flattening ...\n\n" << stmt3 << "\n";
     // LoopMerging mgl;
     // Stmt stmt4 = mgl.mutate(stmt3);
+    return s;
+}
+
+Stmt flatten_outer_loops(Stmt s, const string &loop_lvl, const std::map<std::string, Function> &env) {
+    FlattenOuterLoops fol(loop_lvl);
+    s = fol.mutate(s);
+
+    std::set<string> funcs;
+    for(auto entry : env){
+        if (entry.second.place() == Place::Device) {
+            funcs.insert(entry.first);
+        }
+    }
+    s = remove_lets(s, false, true, true, true, funcs);
+    debug(2) << "IR after outer loop flattening ...\n\n" << s << "\n";
+
     return s;
 }
 
