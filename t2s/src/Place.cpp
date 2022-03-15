@@ -913,7 +913,8 @@ public:
             }
             if (shift_dims.find(write_name->value) != shift_dims.end()) {
                 insert_reg_call = true;
-                write_args.back() = mutate(op->args.back());
+                Expr temp = mutate(op->args.back());
+                write_args.back() = Call::make(op->type, "fpga_reg", { temp }, Call::PureIntrinsic);
                 insert_reg_call = false;
             }
             return Call::make(op->type, op->name, write_args, op->call_type);
@@ -926,9 +927,9 @@ public:
                 read_args[shift_dims.at(read_name->value)] = 0;
             }
             Expr call_node = Call::make(op->type, op->name, read_args, op->call_type);
-            if (insert_reg_call) {
-                call_node = Call::make(op->type, "fpga_reg", { call_node }, Call::PureIntrinsic);
-            }
+            // if (insert_reg_call) {
+            //     call_node = Call::make(op->type, "fpga_reg", { call_node }, Call::PureIntrinsic);
+            // }
             return call_node;
         }
         return IRMutator::visit(op);

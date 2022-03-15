@@ -197,9 +197,9 @@ class DataRelaying : public IRMutator {
     // } // Z.pipe.b
     //
     Stmt make_pipe_shift() {
-        string lin_name  = pipe_alloc.name + ".l";
-        string PE_name   = pipe_alloc.name + ".p";
-        string bank_name = pipe_alloc.name + ".b";
+        string lin_name  = unique_name(pipe_alloc.name + ".l");
+        string PE_name   = unique_name(pipe_alloc.name + ".p");
+        string bank_name = unique_name(pipe_alloc.name + ".b");
         Expr var_lin  = Variable::make(Int(32), lin_name);
         Expr var_PE   = Variable::make(Int(32), PE_name);
         Expr var_bank = Variable::make(Int(32), bank_name);
@@ -232,7 +232,7 @@ class DataRelaying : public IRMutator {
     //   }
     // }
     Stmt make_write() {
-        string bank_name = pipe_alloc.name + ".b";
+        string bank_name = unique_name(pipe_alloc.name + ".b");
         Expr var_bank = Variable::make(Int(32), bank_name);
         // Write data to channel
         Expr read_pipe = Call::make(pipe_alloc.t, Call::IntrinsicOp::read_shift_reg,
