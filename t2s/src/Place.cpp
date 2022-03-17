@@ -849,7 +849,8 @@ class RegCallInserter : public IRMutator {
     using IRMutator::visit;
     vector<string> space_loops;
     map<string, int> shift_dims;
-    bool insert_reg_call = false;
+    vector<Stmt> reg_calls;
+    bool inside_if;
 
     Expr get_read_node(string write_name, Expr arg) {
         // To be safe, only three patterns are found:
@@ -887,6 +888,51 @@ public:
     RegCallInserter(vector<string> &_s)
         : space_loops(_s) {}
 
+    Stmt visit(const Evaluate *op) override {
+        Expr value = mutate(op->value);
+        auto call = value.as<Call>();
+        if (call && call->is_intrinsic(Call::write_shift_reg)) {
+            auto write_name = call->args[0].as<StringImm>();
+            internal_assert(write_name);
+            if (shift_dims.find(write_name->value) != shift_dims.end()) {
+                vector<Expr> args;
+                for (size_t i = 0; i < call->args.size()-1; i++) {
+                    args.push_back(call->args[i]);
+                }
+                Expr read = Call::make(call->type, "read_shift_reg", args, Call::PureIntrinsic);
+                read = Call::make(call->type, "fpga_reg", { read }, Call::PureIntrinsic);
+                args.push_back(read);
+                Stmt write = Evaluate::make(Call::make(call->type, "write_shift_reg", args, Call::PureIntrinsic));
+                if (!inside_if) {
+                    // The shreg read values at the border and propagate values across PEs
+                    // Hence, it must have two branches, either in Select or IfThenElse
+                    // We must insert fpga_reg calls out of the two branches
+                    internal_assert(call->args.back().as<Select>());
+                    return Block::make(Evaluate::make(value), write);
+                }
+                reg_calls.push_back(write);
+            }
+        }
+        return Evaluate::make(value);
+    }
+
+    Stmt visit(const IfThenElse *op) override {
+        inside_if = true;
+        Expr condition = mutate(op->condition);
+        Stmt then_case = mutate(op->then_case);
+        Stmt else_case = mutate(op->else_case);
+        Stmt node = IfThenElse::make(condition, then_case, else_case);
+        inside_if = false;
+
+        if (!reg_calls.empty()) {
+            for (auto &c : reg_calls) {
+                node = Block::make(node, c);
+            }
+            reg_calls.clear();
+        }
+        return node;
+    }
+
     Expr visit(const Call *op) override {
         if (op->is_intrinsic(Call::write_shift_reg)) {
             auto write_name = op->args[0].as<StringImm>();
@@ -911,12 +957,7 @@ public:
                     }
                 }
             }
-            if (shift_dims.find(write_name->value) != shift_dims.end()) {
-                insert_reg_call = true;
-                Expr temp = mutate(op->args.back());
-                write_args.back() = Call::make(op->type, "fpga_reg", { temp }, Call::PureIntrinsic);
-                insert_reg_call = false;
-            }
+            write_args.back() = mutate(op->args.back());
             return Call::make(op->type, op->name, write_args, op->call_type);
         }
         if (op->is_intrinsic(Call::read_shift_reg)) {
