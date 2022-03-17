@@ -25,22 +25,23 @@ using namespace Halide;
 int main(void)
 {
     // Dependences
-    #define Index               cii,       cooo,   yyy_xxx,   yy_xx, y_x, my, mx, coo, ky,      kx,      ci,      mk,   co, n
-    #define Index_cii_minus_1   cii-1,     cooo,   yyy_xxx,   yy_xx, y_x, my, mx, coo, ky,      kx,      ci,      mk,   co, n
-    #define Index_ky_minus_1    cii+CII-1, cooo,   yyy_xxx,   yy_xx, y_x, my, mx, coo, ky-1,    kx,      ci,      mk,   co, n
-    #define Index_kx_minus_1    cii+CII-1, cooo,   yyy_xxx,   yy_xx, y_x, my, mx, coo, ky+KY-1, kx-1,    ci,      mk,   co, n
-    #define Index_ci_minus_1    cii+CII-1, cooo,   yyy_xxx,   yy_xx, y_x, my, mx, coo, ky+KY-1, kx+KX-1, ci-1,    mk,   co, n
-    #define Index_mk_minus_1    cii+CII-1, cooo,   yyy_xxx,   yy_xx, y_x, my, mx, coo, ky+KY-1, kx+KX-1, ci+CI-1, mk-1, co, n
-    #define Index_co3_minus_1   cii,       cooo-1, yyy_xxx,   yy_xx, y_x, my, mx, coo, ky,      kx,      ci,      mk,   co, n
-    #define Index_yx3_minus_1   cii,       cooo,   yyy_xxx-1, yy_xx, y_x, my, mx, coo, ky,      kx,      ci,      mk,   co, n
-    #define Index_Out                      cooo,   yyy_xxx,   yy_xx, y_x, my, mx, coo,                                  co, n
+    #define Index               cii,       cooo,   yyy_xxx,   yy_xx, y_x, my, mx, coo, nn, ky,      kx,      ci,      mk,   co, n
+    #define Index_cii_minus_1   cii-1,     cooo,   yyy_xxx,   yy_xx, y_x, my, mx, coo, nn, ky,      kx,      ci,      mk,   co, n
+    #define Index_ky_minus_1    cii+CII-1, cooo,   yyy_xxx,   yy_xx, y_x, my, mx, coo, nn, ky-1,    kx,      ci,      mk,   co, n
+    #define Index_kx_minus_1    cii+CII-1, cooo,   yyy_xxx,   yy_xx, y_x, my, mx, coo, nn, ky+KY-1, kx-1,    ci,      mk,   co, n
+    #define Index_ci_minus_1    cii+CII-1, cooo,   yyy_xxx,   yy_xx, y_x, my, mx, coo, nn, ky+KY-1, kx+KX-1, ci-1,    mk,   co, n
+    #define Index_mk_minus_1    cii+CII-1, cooo,   yyy_xxx,   yy_xx, y_x, my, mx, coo, nn, ky+KY-1, kx+KX-1, ci+CI-1, mk-1, co, n
+    #define Index_co3_minus_1   cii,       cooo-1, yyy_xxx,   yy_xx, y_x, my, mx, coo, nn, ky,      kx,      ci,      mk,   co, n
+    #define Index_yx3_minus_1   cii,       cooo,   yyy_xxx-1, yy_xx, y_x, my, mx, coo, nn, ky,      kx,      ci,      mk,   co, n
+    #define Index_Out                      cooo,   yyy_xxx,   yy_xx, y_x, my, mx, coo, nn,                                  co, n
     // Linearized addresses
     #define total_oy        ((yyy_xxx + YYY_XXX*yy_xx + YYY_XXX*YY_XX*y_x) % OY)
     #define total_ox        ((yyy_xxx + YYY_XXX*yy_xx + YYY_XXX*YY_XX*y_x) / OY)
     #define total_iy        (total_oy * 2 + ky)
     #define total_ix        (total_ox * 2 + kx)
+    #define total_ci        (cii  + CII*ci)
+    #define total_n         (nn   + NN*n)
     #define total_co        (cooo + COOO*coo + COOO*COO*co)
-    #define total_ci        (cii + CII*ci)
 
     // Type of the data to process in C and T2S
     #define CTYPE float
@@ -48,13 +49,13 @@ int main(void)
 
     // Inputs
     ImageParam P("P", TTYPE, 2), W("W", TTYPE, 2);
-    #define Index_P     total_ci + (TOTAL_CI)*mk + (TOTAL_CI*MK)*mx, total_iy + (TOTAL_IY)*total_ix + (TOTAL_IY*TOTAL_IX)*n
+    #define Index_P     total_ci + (TOTAL_CI)*mk + (TOTAL_CI*MK)*mx, total_iy + (TOTAL_IY)*total_ix + (TOTAL_IY*TOTAL_IX)*total_n
     #define Index_W     total_co + (TOTAL_CO)*my,                    total_ci + (TOTAL_CI)*ky + (TOTAL_CI*KY)*kx + (TOTAL_CI*KY*KX)*mk
-    #define Index_V     total_co + (TOTAL_CO)*my + (TOTAL_CO*MY)*mx, total_oy + (OY)*total_ox + (OY*OX)*n
-    #define UN          (P.dim(1).extent() / (TOTAL_IY*TOTAL_IX))
+    #define Index_V     total_co + (TOTAL_CO)*my + (TOTAL_CO*MY)*mx, total_oy + (OY)*total_ox + (OY*OX)*total_n
+    #define UN          (P.dim(1).extent() / (TOTAL_IY*TOTAL_IX*NN))
 
     // UREs
-    Var cii("cii"), my("my"), mx("mx"), ky("ky"), kx("kx"), ci("ci"), mk("mk"), n("n");
+    Var cii("cii"), my("my"), mx("mx"), nn("nn"), ky("ky"), kx("kx"), ci("ci"), mk("mk"), n("n");
     Var yyy_xxx("yyy_xxx"), yy_xx("yy_xx"), y_x("y_x"), cooo("cooo"), coo("coo"), co("co");
     URE A("A", TTYPE, {Index}), B("B", TTYPE, {Index}), C("C", TTYPE, {Index}), Out("Out");
     A(Index) = select(cooo == 0, P(Index_P), A(Index_co3_minus_1));
@@ -73,7 +74,7 @@ int main(void)
      .set_bounds(yyy_xxx, 0, YYY_XXX, yy_xx, 0, YY_XX, y_x, 0, Y_X)
      .set_bounds(cii,     0, CII,     ci,    0, CI)
      .set_bounds(ky,      0, KY,      kx,    0, KX)
-     .set_bounds(n,       0, UN);
+     .set_bounds(nn,      0, NN,      n,     0, UN);
     A.space_time_transform(cooo, yyy_xxx, yy_xx);
 
 #ifdef GPU
@@ -86,13 +87,12 @@ int main(void)
     Stensor DP("PLoader", DRAM), SP("PFeeder", SRAM), DW("WLoader", DRAM), SW("WFeeder", SRAM);
     Stensor RV("collector", REG), DV("unloader", DRAM), V("deserializer");
 #ifdef GPU
-    SP.scope(yy_xx);
+    SP.scope(yy_xx).out(cii, yyy_xxx);
 #else
-    SP.scope(ci);
+    SP.scope(ci).out(cii, yyy_xxx);
 #endif
-    P >> DP.out(cii)                    >> FIFO(256)
-      >> SP.out(cii, yyy_xxx)           >> FIFO(256);
-    W >> DW.out(cii)                    >> FIFO(256)
+    P >> DP.out(cii) >> FIFO(256) >> SP >> FIFO(256);
+    W >> DW.out(cii) >> FIFO(256)
       >> SW.scope(ci).out(cii, cooo)    >> FIFO(256);
     Out >> RV.scope(yyy_xxx).out(cooo)  >> FIFO(256)
         >> DV >> V(Index_V);

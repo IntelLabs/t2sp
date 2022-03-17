@@ -38,15 +38,17 @@
 #ifdef TINY // For verifying correctness only
     #define N       4
 #else
-    #define N       64
+    #define N       16
 #endif
+
+#define TOTAL_N     NN*N
 
 using namespace std;
 
 int main()
 {
-    Halide::Runtime::Buffer<float> P(TOTAL_CI*MK*MX, TOTAL_IY*TOTAL_IX*N), W(TOTAL_CO*MY, TOTAL_CI*KY*KX*MK);
-    for (size_t n = 0; n < N; n++)
+    Halide::Runtime::Buffer<float> P(TOTAL_CI*MK*MX, TOTAL_IY*TOTAL_IX*TOTAL_N), W(TOTAL_CO*MY, TOTAL_CI*KY*KX*MK);
+    for (size_t n = 0; n < TOTAL_N; n++)
     for (size_t x = 0; x < TOTAL_IX; x++)
     for (size_t y = 0; y < TOTAL_IY; y++)
     for (size_t ci = 0; ci < TOTAL_CI; ci++) {
@@ -66,12 +68,13 @@ int main()
             }
         }
     }
-    Halide::Runtime::Buffer<float> V(COOO, YYY_XXX, YY_XX, Y_X, MY, MX, COO, CO, N);
+    Halide::Runtime::Buffer<float> V(COOO, YYY_XXX, YY_XX, Y_X, MY, MX, COO, NN, CO, N);
     capsule(P, W, V);
 
 #ifdef TINY
     // Validate the results
     for (int n = 0; n < N; n++)
+    for (int nn = 0; nn < NN; nn++)
     for (int co = 0; co < CO; co++)
     for (int coo = 0; coo < COO; coo++)
     for (int cooo = 0; cooo < COOO; cooo++)
@@ -83,6 +86,7 @@ int main()
         float golden = 0.0f;
         size_t total_oy = (yyy_xxx + YYY_XXX*yy_xx + YYY_XXX*YY_XX*y_x) % OY;
         size_t total_ox = (yyy_xxx + YYY_XXX*yy_xx + YYY_XXX*YY_XX*y_x) / OY;
+        size_t total_n  = (nn + NN*n);
         for (int kx = 0; kx < KX; kx++)
         for (int ky = 0; ky < KY; ky++)
         for (int mk = 0; mk < MK; mk++)
@@ -90,10 +94,10 @@ int main()
             size_t total_iy = total_oy * 2 + ky;
             size_t total_ix = total_ox * 2 + kx;
             size_t total_co = cooo + COOO*coo + COOO*COO*co;
-            golden += P(ci+TOTAL_CI*mk+(TOTAL_CI*MK)*mx, total_iy+TOTAL_IY*total_ix+(TOTAL_IY*TOTAL_IX)*n)
+            golden += P(ci+TOTAL_CI*mk+(TOTAL_CI*MK)*mx, total_iy+TOTAL_IY*total_ix+(TOTAL_IY*TOTAL_IX)*total_n)
                     * W(total_co+TOTAL_CO*my, ci+TOTAL_CI*ky+(TOTAL_CI*KY)*kx+(TOTAL_CI*KY*KX)*mk);
         }
-        assert(fabs(golden - V(cooo, yyy_xxx, yy_xx, y_x, my, mx, coo, co, n)) < 0.005*fabs(golden));
+        assert(fabs(golden - V(cooo, yyy_xxx, yy_xx, y_x, my, mx, coo, nn, co, n)) < 0.005*fabs(golden));
     }
 #else
     // Report performance. DSPs, FMax and ExecTime are automatically figured out from the static analysis
@@ -102,10 +106,10 @@ int main()
     double mem_bandwidth = 33;
     double compute_roof = 2 * DSPs() * FMax();
      // Total operations (GFLOP for CONV), independent of designs
-    double number_ops = 2 * (long)(N * TOTAL_CO) * (long)(MY * MX * YYY_XXX * YY_XX * Y_X) * (long)(TOTAL_CI * MK * KY * KX);
-    double number_bytes = (long)(MX * MK * TOTAL_CI * TOTAL_IY * TOTAL_IX * N) * 4
+    double number_ops = 2 * (long)(TOTAL_N * TOTAL_CO) * (long)(MY * MX * YYY_XXX * YY_XX * Y_X) * (long)(TOTAL_CI * MK * KY * KX);
+    double number_bytes = (long)(MX * MK * TOTAL_CI * TOTAL_IY * TOTAL_IX * TOTAL_N) * 4
                         + (long)(MY * MK * TOTAL_CI * TOTAL_CO * KY * KX) * 4
-                        + (long)(TOTAL_CO * YYY_XXX * YY_XX * Y_X * MY * MX * N) * 4;
+                        + (long)(TOTAL_CO * YYY_XXX * YY_XX * Y_X * MY * MX * TOTAL_N) * 4;
     double exec_time = ExecTime();
     roofline(mem_bandwidth, compute_roof, number_ops, number_bytes, exec_time);
     if (fopen("roofline.png", "r") == NULL) {
