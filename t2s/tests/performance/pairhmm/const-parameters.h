@@ -21,13 +21,22 @@
         #define HH          4
         #define II          4
         #define JJ          4
+    #elif S10
+        #define OR          32
+        #define OH          32
+        #define OI          16
+        #define OJ          16
+        #define RR          14
+        #define HH          14
+        #define II          16
+        #define JJ          24
     #else
         #define OR          32
         #define OH          32
         #define OI          16
         #define OJ          16
-        #define RR          8
-        #define HH          8
+        #define RR          14
+        #define HH          14
         #define II          8
         #define JJ          24
     #endif
