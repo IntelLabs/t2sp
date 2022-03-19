@@ -88,9 +88,9 @@ int main(void)
     Stensor DI("iLoader", DRAM), SI("iFeeder", SRAM), DK("kLoader", DRAM), SK("kFeeder", SRAM);
     Stensor RO("collector", REG), DO("unloader", DRAM), O("deserializer");
     I >> DI.out(cii)                 >> FIFO(256)
-      >> SI.scope(ci).out(cii, yyy)  >> FIFO(256);
+      >> SI.scope(kx).out(cii, yyy)  >> FIFO(256);
     K >> DK.out(cii)                 >> FIFO(256)
-      >> SK.scope(ci).out(cii, cooo) >> FIFO(256);
+      >> SK.scope(kx).out(cii, cooo) >> FIFO(256);
     Out >> RO.scope(yyy).out(cooo)   >> FIFO(256)
         >> DO >> O(P_O);
 

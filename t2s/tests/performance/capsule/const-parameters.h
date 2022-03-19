@@ -37,6 +37,7 @@
     #define YYY_XXX     7
     #define YY_XX       7
     #define Y_X         1
+    #define NN          1
 #else // FPGA
     #ifdef TINY // For verifying correctness only
         #define CII         4

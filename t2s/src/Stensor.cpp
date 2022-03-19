@@ -565,8 +565,8 @@ class RealizeOnGPU
             // Currently, we separately allocate registers in each thread, and view registers
             // throughout threads as an unified SRAM storage, to realize stensors on GPUs.
             if (s.position == SRAM) {
-            for (auto &p : c.imp) {
-                    int gpu_var_index = fv.free_vars.size() - num_gpu_vars;
+                for (auto &p : c.imp) {
+                    int gpu_var_index = fv.free_vars.size() - num_gpu_vars -1;
                     Var loop = fv.var_index(s.v_scope) < gpu_var_index ? s.v_scope : fv.free_vars[gpu_var_index];
                     p.gpu_fetch(loop, MemoryType::Register, s.v_outs);
                     debug(1) << p.name() << ".gpu_fetch("

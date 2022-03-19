@@ -2,9 +2,9 @@
 
 function show_usage {
     echo "DevCloud usage:"
-    echo "  source setenv.sh devcloud (fpga | gpu)"
+    echo "  source setenv.sh devcloud (fpga | gpu) (gen9 | gen12)"
     echo "Local usage:"
-    echo "  source setenv.sh local    (fpga | gpu)"
+    echo "  source setenv.sh local    (fpga | gpu) (gen9 | gen12)"
 }       
 
 if [ $0 == $BASH_SOURCE ]; then
@@ -126,9 +126,16 @@ if [ "$2" = "fpga" ]; then
 fi
 
 if [ "$2" = "gpu" ]; then
-    export CSDK_DIR=$T2S_PATH/install/cm_sdk_20211028
-    export PATH=$CSDK_DIR/usr/bin:$CSDK_DIR/usr/local/bin:$PATH
-    export LD_LIBRARY_PATH=$CSDK_DIR/usr/lib:$CSDK_DIR/usr/lib/x86_64-linux-gnu/:$CSDK_DIR/usr/local/lib:$LD_LIBRARY_PATH
+    if [ "$2" = "gen12" ]; then
+        export CSDK_DIR=$T2S_PATH/install/cm_sdk_20211028
+        export PATH=$CSDK_DIR/usr/bin:$CSDK_DIR/usr/local/bin:$PATH
+        export LD_LIBRARY_PATH=$CSDK_DIR/usr/lib:$CSDK_DIR/usr/lib/x86_64-linux-gnu/:$CSDK_DIR/usr/local/lib:$LD_LIBRARY_PATH]
+    else
+        export CM_ROOT=$T2S_PATH/install/Linux_C_for_Metal_Development_Package_20200119
+        export LIBVA_DRIVERS_PATH=$CM_ROOT/drivers/media_driver/release/extract/usr/lib/x86_64-linux-gnu/dri
+        export PATH=$CM_ROOT/compiler/bin:$PATH
+        export LD_LIBRARY_PATH=$CM_ROOT/drivers/IGC/extract/usr/local/lib:$CM_ROOT/drivers/media_driver/release/extract/usr/lib/x86_64-linux-gnu:$LD_LIBRARY_PATH
+    fi
     if [ "$1" = "local" ]; then
         export HW_LIBHALIDE_TO_LINK="-lHalide"
     else

@@ -153,7 +153,7 @@ class IsNoOp : public IRVisitor {
             condition = const_false();
             return;
         }
-        if (op->is_intrinsic(Call::write_shift_reg) || op->is_intrinsic(Call::write_channel)) {
+        if (op->is_intrinsic(Call::write_shift_reg) || op->is_intrinsic(Call::write_channel) || op->is_intrinsic(Call::write_array)) {
             condition = const_false();
             return;
         }

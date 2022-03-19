@@ -13,8 +13,8 @@ if [ "$1" != "m4"  -a  "$1" != "gmp" -a  "$1" != "mpfr" -a  "$1" != "mpc" -a  "$
     if [ $0 == $BASH_SOURCE ]; then
         # The script is directly run
         exit
-    else 
-        return 
+    else
+        return
     fi
 else
     component="$1"
@@ -122,10 +122,32 @@ function install_python-packages {
     pip install matplotlib
 }
 
-function install_cm {
+function install_cm_20211028 {
     wget -c https://01.org/sites/default/files/downloads/cmsdk20211028.zip
     unzip -d $T2S_PATH/install cmsdk20211028.zip
 }
+
+function install_cm_20200119 {
+    wget -c https://github.com/intel/cm-compiler/releases/download/Master/Linux_C_for_Metal_Development_Package_20200119.zip
+    unzip Linux_C_for_Metal_Development_Package_20200119.zip
+
+    cd Linux_C_for_Metal_Development_Package_20200119
+    chmod +x compiler/bin/cmc
+
+    cd drivers/media_driver/release
+    mkdir extract
+    dpkg -X intel-media-u18.04-release.deb extract/
+    cd -
+
+    cd drivers/IGC
+    mkdir extract
+    dpkg -X intel-igc.deb extract/
+    cd -
+
+    cd ..
+    cp -rf Linux_C_for_Metal_Development_Package_20200119 $T2S_PATH/install
+}
+
 
 # Below we install newer version of gcc and llvm-clang and their dependencies
 mkdir -p $T2S_PATH/install $T2S_PATH/install/bin
@@ -139,7 +161,7 @@ if [ "$component" == "m4" ]; then
     install_m4         "1.4.18"
 fi
 if [ "$component" == "gmp" ]; then
-    install_gmp        "6.2.1"    
+    install_gmp        "6.2.1"
 fi
 if [ "$component" == "mpfr" ]; then
     install_mpfr       "4.1.0"
@@ -160,7 +182,8 @@ if [ "$component" == "python-packages" ]; then
     install_python-packages
 fi
 if [ "$component" == "cm" ]; then
-    install_cm
+    install_cm_20211028
+    install_cm_20200119
 fi
-    
+
 cd ..

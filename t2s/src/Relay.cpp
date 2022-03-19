@@ -228,7 +228,10 @@ class DataRelaying : public IRMutator {
 
     // unrolled for (Z.pipe.b, 0, pipe_alloc.bank_extent) {
     //   if (pipe.iter - pipe.base < lin_extents * PE_extents) {
-    //     write_channel(Out.channel, read_shift_reg(Z.pipe, jjj, 0), jjj, 0)
+    //     write_channel(Out.channel, read_shift_reg(Z.pipe, Z.pipe.b, 0), Z.pipe.b, 0)
+    //   }
+    //   unrolled for (Z.pipe.b_dummy, 0, pipe_alloc.bank_extent) {
+    //     write_array(Out.channel, fpga_reg(read_array(Out.channel, Z.pipe.b_dummy, 0), Z.pipe.b_dummy, 0))
     //   }
     // }
     Stmt make_write() {
@@ -248,8 +251,18 @@ class DataRelaying : public IRMutator {
         Expr bound = pipe_alloc.lin_extent * pipe_alloc.PE_extent;
         Expr if_cond = simplify(read_iter - read_base < bound);
         Stmt if_stmt = IfThenElse::make(if_cond, Evaluate::make(write_chn));
+        // Insert fpga_reg calls
+        string dummy_bank = bank_name + "_dummy";
+        Expr var_dummy_bank = Variable::make(Int(32), bank_name + "_dummy");
+        Expr read_reg = Call::make(pipe_alloc.t, Call::IntrinsicOp::read_array,
+                                    { param.to_func+".channel", var_dummy_bank }, Call::CallType::PureIntrinsic);
+        read_reg = Call::make(pipe_alloc.t, Call::IntrinsicOp::fpga_reg, { read_reg }, Call::CallType::PureIntrinsic);
+        Expr write_reg = Call::make(pipe_alloc.t, Call::IntrinsicOp::write_array,
+                                    { param.to_func+".channel", read_reg, var_dummy_bank }, Call::CallType::PureIntrinsic);
+        Stmt dummy_for_bank = For::make(dummy_bank, 0, pipe_alloc.bank_extent, ForType::Unrolled, DeviceAPI::None, Evaluate::make(write_reg));
         // Bank loop
-        Stmt for_bank = For::make(bank_name, 0, pipe_alloc.bank_extent, ForType::Unrolled, DeviceAPI::None, if_stmt);
+        Stmt loop_body = Block::make(if_stmt, dummy_for_bank);
+        Stmt for_bank = For::make(bank_name, 0, pipe_alloc.bank_extent, ForType::Unrolled, DeviceAPI::None, loop_body);
         return for_bank;
     }
 

@@ -55,8 +55,9 @@ std::string get_channel_name(Expr e) {
             if (size < (int)(channel_name.size())-1) {
                 suffix = (channel_name).substr(size + 1, (int)channel_name.size() - size - 1);
             } else break;
-            if (suffix != "channel")
+            if (suffix != "channel") {
                 channel_name = v->value;
+            }
         }
     }
     debug(4) << "modified channel name: " << channel_name << "\n";
@@ -503,6 +504,21 @@ class ChannelPromotor : public IRMutator {
                 return Call::make(op->type, call_name, args, Call::PureIntrinsic);
             }
             return Call::make(op->type, op->name, args, op->call_type);
+        }
+        if (op->is_intrinsic(Call::write_array) || op->is_intrinsic(Call::read_array)) {
+            string chn_name = get_channel_name(op->args[0]);
+            if (ends_with(chn_name, "channel")) {
+                // Trick: A read/write_array call whose name is the channel name may be inserted beforehand,
+                // so we update the name here. We know it only happens at write_channel of data relaying.
+                auto it = get_promoted_channel(channels, chn_name, true);
+                internal_assert(it != channels.end());
+                vector<Expr> args;
+                for (size_t i = 0; i < op->args.size(); i++) {
+                    args.push_back(mutate(op->args[i]));
+                }
+                args[0] = StringImm::make(chn_name + ".array");
+                return Call::make(op->type, op->name, args, Call::PureIntrinsic);
+            }
         }
         return IRMutator::visit(op);
     }

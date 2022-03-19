@@ -80,11 +80,6 @@ function gpu_iterations {
 }
 
 function generate_gpu_kernel {
-    if [ "$target" == "gen9" ]; then
-        GPU_ARCH=SKL # This is for both GEN9 and GEN9.5 GPU
-    else
-        GPU_ARCH=TGLLP
-    fi
     set -x
     # Compile the specification
     g++ ${workload}.cpp -g -I ../util -I $T2S_PATH/Halide/include -L $T2S_PATH/Halide/bin $HW_LIBHALIDE_TO_LINK -lz -lpthread -ldl -std=c++11 -DGPU
@@ -93,12 +88,21 @@ function generate_gpu_kernel {
     ./a.out
 
     # Compile the kernel into binary
-    cmc ${workload}_genx.cpp -fcmocl -mcpu=$GPU_ARCH -m64 -isystem ${CSDK_DIR}/usr/include -o ${workload}_genx.bin
+    if [ "$target" == "gen9" ]; then
+        cmc ${workload}_genx.cpp -march=GEN9 -isystem ../../compiler/include_llvm -o ${workload}_genx.isa
+    else
+        cmc ${workload}_genx.cpp -fcmocl -mcpu=TGLLP -m64 -isystem ${CSDK_DIR}/usr/include -o ${workload}_genx.bin
+    fi
 }
 
 function test_gpu_kernel {
-    # Link the host and kernel code:
-    g++ -DITER=$(gpu_iterations) -m64 -I${CSDK_DIR}/usr/include -I../util -L${CSDK_DIR}/usr/lib/x86_64-linux-gnu ${workload}-run-gpu.cpp -lze_loader -std=gnu++1z -o ${workload}-run-gpu.out
+    if [ "$target" == "gen9" ]; then
+        g++ ${workload}-run-gpu-cm.cpp -DITER=$(gpu_iterations) -w -g -I$CM_ROOT/runtime/include -I$CM_ROOT/examples -I$CM_ROOT/drivers/media_driver/release/extract/usr/include -msse4.1 -D__LINUX__ -DLINUX -O0 -std=gnu++11 -fPIC -c -DCM_$GPU_ARCH -rdynamic -ffloat-store -o ${workload}-run-gpu.o
+        g++ ${workload}-run-gpu.o -L$CM_ROOT/drivers/media_driver/release/extract/usr/lib/x86_64-linux-gnu -L$CM_ROOT/drivers/IGC/extract/usr/local/lib -L$CM_ROOT/drivers/media_driver/release/extract/usr/lib/x86_64-linux-gnu/dri $CM_ROOT/runtime/lib/x64/libigfxcmrt.so -lva -ldl -fPIC -rdynamic -o ${workload}-run-gpu.out
+    else
+        # Link the host and kernel code:
+        g++ -DITER=$(gpu_iterations) -m64 -I${CSDK_DIR}/usr/include -I../util -L${CSDK_DIR}/usr/lib/x86_64-linux-gnu ${workload}-run-gpu.cpp -lze_loader -std=gnu++1z -o ${workload}-run-gpu.out
+    fi
 
     # Run the host binary. The host offloads the kernel to a GPU:
     ./${workload}-run-gpu.out
