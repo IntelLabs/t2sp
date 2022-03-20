@@ -109,7 +109,7 @@ function test_gpu_kernel {
 }
 
 function generate_test_gpu_kernel {
-    source ../../../setenv.sh $location gpu
+    source ../../../setenv.sh $location gpu $target
     cd $workload
     cleanup
     generate_gpu_kernel

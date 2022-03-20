@@ -108,15 +108,15 @@ void set_real_input(CmDevice *device, CmKernel *kernel)
     cm_result_check(alpha_gap_surf->GetIndex(alpha_gap_surf_idx));
     cm_result_check(beta_match_surf->GetIndex(beta_match_surf_idx));
     cm_result_check(beta_gap_surf->GetIndex(beta_gap_surf_idx));
-    cm_result_check(kernel->SetKernelArg(0, sizeof(SurfaceIndex), zeta_surf_idx));
-    cm_result_check(kernel->SetKernelArg(1, sizeof(SurfaceIndex), eta_surf_idx));
-    cm_result_check(kernel->SetKernelArg(2, sizeof(SurfaceIndex), delta_surf_idx));
-    cm_result_check(kernel->SetKernelArg(3, sizeof(SurfaceIndex), beta_match_surf_idx));
-    cm_result_check(kernel->SetKernelArg(4, sizeof(SurfaceIndex), beta_gap_surf_idx));
-    cm_result_check(kernel->SetKernelArg(5, sizeof(SurfaceIndex), alpha_match_surf_idx));
-    cm_result_check(kernel->SetKernelArg(6, sizeof(SurfaceIndex), alpha_gap_surf_idx));
-    cm_result_check(kernel->SetKernelArg(8, sizeof(SurfaceIndex), R_surf_idx));
-    cm_result_check(kernel->SetKernelArg(9, sizeof(SurfaceIndex), H_surf_idx));
+    cm_result_check(kernel->SetKernelArg(0, sizeof(SurfaceIndex), H_surf_idx));
+    cm_result_check(kernel->SetKernelArg(1, sizeof(SurfaceIndex), R_surf_idx));
+    cm_result_check(kernel->SetKernelArg(3, sizeof(SurfaceIndex), alpha_gap_surf_idx));
+    cm_result_check(kernel->SetKernelArg(4, sizeof(SurfaceIndex), alpha_match_surf_idx));
+    cm_result_check(kernel->SetKernelArg(5, sizeof(SurfaceIndex), beta_gap_surf_idx));
+    cm_result_check(kernel->SetKernelArg(6, sizeof(SurfaceIndex), beta_match_surf_idx));
+    cm_result_check(kernel->SetKernelArg(7, sizeof(SurfaceIndex), delta_surf_idx));
+    cm_result_check(kernel->SetKernelArg(8, sizeof(SurfaceIndex), eta_surf_idx));
+    cm_result_check(kernel->SetKernelArg(9, sizeof(SurfaceIndex), zeta_surf_idx));
 }
 
 void set_pseudo_input(CmDevice *device, CmKernel *kernel)
@@ -182,15 +182,15 @@ void set_pseudo_input(CmDevice *device, CmKernel *kernel)
     cm_result_check(alpha_gap_surf->GetIndex(alpha_gap_surf_idx));
     cm_result_check(beta_match_surf->GetIndex(beta_match_surf_idx));
     cm_result_check(beta_gap_surf->GetIndex(beta_gap_surf_idx));
-    cm_result_check(kernel->SetKernelArg(0, sizeof(SurfaceIndex), zeta_surf_idx));
-    cm_result_check(kernel->SetKernelArg(1, sizeof(SurfaceIndex), eta_surf_idx));
-    cm_result_check(kernel->SetKernelArg(2, sizeof(SurfaceIndex), delta_surf_idx));
-    cm_result_check(kernel->SetKernelArg(3, sizeof(SurfaceIndex), beta_match_surf_idx));
-    cm_result_check(kernel->SetKernelArg(4, sizeof(SurfaceIndex), beta_gap_surf_idx));
-    cm_result_check(kernel->SetKernelArg(5, sizeof(SurfaceIndex), alpha_match_surf_idx));
-    cm_result_check(kernel->SetKernelArg(6, sizeof(SurfaceIndex), alpha_gap_surf_idx));
-    cm_result_check(kernel->SetKernelArg(8, sizeof(SurfaceIndex), R_surf_idx));
-    cm_result_check(kernel->SetKernelArg(9, sizeof(SurfaceIndex), H_surf_idx));
+    cm_result_check(kernel->SetKernelArg(0, sizeof(SurfaceIndex), H_surf_idx));
+    cm_result_check(kernel->SetKernelArg(1, sizeof(SurfaceIndex), R_surf_idx));
+    cm_result_check(kernel->SetKernelArg(3, sizeof(SurfaceIndex), alpha_gap_surf_idx));
+    cm_result_check(kernel->SetKernelArg(4, sizeof(SurfaceIndex), alpha_match_surf_idx));
+    cm_result_check(kernel->SetKernelArg(5, sizeof(SurfaceIndex), beta_gap_surf_idx));
+    cm_result_check(kernel->SetKernelArg(6, sizeof(SurfaceIndex), beta_match_surf_idx));
+    cm_result_check(kernel->SetKernelArg(7, sizeof(SurfaceIndex), delta_surf_idx));
+    cm_result_check(kernel->SetKernelArg(8, sizeof(SurfaceIndex), eta_surf_idx));
+    cm_result_check(kernel->SetKernelArg(9, sizeof(SurfaceIndex), zeta_surf_idx));
 }
 
 void check_correctness(float *out)
@@ -257,7 +257,7 @@ int main(int argc, char *argv[])
     SurfaceIndex *out_surf_idx = nullptr;
     cm_result_check(device->CreateSurface2D(NUM_HAPS, NUM_READS, CM_SURFACE_FORMAT_R32F, out_surf));
     cm_result_check(out_surf->GetIndex(out_surf_idx));
-    cm_result_check(kernel->SetKernelArg(7, sizeof(SurfaceIndex), out_surf_idx));
+    cm_result_check(kernel->SetKernelArg(2, sizeof(SurfaceIndex), out_surf_idx));
 
     UINT64 kernel_ns = 0;
     for (size_t i = 0; i < ITER; i++) {

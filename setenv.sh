@@ -126,10 +126,10 @@ if [ "$2" = "fpga" ]; then
 fi
 
 if [ "$2" = "gpu" ]; then
-    if [ "$2" = "gen12" ]; then
+    if [ "$3" = "gen12" ]; then
         export CSDK_DIR=$T2S_PATH/install/cm_sdk_20211028
         export PATH=$CSDK_DIR/usr/bin:$CSDK_DIR/usr/local/bin:$PATH
-        export LD_LIBRARY_PATH=$CSDK_DIR/usr/lib:$CSDK_DIR/usr/lib/x86_64-linux-gnu/:$CSDK_DIR/usr/local/lib:$LD_LIBRARY_PATH]
+        export LD_LIBRARY_PATH=$CSDK_DIR/usr/lib:$CSDK_DIR/usr/lib/x86_64-linux-gnu/:$CSDK_DIR/usr/local/lib:$LD_LIBRARY_PATH
     else
         export CM_ROOT=$T2S_PATH/install/Linux_C_for_Metal_Development_Package_20200119
         export LIBVA_DRIVERS_PATH=$CM_ROOT/drivers/media_driver/release/extract/usr/lib/x86_64-linux-gnu/dri

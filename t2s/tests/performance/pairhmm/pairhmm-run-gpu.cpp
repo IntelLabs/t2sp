@@ -168,9 +168,9 @@ int main(int argc, char *argv[])
     auto out_surf         = createImage2D(hContext, hDevice, hCommandList, fmt_float, NUM_HAPS, NUM_READS);
 
     auto hKernel = createKernel(hContext, hDevice, "pairhmm_genx.bin", "kernel_Hap");
-    setKernelArgs(hKernel, &zeta_surf, &eta_surf, &delta_surf,
-                           &beta_match_surf, &beta_gap_surf, &alpha_match_surf, &alpha_gap_surf,
-                           &out_surf, &R_surf, &H_surf);
+    setKernelArgs(hKernel, &H_surf, &R_surf, &out_surf,
+                           &alpha_gap_surf, &alpha_match_surf, &beta_gap_surf, &beta_match_surf,
+                           &delta_surf, &eta_surf, &zeta_surf);
     L0_SAFE_CALL(zeKernelSetGroupSize(hKernel, RR, 1, 1));
 
     double thost = 0;
