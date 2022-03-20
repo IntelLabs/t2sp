@@ -126,11 +126,7 @@ if [ "$2" = "fpga" ]; then
 fi
 
 if [ "$2" = "gpu" ]; then
-    if [ "$3" = "gen12" ]; then
-        export CSDK_DIR=$T2S_PATH/install/cm_sdk_20211028
-        export PATH=$CSDK_DIR/usr/bin:$CSDK_DIR/usr/local/bin:$PATH
-        export LD_LIBRARY_PATH=$CSDK_DIR/usr/lib:$CSDK_DIR/usr/lib/x86_64-linux-gnu/:$CSDK_DIR/usr/local/lib:$LD_LIBRARY_PATH
-    else
+    if [ "$3" = "gen9" ]; then
         export CM_ROOT=$T2S_PATH/install/Linux_C_for_Metal_Development_Package_20200119
         export LIBVA_DRIVERS_PATH=$CM_ROOT/drivers/media_driver/release/extract/usr/lib/x86_64-linux-gnu/dri
         export PATH=$CM_ROOT/compiler/bin:$PATH
@@ -151,8 +147,10 @@ export PATH=$TOOLS_PATH/bin:$PATH
 export LD_LIBRARY_PATH=$TOOLS_PATH/lib64:$TOOLS_PATH/lib:$LD_LIBRARY_PATH
 
 # Add gcc
-export PATH=$GCC_PATH/bin:$PATH
-export LD_LIBRARY_PATH=$GCC_PATH/bin:$GCC_PATH/lib64:$LD_LIBRARY_PATH   
+if [ "$1" != "devcloud" -o "$2" != "gpu" ]; then
+    export PATH=$GCC_PATH/bin:$PATH
+    export LD_LIBRARY_PATH=$GCC_PATH/bin:$GCC_PATH/lib64:$LD_LIBRARY_PATH
+fi
 
 # Add Halide
 export PATH=$T2S_PATH/Halide/bin:$PATH

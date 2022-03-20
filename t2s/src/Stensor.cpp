@@ -139,7 +139,7 @@ struct FindVars
                 reuse_vars.push_back(Var(v));
             }
         }
-        return std::move(reuse_vars);
+        return reuse_vars;
     }
 
     // Find the first var below/above the given var v whose extent is not 1
@@ -245,7 +245,7 @@ class RealizeOnFPGA
         fv.ure.isolate_producer_chain(imp, producers);
         debug(1) << fv.ure.name() << ".isolate_producer_chain({"
                  << names_to_string(c.imp) << "}, " << names_to_string(producers) << ");\n";
-        return std::move(producers);
+        return producers;
     }
 
 #if 0
@@ -328,7 +328,7 @@ class RealizeOnFPGA
             debug(1) << c.outf.name() << ".isolate_consumer_chain("
                      << names_to_string(consumers) << ");\n";
         }
-        return std::move(consumers);
+        return consumers;
     }
 
     // Remove reuse variables from stensors as per their scope

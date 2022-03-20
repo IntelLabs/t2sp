@@ -184,7 +184,7 @@ vector<int> distance_between_accesses(const string &var, const vector<Expr> &sou
                 << "\t" << k << "'th distance element: " << to_string(dk) << " is not constant\n";
         distance.push_back(dk.as<IntImm>()->value);
     }
-    return std::move(distance);
+    return distance;
 }
 
 // Collect dependence info to a map: Func name -> dependences.
@@ -306,7 +306,7 @@ vector<T> sub_vector(const vector<T> &v, const vector<int> &indices, bool within
             }
         }
     }
-    return std::move(sub);
+    return sub;
 }
 
 // Expand a range (from, to) into a vector {from, from + 1, ..., to}
@@ -315,7 +315,7 @@ vector<int> range_to_vector(int from, int to) {
     for (int i = from; i <= to; i++) {
         indices.push_back(i);
     }
-    return std::move(indices);
+    return indices;
 }
 
 // Vector is positive, looking from the outermost.
@@ -752,7 +752,7 @@ vector<Expr> map_args(const string            &func_name,
     for (auto i : alloc.PE_dims) {
         new_args.push_back(simplify(alloc.args[i] - distance[i]));
     }
-    return std::move(new_args);
+    return new_args;
 }
 
 // Return the new bounds of the shift registers according to the register allocation decision.
@@ -777,7 +777,7 @@ Region shift_regs_bounds(const map<string, Expr> &loop_mins,
         Expr extent = alloc.PE_extents[i];
         new_bounds.push_back({min, extent});
     }
-    return std::move(new_bounds);
+    return new_bounds;
 }
 
 // For linearized zero_dims_x or time_dims, make inner_args: [v][l0]...[l(x_minus_1)], or outer_args:
@@ -1164,7 +1164,7 @@ private:
                 new_v.push_back(v[i]);
             }
         }
-        return std::move(new_v);
+        return new_v;
     }
 public:
     RemoveUnitBoundsOfShiftRegs() {}

@@ -1029,7 +1029,7 @@ private:
     string producer_loop_name(const string &loop_name) {
         const Function &func = envs.find(producer)->second;
         string ploop = func.name() + ".s0." + extract_after_tokens(loop_name, 2);
-        return std::move(ploop);
+        return ploop;
     }
 
     // The loop is removed?

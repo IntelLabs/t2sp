@@ -91,7 +91,7 @@ function generate_gpu_kernel {
     if [ "$target" == "gen9" ]; then
         cmc ${workload}_genx.cpp -march=GEN9 -isystem ../../compiler/include_llvm -o ${workload}_genx.isa
     else
-        cmc ${workload}_genx.cpp -fcmocl -mcpu=TGLLP -m64 -isystem ${CSDK_DIR}/usr/include -o ${workload}_genx.bin
+        cmc ${workload}_genx.cpp -fcmocl -mcpu=TGLLP -m64 -o ${workload}_genx.bin
     fi
 }
 
@@ -101,7 +101,7 @@ function test_gpu_kernel {
         g++ ${workload}-run-gpu.o -L$CM_ROOT/drivers/media_driver/release/extract/usr/lib/x86_64-linux-gnu -L$CM_ROOT/drivers/IGC/extract/usr/local/lib -L$CM_ROOT/drivers/media_driver/release/extract/usr/lib/x86_64-linux-gnu/dri $CM_ROOT/runtime/lib/x64/libigfxcmrt.so -lva -ldl -fPIC -rdynamic -o ${workload}-run-gpu.out
     else
         # Link the host and kernel code:
-        g++ -DITER=$(gpu_iterations) -m64 -I${CSDK_DIR}/usr/include -I../util -L${CSDK_DIR}/usr/lib/x86_64-linux-gnu ${workload}-run-gpu.cpp -lze_loader -std=gnu++1z -o ${workload}-run-gpu.out
+        g++ -DITER=$(gpu_iterations) -m64 -I../util ${workload}-run-gpu.cpp -lze_loader -std=gnu++1z -o ${workload}-run-gpu.out
     fi
 
     # Run the host binary. The host offloads the kernel to a GPU:

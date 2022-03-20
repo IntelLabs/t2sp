@@ -1034,7 +1034,7 @@ private:
             alignment = (byte > alignment) ? byte : alignment;
         }
         offsets.push_back((offset + alignment-1) / alignment * alignment);
-        return std::move(offsets);
+        return offsets;
     }
 
     // Get the size with a given element in a given CGS variable

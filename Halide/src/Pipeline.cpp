@@ -255,7 +255,7 @@ std::map<string, Func> Pipeline::compute_environment() const {
             }
         }
     }
-    return std::move(env);
+    return env;
 }
 
 Func Pipeline::get_func(size_t index) {
