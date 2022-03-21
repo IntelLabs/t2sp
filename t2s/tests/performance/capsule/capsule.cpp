@@ -50,7 +50,7 @@ int main(void)
     // Inputs
     ImageParam P("P", TTYPE, 2), W("W", TTYPE, 2);
     #define Index_P     total_ci + (TOTAL_CI)*mk + (TOTAL_CI*MK)*mx, total_iy + (TOTAL_IY)*total_ix + (TOTAL_IY*TOTAL_IX)*total_n
-    #define Index_W     total_co + (TOTAL_CO)*my,                    total_ci + (TOTAL_CI)*ky + (TOTAL_CI*KY)*kx + (TOTAL_CI*KY*KX)*mk
+    #define Index_W     total_co + (TOTAL_CO)*my,                    cii + (CII)*ky + (CII*KY)*kx + (CII*KY*KX)*ci + (TOTAL_CI*KY*KX)*mk
     #define Index_V     total_co + (TOTAL_CO)*my + (TOTAL_CO*MY)*mx, total_oy + (OY)*total_ox + (OY*OX)*total_n
     #define UN          (P.dim(1).extent() / (TOTAL_IY*TOTAL_IX*NN))
 

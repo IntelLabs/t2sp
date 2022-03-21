@@ -91,7 +91,7 @@ function generate_gpu_kernel {
     if [ "$target" == "gen9" ]; then
         cmc ${workload}_genx.cpp -march=GEN9 -isystem ../../compiler/include_llvm -o ${workload}_genx.isa
     else
-        cmc ${workload}_genx.cpp -fcmocl -mcpu=TGLLP -m64 -o ${workload}_genx.bin
+        cmc ${workload}_genx.cpp -fcmocl -mcpu=DG1 -m64 -o ${workload}_genx.bin
     fi
 }
 

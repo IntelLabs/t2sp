@@ -50,13 +50,15 @@ void check_correctness(float *P, float *W, float *V)
         for (int kx = 0; kx < KX; kx++)
         for (int ky = 0; ky < KY; ky++)
         for (int mk = 0; mk < MK; mk++)
-        for (int ci = 0; ci < TOTAL_CI; ci++) {
+        for (int ci = 0; ci < CI; ci++)
+        for (int cii = 0; cii < CII; cii++) {
             size_t total_ix = x*2 + kx;
             size_t total_iy = y*2 + ky;
-            size_t p_0 = ci + (TOTAL_CI)*mk + (TOTAL_CI*MK)*mx;
+            size_t total_ci = cii + CII*ci;
+            size_t p_0 = total_ci + (TOTAL_CI)*mk + (TOTAL_CI*MK)*mx;
             size_t p_1 = total_iy + (TOTAL_IY)*total_ix + (TOTAL_IY*TOTAL_IX)*n;
             size_t w_0 = co + (TOTAL_CO)*my;
-            size_t w_1 = ci + (TOTAL_CI)*ky + (TOTAL_CI*KY)*kx + (TOTAL_CI*KY*KX)*mk;
+            size_t w_1 = cii + (CII)*ky + (CII*KY)*kx + (CII*KY*KX)*ci + (TOTAL_CI*KY*KX)*mk;
             golden += P[p_0 + SIZE_P_0 * p_1] * W[w_0 + SIZE_W_0 * w_1];
         }
         size_t v_0 = co + TOTAL_CO*my + TOTAL_CO*MY*mx;

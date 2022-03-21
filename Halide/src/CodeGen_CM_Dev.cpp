@@ -278,7 +278,7 @@ void CodeGen_CM_Dev::CodeGen_CM_C::visit(const Div *op) {
 }
 
 void CodeGen_CM_Dev::CodeGen_CM_C::visit(const FloatImm *op) {
-    id = to_string(op->value);
+    id = to_string(op->value) + "f";
 }
 
 void CodeGen_CM_Dev::CodeGen_CM_C::visit_binop(Type t, Expr a, Expr b, const char *op) {

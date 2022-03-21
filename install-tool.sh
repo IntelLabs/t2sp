@@ -182,7 +182,7 @@ if [ "$component" == "python-packages" ]; then
     install_python-packages
 fi
 if [ "$component" == "cm" ]; then
-    install_cm_20211028
+    # install_cm_20211028
     install_cm_20200119
 fi
 

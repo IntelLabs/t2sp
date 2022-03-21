@@ -2,6 +2,11 @@
 
 // Constant parameters (inner loop bounds) of the design
 #include "const-parameters.h"
+#define OR          16
+#define OH          16
+
+#define NUM_READS   (OR*RR)
+#define NUM_HAPS    (OH*HH)
 
 #include <math.h>
 #include <assert.h>
@@ -174,7 +179,8 @@ int main(int argc, char *argv[])
     L0_SAFE_CALL(zeKernelSetGroupSize(hKernel, RR, 1, 1));
 
     double thost = 0;
-    for (size_t i = 0; i < ITER; i++) {
+    int iter = ITER == 1 ? 1 : ITER*100;
+    for (size_t i = 0; i < iter; i++) {
         ze_event_handle_t hEvent = createEvent(hContext, hDevice);
         ze_group_count_t launchArgs = {OH, OR, 1};
         double host_start = getTimeStamp();
@@ -183,7 +189,7 @@ int main(int argc, char *argv[])
         double host_end = getTimeStamp();
 
         thost += (host_end - host_start);
-        if (ITER == 1) {
+        if (iter == 1) {
             float *out = (float*)malloc(sizeof(float) * NUM_HAPS * NUM_READS);
             copyToMemory(hCommandList, out, out_surf, hEvent);
             zeEventHostSynchronize(hEvent, std::numeric_limits<uint32_t>::max());
@@ -195,13 +201,13 @@ int main(int argc, char *argv[])
     destroy(hCommandList);
     destroy(hContext);
 
-    if (ITER == 1) {
+    if (iter == 1) {
         cout << "Pass!\n";
     } else {
         double ops = (double)NUM_READS * READ_LEN * NUM_HAPS * HAP_LEN / (1.0f*1000*1000*1000);
         cout << "Length of read strings: " << NUM_READS << "*" << READ_LEN << "\n";
         cout << "Length of hap strings: " << NUM_HAPS << "*" << HAP_LEN << "\n";
-        cout << "GCups: " << ops / (thost / ITER) << "\n";
+        cout << "GCups: " << ops / (thost / iter) << "\n";
     }
 
     return 0;

@@ -51,20 +51,21 @@ int main()
     for (size_t n = 0; n < TOTAL_N; n++)
     for (size_t x = 0; x < TOTAL_IX; x++)
     for (size_t y = 0; y < TOTAL_IY; y++)
-    for (size_t ci = 0; ci < TOTAL_CI; ci++) {
+    for (size_t total_ci = 0; total_ci < TOTAL_CI; total_ci++) {
         for (size_t mx = 0; mx < MX; mx++) {
             for (size_t mk = 0; mk < MK; mk++) {
-                P(ci+TOTAL_CI*mk+(TOTAL_CI*MK)*mx, y+TOTAL_IY*x+(TOTAL_IY*TOTAL_IX)*n) = random();
+                P(total_ci+TOTAL_CI*mk+(TOTAL_CI*MK)*mx, y+TOTAL_IY*x+(TOTAL_IY*TOTAL_IX)*n) = random();
             }
         }
     }
     for (size_t kx = 0; kx < KX; kx++)
     for (size_t ky = 0; ky < KY; ky++)
     for (size_t co = 0; co < TOTAL_CO; co++)
-    for (size_t ci = 0; ci < TOTAL_CI; ci++) {
+    for (size_t ci = 0; ci < CI; ci++)
+    for (size_t cii = 0; cii < CII; cii++) {
         for (size_t mk = 0; mk < MK; mk++) {
             for (size_t my = 0; my < MY; my++) {
-                W(co+TOTAL_CO*my, ci+TOTAL_CI*ky+(TOTAL_CI*KY)*kx+(TOTAL_CI*KY*KX)*mk) = random();
+                W(co+TOTAL_CO*my, cii+(CII)*ky+(CII*KY)*kx+(CII*KY*KX)*ci +(TOTAL_CI*KY*KX)*mk) = random();
             }
         }
     }
@@ -90,12 +91,14 @@ int main()
         for (int kx = 0; kx < KX; kx++)
         for (int ky = 0; ky < KY; ky++)
         for (int mk = 0; mk < MK; mk++)
-        for (int ci = 0; ci < TOTAL_CI; ci++) {
+        for (int ci = 0; ci < CI; ci++)
+        for (int cii = 0; cii < CII; cii++) {
+            size_t total_ci = cii  + CII*ci;
             size_t total_iy = total_oy * 2 + ky;
             size_t total_ix = total_ox * 2 + kx;
             size_t total_co = cooo + COOO*coo + COOO*COO*co;
-            golden += P(ci+TOTAL_CI*mk+(TOTAL_CI*MK)*mx, total_iy+TOTAL_IY*total_ix+(TOTAL_IY*TOTAL_IX)*total_n)
-                    * W(total_co+TOTAL_CO*my, ci+TOTAL_CI*ky+(TOTAL_CI*KY)*kx+(TOTAL_CI*KY*KX)*mk);
+            golden += P(total_ci+TOTAL_CI*mk+(TOTAL_CI*MK)*mx, total_iy+TOTAL_IY*total_ix+(TOTAL_IY*TOTAL_IX)*total_n)
+                    * W(total_co+TOTAL_CO*my, cii+(CII)*ky+(CII*KY)*kx+(CII*KY*KX)*ci +(TOTAL_CI*KY*KX)*mk);
         }
         assert(fabs(golden - V(cooo, yyy_xxx, yy_xx, y_x, my, mx, coo, nn, co, n)) < 0.005*fabs(golden));
     }

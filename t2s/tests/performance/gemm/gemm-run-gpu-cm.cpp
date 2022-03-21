@@ -21,8 +21,8 @@
 // Constant parameters (inner loop bounds) of the design
 #include "const-parameters.h"
 
-#define K           128
-#define J           32
+#define K           64
+#define J           128
 #define I           32
 
 #include <assert.h>

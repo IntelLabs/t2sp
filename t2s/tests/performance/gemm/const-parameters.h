@@ -23,10 +23,10 @@
 #ifdef GPU
     #define KKK         8
     #define JJJ         8
-    #define III         32
-    #define JJ          8
-    #define II          2
-    #define KK          1
+    #define III         16
+    #define JJ          2
+    #define II          4
+    #define KK          4
 #else // FPGA
     #ifdef TINY // For verifying correctness only
         #define KKK         4

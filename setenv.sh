@@ -132,11 +132,7 @@ if [ "$2" = "gpu" ]; then
         export PATH=$CM_ROOT/compiler/bin:$PATH
         export LD_LIBRARY_PATH=$CM_ROOT/drivers/IGC/extract/usr/local/lib:$CM_ROOT/drivers/media_driver/release/extract/usr/lib/x86_64-linux-gnu:$LD_LIBRARY_PATH
     fi
-    if [ "$1" = "local" ]; then
-        export HW_LIBHALIDE_TO_LINK="-lHalide"
-    else
-        export HW_LIBHALIDE_TO_LINK="$T2S_PATH/Halide/lib/libHalide.a"
-    fi
+    export HW_LIBHALIDE_TO_LINK="-lHalide"
 fi
 
 #A place to store generated Intel OpenCL files

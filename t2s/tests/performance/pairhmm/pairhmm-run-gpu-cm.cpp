@@ -2,6 +2,11 @@
 
 // Constant parameters (inner loop bounds) of the design
 #include "const-parameters.h"
+#define OR          8
+#define OH          8
+
+#define NUM_READS   (OR*RR)
+#define NUM_HAPS    (OH*HH)
 
 #include <assert.h>
 #include "cm_rt.h"
