@@ -1,7 +1,7 @@
 #!/bin/bash
 
 function show_usage {
-    echo "Options: (devcloud|local) (gemm|conv|capsule|pairhmm) (a10|s10|gen9|gen12) (tiny|large) (hw|emulator) (optional: bitstream)"
+    echo "Options: (devcloud|local) (gemm|conv|capsule|pairhmm) (a10|s10|gen9|gen12) (tiny|large) (hw|emulator) [bitstream]"
 }
 
 if [ $0 == $BASH_SOURCE ]; then
