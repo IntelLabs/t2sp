@@ -49,9 +49,9 @@ int main(void)
 
     // Inputs
     ImageParam P("P", TTYPE, 2), W("W", TTYPE, 2);
-    #define Index_P     total_ci + (TOTAL_CI)*mk + (TOTAL_CI*MK)*mx, total_iy + (TOTAL_IY)*total_ix + (TOTAL_IY*TOTAL_IX)*total_n
-    #define Index_W     total_co + (TOTAL_CO)*my,                    cii + (CII)*ky + (CII*KY)*kx + (CII*KY*KX)*ci + (TOTAL_CI*KY*KX)*mk
-    #define Index_V     total_co + (TOTAL_CO)*my + (TOTAL_CO*MY)*mx, total_oy + (OY)*total_ox + (OY*OX)*total_n
+    #define Index_P     total_ci + (TOTAL_CI)*mk + (TOTAL_CI*MK)*mx + (TOTAL_CI*MK*MX)*nn,  total_iy + (TOTAL_IY)*total_ix + (TOTAL_IY*TOTAL_IX)*n
+    #define Index_W     total_co + (TOTAL_CO)*my,                                           cii + (CII)*ky + (CII*KY)*kx + (CII*KY*KX)*ci + (TOTAL_CI*KY*KX)*mk
+    #define Index_V     total_co + (TOTAL_CO)*my + (TOTAL_CO*MY)*mx + (TOTAL_CO*MY*MX)*nn,  total_oy + (OY)*total_ox + (OY*OX)*n
     #define UN          (P.dim(1).extent() / (TOTAL_IY*TOTAL_IX*NN))
 
     // UREs
@@ -79,8 +79,8 @@ int main(void)
 
 #ifdef GPU
     // GPU can have many threads running in parallel.
-    A.gpu_blocks(co, n).gpu_threads(my, mx);
-    A.reorder(cii, cooo, y_x, my, mx, coo, ky, kx, yyy_xxx, yy_xx, ci, mk, co, n);
+    A.gpu_blocks(co, nn, n).gpu_threads(my, mx);
+    A.reorder(cii, cooo, y_x, my, mx, coo, ky, kx, yyy_xxx, yy_xx, ci, mk, co, nn, n);
 #endif
 
     // I/O network

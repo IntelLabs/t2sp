@@ -28,12 +28,13 @@
 #include <stdio.h>
 #include <iostream>
 
-#define N           64
-#define SIZE_P_0    TOTAL_CI * MK * MX
+#define N           4
+#define TOTAL_N     N * NN
+#define SIZE_P_0    TOTAL_CI * MK * MX * NN
 #define SIZE_P_1    TOTAL_IY * TOTAL_IX * N
 #define SIZE_W_0    TOTAL_CO * MY
 #define SIZE_W_1    TOTAL_CI * KY * KX * MK
-#define SIZE_V_0    TOTAL_CO * MY * MX
+#define SIZE_V_0    TOTAL_CO * MY * MX * NN
 #define SIZE_V_1    OY * OX * N
 
 using namespace std;
@@ -41,6 +42,7 @@ using namespace std;
 void check_correctness(float *P, float *W, float *V)
 {
     for (int n = 0; n < N; n++)
+    for (int nn = 0; nn < NN; nn++)
     for (int x = 0; x < OX; x++)
     for (int y = 0; y < OY; y++)
     for (int mx = 0; mx < MX; mx++)
@@ -55,13 +57,13 @@ void check_correctness(float *P, float *W, float *V)
             size_t total_ix = x*2 + kx;
             size_t total_iy = y*2 + ky;
             size_t total_ci = cii + CII*ci;
-            size_t p_0 = total_ci + (TOTAL_CI)*mk + (TOTAL_CI*MK)*mx;
+            size_t p_0 = total_ci + (TOTAL_CI)*mk + (TOTAL_CI*MK)*mx + (TOTAL_CI*MK*MX)*nn;
             size_t p_1 = total_iy + (TOTAL_IY)*total_ix + (TOTAL_IY*TOTAL_IX)*n;
             size_t w_0 = co + (TOTAL_CO)*my;
             size_t w_1 = cii + (CII)*ky + (CII*KY)*kx + (CII*KY*KX)*ci + (TOTAL_CI*KY*KX)*mk;
             golden += P[p_0 + SIZE_P_0 * p_1] * W[w_0 + SIZE_W_0 * w_1];
         }
-        size_t v_0 = co + TOTAL_CO*my + TOTAL_CO*MY*mx;
+        size_t v_0 = co + TOTAL_CO*my + TOTAL_CO*MY*mx + TOTAL_CO*MY*MX*nn;
         size_t v_1 = y + OY*x + OY*OX*n;
         assert(fabs(golden - V[v_0 + SIZE_V_0 * v_1]) < 0.005*fabs(golden));
     }
@@ -123,7 +125,7 @@ int main(int argc, char *argv[]) {
         cm_result_check(device->CreateTask(task));
         cm_result_check(task->AddKernel(kernel));
         CmThreadGroupSpace *thread_group_space = nullptr;
-        cm_result_check(device->CreateThreadGroupSpace(MY, MX, CO, N, thread_group_space));
+        cm_result_check(device->CreateThreadGroupSpaceEx(MY, MX, 1, CO, NN, N, thread_group_space));
 
         UINT64 tmp_kern_time;
         CmEvent *sync_event = nullptr;
@@ -144,14 +146,14 @@ int main(int argc, char *argv[]) {
         cm_result_check(device->DestroyTask(task));
     }
     double tkern = kernel_ns / ITER;
-    double ops = 2 * (long)(N * TOTAL_CO) * (long)(MY * MX * OY * OX) * (long)(TOTAL_CI * MK * KY * KX);
+    double ops = 2 * (long)(TOTAL_N * TOTAL_CO) * (long)(MY * MX * OY * OX) * (long)(TOTAL_CI * MK * KY * KX);
 
     cm_result_check(::DestroyCmDevice(device));
 
     if (ITER == 1) {
         printf("Pass!\n");
     } else {
-        cout << "Size of tensor P: " << N << ", " << TOTAL_CI << ", " << TOTAL_IX << ", " << TOTAL_IY
+        cout << "Size of tensor P: " << TOTAL_N << ", " << TOTAL_CI << ", " << TOTAL_IX << ", " << TOTAL_IY
                                      << ", " << MX << ", " << MK << "\n";
         cout << "Size of tensor W: " << TOTAL_CI << ", " << TOTAL_CO << ", " << KX << ", " << KY
                                      << ", " << MK << ", " << MY << "\n";
