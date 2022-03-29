@@ -223,6 +223,7 @@ protected:
         
     // Wrapper for CodeGen_OneAPI_C to add host/device code 
     // Note: CodeGen_OneAPI_C still checks for user contexts and throws error
+    // (TODO): Need to combine all the structures & overritten functions for EmitOneAPIFunc into CodeGen_OneAPI_C
     class EmitOneAPIFunc : public CodeGen_OneAPI_C {
         friend class CodeGen_OneAPI_C;
         using CodeGen_OneAPI_C::visit;
