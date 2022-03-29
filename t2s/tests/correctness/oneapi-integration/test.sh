@@ -35,12 +35,12 @@ function test_func {
 
     ## Needed Files
     # support_files="../../../src/AOT-OneAPI-Runtime.cpp ../../../src/Roofline.cpp  ../../../src/SharedUtilsInC.cpp "
-    support_files="../../../src/Roofline.cpp  ../../../src/SharedUtilsInC.cpp "
+    support_files="$T2S_PATH/t2s/src/Roofline.cpp  $T2S_PATH/t2s/src/SharedUtilsInC.cpp "
 
     ## T2S Compile Flags
     # flags="-I ../../../src/ -I ../util  -I $T2S_PATH/Halide/include -L $T2S_PATH/Halide/bin $EMULATOR_LIBHALIDE_TO_LINK -lz -lpthread -ldl -std=c++11 -lHalide "
     # flags="-I ../../../src/ -I ../util  -I $T2S_PATH/Halide/include -L $T2S_PATH/Halide/bin $HW_LIBHALIDE_TO_LINK -lz -lpthread -ldl -std=c++11 -lHalide "
-    flags="-I ../../../src/ -I ../util  -I $T2S_PATH/Halide/include -L $T2S_PATH/Halide/bin -lz -lpthread -ldl -std=c++11 -lHalide "
+    flags="-I $T2S_PATH/t2s/src/ -I $T2S_PATH/t2s/tests/correctness/util  -I $T2S_PATH/Halide/include -L $T2S_PATH/Halide/bin -lz -lpthread -ldl -std=c++11 -lHalide "
     flags+="$defs "
 
     ## BOARD
@@ -79,25 +79,25 @@ function test_func {
 
     ## DPC++ Compile command
     # compile_oneapi="dpcpp $support_files $run_file $dpcpp_flags -o ./test.fpga_emu"     # compile_emulation i.e. 
-    compile_oneapi="dpcpp $run_file $dpcpp_flags -o ./test.fpga_emu"     # compile_emulation i.e. 
-    # compile_oneapi="dpcpp $run_file $dpcc_report_flags"                # compile_report
+    compile_oneapi="dpcpp $run_file $dpcpp_flags -o ./test.fpga_emu"                      # compile_emulation i.e. 
+    # compile_oneapi="dpcpp $run_file $dpcc_report_flags"                                 # compile_report
     if [ "$emu_var" = "FPGA" ] 
     then
-        compile_oneapi="dpcpp $run_file $dpcc_fpga_flags -o ./test.fpga"   # compile_fpga
+        compile_oneapi="dpcpp $run_file $dpcc_fpga_flags -o ./test.fpga -reuse-exe=./test.fpga"   # compile_fpga
     fi
     
 
 
     ## Clean Command
-    clean="rm -rf exec_time.txt *.png "
-    # clean="rm -rf a a.out $file.aoc* $file.cl exec_time.txt *.png *.generated_oneapi_header.h *.fpga_emu *.fpga "
+    # clean="rm -rf exec_time.txt *.png "
+    clean="rm -rf a a.out $file.aoc* $file.cl exec_time.txt *.png *.generated_oneapi_header.h *.fpga_emu *.fpga "
     # clean="echo clean"
 
     ## Print Commands for debugging purposes
-    printf "COMPILE T2S COMMAND:\n"
-    printf "\t$compile\n\n"
-    printf "COMPILE ONEAPI COMMAND: \n"
-    printf "\t$compile_oneapi\n\n"
+    # printf "COMPILE T2S COMMAND:\n"
+    # printf "\t$compile\n\n"
+    # printf "COMPILE ONEAPI COMMAND: \n"
+    # printf "\t$compile_oneapi\n\n"
     # return;
 
     # Clean up directory

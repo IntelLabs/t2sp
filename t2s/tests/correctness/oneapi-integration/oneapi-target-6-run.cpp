@@ -116,6 +116,17 @@ int main()
     std::cout << "Run completed!\n";
     std::cout << "kernel exec time: " << exec_time << "\n";
 
+    // Write out execution time
+    const char *exec_time_file = "./exec_time.txt";
+    FILE *fp = fopen(exec_time_file, "w");
+    if (fp == NULL) {
+        std::cout << "Failed to open "<< exec_time_file <<" for writing.\n";
+    } else {
+        fprintf(fp, "%f\n", exec_time);
+        fclose(fp);
+    }
+
+
 #ifdef TINY
     // Validate the results
     for (int n = 0; n < N; n++)
@@ -177,22 +188,22 @@ int main()
         // assert(fabs(golden - v_val) <= 0.005*fabs(golden));
     }
 #else
-    // Report performance. DSPs, FMax and ExecTime are automatically figured out from the static analysis
-    // during FPGA synthesis and and the dynamic profile during the FGPA execution.
-    // A10PAC on DevCloud has 33GB/s memory bandwidth
-    double mem_bandwidth = 33;
-    double compute_roof = 2 * DSPs_oneapi() * FMax_oneapi();
-     // Total operations (GFLOP for CONV), independent of designs
-    double number_ops = 2 * (long)(N * TOTAL_CO) * (long)(MY * MX * YYY_XXX * YY_XX * Y_X) * (long)(TOTAL_CI * MK * KY * KX);
-    double number_bytes = (long)(MX * MK * TOTAL_CI * TOTAL_IY * TOTAL_IX * N) * 4
-                        + (long)(MY * MK * TOTAL_CI * TOTAL_CO * KY * KX) * 4
-                        + (long)(TOTAL_CO * YYY_XXX * YY_XX * Y_X * MY * MX * N) * 4;
-    // double exec_time = ExecTime();
-    roofline(mem_bandwidth, compute_roof, number_ops, number_bytes, exec_time);
-    if (fopen("roofline.png", "r") == NULL) {
-        std::cout << "Failed to draw roofline!\n";
-        return 1;
-    }
+    // // Report performance. DSPs, FMax and ExecTime are automatically figured out from the static analysis
+    // // during FPGA synthesis and and the dynamic profile during the FGPA execution.
+    // // A10PAC on DevCloud has 33GB/s memory bandwidth
+    // double mem_bandwidth = 33;
+    // double compute_roof = 2 * DSPs_oneapi() * FMax_oneapi();
+    //  // Total operations (GFLOP for CONV), independent of designs
+    // double number_ops = 2 * (long)(N * TOTAL_CO) * (long)(MY * MX * YYY_XXX * YY_XX * Y_X) * (long)(TOTAL_CI * MK * KY * KX);
+    // double number_bytes = (long)(MX * MK * TOTAL_CI * TOTAL_IY * TOTAL_IX * N) * 4
+    //                     + (long)(MY * MK * TOTAL_CI * TOTAL_CO * KY * KX) * 4
+    //                     + (long)(TOTAL_CO * YYY_XXX * YY_XX * Y_X * MY * MX * N) * 4;
+    // // double exec_time = ExecTime();
+    // roofline(mem_bandwidth, compute_roof, number_ops, number_bytes, exec_time);
+    // if (fopen("roofline.png", "r") == NULL) {
+    //     std::cout << "Failed to draw roofline!\n";
+    //     return 1;
+    // }
     std::cout << "Size of tensor P: " << N << ", " << TOTAL_CI << ", " << TOTAL_IX << ", " << TOTAL_IY
                                  << ", " << MX << ", " << MK << "\n";
     std::cout << "Size of tensor W: " << TOTAL_CI << ", " << TOTAL_CO << ", " << KX << ", " << KY
