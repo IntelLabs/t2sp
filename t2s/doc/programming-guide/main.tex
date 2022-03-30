@@ -1,0 +1,73 @@
+\documentclass[oneside]{book}
+\usepackage[english]{babel}
+\usepackage[letterpaper,top=2cm,bottom=2cm,left=3cm,right=3cm,marginparwidth=1.75cm]{geometry}
+\usepackage{amsmath}
+\usepackage{graphicx}
+\usepackage[colorlinks=true, allcolors=blue]{hyperref}
+\usepackage{multirow}
+\usepackage{multicol}
+\usepackage{soul}
+\usepackage{minted}
+\usemintedstyle{perldoc}
+\usepackage{listings}
+\usepackage{markdown}
+
+\setminted[cpp] {
+    style=friendly,
+    fontfamily=tt,
+    linenos,
+    autogobble,
+    breaklines,
+    numbersep=2pt,
+    %framesep=2mm,
+    bgcolor=white,
+    fontsize=\small,
+    escapeinside=||,
+}
+\lstdefinestyle{cpp}{
+  belowcaptionskip=1\baselineskip,
+  breaklines=true,
+  xleftmargin=\parindent,
+  language=C,
+  showstringspaces=false,
+  basicstyle=\footnotesize\ttfamily,
+  keywordstyle=\bfseries\color{green!40!black},
+  commentstyle=\itshape\color{purple!40!black},
+  identifierstyle=\color{blue},
+  stringstyle=\color{orange},
+  numbers=left,
+  stepnumber=1,
+}
+\lstset{escapechar=@,style=cpp}
+
+\newenvironment{psmallmatrix}
+  {\left(\begin{smallmatrix}}
+  {\end{smallmatrix}\right)}
+  
+\setcounter{tocdepth}{4}
+\setcounter{secnumdepth}{4}
+
+\title{T2SP Programming Guide}
+\author{Hongbo Rong}
+
+\begin{document}
+\maketitle
+
+\tableofcontents
+\lstlistoflistings
+
+\input{overview}
+\input{rewriting-math-equations-into-basic-ures}
+\chapter{Writing tiled UREs}
+TBD.
+\chapter{Multi-threading}
+TBD.
+\chapter{Building a systolic array}
+TBD.
+\input{compile-and-run}
+\bibliographystyle{plain}
+\bibliography{references}
+
+
+
+\end{document}
