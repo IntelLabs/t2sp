@@ -2,7 +2,7 @@
 #define HALIDE_CODEGEN_ONEAPI_DEV_H
 
 /** \file
- * Defines the code-generator for producing OpenCL C kernel code
+ * Defines the code-generator for producing OneAPI C++ kernel code
  */
 
 #include <sstream>
@@ -52,10 +52,20 @@ public:
 
     std::string print_gpu_name(const std::string &name) override;
 
-    std::vector<char> compile_to_src_module(const LoweredFunc &f);
+    // (TODO) Remove
+    // std::vector<char> compile_to_src_module(const LoweredFunc &f);
 
+    std::string compile_oneapi(const Module &input);
+    void compile_oneapi_devsrc(const Module &input);
+    void compile_oneapi_func(const LoweredFunc &f, const std::string &simple_name, const std::string &extern_name);
+    // (TODO) Method to compile buffers as well
+    // void compile_oneapi(const Buffer<> &buffer); 
 
 protected:
+    // (NOTE)  CodeGen_OneAPI_C     -(derived from)-> 
+    //         CodeGen_C            -(derived from)-> 
+    //         public IRPrinter     -(derived from)-> 
+    //         public IRVisitor
     class CodeGen_OneAPI_C : public CodeGen_C {
     public:
         CodeGen_OneAPI_C(std::ostream &s, Target t)
@@ -67,7 +77,8 @@ protected:
         void print_global_data_structures_before_kernel(const Stmt *op);
         void gather_shift_regs_allocates(const Stmt *op);
 
-        std::string compile_oneapi_lower(const LoweredFunc &f, std::string str);
+        // (TODO) Remove
+        // std::string compile_oneapi_lower(const LoweredFunc &f, std::string str);
 
 
     protected:
@@ -208,6 +219,444 @@ protected:
     std::ostringstream src_stream_oneapi;
     std::string cur_kernel_name_oneapi;
     CodeGen_OneAPI_C one_clc;
+
+        
+    // Wrapper for CodeGen_OneAPI_C to add host/device code 
+    // Note: CodeGen_OneAPI_C still checks for user contexts and throws error
+    // (TODO): Need to combine all the structures & overritten functions for EmitOneAPIFunc into CodeGen_OneAPI_C
+    class EmitOneAPIFunc : public CodeGen_OneAPI_C {
+        friend class CodeGen_OneAPI_C;
+        using CodeGen_OneAPI_C::visit;
+        // using CodeGen_OneAPI_C::print_type;
+        using CodeGen_C::compile;
+    protected:
+        // From CodeGen_GPU_Host
+        std::string create_kernel_name(const For *op);
+        
+        // Form CodeGen_OneAPI_C
+        void visit(const For *) override;
+        void visit(const Allocate *) override;    
+        void visit(const AssertStmt *) override;
+        void visit(const Free *op) override;
+        std::string print_extern_call(const Call *) override;
+        std::string print_reinterpret(Type type, Expr e) override;
+        std::string print_type(Type type, AppendSpaceIfNeeded append_space = DoNotAppendSpace) override;
+
+        // New 
+        void create_kernel_wrapper(const std::string &name, std::string q_device_name, const std::vector<DeviceArgument> &args, bool begining, bool is_run_on_device);
+
+    private:
+        // Parent Class pointer
+        CodeGen_OneAPI_C* parent;
+
+        // Record to check when we need to use CodeGen_OneAPI_C implementation or not
+        // parent's first name
+        std::vector< std::tuple<std::string, const void *, const void *> > emit_visited_op_names;
+
+        // set to true/false inside add_kernel()
+        bool currently_inside_kernel;
+
+        // stream point to clean and reset from
+        const std::string EmitOneAPIFunc_Marker = "\n// EmitOneAPIFunc MARKER \n";
+
+        // pointer to src stream
+        std::ostringstream *stream_ptr;
+
+        std::set<std::string> UnImplementedExternFuncs;
+
+
+        typedef struct {
+
+            EmitOneAPIFunc *p;
+
+            void check_valid(const Call *op, unsigned int max_args, unsigned int min_args=0){
+                internal_assert(op);
+                internal_assert(p);
+                internal_assert(op->args.size() <= max_args && op->args.size() >= min_args);
+            }
+
+            // user context functions
+
+            std::string halide_device_malloc(const Call *op) {
+                check_valid(op, 2, 1);
+                std::ostringstream rhs;
+                std::vector<Expr> args = op->args;
+                std::string buff = p->print_expr(args[0]);
+
+                rhs << "if( !" << buff << "->device ){ // device malloc\n";
+                rhs << p->get_indent() << "  std::cout << \"//\t device malloc "<< buff << "\\n\";\n";
+                rhs << p->get_indent() << "  assert(" << buff << "->size_in_bytes() != 0);\n";
+                rhs << p->get_indent() << "  uint64_t lowest_index = 0;\n";
+                rhs << p->get_indent() << "  uint64_t highest_index = 0;\n";
+                rhs << p->get_indent() << "  for (int i = 0; i < " << buff << "->dimensions; i++) {\n";
+                rhs << p->get_indent() << "      if (" << buff << "->dim[i].stride < 0) {\n";
+                rhs << p->get_indent() << "          lowest_index += (uint64_t)(" << buff << "->dim[i].stride) * (" << buff << "->dim[i].extent - 1);\n";
+                rhs << p->get_indent() << "      }\n";
+                rhs << p->get_indent() << "      if (" << buff << "->dim[i].stride > 0) {\n";
+                rhs << p->get_indent() << "          highest_index += (uint64_t)(" << buff << "->dim[i].stride) * (" << buff << "->dim[i].extent - 1);\n";
+                rhs << p->get_indent() << "      }\n";
+                rhs << p->get_indent() << "  }\n";
+                rhs << p->get_indent() << "  device_handle *dev_handle = (device_handle *)std::malloc(sizeof(device_handle));\n";
+                rhs << p->get_indent() << "  dev_handle->mem = (void*)sycl::malloc_device(" << buff << "->size_in_bytes(), q_device);\n";
+                rhs << p->get_indent() << "  dev_handle->offset = 0;\n";
+                rhs << p->get_indent() << "  " << buff << "->device = (uint64_t)dev_handle;\n";
+                rhs << p->get_indent() << "}";
+
+                return rhs.str();
+            }
+
+            std::string halide_host_malloc(const Call *op){
+                check_valid(op, 2, 1);
+                std::ostringstream rhs;
+                std::vector<Expr> args = op->args;   
+                std::string buffer_name = p->print_expr(args[0]);
+                rhs << "{ // host malloc\n";
+                rhs << p->get_indent() << "  std::cout << \"//\\t host malloc "<< buffer_name << "\\n\";\n";
+                rhs << p->get_indent() << "  assert(" << buffer_name << "->size_in_bytes() != 0);\n";
+                rhs << p->get_indent() << "  " << buffer_name << "->host = (uint8_t*)std::malloc(" << buffer_name << "->size_in_bytes() );\n";
+                rhs << p->get_indent() << "  assert(" << buffer_name << "->host != NULL);\n";
+                rhs << p->get_indent() << "}";              
+                return rhs.str();
+            }            
+
+            std::string halide_copy_to_device(const Call *op){
+                check_valid(op, 2, 1);
+                std::ostringstream rhs;
+                std::vector<Expr> args = op->args;
+                std::string buffer_name = p->print_expr(args[0]);
+                // rhs << "std::cout << \"//\\t memcpy device->host " << buffer_name << "\\n\";\n";
+                // rhs << p->get_indent()
+                //     << "q_device.submit([&](handler& h){ h.memcpy("
+                //     << "(void *)(((device_handle*)"<< buffer_name <<"->device)->mem), " // dst
+                //     << "(void *)" << buffer_name << "->host, " // src
+                //     << buffer_name << "->size_in_bytes() ); })"; // size
+                
+                rhs << halide_opencl_buffer_copy(op, false);
+                return rhs.str();
+            }
+
+            std::string halide_copy_to_host(const Call *op){
+                check_valid(op, 2, 1);
+                std::ostringstream rhs;
+                std::vector<Expr> args = op->args;
+                std::string buffer_name = p->print_expr(args[0]);
+                // rhs << "std::cout << \"//\\t memcpy host->device " << buffer_name << "\\n\";\n";
+                // rhs << p->get_indent()
+                //     << "q_device.submit([&](handler& h){ h.memcpy("
+                //     << "(void *)" << buffer_name << "->host, " // dst
+                //     << "(void *)(((device_handle*)"<< buffer_name <<"->device)->mem), " // src
+                //     << buffer_name << "->size_in_bytes() ); })"; // size
+
+                rhs << halide_opencl_buffer_copy(op, true);
+                return rhs.str();
+            }
+
+            std::string create_memcpy(std::string buffer_name, bool to_host){
+                std::ostringstream rhs;
+                std::string dst;
+                std::string src;
+                if(to_host){
+                    dst = buffer_name + "->host";
+                    src = "(((device_handle*)" + buffer_name + "->device)->mem)";
+                } else {
+                    dst = "(((device_handle*)" + buffer_name + "->device)->mem)";
+                    src = buffer_name + "->host";
+                }
+                rhs << "q_device.submit([&](handler& h){ h.memcpy("
+                    << "(void *)" << dst << ", " // dst
+                    << "(void *)" << src << ", " // src
+                    << buffer_name << "->size_in_bytes() ); }).wait()"; // size
+                return rhs.str();
+            }
+
+            std::string halide_opencl_buffer_copy(const Call* op, bool to_host){
+                // (NOTE) Implemented based on AOT-OpenCL-Runtime.cpp
+                check_valid(op, 2, 1);
+                std::ostringstream rhs;
+                std::vector<Expr> args = op->args;
+                std::string buffer_name = p->print_expr(args[0]);
+
+                rhs << "{ // memcpy \n";
+                rhs << p->get_indent() << "  bool from_host = (" << buffer_name << "->device == 0) || ("<< buffer_name <<"->host_dirty() && "<< buffer_name << "->host != NULL);\n";
+                rhs << p->get_indent() << "  bool to_host = "<< to_host <<";\n";
+                rhs << p->get_indent() << "  if (!from_host && to_host) {\n";
+                rhs << p->get_indent() << "    std::cout << \"//\t memcpy device->host " << buffer_name << "\\n\";\n";
+                rhs << p->get_indent() << "    " << create_memcpy(buffer_name , true)  << ";\n";
+                rhs << p->get_indent() << "  } else if (from_host && !to_host) {\n";
+                rhs << p->get_indent() << "    std::cout << \"//\t memcpy host->device " << buffer_name << "\\n\";\n";
+                rhs << p->get_indent() << "    " << create_memcpy(buffer_name , false)  << ";\n";
+                rhs << p->get_indent() << "  } else if (!from_host && !to_host) {\n";
+                rhs << p->get_indent() << "    std::cout << \"//\t memcpy device->device not implemented yet\\n\";\n";
+                rhs << p->get_indent() << "    assert(false);\n";
+                // (TODO), create this to be more modularly to have a src and dst buffers available
+                // rhs << p->get_indent() << "  } else if ("<< buffer_name << "->host != " << buffer_name << "->host) {\n";
+                // rhs << p->get_indent() << "    std::cout << \"//\t memcpy host->host " << buffer_name << " ignored...\\n\";\n";
+                // rhs << p->get_indent() << "    memcpy((void *)( " << buffer_name << "->host), (void *)(" << buffer_name << "->host), "<< buffer_name << "->size_in_bytes());\n";
+                rhs << p->get_indent() << "  } else {\n";
+                rhs << p->get_indent() << "    std::cout << \"//\t memcpy "<< buffer_name << " Do nothing.\\n\";\n";
+                rhs << p->get_indent() << "  }\n";
+                rhs << p->get_indent() << "}";
+                return rhs.str();
+            }
+
+            std::string halide_device_and_host_free(const Call *op){
+                check_valid(op, 2, 1);
+                std::ostringstream rhs;
+                std::vector<Expr> args = op->args;
+                std::string buffer_name = p->print_expr(args[0]);
+                rhs << halide_device_host_nop_free(buffer_name);
+                return rhs.str();
+            }
+
+
+
+            std::string halide_device_and_host_malloc(const Call *op){
+                check_valid(op, 2, 1);
+                std::ostringstream rhs;
+                std::vector<Expr> args = op->args;
+                // Device Malloc
+                rhs << halide_device_malloc(op);
+                rhs << ";\n";
+                // Host Malloc
+                rhs << p->get_indent() << halide_host_malloc(op);
+                return rhs.str();
+            }
+
+            std::string halide_opencl_wait_for_kernels_finish(const Call *op){
+                check_valid(op, 0, 0);
+                std::ostringstream rhs;
+                std::vector<Expr> args = op->args;
+                // Wait for all kernels to finish
+                rhs << "for(unsigned int i = 0; i < oneapi_kernel_events.size(); i++){ "
+                    << "oneapi_kernel_events.at(i).wait(); }";
+                return rhs.str();
+            }
+
+            // Defined in DeviceInterface.cpp 
+
+            std::string halide_oneapi_device_interface(const Call *op){
+                return "NULL";
+            }
+
+            // Buffer Functions i.e. without user context functions
+
+
+            // Make for use with visit(const Allocate)
+            std::string halide_device_host_nop_free(std::string buffer_name){
+                internal_assert(p);
+                std::ostringstream rhs;
+
+                // Free device
+                rhs << "if( " << buffer_name << "->device ){ // device free\n";
+                rhs << p->get_indent() << "  sycl::free( ((device_handle*)" << buffer_name << "->device)->mem , q_device);\n";
+                rhs << p->get_indent() << "  assert(((device_handle *)" << buffer_name << "->device)->offset == 0);\n";
+                rhs << p->get_indent() << "  std::free((device_handle *)" << buffer_name << "->device);\n";
+                rhs << p->get_indent() << "  "<< buffer_name <<"->set_device_dirty(false);\n";
+                rhs << p->get_indent() << "}\n";
+
+                // Free host
+                rhs << p->get_indent() << "if(" << buffer_name << "->host){ // host free\n";
+                rhs << p->get_indent() << "  std::free( (void*)"<< buffer_name <<"->host );\n";
+                rhs << p->get_indent() << "  "<< buffer_name <<"->host = NULL;\n";
+                rhs << p->get_indent() << "  "<< buffer_name <<"->set_host_dirty(false);\n";
+                rhs << p->get_indent() << "}";
+                return rhs.str();
+            }
+
+        } ExternCallFuncs;
+
+        ExternCallFuncs ext_funcs;
+
+        // Used for converting print_extern_calls to OneAPI calls
+        // (TODO) implement a switch function for any external calls that are made
+        // by those other than Call* op(s)
+        using DoFunc = std::string(ExternCallFuncs::*)(const Call *op);
+        std::map<std::string, DoFunc> print_extern_call_map = {
+            // All user context functions here
+
+            // Halide buffer type functions
+            // See CodeGen_Internal.cpp for refrence
+
+            // {"halide_buffer_copy" , NULL}, 
+            {"halide_copy_to_host" , &ExternCallFuncs::halide_copy_to_host}, 
+            {"halide_copy_to_device" , &ExternCallFuncs::halide_copy_to_device}, 
+            // {"halide_current_time_ns" , NULL}, 
+            // {"halide_debug_to_file" , NULL}, 
+            // {"halide_device_free" , NULL}, 
+            // {"halide_device_host_nop_free" , NULL}, 
+            // {"halide_device_free_as_destructor" , NULL}, 
+            {"halide_device_and_host_free" , &ExternCallFuncs::halide_device_and_host_free}, 
+            // {"halide_device_and_host_free_as_destructor" , NULL}, 
+            {"halide_device_malloc" , &ExternCallFuncs::halide_device_malloc}, 
+            {"halide_device_and_host_malloc" , &ExternCallFuncs::halide_device_and_host_malloc}, 
+            // {"halide_device_sync" , NULL}, 
+            // {"halide_do_par_for" , NULL}, 
+            // {"halide_do_loop_task" , NULL}, 
+            // {"halide_do_task" , NULL}, 
+            // {"halide_do_async_consumer" , NULL}, 
+            // {"halide_error" , NULL}, 
+            // {"halide_free" , NULL}, 
+            // {"halide_malloc" , NULL}, 
+            // {"halide_print" , NULL}, 
+            // {"halide_profiler_memory_allocate" , NULL}, 
+            // {"halide_profiler_memory_free" , NULL}, 
+            // {"halide_profiler_pipeline_start" , NULL}, 
+            // {"halide_profiler_pipeline_end" , NULL}, 
+            // {"halide_profiler_stack_peak_update" , NULL}, 
+            // {"halide_spawn_thread" , NULL}, 
+            // {"halide_device_release" , NULL}, 
+            // {"halide_start_clock" , NULL}, 
+            // {"halide_trace" , NULL}, 
+            // {"halide_trace_helper" , NULL}, 
+            // {"halide_memoization_cache_lookup" , NULL}, 
+            // {"halide_memoization_cache_store" , NULL}, 
+            // {"halide_memoization_cache_release" , NULL}, 
+            // {"halide_cuda_run" , NULL}, 
+            // {"halide_opencl_run" , NULL}, 
+            // {"halide_opengl_run" , NULL}, 
+            // {"halide_openglcompute_run" , NULL}, 
+            // {"halide_metal_run" , NULL}, 
+            // {"halide_d3d12compute_run" , NULL}, 
+            // {"halide_msan_annotate_buffer_is_initialized_as_destructor" , NULL}, 
+            // {"halide_msan_annotate_buffer_is_initialized" , NULL}, 
+            // {"halide_msan_annotate_memory_is_initialized" , NULL}, 
+            // {"halide_hexagon_initialize_kernels" , NULL}, 
+            // {"halide_hexagon_run" , NULL}, 
+            // {"halide_hexagon_device_release" , NULL}, 
+            // {"halide_hexagon_power_hvx_on" , NULL}, 
+            // {"halide_hexagon_power_hvx_on_mode" , NULL}, 
+            // {"halide_hexagon_power_hvx_on_perf" , NULL}, 
+            // {"halide_hexagon_power_hvx_off" , NULL}, 
+            // {"halide_hexagon_power_hvx_off_as_destructor" , NULL}, 
+            // {"halide_qurt_hvx_lock" , NULL}, 
+            // {"halide_qurt_hvx_unlock" , NULL}, 
+            // {"halide_qurt_hvx_unlock_as_destructor" , NULL}, 
+            // {"halide_vtcm_malloc" , NULL}, 
+            // {"halide_vtcm_free" , NULL}, 
+            // {"halide_cuda_initialize_kernels" , NULL}, 
+            // {"halide_opencl_initialize_kernels" , NULL}, 
+            // {"halide_opengl_initialize_kernels" , NULL}, 
+            // {"halide_openglcompute_initialize_kernels" , NULL}, 
+            // {"halide_metal_initialize_kernels" , NULL}, 
+            // {"halide_d3d12compute_initialize_kernels" , NULL}, 
+            // {"halide_get_gpu_device" , NULL}, 
+            // {"halide_upgrade_buffer_t" , NULL}, 
+            // {"halide_downgrade_buffer_t" , NULL}, 
+            // {"halide_downgrade_buffer_t_device_fields" , NULL}, 
+            // {"_halide_buffer_crop" , NULL}, 
+            // {"_halide_buffer_retire_crop_after_extern_stage" , NULL}, 
+            // {"_halide_buffer_retire_crops_after_extern_stage" , NULL}, 
+            {"halide_opencl_wait_for_kernels_finish" , &ExternCallFuncs::halide_opencl_wait_for_kernels_finish},
+
+            // All Non-user context functions here
+
+            // Buffer functions
+            // See IR.cpp and buffer_t.cpp for refrence
+
+            // {"_halide_buffer_get_dimensions", &ExternCallFuncs::_halide_buffer_get_dimensions}, 
+            // {"_halide_buffer_get_min", &ExternCallFuncs::_halide_buffer_get_min}, 
+            // {"_halide_buffer_get_extent", &ExternCallFuncs::_halide_buffer_get_extent}, 
+            // {"_halide_buffer_get_stride", &ExternCallFuncs::_halide_buffer_get_stride}, 
+            // {"_halide_buffer_get_max", NULL}, 
+            // {"_halide_buffer_get_host", &ExternCallFuncs::_halide_buffer_get_host}, 
+            // {"_halide_buffer_get_device", NULL}, 
+            // {"_halide_buffer_get_device_interface", NULL}, 
+            // {"_halide_buffer_get_shape", &ExternCallFuncs::_halide_buffer_get_shape}, 
+            // {"_halide_buffer_get_host_dirty", NULL}, 
+            // {"_halide_buffer_get_device_dirty", NULL}, 
+            // {"_halide_buffer_get_type", &ExternCallFuncs::_halide_buffer_get_type}, 
+            // {"_halide_buffer_set_host_dirty", NULL}, 
+            // {"_halide_buffer_set_device_dirty", NULL}, 
+            // {"_halide_buffer_is_bounds_query", NULL}, 
+            // {"_halide_buffer_init", NULL}, 
+            // {"_halide_buffer_init_from_buffer", NULL}, 
+            // {"_halide_buffer_crop", NULL}, 
+            // {"_halide_buffer_set_bounds", NULL}, 
+            // {"halide_trace_helper", NULL},
+
+            // Defined in DeviceInterface.cpp 
+            // Replaced here by directly returning Null insteaf of an AOT-...-Runtime.cpp
+
+            {"halide_oneapi_device_interface", &ExternCallFuncs::halide_oneapi_device_interface}
+
+        };
+
+        // Create a simple assert(false) depending on the id_cond passed in
+        void create_assertion(const std::string &id_cond, const std::string &id_msg){
+            // (NOTE) Implementation mimincing CodeGen_C::create_assertion(const string &id_cond, const string &id_msg)
+            if (target.has_feature(Target::NoAsserts)) return;
+
+            stream << get_indent() << "if (!" << id_cond << ")\n";
+            open_scope();
+            stream << get_indent() << "std::cout << \"Condition '" <<  id_cond << "' failed "
+                   << "with error id_msg: " << id_msg
+                   << "\\n\";\n";
+            stream << get_indent() << "assert(false);\n"; 
+            // stream << get_indent() << "return " << id_msg << ";\n";
+            close_scope("");
+        }
+
+        std::string RunTimeHeaders(){
+            std::ostringstream rhs;
+            rhs << "#include <CL/sycl.hpp>\n";
+            rhs << "#include <sycl/ext/intel/fpga_extensions.hpp>\n";
+            rhs << "#include \"dpc_common.hpp\"\n";
+            rhs << "#include \"pipe_array.hpp\"\n";
+            rhs << "using namespace sycl;\n";
+            rhs << "void halide_device_and_host_free_as_destructor(void *user_context, void *obj) {\n";
+            rhs << "}\n";
+            rhs << "struct device_handle {\n";
+            rhs << "    // Important: order these to avoid any padding between fields;\n";
+            rhs << "    // some Win32 compiler optimizer configurations can inconsistently\n";
+            rhs << "    // insert padding otherwise.\n";
+            rhs << "    uint64_t offset;\n";
+            rhs << "    void* mem;\n";
+            rhs << "};\n"; 
+            return rhs.str();        
+        }
+
+
+    public:
+        EmitOneAPIFunc(CodeGen_OneAPI_C* parent, std::ostringstream &s, Target t) : 
+            CodeGen_OneAPI_C(s, t) {
+                parent = parent;
+                stream << EmitOneAPIFunc_Marker;
+                stream << RunTimeHeaders();
+                stream_ptr = &s;
+                ext_funcs.p = this;
+                currently_inside_kernel = false;
+        }
+
+        // (TODO) Make a function to use instead of void CodeGen_C::compile(const Module &input) 
+        // b/c it is not overridable
+
+        // From CodeGen_C 
+        void compile(const LoweredFunc &func) override;
+
+        // From CodeGen_OneAPI_C 
+        void add_kernel(Stmt stmt,
+                        const std::string &name,
+                        const std::vector<DeviceArgument> &args);
+
+        std::string get_str(){
+            std::set<std::string>::iterator it = UnImplementedExternFuncs.begin();
+            while (it != UnImplementedExternFuncs.end()){
+                // Output all the unimplemented external functions that have been called but not caught
+                stream << get_indent() << "// " << (*it) << " to-be-implemented\n";
+                it++;
+            }
+
+            // return everything after the EmitOneAPIFunc_Marker  
+            // This removes any extra output returned from the parent class initalization
+            std::string str = stream_ptr->str();
+            // size_t pos = str.find(EmitOneAPIFunc_Marker) + EmitOneAPIFunc_Marker.size();
+            // if(pos == std::string::npos) pos = 0;
+            // std::string ret = str.substr(pos);
+            // return ret;
+            return str;
+        };
+
+    };  
 
 private:
 

@@ -2,6 +2,7 @@
 #include <sstream>
 #include <fstream>
 
+#include "CPlusPlusMangle.h"
 #include "../../Halide/src/CSE.h"
 #include "../../Halide/src/CodeGen_Internal.h"
 #include "CodeGen_OneAPI_Dev.h"
@@ -47,25 +48,23 @@ vector<char> CodeGen_OneAPI_Dev::compile_to_src() {
     // }
 
     string str = src_stream_oneapi.str();
-    debug(1) << "OneAPI kernel:\n"
-             << str << "\n";
+    debug(3) << "OneAPI kernel:\n" << str << "\n";
     vector<char> buffer(str.begin(), str.end());
     // buffer.push_back(0); // Not needed as we do not compile to a binary rn
     return buffer;
 }
 
-vector<char> CodeGen_OneAPI_Dev::compile_to_src_module(const LoweredFunc &f) {
-
-    // Use a special CodeGen_OneAPI_C function to create the function wrapper
-    debug(1) << "Creating function wrapper around kernels\n";
-    string str = src_stream_oneapi.str();
-    string src = one_clc.compile_oneapi_lower(f, str);
-
-    debug(1) << "OneAPI kernel:\n"
-             << src << "\n";
-    vector<char> buffer(src.begin(), src.end());
-    return buffer;
-}
+// (TODO) Remove
+// vector<char> CodeGen_OneAPI_Dev::compile_to_src_module(const LoweredFunc &f) {
+//     // Use a special CodeGen_OneAPI_C function to create the function wrapper
+//     debug(1) << "Creating function wrapper around kernels\n";
+//     string str = src_stream_oneapi.str();
+//     string src = one_clc.compile_oneapi_lower(f, str);
+//     debug(1) << "OneAPI kernel:\n"
+//              << src << "\n";
+//     vector<char> buffer(src.begin(), src.end());
+//     return buffer;
+// }
 
 
 /* Methods only for generating OpenCL code for Intel FPGAs */
@@ -171,6 +170,8 @@ void CodeGen_OneAPI_Dev::init_module() {
     src_stream_oneapi << "#include \"dpc_common.hpp\"\n";
     src_stream_oneapi << "#include \"pipe_array.hpp\"\n";
     src_stream_oneapi << "using namespace sycl;\n\n";
+
+    // (TODO) Comment Not Needed sections for OneAPI Raw Code Generator as it does not currently have a runtime 
 
     src_stream_oneapi << "#pragma OPENCL FP_CONTRACT ON\n";
 
@@ -293,7 +294,6 @@ void CodeGen_OneAPI_Dev::init_module() {
     if (target.has_feature(Target::IntelFPGA)) {
         //enable channels support
         src_stream_oneapi << "#pragma OPENCL EXTENSION cl_intel_channels : enable\n";
-        //src_stream_oneapi << "// #pragma OPENCL EXTENSION cl_intel_channels : enable\n";
     }
 
     char *kernel_num = getenv("HL_KERNEL_NUM");
@@ -307,165 +307,168 @@ void CodeGen_OneAPI_Dev::init_module() {
 
         src_stream_oneapi << "#define K      " << ip_num << "   // number of IPs\n";
         src_stream_oneapi << "#define M      " << std::atoi(space_dim) << "   // number of iter space var\n";
-        src_stream_oneapi << R"(#define N      16  // number of constant parameters
-#define O      5   // max number of out degree
-#define SIZE   16  // max number of tasks in the graph
+        src_stream_oneapi << "(#define N      16  // number of constant parameters\n"
+                            << "#define O      5   // max number of out degree\n"
+                            << "#define SIZE   16  // max number of tasks in the graph\n"
+                            << "\n"
+                            << "// Define task index\n"
+                            << "typedef struct index {\n"
+                            << "    int     task_id;\n"
+                            << "    int     space_id[M];\n"
+                            << "} index_t;\n"
+                            << "\n"
+                            << "// argument to tasks\n"
+                            << "typedef struct arg {\n"
+                            << "    __global DTYPE*  args0;\n"
+                            << "    __global DTYPE*  args1;\n"
+                            << "    __global DTYPE*  args2;\n"
+                            << "    __global DTYPE*  args4;\n"
+                            << "    __global DTYPE*  args5;\n"
+                            << "    DTYPE            constants[N];\n"
+                            << "    int              num_of_args;\n"
+                            << "    index_t          finish;\n"
+                            << "} arg_t;\n"
+                            << "\n"
+                            << "// Task and dependency\n"
+                            << "typedef struct task {\n"
+                            << "    int         queue;\n"
+                            << "    index_t     index;\n"
+                            << "    index_t     deps[O];\n"
+                            << "    arg_t       inputs;\n"
+                            << "    int         num_of_deps;\n"
+                            << "    bool        done;\n"
+                            << "    bool        last;\n"
+                            << "} task_t;\n"
+                            << "\n"
+                            << "// Task graph\n"
+                            << "typedef struct graph {\n"
+                            << "    uint16_t     slots;        // valid bit used for allocation\n"
+                            << "    uint16_t     issue;        // valid bit used for task issuance\n"
+                            << "    task_t       tasks[SIZE];  // pending tasks\n"
+                            << "    uint16_t     deps[SIZE];\n"
+                            << "} graph_t;\n"
+                            << "\n"
+                            << "// Command queue from app to scheduler\n"
+                            << "channel task_t qt __attribute__((depth(64)));\n"
+                            << "channel int    qf __attribute__((depth(64)));\n"
+                            << "\n"
+                            << ")\n";
 
-// Define task index
-typedef struct index {
-    int     task_id;
-    int     space_id[M];
-} index_t;
 
-// argument to tasks
-typedef struct arg {
-    __global DTYPE*  args0;
-    __global DTYPE*  args1;
-    __global DTYPE*  args2;
-    __global DTYPE*  args4;
-    __global DTYPE*  args5;
-    DTYPE            constants[N];
-    int              num_of_args;
-    index_t          finish;
-} arg_t;
-
-// Task and dependency
-typedef struct task {
-    int         queue;
-    index_t     index;
-    index_t     deps[O];
-    arg_t       inputs;
-    int         num_of_deps;
-    bool        done;
-    bool        last;
-} task_t;
-
-// Task graph
-typedef struct graph {
-    uint16_t     slots;        // valid bit used for allocation
-    uint16_t     issue;        // valid bit used for task issuance
-    task_t       tasks[SIZE];  // pending tasks
-    uint16_t     deps[SIZE];
-} graph_t;
-
-// Command queue from app to scheduler
-channel task_t qt __attribute__((depth(64)));
-channel int    qf __attribute__((depth(64)));
-
-)";
         // Print req and ack channels
         src_stream_oneapi << "channel arg_t q[" << ip_num << "] __attribute__((depth(64)));\n";
         src_stream_oneapi << "channel index_t q_ret[" << ip_num << "] __attribute__((depth(64)));\n";
-        src_stream_oneapi << R"(
-// Map from task to array index in the graph
-int map( graph_t* graph, index_t key) {
-    for (int index = 0; index < SIZE; index++) {
-      index_t k = graph->tasks[index].index;
-      if (k.task_id == key.task_id) {
-        bool match = true;
-        for (int i = 0; i < M; i++) {
-            if (k.space_id[i] != key.space_id[i]) {
-                match = false;
-            }
-        }
-        if (match) {
-            return index;
-        }
-      }
-    }
-    return -1;
-}
+        src_stream_oneapi << "(\n"
+                            << "// Map from task to array index in the graph\n"
+                            << "int map( graph_t* graph, index_t key) {\n"
+                            << "    for (int index = 0; index < SIZE; index++) {\n"
+                            << "      index_t k = graph->tasks[index].index;\n"
+                            << "      if (k.task_id == key.task_id) {\n"
+                            << "        bool match = true;\n"
+                            << "        for (int i = 0; i < M; i++) {\n"
+                            << "            if (k.space_id[i] != key.space_id[i]) {\n"
+                            << "                match = false;\n"
+                            << "            }\n"
+                            << "        }\n"
+                            << "        if (match) {\n"
+                            << "            return index;\n"
+                            << "        }\n"
+                            << "      }\n"
+                            << "    }\n"
+                            << "    return -1;\n"
+                            << "}\n"
+                            << "\n"
+                            << "// Allocate a task in the graph\n"
+                            << "void allocate(graph_t* graph, task_t task) {\n"
+                            << "   int index = 0;\n"
+                            << "   while (graph->slots & (1 << index)) {\n"
+                            << "       index++;\n"
+                            << "   }\n"
+                            << "   graph->slots = graph->slots | (1 << index);\n"
+                            << "   graph->tasks[index] = task;\n"
+                            << "\n"
+                            << "   // set up dependency vector\n"
+                            << "   // use bitmap to determine the parents op index in the graph\n"
+                            << "   for (int i = 0; i < task.num_of_deps; i++) {\n"
+                            << "     int dep_op_index = map(graph, task.deps[i]);\n"
+                            << "     // break if the op has no dependency\n"
+                            << "     if (dep_op_index == -1) break;\n"
+                            << "     if (!graph->tasks[dep_op_index].done) {\n"
+                            << "       graph->deps[index] |= (1 << dep_op_index);\n"
+                            << "     }\n"
+                            << "   }\n"
+                            << "}\n"
+                            << "\n"
+                            << "// Find out tasks with all deps satisified\n"
+                            << "bool dispatch(graph_t* graph, task_t* task) {\n"
+                            << "    for (int i = 0; i < SIZE; i++) {\n"
+                            << "        // valid task slot with no dependency\n"
+                            << "        if ((graph->slots & (1 << i)) && graph->deps[i] == 0x0000) {\n"
+                            << "            if (!(graph->issue & (1 << i))) {\n"
+                            << "              graph->issue |= (1 << i);\n"
+                            << "              *task = graph->tasks[i];\n"
+                            << "              return true;\n"
+                            << "            }\n"
+                            << "        }\n"
+                            << "    }\n"
+                            << "    return false;\n"
+                            << "}\n"
+                            << "\n"
+                            << "// Update the graph\n"
+                            << "void update(graph_t* graph, index_t key) {\n"
+                            << "    int index = map(graph, key);\n"
+                            << "    // invalidate the slot\n"
+                            << "    graph->slots &= ~(1 << index);\n"
+                            << "    graph->issue &= ~(1 << index);\n"
+                            << "\n"
+                            << "    // set done flag\n"
+                            << "    graph->tasks[index].done = true;\n"
+                            << "\n"
+                            << "    // check depending children tasks\n"
+                            << "    for (int i = 0; i < SIZE; i++) {\n"
+                            << "      graph->deps[i] &= ~(1 << index);\n"
+                            << "    }\n"
+                            << "}\n"
+                            << "\n"
+                            << "// Free-running scheduler\n"
+                            << "__attribute__((max_global_work_dim(0)))\n"
+                            << "__attribute__((autorun))\n"
+                            << "__kernel void scheduler() {\n"
+                            << "\n"
+                            << "    // create task graph\n"
+                            << "    graph_t graph;\n"
+                            << "    graph.slots = 0x0000;\n"
+                            << "    graph.issue = 0x0000;\n"
+                            << "\n"
+                            << "    int task_count = 0;\n"
+                            << "    bool task_not_end = true;\n"
+                            << "\n"
+                            << "    // perform scheduling\n"
+                            << "    while(1) {\n"
+                            << "\n"
+                            << "        while (task_not_end) {\n"
+                            << "            if (graph.slots == 0xFFFF) break;   // stop allocating when graph is full\n"
+                            << "            task_t task = read_channel_intel(qt);   // read task generated by the application\n"
+                            << "\n"
+                            << "            if (task.last) {\n"
+                            << "                // printf(\"Received the last task....\\n\");\n"
+                            << "                task_not_end = false;\n"
+                            << "            } else {\n"
+                            << "                // printf(\"Received a new task....\\n\");\n"
+                            << "                allocate(&graph, task);\n"
+                            << "                task_count += 1;\n"
+                            << "            }\n"
+                            << "        }\n"
+                            << "\n"
+                            << "        mem_fence(CLK_CHANNEL_MEM_FENCE);\n"
+                            << "        while (1) {\n"
+                            << "            task_t task;\n"
+                            << "            bool new_task = dispatch(&graph, &task);    // dispatch the pending tasks\n"
+                            << "            if (!new_task) break;\n"
+                            << "\n"
+                            << "            switch (task.queue) {\n"
+                            << ")\n";
 
-// Allocate a task in the graph
-void allocate(graph_t* graph, task_t task) {
-   int index = 0;
-   while (graph->slots & (1 << index)) {
-       index++;
-   }
-   graph->slots = graph->slots | (1 << index);
-   graph->tasks[index] = task;
-
-   // set up dependency vector
-   // use bitmap to determine the parents op index in the graph
-   for (int i = 0; i < task.num_of_deps; i++) {
-     int dep_op_index = map(graph, task.deps[i]);
-     // break if the op has no dependency
-     if (dep_op_index == -1) break;
-     if (!graph->tasks[dep_op_index].done) {
-       graph->deps[index] |= (1 << dep_op_index);
-     }
-   }
-}
-
-// Find out tasks with all deps satisified
-bool dispatch(graph_t* graph, task_t* task) {
-    for (int i = 0; i < SIZE; i++) {
-        // valid task slot with no dependency
-        if ((graph->slots & (1 << i)) && graph->deps[i] == 0x0000) {
-            if (!(graph->issue & (1 << i))) {
-              graph->issue |= (1 << i);
-              *task = graph->tasks[i];
-              return true;
-            }
-        }
-    }
-    return false;
-}
-
-// Update the graph
-void update(graph_t* graph, index_t key) {
-    int index = map(graph, key);
-    // invalidate the slot
-    graph->slots &= ~(1 << index);
-    graph->issue &= ~(1 << index);
-
-    // set done flag
-    graph->tasks[index].done = true;
-
-    // check depending children tasks
-    for (int i = 0; i < SIZE; i++) {
-      graph->deps[i] &= ~(1 << index);
-    }
-}
-
-// Free-running scheduler
-__attribute__((max_global_work_dim(0)))
-__attribute__((autorun))
-__kernel void scheduler() {
-
-    // create task graph
-    graph_t graph;
-    graph.slots = 0x0000;
-    graph.issue = 0x0000;
-
-    int task_count = 0;
-    bool task_not_end = true;
-
-    // perform scheduling
-    while(1) {
-
-        while (task_not_end) {
-            if (graph.slots == 0xFFFF) break;   // stop allocating when graph is full
-            task_t task = read_channel_intel(qt);   // read task generated by the application
-
-            if (task.last) {
-                // printf("Received the last task....\n");
-                task_not_end = false;
-            } else {
-                // printf("Received a new task....\n");
-                allocate(&graph, task);
-                task_count += 1;
-            }
-        }
-
-        mem_fence(CLK_CHANNEL_MEM_FENCE);
-        while (1) {
-            task_t task;
-            bool new_task = dispatch(&graph, &task);    // dispatch the pending tasks
-            if (!new_task) break;
-
-            switch (task.queue) {
-)";
         for (int t = 0; t < ip_num; t++) {
             src_stream_oneapi << string(16, ' ') << "case " << t << ": {\n";
             src_stream_oneapi << string(20, ' ') << "write_channel_intel(q["
@@ -473,17 +476,19 @@ __kernel void scheduler() {
             src_stream_oneapi << string(20, ' ') << "break;\n";
             src_stream_oneapi << string(16, ' ') << "}\n";
         }
-        src_stream_oneapi << R"(
-            }
-        }
+        src_stream_oneapi << "(\n"
+                            << "            }\n"
+                            << "        }\n"
+                            << "\n"
+                            << "        // update the graph with ack information\n"
+                            << "        mem_fence(CLK_CHANNEL_MEM_FENCE);\n"
+                            << "        for (int i = 0; i < K; i++) {\n"
+                            << "            bool ret_valid = true;\n"
+                            << "            index_t ret;\n"
+                            << "            switch (i) {\n"
+                            << ")\n";
 
-        // update the graph with ack information
-        mem_fence(CLK_CHANNEL_MEM_FENCE);
-        for (int i = 0; i < K; i++) {
-            bool ret_valid = true;
-            index_t ret;
-            switch (i) {
-)";
+
         for (int t = 0; t < ip_num; t++) {
             src_stream_oneapi << string(16, ' ') << "case " << t
                 << ": {\n";
@@ -495,19 +500,21 @@ __kernel void scheduler() {
                        << string(20, ' ') << "break;\n";
             src_stream_oneapi << string(16, ' ') << "}\n";
         }
-        src_stream_oneapi << R"(
-            }
-        }
+        
+        src_stream_oneapi << "(\n"
+            << "            }\n"
+            << "        }\n"
+            << "\n"
+            << "        // send the ending signal\n"
+            << "        mem_fence(CLK_CHANNEL_MEM_FENCE);\n"
+            << "        if (!task_not_end && graph.slots == 0x0000) {\n"
+            << "            write_channel_intel(qf, task_count);\n"
+            << "        }\n"
+            << "    }\n"
+            << "}\n"
+            << "\n"
+            << ")\n";
 
-        // send the ending signal
-        mem_fence(CLK_CHANNEL_MEM_FENCE);
-        if (!task_not_end && graph.slots == 0x0000) {
-            write_channel_intel(qf, task_count);
-        }
-    }
-}
-
-)";
         // Include the kernel ip functions
         char *overlay_kenrel_files = getenv("HL_OVERLAY_FILES");
         user_assert(overlay_kenrel_files != NULL) << "HL_OVERLAY_FILES empty...\n";
@@ -674,6 +681,119 @@ bool CodeGen_OneAPI_Dev::CodeGen_OneAPI_C::is_standard_opencl_type(Type type) {
 }
 
 string CodeGen_OneAPI_Dev::CodeGen_OneAPI_C::print_type(Type type, AppendSpaceIfNeeded space) {
+
+    // return type_to_c_type(type, space);
+    if(true) // Modifed Type.cpp implementation to fix int32x4_t
+    {
+        ostringstream oss;
+        bool include_space = space == AppendSpace;
+        bool needs_space = true;
+        bool c_plus_plus = true;
+        if (type.is_bfloat()) {
+            oss << "bfloat" << type.bits();
+        } else if (type.is_float()) {
+            if (type.bits() == 32) {
+                oss << "float";
+            } else if (type.bits() == 64) {
+                oss << "double";
+            } else {
+                oss << "float" << type.bits();
+            }
+            if (type.is_vector()) {
+                oss << type.lanes();
+            }
+        } else if (type.is_handle()) {
+            needs_space = false;
+            // If there is no type info or is generating C (not C++) and
+            // the type is a class or in an inner scope, just use void *.
+            if (type.handle_type == NULL ||
+                (!c_plus_plus &&
+                (!type.handle_type->namespaces.empty() ||
+                !type.handle_type->enclosing_types.empty() ||
+                type.handle_type->inner_name.cpp_type_type == halide_cplusplus_type_name::Class))) {
+                oss << "void *";
+            } else {
+                if (type.handle_type->inner_name.cpp_type_type ==
+                    halide_cplusplus_type_name::Struct) {
+                    oss << "struct ";
+                }
+                if (!type.handle_type->namespaces.empty() ||
+                    !type.handle_type->enclosing_types.empty()) {
+                    oss << "::";
+                    for (size_t i = 0; i < type.handle_type->namespaces.size(); i++) {
+                        oss << type.handle_type->namespaces[i] << "::";
+                    }
+                    for (size_t i = 0; i < type.handle_type->enclosing_types.size(); i++) {
+                        oss << type.handle_type->enclosing_types[i].name << "::";
+                    }
+                }
+                oss << type.handle_type->inner_name.name;
+                if (type.handle_type->reference_type == halide_handle_cplusplus_type::LValueReference) {
+                    oss << " &";
+                } else if (type.handle_type->reference_type == halide_handle_cplusplus_type::LValueReference) {
+                    oss << " &&";
+                }
+                for (auto modifier : type.handle_type->cpp_type_modifiers) {
+                    if (modifier & halide_handle_cplusplus_type::Const) {
+                        oss << " const";
+                    }
+                    if (modifier & halide_handle_cplusplus_type::Volatile) {
+                        oss << " volatile";
+                    }
+                    if (modifier & halide_handle_cplusplus_type::Restrict) {
+                        oss << " restrict";
+                    }
+                    if (modifier & halide_handle_cplusplus_type::Pointer) {
+                        oss << " *";
+                    }
+                }
+            }
+        } else {
+            // This ends up using different type names than OpenCL does
+            // for the integer vector types. E.g. uint16x8_t rather than
+            // OpenCL's short8. Should be fine as CodeGen_C introduces
+            // typedefs for them and codegen always goes through this
+            // routine or its override in CodeGen_OpenCL to make the
+            // names. This may be the better bet as the typedefs are less
+            // likely to collide with built-in types (e.g. the OpenCL
+            // ones for a C compiler that decides to compile OpenCL).
+            // This code also supports arbitrary vector sizes where the
+            // OpenCL ones must be one of 2, 3, 4, 8, 16, which is too
+            // restrictive for already existing architectures.
+            switch (type.bits()) {
+            case 1:
+                // bool vectors are always emitted as uint8 in the C++ backend
+                if (type.is_vector()) {
+                    oss << "uint8x" << type.lanes() << "_t";
+                } else {
+                    oss << "bool";
+                }
+                break;
+            case 8:
+            case 16:
+            case 32:
+            case 64:
+                if (type.is_uint()) {
+                    oss << 'u';
+                }
+                oss << "int";
+                if(type.is_vector()){
+                    oss << type.lanes();
+                } else {
+                    oss << type.bits() << "_t";
+                }
+                break;
+            default:
+                user_error << "Can't represent an integer with this many bits in C: " << type << "\n";
+            }
+        }
+        if (include_space && needs_space){
+            oss << " ";
+        }
+        return oss.str();
+    }
+    return type_to_c_type(type, space);
+
     ostringstream oss;
     if (type.is_generated_struct()) {
         int type_id = type.bits();
@@ -1501,18 +1621,154 @@ void CodeGen_OneAPI_Dev::CodeGen_OneAPI_C::visit(const Call *op) {
         }
         print_assignment(op->type, rhs.str());
     } else if (op->is_intrinsic(Call::make_struct)) {
-        vector<string> values;
-        for (size_t i = 0; i < op->args.size(); i++) {
-            values.push_back(print_expr(op->args[i]));
+        if(true){
+            // New CodeGen_C Implementation
+            ostringstream rhs;
+            if (op->args.empty()) {
+                internal_assert(op->type.handle_type);
+                // Add explicit cast so that different structs can't cache to the same value
+                rhs << "(" << print_type(op->type) << ")(NULL)";
+            } else if (op->type == type_of<halide_dimension_t *>()) {
+                // Emit a shape
+
+                // Get the args
+                vector<string> values;
+                for (size_t i = 0; i < op->args.size(); i++) {
+                    values.push_back(print_expr(op->args[i]));
+                }
+
+                static_assert(sizeof(halide_dimension_t) == 4 * sizeof(int32_t),
+                            "CodeGen_C assumes a halide_dimension_t is four densely-packed int32_ts");
+
+                internal_assert(values.size() % 4 == 0);
+                int dimension = values.size() / 4;
+
+                string shape_name = unique_name('s');
+                stream
+                    << get_indent() << "struct halide_dimension_t " << shape_name
+                    << "[" << dimension << "] = {\n";
+                indent++;
+                for (int i = 0; i < dimension; i++) {
+                    stream
+                        << get_indent() << "{"
+                        << values[i*4 + 0] << ", "
+                        << values[i*4 + 1] << ", "
+                        << values[i*4 + 2] << ", "
+                        << values[i*4 + 3] << "},\n";
+                }
+                indent--;
+                stream << get_indent() << "};\n";
+
+                rhs << shape_name;
+            } else {
+                // Original CodeGen_OneAPI_C implementation
+                vector<string> values;
+                for (size_t i = 0; i < op->args.size(); i++) {
+                    values.push_back(print_expr(op->args[i]));
+                }
+                ostringstream rhs;
+                rhs << "{";
+                for (size_t i = 0; i < op->args.size(); i++) {
+                    rhs << get_indent() << values[i];
+                    if (i < op->args.size() - 1) rhs << ", ";
+                }
+                rhs << "}";
+                print_assignment(op->type, rhs.str());   
+            }
+            print_assignment(op->type, rhs.str());            
+        } else if(false){
+            // CodeGen_C Implementation
+            ostringstream rhs;
+            if (op->args.empty()) {
+                internal_assert(op->type.handle_type);
+                // Add explicit cast so that different structs can't cache to the same value
+                rhs << "(" << print_type(op->type) << ")(NULL)";
+            } else if (op->type == type_of<halide_dimension_t *>()) {
+                // Emit a shape
+
+                // Get the args
+                vector<string> values;
+                for (size_t i = 0; i < op->args.size(); i++) {
+                    values.push_back(print_expr(op->args[i]));
+                }
+
+                static_assert(sizeof(halide_dimension_t) == 4 * sizeof(int32_t),
+                            "CodeGen_C assumes a halide_dimension_t is four densely-packed int32_ts");
+
+                internal_assert(values.size() % 4 == 0);
+                int dimension = values.size() / 4;
+
+                string shape_name = unique_name('s');
+                stream
+                    << get_indent() << "struct halide_dimension_t " << shape_name
+                    << "[" << dimension << "] = {\n";
+                indent++;
+                for (int i = 0; i < dimension; i++) {
+                    stream
+                        << get_indent() << "{"
+                        << values[i*4 + 0] << ", "
+                        << values[i*4 + 1] << ", "
+                        << values[i*4 + 2] << ", "
+                        << values[i*4 + 3] << "},\n";
+                }
+                indent--;
+                stream << get_indent() << "};\n";
+
+                rhs << shape_name;
+            } else {
+                // Emit a declaration like:
+                // struct {const int f_0, const char f_1, const int f_2} foo = {3, 'c', 4};
+
+                // Get the args
+                vector<string> values;
+                for (size_t i = 0; i < op->args.size(); i++) {
+                    values.push_back(print_expr(op->args[i]));
+                }
+                stream << get_indent() << "struct {\n";
+                // List the types.
+                indent++;
+                for (size_t i = 0; i < op->args.size(); i++) {
+                    stream << get_indent() << "const " << print_type(op->args[i].type()) << " f_" << i << ";\n";
+                }
+                indent--;
+                string struct_name = unique_name('s');
+                stream << get_indent() << "} " << struct_name << " = {\n";
+                // List the values.
+                indent++;
+                for (size_t i = 0; i < op->args.size(); i++) {
+                    stream << get_indent() << values[i];
+                    if (i < op->args.size() - 1) stream << ",";
+                    stream << "\n";
+                }
+                indent--;
+                stream << get_indent() << "};\n";
+
+                // Return a pointer to it of the appropriate type
+
+                // TODO: This is dubious type-punning. We really need to
+                // find a better way to do this. We dodge the problem for
+                // the specific case of buffer shapes in the case above.
+                if (op->type.handle_type) {
+                    rhs << "(" << print_type(op->type) << ")";
+                }
+                rhs << "(&" << struct_name << ")";
+            }
+            print_assignment(op->type, rhs.str());
+        } else {
+            // Original CodeGen_OneAPI_C implementation
+            vector<string> values;
+            for (size_t i = 0; i < op->args.size(); i++) {
+                values.push_back(print_expr(op->args[i]));
+            }
+            ostringstream rhs;
+            rhs << "{";
+            for (size_t i = 0; i < op->args.size(); i++) {
+                rhs << get_indent() << values[i];
+                if (i < op->args.size() - 1) rhs << ", ";
+            }
+            rhs << "}";
+            print_assignment(op->type, rhs.str());
         }
-        ostringstream rhs;
-        rhs << "{";
-        for (size_t i = 0; i < op->args.size(); i++) {
-            rhs << get_indent() << values[i];
-            if (i < op->args.size() - 1) rhs << ", ";
-        }
-        rhs << "}";
-        print_assignment(op->type, rhs.str());
     } else if (op->is_intrinsic(Call::postincrement)) {
         // Args: an expression e, Expr(offset), Expr("addr.temp"), indexes of addr.temp
         // Print: id = expression e
@@ -2210,7 +2466,7 @@ void CodeGen_OneAPI_Dev::CodeGen_OneAPI_C::visit(const Allocate *op) {
 
         stream << get_indent() << print_type(op->type) << ' '
                << print_name(op->name) << "[" << size << "];\n";
-        stream << get_indent() << "#define " << get_memory_space(op->name) << " __private\n";
+        // stream << get_indent() << "#define " << get_memory_space(op->name) << " __private\n";
 
         Allocation alloc;
         alloc.type = op->type;
@@ -2227,6 +2483,8 @@ void CodeGen_OneAPI_Dev::CodeGen_OneAPI_C::visit(const Allocate *op) {
 
 void CodeGen_OneAPI_Dev::CodeGen_OneAPI_C::visit(const Free *op) {
     if (op->name == "__shared") {
+        // (TODO) Create a correct free op for the correct allocation type
+        stream << get_indent() << "//!!! CodeGen_OneAPI_Dev::CodeGen_OneAPI_C::visit(const Free *op) " << op->name << "\n";
         return;
     } else {
         // Should have been freed internally
@@ -2237,7 +2495,7 @@ void CodeGen_OneAPI_Dev::CodeGen_OneAPI_C::visit(const Free *op) {
 }
 
 void CodeGen_OneAPI_Dev::CodeGen_OneAPI_C::visit(const AssertStmt *op) {
-    user_warning << "Ignoring assertion inside OpenCL kernel: " << op->condition << "\n";
+    user_warning << "Ignoring assertion inside OneAPI kernel: " << op->condition << "\n";
 }
 
 void CodeGen_OneAPI_Dev::CodeGen_OneAPI_C::visit(const Shuffle *op) {
@@ -2395,38 +2653,39 @@ void CodeGen_OneAPI_Dev::CodeGen_OneAPI_C::add_kernel(Stmt s,
     // Emmit Host Code
     if(!device_run_checker.is_run_on_device){
         debug(2) << "Adding OneAPI Host kernel " << name << "\n";
-        indent += 2;
+        // indent += 2;
         stream << "\n\n";
         stream << get_indent() << "std::cout << \"// kernel " << name << "\\n\";\n";
         stream << get_indent() << "// " << name << " begin \n";
 
         // Define all the buffer address spaces for the host side
-        for (size_t i = 0; i < args.size(); i++) {
-            if (args[i].is_buffer) {
-                stream << "#define " << print_name(args[i].name) << " " << print_name(args[i].name) << "_host" <<  "\n";
-            }
-        }
+        // for (size_t i = 0; i < args.size(); i++) {
+        //     if (args[i].is_buffer) {
+        //         stream << "#define " << print_name(args[i].name) << " " << print_name(args[i].name) << "_host" <<  "\n";
+        //     }
+        // }
 
         open_scope();
-        stream << get_indent() << "int _addr_temp = 0;\n";
+
         print(s);
         
         close_scope(name);
 
         // Undef all the buffer address spaces, in case they're different in another kernel.
-        for (size_t i = 0; i < args.size(); i++) {
-            if (args[i].is_buffer) {
-                stream << "#undef " << print_name(args[i].name) << "\n";
-            }
-        }
+        // for (size_t i = 0; i < args.size(); i++) {
+        //     if (args[i].is_buffer) {
+        //         stream << "#undef " << print_name(args[i].name) << "\n";
+        //     }
+        // }
+        
         stream << "\n\n";
-        indent -= 2;
+        // indent -= 2;
         return;
     }
     // Emmit Device Code
     else {
         debug(2) << "Adding OneAPI Device kernel " << name << "\n";
-        indent += 2;
+        // indent += 2;
 
         KernelLoad loadcheker;
         KernelStore storechecker;
@@ -2447,7 +2706,7 @@ void CodeGen_OneAPI_Dev::CodeGen_OneAPI_C::add_kernel(Stmt s,
 
         // Check if we need to copy before device kernel execution
         // Place a host->device is required before kernel execution
-        if(loadcheker.stores_to_memory && !storechecker.stores_to_memory){
+        if(loadcheker.stores_to_memory && !storechecker.stores_to_memory && false){
             for (size_t i = 0; i < args.size(); i++) {
                 if (args[i].is_buffer) {
                     // e.g. q_device.submit([&](handler& h) { h.memcpy(_I_serializer_device, _I_serializer_host,  _deserializer->size_in_bytes() ); }).wait();
@@ -2465,11 +2724,11 @@ void CodeGen_OneAPI_Dev::CodeGen_OneAPI_C::add_kernel(Stmt s,
 
 
         // Define all the buffer address spaces for the device side
-        for (size_t i = 0; i < args.size(); i++) {
-            if (args[i].is_buffer) {
-                stream << "#define " << print_name(args[i].name) << " " << print_name(args[i].name) << "_device" <<  "\n";
-            }
-        }
+        // for (size_t i = 0; i < args.size(); i++) {
+        //     if (args[i].is_buffer) {
+        //         stream << "#define " << print_name(args[i].name) << " " << print_name(args[i].name) << "_device" <<  "\n";
+        //     }
+        // }
 
 
         // Clean up before writting kernel
@@ -2565,17 +2824,17 @@ void CodeGen_OneAPI_Dev::CodeGen_OneAPI_C::add_kernel(Stmt s,
 
 
         // Undef all the buffer address spaces, in case they're different in another kernel.
-        for (size_t i = 0; i < args.size(); i++) {
-            if (args[i].is_buffer) {
-                stream << "#undef " << print_name(args[i].name) << "\n";
-            }
-        }
+        // for (size_t i = 0; i < args.size(); i++) {
+        //     if (args[i].is_buffer) {
+        //         stream << "#undef " << print_name(args[i].name) << "\n";
+        //     }
+        // }
 
 
 
         // Check if we need to copy after device kernel execution
         // Place a device->host is required after kernel execution
-        if(!loadcheker.stores_to_memory && storechecker.stores_to_memory){
+        if(!loadcheker.stores_to_memory && storechecker.stores_to_memory && false){
             for (size_t i = 0; i < args.size(); i++) {
                 if (args[i].is_buffer) {
                     // Wait for any kernels that were executing before to finish before doing a copy from device->host
@@ -2601,7 +2860,7 @@ void CodeGen_OneAPI_Dev::CodeGen_OneAPI_C::add_kernel(Stmt s,
         }
 
 
-        indent -= 2;
+        // indent -= 2;
         return;
     }
 
@@ -2783,261 +3042,1576 @@ void CodeGen_OneAPI_Dev::CodeGen_OneAPI_C::add_kernel(Stmt s,
 
 }
 
-
+// (TODO) Remove
 // Creates the wrapper function around all the host/device code
-std::string CodeGen_OneAPI_Dev::CodeGen_OneAPI_C::compile_oneapi_lower(const LoweredFunc &f, std::string str){
-    // Wrapp existing q_device submit kernel code into a function
-    // See void CodeGen_C::compile(const LoweredFunc &f) and
-    //     void CodeGen_C::compile(const Module &input) for similar implementation
+// std::string CodeGen_OneAPI_Dev::CodeGen_OneAPI_C::compile_oneapi_lower(const LoweredFunc &f, std::string str){
+    // // Wrapp existing q_device submit kernel code into a function
+    // // See void CodeGen_C::compile(const LoweredFunc &f) and
+    // //     void CodeGen_C::compile(const Module &input) for similar implementation
 
-    std::ostringstream function_top;
-    std::ostringstream function_btm;
+    // std::ostringstream function_top;
+    // std::ostringstream function_btm;
 
-    function_top << "\n\n";
+    // function_top << "\n\n";
 
-    const std::vector<LoweredArgument> &args = f.args;
+    // const std::vector<LoweredArgument> &args = f.args;
 
-    std::vector<std::string> namespaces;
-    std::string simple_name = extract_namespaces(f.name, namespaces);
+    // std::vector<std::string> namespaces;
+    // std::string simple_name = extract_namespaces(f.name, namespaces);
 
-    // Assuming C++ & compiling with Target::CPlusPlusNameMangling. No need to check for is_c_plus_plus_interface()
-    if (!namespaces.empty()) {
-        for (const auto &ns : namespaces) {
-            function_top << "namespace " << ns << " {\n";
-        }
-        function_top << "\n";
-    }
+    // // Assuming C++ & compiling with Target::CPlusPlusNameMangling. No need to check for is_c_plus_plus_interface()
+    // if (!namespaces.empty()) {
+    //     for (const auto &ns : namespaces) {
+    //         function_top << "namespace " << ns << " {\n";
+    //     }
+    //     function_top << "\n";
+    // }
 
-    // Emit the function prototype
-    if (f.linkage == LinkageType::Internal) {
-        // If the function isn't public, mark it static.
-        function_top << "static ";
-    }
+    // // Emit the function prototype
+    // if (f.linkage == LinkageType::Internal) {
+    //     // If the function isn't public, mark it static.
+    //     function_top << "static ";
+    // }
 
-    // function wrapper for device queue tasks
-    function_top << "double " << simple_name << "(";
+    // // function wrapper for device queue tasks
+    // function_top << "double " << simple_name << "(";
 
-    // Print the deviceSelector as first input
-    function_top << "const sycl::device_selector &deviceSelector";
-    // Print arguments
-    std::vector<LoweredArgument> buffer_input_args;
-    {
-        if( args.size() > 0){ function_top << ", "; }
-        for (size_t i = 0; i < args.size(); i++) {
-            if (i == 0){ function_top << get_indent(); }
-            if(!args[i].is_buffer()) {
-                function_top << print_type(args[i].type, AppendSpace)
-                    << print_name(args[i].name);
-            } else {
-                buffer_input_args.push_back( args[i] );
-                function_top << " Halide::Runtime::Buffer<" << print_type(args[i].type) << "," << (int)args[i].dimensions << "> *" << print_halide_buffer_name(args[i].name) ;
-            }
-            if (i < args.size() - 1) function_top << ", ";
-        }
-        function_top << ") {\n";
-    }
-    indent += 2;
-
-
-
-    // Define dimentions of input buffers
-    {
-        function_top << "\n\n";
-        function_top << get_indent() << "std::cout << \"// define dimentions of input buffers\\n\";\n";
-        for(size_t i = 0; i < buffer_input_args.size(); i++){
-            size_t dim = (size_t)buffer_input_args[i].dimensions;
-            for(size_t j = 0; j < dim; j++){
-                // Define each halide runtime buffer's stride, extend, & min
-                function_top << get_indent() << "const int " << print_name(buffer_input_args[i].name) << "_stride_"<< j <<" = " << print_halide_buffer_name(buffer_input_args[i].name) << "->raw_buffer()->dim[" << j << "].stride;\n"
-                            << get_indent() << "const int " << print_name(buffer_input_args[i].name) << "_min_"<< j <<" = " << print_halide_buffer_name(buffer_input_args[i].name) << "->raw_buffer()->dim[" << j << "].min;\n"
-                            << get_indent() << "const int " << print_name(buffer_input_args[i].name) << "_extent_"<< j <<" = " << print_halide_buffer_name(buffer_input_args[i].name) <<  "->raw_buffer()->dim[" << j << "].extent;\n";
-            }
-        }
-    }
-
-
-    // Create device queue for each of the kernels
-    // (NOTE) kernel_args is a class member that records what kernels have been added
-    {
-        function_top << "\n\n" << get_indent() << "std::cout << \"// creating device queues\\n\";\n";
-        function_top << get_indent() << "sycl::queue q_host( sycl::host_selector{}, dpc_common::exception_handler, sycl::property::queue::enable_profiling());\n";
-        function_top << get_indent() << "sycl::queue q_device(deviceSelector, dpc_common::exception_handler, sycl::property::queue::enable_profiling() );\n";
-        function_top << get_indent() << "std::cout << \"//\\tHost: \" << q_host.get_device().get_info< sycl::info::device::name>() << \"\\n\";\n";
-        function_top << get_indent() << "std::cout << \"//\\tDevice: \" << q_device.get_device().get_info< sycl::info::device::name>() << \"\\n\";\n";
-        function_top << get_indent() << "sycl::device dev = q_device.get_device();\n";
-        for(size_t i = 0; i < kernel_args.size(); i++){
-            Stmt s =  std::get<0>( kernel_args[i] );
-            std::string k_name =  std::get<1>( kernel_args[i] );
-            // std::vector<DeviceArgument> = kernel_args[i].get<2>;
-
-            // Check that it is a device kernel
-            IsRunOnDevice device_run_checker;
-            s.accept(&device_run_checker);
-            // Emmit Host Code
-            if(device_run_checker.is_run_on_device){
-                function_top << get_indent() << "sycl::queue q_" << k_name 
-                            << "(dev, dpc_common::exception_handler, {sycl::property::queue::enable_profiling(), sycl::property::queue::in_order()} );\n";
-            }
-        }
-    }
+    // // Print the deviceSelector as first input
+    // function_top << "const sycl::device_selector &deviceSelector";
+    // // Print arguments
+    // std::vector<LoweredArgument> buffer_input_args;
+    // {
+    //     if( args.size() > 0){ function_top << ", "; }
+    //     for (size_t i = 0; i < args.size(); i++) {
+    //         if (i == 0){ function_top << get_indent(); }
+    //         if(!args[i].is_buffer()) {
+    //             function_top << print_type(args[i].type, AppendSpace)
+    //                 << print_name(args[i].name);
+    //         } else {
+    //             buffer_input_args.push_back( args[i] );
+    //             function_top << " Halide::Runtime::Buffer<" << print_type(args[i].type) << "," << (int)args[i].dimensions << "> *" << print_halide_buffer_name(args[i].name) ;
+    //         }
+    //         if (i < args.size() - 1) function_top << ", ";
+    //     }
+    //     function_top << ") {\n";
+    // }
+    // indent += 2;
 
 
 
+    // // Define dimentions of input buffers
+    // {
+    //     function_top << "\n\n";
+    //     function_top << get_indent() << "std::cout << \"// define dimentions of input buffers\\n\";\n";
+    //     for(size_t i = 0; i < buffer_input_args.size(); i++){
+    //         size_t dim = (size_t)buffer_input_args[i].dimensions;
+    //         for(size_t j = 0; j < dim; j++){
+    //             // Define each halide runtime buffer's stride, extend, & min
+    //             function_top << get_indent() << "const int " << print_name(buffer_input_args[i].name) << "_stride_"<< j <<" = " << print_halide_buffer_name(buffer_input_args[i].name) << "->raw_buffer()->dim[" << j << "].stride;\n"
+    //                         << get_indent() << "const int " << print_name(buffer_input_args[i].name) << "_min_"<< j <<" = " << print_halide_buffer_name(buffer_input_args[i].name) << "->raw_buffer()->dim[" << j << "].min;\n"
+    //                         << get_indent() << "const int " << print_name(buffer_input_args[i].name) << "_extent_"<< j <<" = " << print_halide_buffer_name(buffer_input_args[i].name) <<  "->raw_buffer()->dim[" << j << "].extent;\n";
+    //         }
+    //     }
+    // }
 
-    // Allocade Deivce & Host memory
-    std::set<std::string> defined_pointers; // contains all defined pointers to be freed at the end
-    std::set<std::string> sylc_pointers;    // constins all created sycl malloc pointer names
-    std::set<std::string> std_pointers;
-    {
-        function_top << "\n\n";
-        function_top << get_indent() << "std::cout << \"// Allocating memory\\n\";\n";
-        // for(size_t i = 0, j = 0, i < buffer_input_args.size() && j < buffer_args.size(); i++, j++ ){
-        //     std::string halide_buffer_arg = print_halide_buffer_name( buffer_input_args[i].name );
-        //     std::string kernel_buffer_arg = print_name(buffer_args[i].name); 
-        // }
 
-        // buffer_input_args are from the generall wrapper
-        // buffer_args are from the kernels
+    // // Create device queue for each of the kernels
+    // // (NOTE) kernel_args is a class member that records what kernels have been added
+    // {
+    //     function_top << "\n\n" << get_indent() << "std::cout << \"// creating device queues\\n\";\n";
+    //     function_top << get_indent() << "sycl::queue q_host( sycl::host_selector{}, dpc_common::exception_handler, sycl::property::queue::enable_profiling());\n";
+    //     function_top << get_indent() << "sycl::queue q_device(deviceSelector, dpc_common::exception_handler, sycl::property::queue::enable_profiling() );\n";
+    //     function_top << get_indent() << "std::cout << \"//\\tHost: \" << q_host.get_device().get_info< sycl::info::device::name>() << \"\\n\";\n";
+    //     function_top << get_indent() << "std::cout << \"//\\tDevice: \" << q_device.get_device().get_info< sycl::info::device::name>() << \"\\n\";\n";
+    //     function_top << get_indent() << "sycl::device dev = q_device.get_device();\n";
+    //     for(size_t i = 0; i < kernel_args.size(); i++){
+    //         Stmt s =  std::get<0>( kernel_args[i] );
+    //         std::string k_name =  std::get<1>( kernel_args[i] );
+    //         // std::vector<DeviceArgument> = kernel_args[i].get<2>;
 
-        // define the neccessary host gerneral pointers 
-        // e.g. T* <name>_host = <Name>_halide_buffer->begin();
-        for(size_t i = 0, j = 0; i < buffer_input_args.size() && j < buffer_args.size(); i++, j++ ){
-            std::string halide_buffer_arg = print_halide_buffer_name( buffer_input_args[i].name );
-            function_top << get_indent() << print_type(buffer_input_args[i].type) << " *" << print_name(buffer_input_args[i].name)
-                            << "_host = " << print_halide_buffer_name(buffer_input_args[i].name) << "->begin();\n";  
-            function_top << get_indent() << print_type(buffer_input_args[i].type) << " *" << print_name(buffer_input_args[i].name)
-                        << "_device = (" << print_type(buffer_input_args[i].type) << "*)sycl::malloc_device("
-                        <<  print_halide_buffer_name(buffer_input_args[i].name) << "->size_in_bytes(), q_device);\n";
-            defined_pointers.insert( print_name(buffer_input_args[i].name) + "_host" );
-            defined_pointers.insert( print_name(buffer_input_args[i].name) + "_device" );
-            sylc_pointers.insert( print_name(buffer_input_args[i].name) + "_device" );
-        }
+    //         // Check that it is a device kernel
+    //         IsRunOnDevice device_run_checker;
+    //         s.accept(&device_run_checker);
+    //         // Emmit Host Code
+    //         if(device_run_checker.is_run_on_device){
+    //             function_top << get_indent() << "sycl::queue q_" << k_name 
+    //                         << "(dev, dpc_common::exception_handler, {sycl::property::queue::enable_profiling(), sycl::property::queue::in_order()} );\n";
+    //         }
+    //     }
+    // }
 
-        function_top << "\n\n";
-        // define the necessary device pointers
-        for(size_t i = 0; i < buffer_args.size(); i++){
-            std::string ptr_base = print_name( buffer_args[i].name );
-            std::vector<std::string> ptr_vec{ ptr_base + "_device", ptr_base + "_host" };
-            for(size_t k = 0; k < ptr_vec.size(); k++){
-                std::string curr_ptr = ptr_vec[k];
-                if( (defined_pointers.find(curr_ptr) == defined_pointers.end()) ){
 
-                    // find the matching input buffer if you can either get the size for the malloc or 
-                    int input_buffer_index = -1;
-                    for(size_t j = 0; j < buffer_input_args.size(); j++){
-                        if( buffer_input_args[j].name.find_last_of(ptr_base) != std::string::npos ){
-                            input_buffer_index = (int)j;
-                            break;
-                        }
-                    }
 
-                    // write the pointer
-                    if( input_buffer_index != -1){
-                        function_top << get_indent() << "// " << curr_ptr << " derived from " << print_halide_buffer_name(buffer_input_args[input_buffer_index].name) << "\n";
-                        if( k == 0 ){ // Device Malloc
-                            function_top << get_indent() << print_type(buffer_input_args[input_buffer_index].type) << " *" << curr_ptr
-                                        << " = (" << print_type(buffer_input_args[input_buffer_index].type)  << "*)sycl::malloc_device("
-                                        <<  print_halide_buffer_name(buffer_input_args[input_buffer_index].name) << "->size_in_bytes(), q_device);\n";
-                            sylc_pointers.insert( curr_ptr );
-                        } else { // Host Malloc
-                            function_top << get_indent() << print_type(buffer_input_args[input_buffer_index].type) << " *" << curr_ptr
-                                        << " = (" << print_type(buffer_input_args[input_buffer_index].type) << "*)std::malloc("
-                                        <<  print_halide_buffer_name(buffer_input_args[input_buffer_index].name) << "->size_in_bytes() );\n";
-                            function_top << get_indent() << "// " << ptr_base << "_size derived from " << print_halide_buffer_name(buffer_input_args[input_buffer_index].name) << "\n";
-                            function_top << get_indent() << "size_t " << ptr_base << "_size = " << print_halide_buffer_name(buffer_input_args[input_buffer_index].name) << "->size_in_bytes();\n";
-                            std_pointers.insert( curr_ptr );
-                        }
-                        defined_pointers.insert( curr_ptr );
-                    } else {
-                        // Throw a user error when we are unable to figure out the memory
-                        user_assert(false) << "unable to define memory `" << curr_ptr << "`\n";
-                    }
+
+    // // Allocade Deivce & Host memory
+    // std::set<std::string> defined_pointers; // contains all defined pointers to be freed at the end
+    // std::set<std::string> sylc_pointers;    // constins all created sycl malloc pointer names
+    // std::set<std::string> std_pointers;
+    // {
+    //     function_top << "\n\n";
+    //     function_top << get_indent() << "std::cout << \"// Allocating memory\\n\";\n";
+    //     // for(size_t i = 0, j = 0, i < buffer_input_args.size() && j < buffer_args.size(); i++, j++ ){
+    //     //     std::string halide_buffer_arg = print_halide_buffer_name( buffer_input_args[i].name );
+    //     //     std::string kernel_buffer_arg = print_name(buffer_args[i].name); 
+    //     // }
+
+    //     // buffer_input_args are from the generall wrapper
+    //     // buffer_args are from the kernels
+
+    //     // define the neccessary host gerneral pointers 
+    //     // e.g. T* <name>_host = <Name>_halide_buffer->begin();
+    //     for(size_t i = 0, j = 0; i < buffer_input_args.size() && j < buffer_args.size(); i++, j++ ){
+    //         std::string halide_buffer_arg = print_halide_buffer_name( buffer_input_args[i].name );
+    //         function_top << get_indent() << print_type(buffer_input_args[i].type) << " *" << print_name(buffer_input_args[i].name)
+    //                         << "_host = " << print_halide_buffer_name(buffer_input_args[i].name) << "->begin();\n";  
+    //         function_top << get_indent() << print_type(buffer_input_args[i].type) << " *" << print_name(buffer_input_args[i].name)
+    //                     << "_device = (" << print_type(buffer_input_args[i].type) << "*)sycl::malloc_device("
+    //                     <<  print_halide_buffer_name(buffer_input_args[i].name) << "->size_in_bytes(), q_device);\n";
+    //         defined_pointers.insert( print_name(buffer_input_args[i].name) + "_host" );
+    //         defined_pointers.insert( print_name(buffer_input_args[i].name) + "_device" );
+    //         sylc_pointers.insert( print_name(buffer_input_args[i].name) + "_device" );
+    //     }
+
+    //     function_top << "\n\n";
+    //     // define the necessary device pointers
+    //     for(size_t i = 0; i < buffer_args.size(); i++){
+    //         std::string ptr_base = print_name( buffer_args[i].name );
+    //         std::vector<std::string> ptr_vec{ ptr_base + "_device", ptr_base + "_host" };
+    //         for(size_t k = 0; k < ptr_vec.size(); k++){
+    //             std::string curr_ptr = ptr_vec[k];
+    //             if( (defined_pointers.find(curr_ptr) == defined_pointers.end()) ){
+
+    //                 // find the matching input buffer if you can either get the size for the malloc or 
+    //                 int input_buffer_index = -1;
+    //                 for(size_t j = 0; j < buffer_input_args.size(); j++){
+    //                     if( buffer_input_args[j].name.find_last_of(ptr_base) != std::string::npos ){
+    //                         input_buffer_index = (int)j;
+    //                         break;
+    //                     }
+    //                 }
+
+    //                 // write the pointer
+    //                 if( input_buffer_index != -1){
+    //                     function_top << get_indent() << "// " << curr_ptr << " derived from " << print_halide_buffer_name(buffer_input_args[input_buffer_index].name) << "\n";
+    //                     if( k == 0 ){ // Device Malloc
+    //                         function_top << get_indent() << print_type(buffer_input_args[input_buffer_index].type) << " *" << curr_ptr
+    //                                     << " = (" << print_type(buffer_input_args[input_buffer_index].type)  << "*)sycl::malloc_device("
+    //                                     <<  print_halide_buffer_name(buffer_input_args[input_buffer_index].name) << "->size_in_bytes(), q_device);\n";
+    //                         sylc_pointers.insert( curr_ptr );
+    //                     } else { // Host Malloc
+    //                         function_top << get_indent() << print_type(buffer_input_args[input_buffer_index].type) << " *" << curr_ptr
+    //                                     << " = (" << print_type(buffer_input_args[input_buffer_index].type) << "*)std::malloc("
+    //                                     <<  print_halide_buffer_name(buffer_input_args[input_buffer_index].name) << "->size_in_bytes() );\n";
+    //                         function_top << get_indent() << "// " << ptr_base << "_size derived from " << print_halide_buffer_name(buffer_input_args[input_buffer_index].name) << "\n";
+    //                         function_top << get_indent() << "size_t " << ptr_base << "_size = " << print_halide_buffer_name(buffer_input_args[input_buffer_index].name) << "->size_in_bytes();\n";
+    //                         std_pointers.insert( curr_ptr );
+    //                     }
+    //                     defined_pointers.insert( curr_ptr );
+    //                 } else {
+    //                     // Throw a user error when we are unable to figure out the memory
+    //                     user_assert(false) << "unable to define memory `" << curr_ptr << "`\n";
+    //                 }
+    //             }
+
+    //         }
+    //     }
+    // }
+
+
+
+    // // Create sycl events vector to store all the input
+    // function_top << "\n\n";
+    // function_top << get_indent() << "std::vector<sycl::event> oneapi_kernel_events;\n";
+    // function_top << get_indent() << "int oneapi_kernel_events_index = 0;\n";
+
+
+    // // Free all defined sycl memory allocations
+    // {
+    //     std::set<std::string>::iterator it = sylc_pointers.begin();
+    //     while (it != sylc_pointers.end())
+    //     {
+    //         function_btm << get_indent() <<  "sycl::free( " << (*it) << ", q_device);\n";
+    //         it++;
+    //     }
+    //     it = std_pointers.begin();
+    //     while (it != std_pointers.end())
+    //     {
+    //         function_btm << get_indent() <<  "std::free( " << (*it) << ");\n";
+    //         it++;
+    //     }
+    // }
+
+    // // Get and return timing metrics
+    // {
+    //     function_btm << "\n\n";
+    //     function_btm << get_indent() << "std::cout << \"// return the kernel execution time in nanoseconds\\n\";\n";
+    //     function_btm << ""
+    //                 << get_indent() << "if(oneapi_kernel_events.size() > 0){\n"
+    //                 << get_indent() << "	double k_earliest_start_time = oneapi_kernel_events.at(0).get_profiling_info<sycl::info::event_profiling::command_start>();\n"
+    //                 << get_indent() << "	double k_latest_end_time = oneapi_kernel_events.at(0).get_profiling_info<sycl::info::event_profiling::command_end>();\n"
+    //                 << get_indent() << "	for (unsigned i = 1; i < oneapi_kernel_events.size(); i++) {\n"
+    //                 << get_indent() << "	  double tmp_start = oneapi_kernel_events.at(i).get_profiling_info<sycl::info::event_profiling::command_start>();\n"
+    //                 << get_indent() << "	  double tmp_end = oneapi_kernel_events.at(i).get_profiling_info<sycl::info::event_profiling::command_end>();\n"
+    //                 << get_indent() << "	  if (tmp_start < k_earliest_start_time) {\n"
+    //                 << get_indent() << "         k_earliest_start_time = tmp_start;\n"
+    //                 << get_indent() << "	  }\n"
+    //                 << get_indent() << "	  if (tmp_end > k_latest_end_time) {\n"
+    //                 << get_indent() << "         k_latest_end_time = tmp_end;\n"
+    //                 << get_indent() << "	  }\n"
+    //                 << get_indent() << "	}\n"
+    //                 << get_indent() << "	// Get time in ns\n"
+    //                 << get_indent() << "	double events_time = (k_latest_end_time - k_earliest_start_time);\n"
+    //                 << get_indent() << "	return events_time;\n"
+    //                 << get_indent() << "}\n";
+    //     function_btm << get_indent() << "return (double)0;\n"
+    //                 << "}\n";
+    // }
+
+    // // close out any namespaces used
+    // {
+    //     if (!namespaces.empty()) {
+    //         function_btm << "\n";
+    //         for (size_t i = namespaces.size(); i > 0; i--) {
+    //             function_btm << "}  // namespace " << namespaces[i - 1] << "\n";
+    //         }
+    //         function_btm << "\n";
+    //     }
+    // }
+
+    // indent -= 2;
+
+
+
+    // // Insert the global values neededcd
+    // size_t top_pos = str.find(OneAPIDeclareChannels) + OneAPIDeclareChannels.size();
+    // if(top_pos == std::string::npos) top_pos = 0;
+    // str.insert( top_pos , function_top.str() );
+
+    // // Append the function to the end of all of this
+    // // str.append( function_top.str() );
+    // str.append( function_btm.str() );
+
+
+    // return str;
+// }
+
+
+////////////////////////////////////////////////////////////////////////////////////
+
+// CodeGen_OneAPI_Dev's MangledNames copied from CodeGen_LLVM.cpp
+namespace {
+
+    struct MangledNames {
+        string simple_name;
+        string extern_name;
+        string argv_name;
+        string metadata_name;
+    };
+
+    MangledNames get_mangled_names(const std::string &name,
+                                LinkageType linkage,
+                                NameMangling mangling,
+                                const std::vector<LoweredArgument> &args,
+                                const Target &target) {
+        std::vector<std::string> namespaces;
+        MangledNames names;
+        names.simple_name = extract_namespaces(name, namespaces);
+        names.extern_name = names.simple_name;
+        names.argv_name = names.simple_name + "_argv";
+        names.metadata_name = names.simple_name + "_metadata";
+
+        if (linkage != LinkageType::Internal &&
+            ((mangling == NameMangling::Default &&
+            target.has_feature(Target::CPlusPlusMangling)) ||
+            mangling == NameMangling::CPlusPlus)) {
+            std::vector<ExternFuncArgument> mangle_args;
+            for (const auto &arg : args) {
+                if (arg.kind == Argument::InputScalar) {
+                    mangle_args.push_back(ExternFuncArgument(make_zero(arg.type)));
+                } else if (arg.kind == Argument::InputBuffer ||
+                        arg.kind == Argument::OutputBuffer) {
+                    mangle_args.push_back(ExternFuncArgument(Buffer<>()));
                 }
-
             }
+            names.extern_name = cplusplus_function_mangled_name(names.simple_name, namespaces, type_of<int>(), mangle_args, target);
+            halide_handle_cplusplus_type inner_type(halide_cplusplus_type_name(halide_cplusplus_type_name::Simple, "void"), {}, {},
+                                                    {halide_handle_cplusplus_type::Pointer, halide_handle_cplusplus_type::Pointer});
+            Type void_star_star(Handle(1, &inner_type));
+            names.argv_name = cplusplus_function_mangled_name(names.argv_name, namespaces, type_of<int>(), {ExternFuncArgument(make_zero(void_star_star))}, target);
+            names.metadata_name = cplusplus_function_mangled_name(names.metadata_name, namespaces, type_of<const struct halide_filter_metadata_t *>(), {}, target);
         }
+        return names;
     }
 
+    MangledNames get_mangled_names(const LoweredFunc &f, const Target &target) {
+        return get_mangled_names(f.name, f.linkage, f.name_mangling, f.args, target);
+    }
+
+}  // namespace
 
 
-    // Create sycl events vector to store all the input
-    function_top << "\n\n";
-    function_top << get_indent() << "std::vector<sycl::event> oneapi_kernel_events;\n";
-    function_top << get_indent() << "int oneapi_kernel_events_index = 0;\n";
+std::string CodeGen_OneAPI_Dev::compile_oneapi(const Module &input){
+    // Initialize the module
+    init_module();
 
+    std::ostringstream EmitOneAPIFunc_stream;
+    EmitOneAPIFunc em_visitor(&one_clc, EmitOneAPIFunc_stream, one_clc.get_target() ); 
 
-    // Free all defined sycl memory allocations
+    // OneAPI compile_to_devsrc() implementation
+    // see CodeGen_LLVM::compile_to_devsrc(const Module &input) for refrence
+
+    // (TODO) Remove function
+    // compile_oneapi_devsrc(input);
+
+    // (NOTE) implementation is modeled after CodeGen_LLVM::compile_to_devsrc(const Module &input);
     {
-        std::set<std::string>::iterator it = sylc_pointers.begin();
-        while (it != sylc_pointers.end())
-        {
-            function_btm << get_indent() <<  "sycl::free( " << (*it) << ", q_device);\n";
-            it++;
-        }
-        it = std_pointers.begin();
-        while (it != std_pointers.end())
-        {
-            function_btm << get_indent() <<  "std::free( " << (*it) << ");\n";
-            it++;
-        }
-    }
+        // init_codegen(input.name(), input.any_strict_float()); // Not Used 
+        // internal_assert(module && context && builder) << "The CodeGen_LLVM subclass should have made an initial module before calling CodeGen_LLVM::compile\n";
+        // add_external_code(input);
 
-    // Get and return timing metrics
-    {
-        function_btm << "\n\n";
-        function_btm << get_indent() << "std::cout << \"// return the kernel execution time in nanoseconds\\n\";\n";
-        function_btm << ""
-                    << get_indent() << "if(oneapi_kernel_events.size() > 0){\n"
-                    << get_indent() << "	double k_earliest_start_time = oneapi_kernel_events.at(0).get_profiling_info<sycl::info::event_profiling::command_start>();\n"
-                    << get_indent() << "	double k_latest_end_time = oneapi_kernel_events.at(0).get_profiling_info<sycl::info::event_profiling::command_end>();\n"
-                    << get_indent() << "	for (unsigned i = 1; i < oneapi_kernel_events.size(); i++) {\n"
-                    << get_indent() << "	  double tmp_start = oneapi_kernel_events.at(i).get_profiling_info<sycl::info::event_profiling::command_start>();\n"
-                    << get_indent() << "	  double tmp_end = oneapi_kernel_events.at(i).get_profiling_info<sycl::info::event_profiling::command_end>();\n"
-                    << get_indent() << "	  if (tmp_start < k_earliest_start_time) {\n"
-                    << get_indent() << "         k_earliest_start_time = tmp_start;\n"
-                    << get_indent() << "	  }\n"
-                    << get_indent() << "	  if (tmp_end > k_latest_end_time) {\n"
-                    << get_indent() << "         k_latest_end_time = tmp_end;\n"
-                    << get_indent() << "	  }\n"
-                    << get_indent() << "	}\n"
-                    << get_indent() << "	// Get time in ns\n"
-                    << get_indent() << "	double events_time = (k_latest_end_time - k_earliest_start_time);\n"
-                    << get_indent() << "	return events_time;\n"
-                    << get_indent() << "}\n";
-        function_btm << get_indent() << "return (double)0;\n"
-                    << "}\n";
-    }
-
-    // close out any namespaces used
-    {
-        if (!namespaces.empty()) {
-            function_btm << "\n";
-            for (size_t i = namespaces.size(); i > 0; i--) {
-                function_btm << "}  // namespace " << namespaces[i - 1] << "\n";
-            }
-            function_btm << "\n";
+        // for (const auto &b : input.buffers()) {
+        if (input.buffers().size() > 0) {
+            // compile_buffer(b);
+            // compile_oneapi_buffer(b);
+            internal_assert(false) << "OneAPI has no implementation to compile buffers at this time.\n";
+        }
+        for (const auto &f : input.functions()) {
+            // const auto names = get_mangled_names(f, one_clc.get_target() );
+            // compile_func(f, names.simple_name, names.extern_name);
+            // compile_oneapi_func(f, names.simple_name, names.extern_name);
+            em_visitor.print_global_data_structures_before_kernel(&f.body);
+            em_visitor.gather_shift_regs_allocates(&f.body);
+            em_visitor.compile(f);
         }
     }
 
-    indent -= 2;
 
-
-
-    // Insert the global values neededcd
-    size_t top_pos = str.find(OneAPIDeclareChannels) + OneAPIDeclareChannels.size();
-    if(top_pos == std::string::npos) top_pos = 0;
-    str.insert( top_pos , function_top.str() );
-
-    // Append the function to the end of all of this
-    // str.append( function_top.str() );
-    str.append( function_btm.str() );
-
-
+    std::string str = em_visitor.get_str() + "\n";
+    // std::string str = src_stream_oneapi.str();
     return str;
 }
 
 
 
+
+
+// (TODO) Remove as it is a bit short to be a function and is only called by compile_oneapi()
+void CodeGen_OneAPI_Dev::compile_oneapi_devsrc(const Module &input){
+    // (NOTE) implementation is modeled after CodeGen_LLVM::compile_to_devsrc(const Module &input);
+
+    // init_codegen(input.name(), input.any_strict_float()); // Not Used 
+    // internal_assert(module && context && builder) << "The CodeGen_LLVM subclass should have made an initial module before calling CodeGen_LLVM::compile\n";
+    // add_external_code(input);
+
+    // for (const auto &b : input.buffers()) {
+    if (input.buffers().size() > 0) {        
+        // compile_buffer(b);
+        // compile_oneapi_buffer(b);
+        internal_assert(false) << "OneAPI has no implementation to compile buffers at this time.\n";
+    }
+    for (const auto &f : input.functions()) {
+        const auto names = get_mangled_names(f, one_clc.get_target() );
+        // compile_func(f, names.simple_name, names.extern_name);
+        compile_oneapi_func(f, names.simple_name, names.extern_name);
+    }
+}
+
+// (TODO) Implement into CodeGen_OneAPI_C as overriding "virtual void CodeGen_C::compile(const LoweredFunc &func);""
+void CodeGen_OneAPI_Dev::compile_oneapi_func(const LoweredFunc &f, const std::string &simple_name, const std::string &extern_name){
+    //(NOTE) Mimicing the implementaiton found in CodeGen_GPU_Host<CodeGen_CPU>::compile_func()
+
+    src_stream_oneapi << "\n\n// CodeGen_OneAPI_Dev::compile_oneapi_func() START \n";
+
+    // FPGA only: A device kernel always starts with a set of realizes of channels.
+    // These channels are the output channels of the kernel. Here we declare all the
+    // compiler-generated vector and struct types in the kernel, and the channels.
+    print_global_data_structures_before_kernel(&f.body);
+
+    // Gather shift registers' allocations.
+    gather_shift_regs_allocates(&f.body);
+
+    std::ostringstream EmitOneAPIFunc_stream;
+    EmitOneAPIFunc em_visitor(&one_clc, EmitOneAPIFunc_stream, one_clc.get_target() ); 
+    em_visitor.gather_shift_regs_allocates(&f.body);
+
+    // (TODO)
+    // Call the base implementation to create the function.
+    // In OneAPI Case, That usually means calling the following chain
+    //    CodeGen_GPU_Host<CodeGen_X86> -> 
+    //    CodeGen_X86::compile_func() ->
+    //    class CodeGen_X86 : public CodeGen_Posix -> 
+    //    class CodeGen_Posix : public CodeGen_LLVM ->
+    //    CodeGen_LLVM::compile_func()
+    // CodeGen_CPU::compile_func(f, simple_name, extern_name);
+
+    // In OneAPI Case to follow the C implementaiton for DPC++
+    // follow the CodeGen_C.cpp implementation to compile a func
+    // i.e. void CodeGen_C::compile(const LoweredFunc &f) 
+    {
+        // Generate the function declaration and argument unpacking code.
+        // begin_func(f);
+
+        // If building with MSAN, ensure that calls to halide_msan_annotate_buffer_is_initialized()
+        // happen for every output buffer if the function succeeds.
+        // if (f.linkage != LinkageType::Internal &&
+        //     target.has_feature(Target::MSAN)) {
+        //     llvm::Function *annotate_buffer_fn =
+        //         module->getFunction("halide_msan_annotate_buffer_is_initialized_as_destructor");
+        //     internal_assert(annotate_buffer_fn)
+        //         << "Could not find halide_msan_annotate_buffer_is_initialized_as_destructor in module\n";
+        //     annotate_buffer_fn->addParamAttr(0, Attribute::NoAlias);
+        //     for (const auto &arg : f.args) {
+        //         if (arg.kind == Argument::OutputBuffer) {
+        //             register_destructor(annotate_buffer_fn, sym_get(arg.name + ".buffer"), OnSuccess);
+        //         }
+        //     }
+        // }
+
+        // Generate the function body.
+        // (TODO) may need to be replaced with print(f.body) when placed into CodeGen_OneAPI_C
+        // f.body.accept(&em_visitor);
+        em_visitor.compile(f);
+
+        // Clean up and return.
+        // end_func(f);
+    }
+
+    // We need to insert code after the existing entry block, so that
+    // the destructor stack slots exist before we do the assertions
+    // involved in initializing gpu kernels.
+
+    // Split the entry block just before its end.
+    // (TODO)
+    // BasicBlock *entry = &function->getEntryBlock();
+    // llvm::Instruction *terminator = entry->getTerminator();
+    // internal_assert(terminator);
+    // BasicBlock *post_entry = entry->splitBasicBlock(terminator);
+
+    // Create some code that does the GPU initialization.
+    // (TODO)
+    // BasicBlock *init_kernels_bb = BasicBlock::Create(*context, "init_kernels", function, post_entry);
+
+    // The entry block should go to the init kernels block instead of
+    // the post entry block.
+    // (TODO)
+    // entry->getTerminator()->eraseFromParent();
+    // builder->SetInsertPoint(entry);
+    // builder->CreateBr(init_kernels_bb);
+
+    // Fill out the init kernels block
+    // (TODO)
+    // builder->SetInsertPoint(init_kernels_bb);
+
+    // f.body.accept(&one_clc);
+    src_stream_oneapi << "\n\n// CodeGen_OneAPI_Dev::compile_oneapi_func() END \n";
+
+    src_stream_oneapi << em_visitor.get_str() << "\n";
+}
+
+// EmitOneAPIFunc
+void CodeGen_OneAPI_Dev::EmitOneAPIFunc::compile(const LoweredFunc &f){
+
+    // (NOTE) Mimicing exection from CodeGen_C.cpp's
+    // "void CodeGen_C::compile(const LoweredFunc &f)"
+
+    // Linkage does not matter as we are making a stand alone file
+    const std::vector<LoweredArgument> &args = f.args;
+
+    have_user_context = false;
+    for (size_t i = 0; i < args.size(); i++) {
+        // TODO: check that its type is void *?
+        have_user_context |= (args[i].name == "__user_context");
+    }
+
+    // OneAPI is compiled wiht DPC++ so we should always be using C++ NameMangling
+    NameMangling name_mangling = f.name_mangling;
+    internal_assert( target.has_feature(Target::CPlusPlusMangling) );
+    if (name_mangling == NameMangling::Default) {
+        name_mangling = NameMangling::CPlusPlus;
+    }
+
+    set_name_mangling_mode(name_mangling);
+
+    std::vector<std::string> namespaces;
+    std::string simple_name = extract_namespaces(f.name, namespaces);
+
+    // Print out namespace begining
+    if (!namespaces.empty()) {
+        for (const auto &ns : namespaces) {
+            stream << "namespace " << ns << " {\n";
+        }
+        stream << "\n";
+    }
+
+    // Emit the function prototype
+    if (f.linkage == LinkageType::Internal) {
+        // If the function isn't public, mark it static.
+        stream << "static ";
+    }
+    
+    // (TODO) Check that HALIDE_FUNCTION_ATTRS is necessary or not
+    // stream << "HALIDE_FUNCTION_ATTRS\n";
+    stream << "double " << simple_name << "(const sycl::device_selector &deviceSelector";
+    if(args.size() > 0) stream << ", ";
+    for (size_t i = 0; i < args.size(); i++) {
+        if (args[i].is_buffer()) {
+            stream << "struct halide_buffer_t *"
+                   << print_name(args[i].name)
+                   << "_buffer";
+        } else {
+            stream << print_type(args[i].type, AppendSpace)
+                   << print_name(args[i].name);
+        }
+
+        if (i < args.size() - 1) stream << ", ";
+    }
+
+
+    // Begin of function implementation
+    stream << ") {\n";
+    indent += 2;
+
+    // Initalize elements for kernel such as sycl event's vector
+    stream << get_indent() << "std::vector<sycl::event> oneapi_kernel_events;\n";
+    stream << get_indent() << "std::cout << \"// creating device queues\\n\";\n";
+    stream << get_indent() << "sycl::queue q_host( sycl::host_selector{}, dpc_common::exception_handler, sycl::property::queue::enable_profiling());\n";
+    stream << get_indent() << "sycl::queue q_device(deviceSelector, dpc_common::exception_handler, sycl::property::queue::enable_profiling() );\n";
+    stream << get_indent() << "std::cout << \"// Host: \" << q_host.get_device().get_info< sycl::info::device::name>() << \"\\n\";\n";
+    stream << get_indent() << "std::cout << \"// Device: \" << q_device.get_device().get_info< sycl::info::device::name>() << \"\\n\";\n";
+    stream << get_indent() << "sycl::device dev = q_device.get_device();\n";
+
+
+    // Emit a local user_context we can pass in all cases, either
+    // aliasing __user_context or nullptr.
+    stream << get_indent() << "void * const _ucon = "
+            << (have_user_context ? "const_cast<void *>(__user_context)" : "nullptr")
+            << ";\n";
+
+    // Emit the body
+    print(f.body);
+
+    // Make sure all kernels are finished
+    stream << get_indent() << "for(unsigned int i = 0; i < oneapi_kernel_events.size(); i++){ oneapi_kernel_events.at(i).wait(); };\n";
+
+
+    // Return execution time of the kernels. 
+    stream << get_indent() << "std::cout << \"// return the kernel execution time in nanoseconds\\n\";\n";
+    stream  << ""
+            << get_indent() << "if(oneapi_kernel_events.size() > 0){\n"
+            << get_indent() << "	double k_earliest_start_time = oneapi_kernel_events.at(0).get_profiling_info<sycl::info::event_profiling::command_start>();\n"
+            << get_indent() << "	double k_latest_end_time = oneapi_kernel_events.at(0).get_profiling_info<sycl::info::event_profiling::command_end>();\n"
+            << get_indent() << "	for (unsigned i = 1; i < oneapi_kernel_events.size(); i++) {\n"
+            << get_indent() << "	  double tmp_start = oneapi_kernel_events.at(i).get_profiling_info<sycl::info::event_profiling::command_start>();\n"
+            << get_indent() << "	  double tmp_end = oneapi_kernel_events.at(i).get_profiling_info<sycl::info::event_profiling::command_end>();\n"
+            << get_indent() << "	  if (tmp_start < k_earliest_start_time) {\n"
+            << get_indent() << "         k_earliest_start_time = tmp_start;\n"
+            << get_indent() << "	  }\n"
+            << get_indent() << "	  if (tmp_end > k_latest_end_time) {\n"
+            << get_indent() << "         k_latest_end_time = tmp_end;\n"
+            << get_indent() << "	  }\n"
+            << get_indent() << "	}\n"
+            << get_indent() << "	// Get time in ns\n"
+            << get_indent() << "	double events_time = (k_latest_end_time - k_earliest_start_time);\n"
+            << get_indent() << "	return events_time;\n"
+            << get_indent() << "}\n";
+    stream  << get_indent() << "return (double)0;\n";
+
+
+
+    indent -= 2;
+    stream << "}\n";
+    // Ending of function implementation
+
+    // (TODO) Check that HALIDE_FUNCTION_ATTRS is necessary or not
+    // if (is_header_or_extern_decl() && f.linkage == LinkageType::ExternalPlusMetadata) {
+    //     // Emit the argv version
+    //     stream << "\nHALIDE_FUNCTION_ATTRS\nint " << simple_name << "_argv(void **args);\n";
+    //     // And also the metadata.
+    //     stream << "\nHALIDE_FUNCTION_ATTRS\nconst struct halide_filter_metadata_t *" << simple_name << "_metadata();\n";
+    // }
+
+    if (!namespaces.empty()) {
+        stream << "\n";
+        for (size_t i = namespaces.size(); i > 0; i--) {
+            stream << "}  // namespace " << namespaces[i - 1] << "\n";
+        }
+        stream << "\n";
+    }
+
+}
+
+
+// EmitOneAPIFunc
+std::string CodeGen_OneAPI_Dev::EmitOneAPIFunc::create_kernel_name(const For *op) {
+    // Remove already useless info from the loop name, so as to get a cleaner kernel name.
+    std::string loop_name = op->name;
+    std::string func_name = extract_first_token(loop_name);
+    std::string kernel_name;
+    {
+        using namespace llvm;
+        kernel_name = unique_name("kernel_" + func_name);
+    }
+
+    // If the kernel writes to memory, append "_WAIT_FINISH" so that the OpenCL runtime knows to wait for this
+    // kernel to finish.
+    // KernelStoresToMemory checker;
+    // op->body.accept(&checker);
+    // if (checker.stores_to_memory) {
+    //     // TOFIX: overlay does not work well with this change of name
+    //     // kernel_name += "_WAIT_FINISH";
+    // }
+
+    for (size_t i = 0; i < kernel_name.size(); i++) {
+        if (!isalnum(kernel_name[i])) {
+            kernel_name[i] = '_';
+        }
+    }
+    return kernel_name;
+}
+
+
+void CodeGen_OneAPI_Dev::EmitOneAPIFunc::create_kernel_wrapper(const std::string &name, std::string q_device_name, const std::vector<DeviceArgument> &args, bool begining, bool is_run_on_device){
+    // (TODO), will need a function wrapper if user wants to ever
+    // use the compile_to_devsrc to generate the kernels alone
+
+
+    if(begining){
+        stream << get_indent() << "// " << name << "\n";
+        stream << get_indent() << "std::cout << \"// kernel " << name << "\\n\";\n";
+
+        // convert any pointers we need to get the device memory allocated
+        for (size_t i = 0; i < args.size(); i++) {
+            auto &arg = args[i];
+            if(arg.is_buffer){
+                if (allocations.contains(arg.name) && is_run_on_device) {
+                    stream << get_indent() << print_name(arg.name) << " = (" << print_type(arg.type) << "*)(((device_handle*) " << print_name(arg.name + ".buffer") << "->device)->mem);\n";
+                } else if (!allocations.contains(arg.name) && is_run_on_device) {
+                    stream << get_indent() << print_type(arg.type) << " *" << print_name(arg.name) << " = (" << print_type(arg.type) << "*)(((device_handle*) " << print_name(arg.name + ".buffer") << "->device)->mem);\n";
+                } else if (allocations.contains(arg.name) && !is_run_on_device) {
+                    stream << get_indent() << print_name(arg.name) << " = (" << print_type(arg.type) << "*)(" << print_name(arg.name + ".buffer") << "->host);\n";
+                } else if (!allocations.contains(arg.name) && !is_run_on_device) {
+                    stream << get_indent() << print_type(arg.type) << " *" << print_name(arg.name) << " = (" << print_type(arg.type) << "*)(" << print_name(arg.name + ".buffer") << "->host);\n";
+                } else {
+                    internal_assert(false) << "OneAPI cannot determin mapping of `" << print_type(arg.type) << "` to `" << print_name(arg.name + ".buffer") << "\n";
+                }
+            }
+
+        }
+
+        if(is_run_on_device){
+            stream << get_indent() << "oneapi_kernel_events.push_back( " << q_device_name << ".submit([&](sycl::handler &h){\n";
+            indent += 2;
+            stream << get_indent() << "h.single_task<class " + name + "_class>([=](){\n";
+            indent += 2;
+        } else {
+            open_scope();
+        }
+
+    } else {
+        if(is_run_on_device){
+            indent -= 2;
+            stream << get_indent() << "}); //  h.single_task " << name + "_class\n";
+            indent -= 2;
+            stream << get_indent() << "}) ); // "<< q_device_name << ".submit\n";
+        } else {
+            close_scope("// kernel_" + name);
+        }
+    }
+}
+
+
+// EmitOneAPIFunc
+void CodeGen_OneAPI_Dev::EmitOneAPIFunc::add_kernel(Stmt s,
+                                                      const string &name,
+                                                      const vector<DeviceArgument> &args) {
+
+
+    currently_inside_kernel = true;
+
+    // OneAPI combines host and device code.
+    // Check if we need to wrapp the Stmt in a q.submit of which type
+    // one implementaiton for host, one for device
+
+    // (TODO) Remove once safe
+    // Store the kernel information for a kernel wrapped function in compile_to_oneapi
+    // Only add device kernels to kernel_args
+    kernel_args.push_back( std::tuple<Stmt, std::string, std::vector<DeviceArgument> >(s,name,args) );
+
+    IsRunOnDevice device_run_checker;
+    s.accept(&device_run_checker);
+
+    std::string queue_name = device_run_checker.is_run_on_device ? "q_device"  : "q_host";
+    debug(2) << "Adding OneAPI kernel " << name << "\n";
+
+
+    // create kernel wrapper top half
+    create_kernel_wrapper(name, queue_name, args, true, device_run_checker.is_run_on_device);
+
+    // Output q.submit kernel code 
+    DeclareArrays da(this);
+    s.accept(&da);
+    stream << da.arrays.str();
+    print(s);
+
+    // create kernel wrapper btm half
+    create_kernel_wrapper(name, queue_name, args, false, device_run_checker.is_run_on_device);
+
+
+    currently_inside_kernel = false;
+    return;
+
+    { // Previous
+        if(!device_run_checker.is_run_on_device){
+            debug(2) << "Adding OneAPI Host kernel " << name << "\n";
+
+            // create kernel wrapper top half
+            create_kernel_wrapper(name, "q_host", args, true, device_run_checker.is_run_on_device);
+
+            // Output q.submit kernel code 
+            DeclareArrays da(this);
+            s.accept(&da);
+            stream << da.arrays.str();
+            print(s);
+            
+            // create kernel wrapper btm half
+            create_kernel_wrapper(name, "q_host", args, false, device_run_checker.is_run_on_device);
+
+        }
+        // Emmit Device Code
+        else {
+            debug(2) << "Adding OneAPI Device kernel " << name << "\n";
+
+            // create kernel wrapper top half
+            create_kernel_wrapper(name, "q_device", args, true, device_run_checker.is_run_on_device);
+
+            // Output q.submit kernel code 
+            DeclareArrays da(this);
+            s.accept(&da);
+            stream << da.arrays.str();
+            print(s);
+
+            // create kernel wrapper btm half
+            create_kernel_wrapper(name, "q_device", args, false, device_run_checker.is_run_on_device);
+
+        }
+    }
+
+
+}
+
+
+
+// EmitOneAPIFunc
+void CodeGen_OneAPI_Dev::EmitOneAPIFunc::visit(const For *loop){
+    debug(3) << "//!!! EmitOneAPIFunc::visit(const For *loop) FOR LOOP NAME << " << loop->name << "\n";
+
+
+    // The currently_inside_kernel is set to true/false inside the 
+    // ::add_kerel() function. This prevennts the CodeGen from adding recursively calling it forever
+    if(currently_inside_kernel){
+        debug(3) << "//!!! EmitOneAPIFunc::visit(const For *loop) FOUND << " << loop->name << "\n";
+        // CodeGen_OneAPI_C::visit(loop); // Coppied // Call parent implementaiton of For* loop to print
+        {
+                if (is_gpu_var(loop->name)) {
+                    internal_assert((loop->for_type == ForType::GPUBlock) ||
+                                    (loop->for_type == ForType::GPUThread))
+                        << "kernel loop must be either gpu block or gpu thread\n";
+                    internal_assert(is_zero(loop->min));
+
+                    stream << get_indent() << print_type(Int(32)) << " " << print_name(loop->name)
+                        << " = " << simt_intrinsic(loop->name) << ";\n";
+
+                    loop->body.accept(this);
+
+                } else if (ends_with(loop->name, ".run_on_device")) {
+                    // The loop just tells the compiler to generate an OpenCL kernel for
+                    // the loop body.
+                    std::string name = extract_first_token(loop->name);
+                    if (shift_regs_allocates.find(name) != shift_regs_allocates.end()) {
+                        for (size_t i = 0; i < shift_regs_allocates[name].size(); i++) {
+                            stream << get_indent() << shift_regs_allocates[name][i];
+                        }
+                    }
+                    name += "_temp";
+                    if (shift_regs_allocates.find(name) != shift_regs_allocates.end()) {
+                        for (size_t i = 0; i < shift_regs_allocates[name].size(); i++) {
+                            stream << get_indent() << shift_regs_allocates[name][i];
+                        }
+                    }
+                    loop->body.accept(this);
+                } else if(ends_with(loop->name, ".infinite")){
+                    stream << get_indent() << "while(1)\n";
+                    open_scope();
+                    loop->body.accept(this);
+                    close_scope("while "+print_name(loop->name));
+                } else if (ends_with(loop->name,"remove")){
+                    loop->body.accept(this);
+                } else if (loop->for_type == ForType::DelayUnroll) {
+                    Expr extent = simplify(loop->extent);
+                    Stmt body = loop->body;
+                    const IntImm *e = extent.as<IntImm>();
+                    user_assert(e)
+                            << "Can only unroll for loops over a constant extent.\n"
+                            << "Loop over " << loop->name << " has extent " << extent << ".\n";
+                    if (e->value == 1) {
+                        user_warning << "Warning: Unrolling a for loop of extent 1: " << loop->name << "\n";
+                    }
+
+                    Stmt iters;
+                    for (int i = 0; i < e->value; i++) {
+                        Stmt iter = simplify(substitute(loop->name, loop->min + i, body));
+                        iter.accept(this);
+                    }
+                } else if (loop->for_type == ForType::PragmaUnrolled) {
+                    stream << get_indent() << "#pragma unroll\n";
+                    CodeGen_C::visit(loop);
+                } else {
+                    /*
+                    If not explicitly define a env variable(DELAYUNROLL or PRAGMAUNROLL), the unrolling strategy will be automatically
+                    decided by the compiler.
+                    To physically unroll a loop, we require that:
+                        1. there is a conditional execution of channel read/write inside the current loop, e.g.
+                            unrolled k = 0 to K
+                                if (cond)
+                                    read/write channel
+                        2. there is a irregular loop inside the current loop and the irregular bound depends on current loop var, e.g.
+                            unrolled k = 0 to K
+                                unrolled j = k to J
+                        3. there is a shift register whose bounds depends on current loop var, e.g.,
+                            float _Z_shreg_0, _Z_shreg_1, _Z_shreg_2, _Z_shreg_3;
+                            unrolled j = 0 to J
+                                access _Z_shreg_j   // j needs to be replaced with 0, 1, 2, 3
+
+                    For other cases, we simply insert the #pragma unroll directive before a loop. The offline compiler attempts to fully
+                    unroll the loop.
+                    */
+                    user_assert(loop->for_type != ForType::Parallel) << "Cannot use parallel loops inside OpenCL kernel\n";
+                    if (loop->for_type == ForType::Unrolled) {
+                        CheckConditionalChannelAccess checker(this, loop->name);
+                        loop->body.accept(&checker);
+
+                        // Check the condition 1 and 2
+                        bool needs_unrolling = checker.conditional_access || checker.irregular_loop_dep;
+                        // Check the condition 3
+                        for (auto &kv : space_vars) {
+                            for (auto &v : kv.second) {
+                                if (v.as<Variable>()->name == loop->name)
+                                    needs_unrolling |= true;
+                            }
+                        }
+                        if (needs_unrolling) {
+                            Expr extent = simplify(loop->extent);
+                            Stmt body = loop->body;
+                            const IntImm *e = extent.as<IntImm>();
+                            user_assert(e)
+                                    << "Can only unroll for loops over a constant extent.\n"
+                                    << "Loop over " << loop->name << " has extent " << extent << ".\n";
+                            if (e->value == 1) {
+                                user_warning << "Warning: Unrolling a for loop of extent 1: " << loop->name << "\n";
+                            }
+
+                            Stmt iters;
+                            for (int i = 0; i < e->value; i++) {
+                                Stmt iter = simplify(substitute(loop->name, loop->min + i, body));
+                                iter.accept(this);
+                            }
+                        } else {
+                            stream << get_indent() << "#pragma unroll\n";
+                            CodeGen_C::visit(loop);
+                        }
+                    } else {
+                        CodeGen_C::visit(loop);
+                    }
+                }
+        }
+        return;
+    }
+
+
+    
+
+    debug(3) << "//!!! EmitOneAPIFunc::visit(const For *loop) FIRST TIME << " << loop->name << "\n";
+
+
+    // (NOTE) implementation derived from CodeGen_GPU_Host<CodeGen_CPU>::visit(const For *loop)
+    // std::string kernel_name = create_kernel_name(loop);
+    // (TODO) Need to confirm this with the create_kernel_wrapper with the proper arguments needed
+    std::string kernel_name;
+    vector<DeviceArgument> closure_args;
+    {
+        using namespace llvm;
+        kernel_name = create_kernel_name(loop);
+    
+        // std::string kernel_name = "Kernel_" + loop->name; 
+        // compute a closure over the state passed into the kernel
+        HostClosure c(loop->body, loop->name);
+        // Determine the arguments that must be passed into the halide function
+        closure_args = c.arguments();
+        // Sort the args by the size of the underlying type. This is
+        // helpful for avoiding struct-packing ambiguities in metal,
+        // which passes the scalar args as a struct.
+        std::sort(closure_args.begin(), closure_args.end(),
+                    [](const DeviceArgument &a, const DeviceArgument &b) {
+                        if (a.is_buffer == b.is_buffer) {
+                            return a.type.bits() > b.type.bits();
+                        } else {
+                            return a.is_buffer < b.is_buffer;
+                        }
+                    });
+        
+        
+        // (TODO) Verify that not setting the closure arg size will not effect generated code
+        // for (size_t i = 0; i < closure_args.size(); i++) {
+        //     if (closure_args[i].is_buffer && allocations.contains(closure_args[i].name)) {
+        //         closure_args[i].size = allocations.get(closure_args[i].name).constant_bytes;
+        //     }
+        // }
+    }
+
+    add_kernel(loop, kernel_name, closure_args);
+}
+
+// EmitOneAPIFunc
+void CodeGen_OneAPI_Dev::EmitOneAPIFunc::visit(const Allocate *op) {
+    // (TODO) Need error testing when we implement compile_to_devsrc()
+    // user_assert(!op->new_expr.defined()) << "Allocate node inside OpenCL kernel has custom new expression.\n"
+    //                                      << "(Memoization is not supported inside GPU kernels at present.)\n";
+
+
+    // New C Implementaiton 1.0
+    {
+        open_scope();
+
+        std::string op_name = print_name(op->name);
+        std::string op_type = print_type(op->type, AppendSpace);
+
+        // For sizes less than 8k, do a stack allocation
+        bool on_stack = false;
+        int32_t constant_size;
+        std::string size_id;
+        Type size_id_type;
+        std::string free_function;
+
+        
+        if (op->new_expr.defined()) {
+            Allocation alloc;
+            alloc.type = op->type;
+            allocations.push(op->name, alloc);
+            heap_allocations.push(op->name);
+            string value = print_expr(op->new_expr);
+            stream << get_indent() << op_type << "*" << op_name << " = (" << op_type << "*)(" << value << ");\n";
+        } else {
+            constant_size = op->constant_allocation_size();
+            if (constant_size > 0) {
+                int64_t stack_bytes = constant_size * op->type.bytes();
+
+                if (stack_bytes > ((int64_t(1) << 31) - 1)) {
+                    user_error << "Total size for allocation "
+                            << op->name << " is constant but exceeds 2^31 - 1.\n";
+                } else {
+                    size_id_type = Int(32);
+                    size_id = print_expr(make_const(size_id_type, constant_size));
+
+                    if (op->memory_type == MemoryType::Stack ||
+                        (op->memory_type == MemoryType::Auto &&
+                        can_allocation_fit_on_stack(stack_bytes))) {
+                        on_stack = true;
+                    }
+                }
+            } else {
+                // Check that the allocation is not scalar (if it were scalar
+                // it would have constant size).
+                internal_assert(!op->extents.empty());
+
+                size_id = print_assignment(Int(64), print_expr(op->extents[0]));
+                size_id_type = Int(64);
+
+                for (size_t i = 1; i < op->extents.size(); i++) {
+                    // Make the code a little less cluttered for two-dimensional case
+                    string new_size_id_rhs;
+                    string next_extent = print_expr(op->extents[i]);
+                    if (i > 1) {
+                        new_size_id_rhs = "(" + size_id + " > ((int64_t(1) << 31) - 1)) ? " + size_id + " : (" + size_id + " * " + next_extent + ")";
+                    } else {
+                        new_size_id_rhs = size_id + " * " + next_extent;
+                    }
+                    size_id = print_assignment(Int(64), new_size_id_rhs);
+                }
+                stream << get_indent() << "if (("
+                    << size_id << " > ((int64_t(1) << 31) - 1)) || (("
+                    << size_id << " * sizeof("
+                    << op_type << ")) > ((int64_t(1) << 31) - 1)))\n";
+                open_scope();
+                
+                // (TODO) Have some sort of check for the buffer allocaiton here directly in C
+                user_warning << "OneAPI currently does not validate for "
+                             << "32-bit signed overflow computing size of allocation " << op->name << "\n";
+                stream << get_indent() << "// OneAPI currently does not validate for "
+                             << "32-bit signed overflow computing size of allocation " << op->name << "\n";
+                
+                // Below is the original implementaiton from CodeGen_C
+
+                // stream << get_indent();
+                // TODO: call halide_error_buffer_allocation_too_large() here instead
+                // TODO: call create_assertion() so that NoAssertions works
+                // stream << "halide_error(_ucon, "
+                //     << "\"32-bit signed overflow computing size of allocation " << op->name << "\\n\");\n";
+                // stream << get_indent() << "return -1;\n";
+
+                close_scope("overflow test " + op->name);
+            }
+
+            // Check the condition to see if this allocation should actually be created.
+            // If the allocation is on the stack, the only condition we can respect is
+            // unconditional false (otherwise a non-constant-sized array declaration
+            // will be generated).
+            if (!on_stack || is_zero(op->condition)) {
+                Expr conditional_size = Select::make(op->condition,
+                                                    Variable::make(size_id_type, size_id),
+                                                    make_const(size_id_type, 0));
+                conditional_size = simplify(conditional_size);
+                size_id = print_assignment(Int(64), print_expr(conditional_size));
+            }
+
+            Allocation alloc;
+            alloc.type = op->type;
+            allocations.push(op->name, alloc);
+
+            stream << get_indent() << op_type;
+
+            if (on_stack) {
+                if (ends_with(op->name, ".temp")) {
+                    stream << op_name << ";\n";
+                } else {
+                    stream << op_name
+                        << "[" << size_id << "];\n";
+                }
+            } else {
+                stream << "*"
+                    << op_name
+                    << " = ("
+                    << op_type
+                    << " *)std::malloc(sizeof("
+                    << op_type
+                    << ")*" << size_id << ");\n";
+                heap_allocations.push(op->name);
+            } 
+        }
+        
+        if (!on_stack) {
+            // create_assertion(op_name, "assert(false) /* replaced halide_error_out_of_memory */");
+            EmitOneAPIFunc::create_assertion(op_name, "None");
+            free_function = op->free_function.empty() ? "std::free" : op->free_function; // Type of extended op to use for freeing
+        }
+
+        op->body.accept(this);
+
+
+        if (allocations.contains(op->name)) {
+            if( heap_allocations.contains(op->name) ){
+                // Heap allocations may be from an expression or a malloc all
+                // the map is only implemented for Calls at the moment
+                // plan to eventually go to a switch statment function
+                if(op->new_expr.defined() ){
+                    stream << get_indent() << print_name(op->name)  << " = NULL;\n";
+                } else if(free_function.find("std::free") != std::string::npos ){
+                    stream << get_indent() << "if(" << print_name(op->name)  << "){ std::free( "<< print_name(op->name) <<" ); };\n";
+                } else if( free_function.find("halide_device_host_nop_free") != std::string::npos){
+                    stream << get_indent() << ext_funcs.halide_device_host_nop_free( print_name(op->name) );
+                } else {
+                    // internal_assert(false);
+                    user_warning << "OneAPI: Free " << op->name << " with " << free_function << " to-be-replaced"; 
+                    UnImplementedExternFuncs.insert( free_function  );
+                }
+                heap_allocations.pop(op->name);
+            }
+            allocations.pop(op->name);
+        }
+
+        close_scope("alloc " + print_name(op->name));       
+    }
+    return;
+
+
+    // Semi-original CodeGen_OneAPI_C implementation
+    {
+        if (op->name == "__shared") {
+            // Already handled
+            debug(2) << "Allocate " << op->name << " already handled\n";
+            stream << get_indent() << "// Allocate " << op->name << " already handled\n";
+            op->body.accept(this);
+        } else {
+            // Check if the allocation is for global mutable pointer
+            // if (op->memory_type == MemoryType::CLPtr) {
+            //     user_assert(op->extents.size() == 1);
+            //     user_assert(op->extents[0].as<StringImm>());
+            //     auto arg = op->extents[0].as<StringImm>()->value;
+            //     // parent->pointer_args[op->name] = arg;
+            //     pointer_args[op->name] = arg;
+            //     debug(2) << "Found pointer arg " << op->name << "... \n";
+            //     op->body.accept(this);
+            //     return;
+            // }
+
+            open_scope(); 
+
+            // debug(2) << "Allocate " << op->name << " on device\n";
+            debug(2) << "Allocate " << op->name << " on device w/ memory_type: " << op->memory_type << "\n";
+
+            debug(3) << "Pushing allocation called " << op->name << " onto the symbol table\n";
+
+            // Allocation is not a shared memory allocation, just make a local declaration.
+            // It must have a constant size.
+            int32_t size = op->constant_allocation_size();
+            // user_assert(size > 0)
+            //     << "OneAPI at this time has not implemented the case of allocation of size 0 for: " 
+            //     << op->name << "\n";
+
+            if(size == 0){
+                user_warning << "OneAPI at this time has not implemented the case of allocation of size 0 for: " << op->name << "\n";
+            }
+
+            if(size == 1){
+                stream << get_indent() << print_type(op->type) << ' '
+                    << print_name(op->name) << ";\n";       
+            } else {
+                stream << get_indent() << print_type(op->type) << ' '
+                    << print_name(op->name) << "[" << size << "];\n";               
+            }
+
+
+            Allocation alloc;
+            alloc.type = op->type;
+            allocations.push(op->name, alloc);
+
+            op->body.accept(this);
+
+            // Should have been freed internally
+            // (TODO) Need to correct this for OneAPI implemenntation as it currently is not freed
+            // internal_assert(!allocations.contains(op->name));
+
+            // parent->close_scope("alloc " + parent->print_name(op->name)); // OneAPI does need to add scopes
+            close_scope("alloc " + print_name(op->name)); // OneAPI does need to add scopes
+        }
+    }
+    return;
+
+    // Using the CodeGen_C::visit(const Allocate *op) implementation, copied here
+    {
+        open_scope();
+
+        string op_name = print_name(op->name);
+        string op_type = print_type(op->type, AppendSpace);
+
+        // For sizes less than 8k, do a stack allocation
+        bool on_stack = false;
+        int32_t constant_size;
+        string size_id;
+        Type size_id_type;
+
+        if (op->new_expr.defined()) {
+            Allocation alloc;
+            alloc.type = op->type;
+            allocations.push(op->name, alloc);
+            heap_allocations.push(op->name);
+            string value = print_expr(op->new_expr);
+            stream << get_indent() << op_type << "*" << op_name << " = (" << op_type << "*)(" << value << ");\n";
+        } else {
+            constant_size = op->constant_allocation_size();
+            if (constant_size > 0) {
+                int64_t stack_bytes = constant_size * op->type.bytes();
+
+                if (stack_bytes > ((int64_t(1) << 31) - 1)) {
+                    user_error << "Total size for allocation "
+                            << op->name << " is constant but exceeds 2^31 - 1.\n";
+                } else {
+                    size_id_type = Int(32);
+                    size_id = print_expr(make_const(size_id_type, constant_size));
+
+                    if (op->memory_type == MemoryType::Stack ||
+                        (op->memory_type == MemoryType::Auto &&
+                        can_allocation_fit_on_stack(stack_bytes))) {
+                        on_stack = true;
+                    }
+                }
+            } else {
+                // Check that the allocation is not scalar (if it were scalar
+                // it would have constant size).
+                internal_assert(!op->extents.empty());
+
+                size_id = print_assignment(Int(64), print_expr(op->extents[0]));
+                size_id_type = Int(64);
+
+                for (size_t i = 1; i < op->extents.size(); i++) {
+                    // Make the code a little less cluttered for two-dimensional case
+                    string new_size_id_rhs;
+                    string next_extent = print_expr(op->extents[i]);
+                    if (i > 1) {
+                        new_size_id_rhs = "(" + size_id + " > ((int64_t(1) << 31) - 1)) ? " + size_id + " : (" + size_id + " * " + next_extent + ")";
+                    } else {
+                        new_size_id_rhs = size_id + " * " + next_extent;
+                    }
+                    size_id = print_assignment(Int(64), new_size_id_rhs);
+                }
+                stream << get_indent() << "if (("
+                    << size_id << " > ((int64_t(1) << 31) - 1)) || (("
+                    << size_id << " * sizeof("
+                    << op_type << ")) > ((int64_t(1) << 31) - 1)))\n";
+                open_scope();
+                stream << get_indent();
+                // TODO: call halide_error_buffer_allocation_too_large() here instead
+                // TODO: call create_assertion() so that NoAssertions works
+                stream << "halide_error(_ucon, "
+                    << "\"32-bit signed overflow computing size of allocation " << op->name << "\\n\");\n";
+                stream << get_indent() << "return -1;\n";
+                close_scope("overflow test " + op->name);
+            }
+
+            // Check the condition to see if this allocation should actually be created.
+            // If the allocation is on the stack, the only condition we can respect is
+            // unconditional false (otherwise a non-constant-sized array declaration
+            // will be generated).
+            if (!on_stack || is_zero(op->condition)) {
+                Expr conditional_size = Select::make(op->condition,
+                                                    Variable::make(size_id_type, size_id),
+                                                    make_const(size_id_type, 0));
+                conditional_size = simplify(conditional_size);
+                size_id = print_assignment(Int(64), print_expr(conditional_size));
+            }
+
+            Allocation alloc;
+            alloc.type = op->type;
+            allocations.push(op->name, alloc);
+
+            stream << get_indent() << op_type;
+
+            if (on_stack) {
+                if (is_host_interface() && ends_with(op->name, ".temp")) {
+                    stream << op_name << ";\n";
+                } else {
+                    stream << op_name
+                        << "[" << size_id << "];\n";
+                }
+            } else {
+                stream << "*"
+                    << op_name
+                    << " = ("
+                    << op_type
+                    << " *)halide_malloc(_ucon, sizeof("
+                    << op_type
+                    << ")*" << size_id << ");\n";
+                heap_allocations.push(op->name);
+            } 
+        }
+
+        if (!on_stack) {
+            stream << "assert(false); // replaced halide_error_out_of_memory\n";
+
+            stream << get_indent();
+            string free_function = op->free_function.empty() ? "halide_free" : op->free_function;
+            stream << "HalideFreeHelper " << op_name << "_free(_ucon, "
+                << op_name << ", " << free_function << ");\n";
+        }
+        op->body.accept(this);
+
+        if (allocations.contains(op->name)) {
+            if (heap_allocations.contains(op->name)) {
+                stream << get_indent() << print_name(op->name) << "_free.free();\n";
+                heap_allocations.pop(op->name);
+            }
+            allocations.pop(op->name);
+        }
+
+        close_scope("alloc " + print_name(op->name));               
+    }
+    return;
+
+}
+
+void CodeGen_OneAPI_Dev::EmitOneAPIFunc::visit(const Free *op) {
+    // Should be freed
+    internal_assert(allocations.contains(op->name));
+    if (heap_allocations.contains(op->name)) {
+        heap_allocations.pop(op->name);
+    }
+    allocations.pop(op->name);
+}
+
+
+void CodeGen_OneAPI_Dev::EmitOneAPIFunc::visit(const AssertStmt *op) {
+    // Currently not implementing any assertions
+    // this will reduce the number of Extern Funcs that need
+    // to be replaced
+    return;
+
+    // Currently, we are not mplementaiting
+    // assertions inside a kernel
+    if(!currently_inside_kernel){
+        if (target.has_feature(Target::NoAsserts)) return;
+
+
+        std::string id_cond = print_expr(op->condition);
+
+
+
+        stream << get_indent() << "if (!" << id_cond << ") ";
+        open_scope();
+        stream << get_indent() << "std::cout << \"Condition '" 
+               <<  id_cond << "' failed ";
+        if(op->message.defined()){
+            std::string id_msg = print_expr(op->message);
+            stream << "with error id_msg: " << id_msg;
+        }
+        stream << "\\n\";\n";
+        stream << get_indent() << "assert(false);\n";
+        close_scope("");
+    } else {
+        debug(2) << "Ignoring assertion inside OneAPI kernel: " << op->condition << "\n";
+    }
+}
+
+// EmitOneAPIFunc
+std::string CodeGen_OneAPI_Dev::EmitOneAPIFunc::print_extern_call(const Call *op) {
+    // Previous i.e. with directly calling _halide_buffer funcs
+    {
+        ostringstream rhs;
+        vector<string> args(op->args.size());
+        for (size_t i = 0; i < op->args.size(); i++) {
+            args[i] = print_expr(op->args[i]);
+        }
+
+        auto search = print_extern_call_map.find(op->name);
+
+        if( search != print_extern_call_map.end() ){
+            // (TODO) Have the functions do a simple check instead of always marking them as `... = 0;`
+            // i.e. `... = exec() ? 0 /*success*/ : -1 /*errror*/;` or whatever's appropriate to return
+            // This will remove the need to check for user context and simplify this better
+            if(function_takes_user_context(op->name)){
+                // functions that take user context return 0 on success
+                // simple place 0 as the value and run the actual function in the next line
+                rhs << "0; // " << op->name << "(" << with_commas(args) << ") replaced with line(s) below \n";
+                rhs << get_indent() << (ext_funcs.*(search->second))(op); 
+            } else {
+                rhs << (ext_funcs.*(search->second))(op) << " /* " << op->name << "(" << with_commas(args) << ") replaced */"; 
+            }
+        } else {
+            if((op->name.find("_halide_buffer") != std::string::npos) && !function_takes_user_context(op->name) ){
+                rhs << op->name << "(" << with_commas(args) << ")"; 
+            } else {
+                // (TODO) check with (target.has_feature(Target::NoAsserts)) as some call external functions
+                rhs << "0; //!!! print_extern_call(): " << op->name << "(" << with_commas(args) << ") to-be-replaced"; 
+                user_warning << "OneAPI: " << op->name << "(" << with_commas(args) << ") to-be-replaced"; 
+                UnImplementedExternFuncs.insert( op->name  );
+            }
+        }
+        return rhs.str();        
+    }
+}
+
+// EmitOneAPIFunc
+std::string CodeGen_OneAPI_Dev::EmitOneAPIFunc::print_reinterpret(Type type, Expr e) {
+    ostringstream oss;
+    if (type.is_handle() || e.type().is_handle()) {
+        // Use a c-style cast if either src or dest is a handle --
+        // note that although Halide declares a "Handle" to always be 64 bits,
+        // the source "handle" might actually be a 32-bit pointer (from
+        // a function parameter), so calling reinterpret<> (which just memcpy's)
+        // would be garbage-producing.
+        oss << "(" << print_type(type) << ")";
+    } else {
+        oss << "reinterpret<" << print_type(type) << ">";
+    }
+    oss << "(" << print_expr(e) << ")";
+    return oss.str();
+}
+
+// EmitOneAPIFunc
+std::string CodeGen_OneAPI_Dev::EmitOneAPIFunc::print_type(Type type, AppendSpaceIfNeeded space){
+    // return type_to_c_type(type, space);
+
+    if(!currently_inside_kernel) // Modifed Type.cpp implementation to fix int32x4_t
+    {
+        ostringstream oss;
+        bool include_space = space == AppendSpace;
+        bool needs_space = true;
+        bool c_plus_plus = true;
+        if (type.is_bfloat()) {
+            oss << "bfloat" << type.bits();
+        } else if (type.is_float()) {
+            if (type.bits() == 32) {
+                oss << "float";
+            } else if (type.bits() == 64) {
+                oss << "double";
+            } else {
+                oss << "float" << type.bits();
+            }
+            if (type.is_vector()) {
+                oss << type.lanes();
+            }
+        } else if (type.is_handle()) {
+            needs_space = false;
+            // If there is no type info or is generating C (not C++) and
+            // the type is a class or in an inner scope, just use void *.
+            if (type.handle_type == NULL ||
+                (!c_plus_plus &&
+                (!type.handle_type->namespaces.empty() ||
+                !type.handle_type->enclosing_types.empty() ||
+                type.handle_type->inner_name.cpp_type_type == halide_cplusplus_type_name::Class))) {
+                oss << "void *";
+            } else {
+                if (type.handle_type->inner_name.cpp_type_type ==
+                    halide_cplusplus_type_name::Struct) {
+                    oss << "struct ";
+                }
+                if (!type.handle_type->namespaces.empty() ||
+                    !type.handle_type->enclosing_types.empty()) {
+                    oss << "::";
+                    for (size_t i = 0; i < type.handle_type->namespaces.size(); i++) {
+                        oss << type.handle_type->namespaces[i] << "::";
+                    }
+                    for (size_t i = 0; i < type.handle_type->enclosing_types.size(); i++) {
+                        oss << type.handle_type->enclosing_types[i].name << "::";
+                    }
+                }
+                oss << type.handle_type->inner_name.name;
+                if (type.handle_type->reference_type == halide_handle_cplusplus_type::LValueReference) {
+                    oss << " &";
+                } else if (type.handle_type->reference_type == halide_handle_cplusplus_type::LValueReference) {
+                    oss << " &&";
+                }
+                for (auto modifier : type.handle_type->cpp_type_modifiers) {
+                    if (modifier & halide_handle_cplusplus_type::Const) {
+                        oss << " const";
+                    }
+                    if (modifier & halide_handle_cplusplus_type::Volatile) {
+                        oss << " volatile";
+                    }
+                    if (modifier & halide_handle_cplusplus_type::Restrict) {
+                        oss << " restrict";
+                    }
+                    if (modifier & halide_handle_cplusplus_type::Pointer) {
+                        oss << " *";
+                    }
+                }
+            }
+        } else {
+            // This ends up using different type names than OpenCL does
+            // for the integer vector types. E.g. uint16x8_t rather than
+            // OpenCL's short8. Should be fine as CodeGen_C introduces
+            // typedefs for them and codegen always goes through this
+            // routine or its override in CodeGen_OpenCL to make the
+            // names. This may be the better bet as the typedefs are less
+            // likely to collide with built-in types (e.g. the OpenCL
+            // ones for a C compiler that decides to compile OpenCL).
+            // This code also supports arbitrary vector sizes where the
+            // OpenCL ones must be one of 2, 3, 4, 8, 16, which is too
+            // restrictive for already existing architectures.
+            switch (type.bits()) {
+            case 1:
+                // bool vectors are always emitted as uint8 in the C++ backend
+                if (type.is_vector()) {
+                    oss << "uint8x" << type.lanes() << "_t";
+                } else {
+                    oss << "bool";
+                }
+                break;
+            case 8:
+            case 16:
+            case 32:
+            case 64:
+                if (type.is_uint()) {
+                    oss << 'u';
+                }
+                oss << "int";
+                if(type.is_vector()){
+                    oss << type.lanes();
+                } else {
+                    oss << type.bits() << "_t";
+                }
+                break;
+            default:
+                user_error << "Can't represent an integer with this many bits in C: " << type << "\n";
+            }
+        }
+        if (include_space && needs_space){
+            oss << " ";
+        }
+        return oss.str();
+    } else { // From original OpenCl's CodeGen_C
+        ostringstream oss;
+        if (type.is_generated_struct()) {
+            int type_id = type.bits();
+            const std::pair<std::string, std::vector<Type>> &entry = GeneratedStructType::structs[type_id];
+            string struct_name = entry.first;
+            oss << struct_name;
+        } else if (!is_standard_opencl_type(type)) {
+            Type basic_type = type.with_lanes(1);
+            string type_name = print_type(basic_type);
+            oss << type_name;
+        } else if (type.is_float()) {
+            if (type.bits() == 16) {
+                user_assert(target.has_feature(Target::CLHalf))
+                    << "OpenCL kernel uses half type, but CLHalf target flag not enabled\n";
+                oss << "half";
+            } else if (type.bits() == 32) {
+                oss << "float";
+            } else if (type.bits() == 64) {
+                oss << "double";
+            } else {
+                user_error << "Can't represent a float with this many bits in OpenCL C: " << type << "\n";
+            }
+
+        } else {
+            if (type.is_uint() && type.bits() > 1) oss << 'u';
+            switch (type.bits()) {
+            case 1:
+                internal_assert(type.lanes() == 1) << "Encountered vector of bool\n";
+                oss << "bool";
+                break;
+            case 8:
+                oss << "char";
+                break;
+            case 16:
+                oss << "short";
+                break;
+            case 32:
+                oss << "int";
+                break;
+            case 64:
+                oss << "long";
+                break;
+            default:
+                user_error << "Can't represent an integer with this many bits in OpenCL C: " << type << "\n";
+            }
+        }
+        if (type.lanes() != 1) {
+            switch (type.lanes()) {
+            case 2:
+            case 3:
+            case 4:
+            case 8:
+            case 16:
+                oss << type.lanes();
+                break;
+            default:
+                if (GeneratedStructType::nonstandard_vector_type_exists(type)) {
+                    oss << type.lanes();
+                    break;
+                } else {
+                    user_error << "Unsupported vector width in OpenCL C: " << type << "\n";
+                }
+            }
+        }
+        if (space == AppendSpace) {
+            oss << ' ';
+        }
+        return oss.str();
+    }
+
+
+}
+
+////////////////////////////////////////////////////////////////////////////////////
 
 
 

@@ -132,7 +132,8 @@ int main(void){
 
     std::cout << "Start Run\n";
     double exec_time = 0;
-    exec_time = conv( device_selector, &i_h, &k_h, &o_h );
+    // exec_time = conv( device_selector, &i_h, &k_h, &o_h );
+    exec_time = conv( device_selector, i_h.raw_buffer() , k_h.raw_buffer()  , o_h.raw_buffer()  );
     std::cout << "Run completed!\n";
     std::cout << "kernel exec time: " << exec_time << "\n";
 
@@ -190,21 +191,21 @@ int main(void){
 
     }
 #else
-    // Report performance. DSPs, FMax and ExecTime are automatically figured out from the static analysis
-    // during FPGA synthesis and and the dynamic profile during the FGPA execution.
-    // A10PAC on DevCloud has 33GB/s memory bandwidth
-    double mem_bandwidth = 33;
-    double compute_roof = 2 * DSPs_oneapi() * FMax_oneapi();
-     // Total operations (GFLOP for CONV), independent of designs
-    double number_ops = 2 * (long)(N * TOTAL_CO * TOTAL_OY * TOTAL_OX) * (long)(TOTAL_CI * KX * KY);
-    double number_bytes = (long)(TOTAL_IY * TOTAL_IX * TOTAL_CI * N) * 4 + (long)(KY * KX * TOTAL_CI * TOTAL_CO) * 4
-                        + (long)(TOTAL_OY * TOTAL_OX * TOTAL_CO * N) * 4;
-    // double exec_time = ExecTime();
-    roofline(mem_bandwidth, compute_roof, number_ops, number_bytes, exec_time);
-    if (fopen("roofline.png", "r") == NULL) {
-        std::cout << "Failed to draw roofline!\n";
-        return 1;
-    }
+    // // Report performance. DSPs, FMax and ExecTime are automatically figured out from the static analysis
+    // // during FPGA synthesis and and the dynamic profile during the FGPA execution.
+    // // A10PAC on DevCloud has 33GB/s memory bandwidth
+    // double mem_bandwidth = 33;
+    // double compute_roof = 2 * DSPs_oneapi() * FMax_oneapi();
+    //  // Total operations (GFLOP for CONV), independent of designs
+    // double number_ops = 2 * (long)(N * TOTAL_CO * TOTAL_OY * TOTAL_OX) * (long)(TOTAL_CI * KX * KY);
+    // double number_bytes = (long)(TOTAL_IY * TOTAL_IX * TOTAL_CI * N) * 4 + (long)(KY * KX * TOTAL_CI * TOTAL_CO) * 4
+    //                     + (long)(TOTAL_OY * TOTAL_OX * TOTAL_CO * N) * 4;
+    // // double exec_time = ExecTime();
+    // roofline(mem_bandwidth, compute_roof, number_ops, number_bytes, exec_time);
+    // if (fopen("roofline.png", "r") == NULL) {
+    //     std::cout << "Failed to draw roofline!\n";
+    //     return 1;
+    // }
     std::cout << "Size of tensor I: " << N << ", " << TOTAL_CI << ", " << TOTAL_IX << ", " << TOTAL_IY << "\n";
     std::cout << "Size of tensor K: " << TOTAL_CI << ", " << TOTAL_CO << ", " << KX << ", " << KY << "\n";
 #endif
