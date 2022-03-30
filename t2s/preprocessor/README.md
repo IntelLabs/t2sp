@@ -1,6 +1,6 @@
 # T2S OneAPI Preprocessor
 
-The T2S Preprocessor is a clang lib-tool to create OneAPI generated code using 
+The T2S Preprocessor is a clang lib-tool to create OneAPI generated code using source-to-source code translation.
 
 ## Overview
 
