@@ -14,7 +14,7 @@ The preprocessor generates two files given a file e.g. `filename.cpp`:
 The preprocessor uses the following `#pragma`s & `.compile_to_oneapi()` method to identify:
 - (1) function argument elements
 - (2) T2S Specifications
-- (3) header file name created the the OneAPI Code Generater by the `.compile_to_oneapi()` method
+- (3) header file name created by the OneAPI Code Generater through the `.compile_to_oneapi()` method
 
 ```C++
 /* filename.cpp */
