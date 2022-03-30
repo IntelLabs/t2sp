@@ -51,8 +51,6 @@ To build the preprocessor executable use the following steps for Intel DevCloud:
 cd ~/path/to/t2sp/
 # If on an Intel Devcloud Node without OneAPI
 source setenv.sh 
-# If on an Intel Devcloud Node with OneAPI
-source setenv_OneAPI.sh 
 cd t2s/preprocessor/src/
 
 ## Compile the Preprocessor. Should now have an executable named ``
