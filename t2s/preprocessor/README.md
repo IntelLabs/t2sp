@@ -53,10 +53,14 @@ cd ~/path/to/t2sp/
 source setenv.sh 
 cd t2s/preprocessor/src/
 
-## Compile the Preprocessor. Should now have an executable named ``
+## Compile the Preprocessor. Should now have an executable named `t2spreprocessor`
 make 
-
-
+# clang++ -std=c++17 -fno-exceptions -fno-rtti -O3 -Os t2spreprocessor.cpp `/home/u128916/tutorial/T2S/t2sp_OneAPI_private/install/bin/llvm-config --cxxflags --ldflags` -I /home/u128916/tutorial/T2S/t2sp_OneAPI_private/downloads/llvm9.0/tools/clang/include/ -I /home/u128916/tutorial/T2S/t2sp_OneAPI_private/install  -I /home/u128916/tutorial/T2S/t2sp_OneAPI_private/install/lib/clang/9.0.1/include/ -Wl,--start-group -lclang -lclangIndex -lclangCodeGen -lclangToolingCore -lclangFrontend -lclangRewriteFrontend -lclangSema -lclangSerialization -lclangParse -lclangASTMatchers -lclangAST -lclangARCMigrate -lclangAnalysis -lclangEdit -lclangRewrite -lclangFrontendTool -lclangDriver -lclangDynamicASTMatchers -lclangFormat -lclangStaticAnalyzerCore -lclangTooling -lclangStaticAnalyzerCheckers -lclangStaticAnalyzerFrontend -lclangBasic -lclangLex -lLLVMSupport -Wl,--end-group `/home/u128916/tutorial/T2S/t2sp_OneAPI_private/install/bin/llvm-config --libs --system-libs` -o t2spreprocessor -I /home/u128916/tutorial/T2S/t2sp_OneAPI_private/install/gcc-7.5.0/lib/gcc/x86_64-pc-linux-gnu/7.5.0/include/ -I /home/u128916/tutorial/T2S/t2sp_OneAPI_private/install/lib/clang/9.0.1/include/ 
+$ ls -l
+# Makefile
+# t2spreprocessor
+# t2spreprocessor.cpp
+# t2spreprocessor.h
 ```
 
 ### Sample
