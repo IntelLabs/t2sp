@@ -13,7 +13,7 @@ More information on how their internals work can be found in the sections below.
 The main component of the OneAPI Integration is the CodeGenerator and the method `.compile_to_oneapi(...)`. 
 More information on how this method works can be found in the sections below.
 
-**NOTE:** This is documentation may not reflect the current standing or implementation of the Code Generator as it is due to change over time.
+**NOTE:** This documentation may not reflect the current standing or implementation of the Code Generator as it is due to change over time.
 
 ## `.compile_to_oneapi(...)` Method
 
