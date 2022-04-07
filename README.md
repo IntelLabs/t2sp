@@ -172,11 +172,12 @@ Current release contains SGEMM, 2-D convolution and Capsule convolution on Arria
 
 Summary of throughput:
 
-|     | A10 | GEN 9.5 |
-| --- | :-: | :-:    |
-| SGEMM |  533 GFLOPS, 95% DSP efficiency  |  412 GFLOPS, 90% machine peak |
-| 2-D convolution | 524 GFLOPS, 98% DSP efficiency | 422 GFLOPS, 92% machine peak |
-| Capsule convolution | 487 GFLOPS, 94% DSP efficiency | 398 GFLOPS, 87% machine peak |
+|     | A10 | GEN 9.5 | GEN 12 |
+| --- | :-: | :-:    | :-:    |
+| SGEMM |  533 GFLOPS, 95% DSP efficiency  |  410 GFLOPS, 90% machine peak | 2165 GFLOPS, 85\% machine peak
+| 2-D convolution | 524 GFLOPS, 98% DSP efficiency | 421 GFLOPS, 92% machine peak | 2236 GFLOPS, 88\% machine peak
+| Capsule convolution | 487 GFLOPS, 94% DSP efficiency | 398 GFLOPS, 87% machine peak | 1850 GFLOPS, 73\% machine peak
+| PairHMM | 42.5 GCups, 97\% PE efficiency |  4.25 GCups | 14.8 GCups
 
 To reproduce the performance,
 ```
