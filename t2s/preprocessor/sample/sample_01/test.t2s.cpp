@@ -145,9 +145,7 @@ int main(){
 #pragma t2s_spec_end
 
 
-#pragma t2s_arg A, a, a_dim 
-#pragma t2s_arg C, c, c_dim
-#pragma t2s_arg B, b, b_dim
+#pragma t2s_submit gemm (A, a, a_dim) (B, b, b_dim) (C, c, c_dim)
 
 printf("Success!\n");
 

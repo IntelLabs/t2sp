@@ -73,6 +73,40 @@ using namespace clang::ast_matchers;
 
 // =============== Helpers =============== 
 
+const char * USAGE_EXAMPLE = R"(
+/* filename.cpp */
+int main(){
+	// Initialize data 
+	const int TOTAL_I = III * II * I;
+	const int TOTAL_J = JJJ * JJ * J;
+	const int TOTAL_K = KKK * KK * K;
+	float *a = new float[TOTAL_K * TOTAL_I];
+	float *b = new float[TOTAL_J * TOTAL_K];
+	float *c = new float[TOTAL_J * TOTAL_I];
+	for(unsigned int i = 0; i < (TOTAL_K * TOTAL_I); i++){ a[i] = random(); }
+	for(unsigned int i = 0; i < (TOTAL_J * TOTAL_K); i++){ b[i] = random(); }
+	for(unsigned int i = 0; i < (TOTAL_J * TOTAL_I); i++){ c[i] = 0.0f; }
+
+	// Dimensions of the data
+	int a_dim[2] = {TOTAL_K, TOTAL_I};
+	int b_dim[2] = {TOTAL_J, TOTAL_K};
+	int c_dim[6] = {JJJ, III, JJ, II, J, I};
+
+
+#pragma t2s_spec_start
+	// ...
+	ImageParam A("A", TTYPE, 2), B("B", TTYPE, 2);
+	// T2S Speficiations ... 
+	C.compile_to_oneapi( { A, B }, "gemm", IntelFPGA);
+
+#pragma t2s_spec_end
+
+#pragma t2s_submit gemm (A, a, a_dim) (B, b, b_dim) (C, c, c_dim)
+
+}
+)";
+
+
 namespace t2sprinter {
   
   const std::string t2sprinterName = "t2spreprocessor: ";
@@ -137,21 +171,23 @@ namespace t2sprinter {
     std::ostringstream rhs;
     std::string space = " ";
     rhs << header() << "Expected usage goes as follows: " 
-      << "\n\n" 
-      << "int main(){\n\n"
-      << space   << "float *a = new float[DIM_1 * DIM_2];" << "\n" 
-      << space   << "float *b = new float[DIM_3 * DIM_4 * DIM_5];" << "\n\n" 
-      << space   << "int a_dim[2] = {DIM_1, DIM_2};" << "\n" 
-      << space   << "int b_dim[3] = {DIM_3, DIM_4, DIM_5};" << "\n\n" 
-      << space   << "#pragma t2s_arg A, a, a_dim" << "\n"
-      << space   << "#pragma t2s_arg C, c, c_dim" << "\n"
-      << space   << "#pragma t2s_arg B, b, b_dim" << "\n"
-      << space   << "#pragma t2s_spec_start" << "\n\n" 
-      << space << space << "ImageParam A(\"A\", TTYPE, 2), B(\"B\", TTYPE, 2);" << "\n" 
-      << space << space << "// T2S Speficiations ... " << "\n" 
-      << space << space << "C.compile_to_oneapi( { A, B }, \"gemm\", IntelFPGA);" << "\n\n" 
-      << space   << "#pragma t2s_spec_end" << "\n\n"
-      << "}\n\n";
+      << "\n\n";
+    
+    rhs << USAGE_EXAMPLE;
+    // << "int main(){\n\n"
+    // << space   << "float *a = new float[DIM_1 * DIM_2];" << "\n" 
+    // << space   << "float *b = new float[DIM_3 * DIM_4 * DIM_5];" << "\n\n" 
+    // << space   << "int a_dim[2] = {DIM_1, DIM_2};" << "\n" 
+    // << space   << "int b_dim[3] = {DIM_3, DIM_4, DIM_5};" << "\n\n" 
+    // << space   << "#pragma t2s_arg A, a, a_dim" << "\n"
+    // << space   << "#pragma t2s_arg C, c, c_dim" << "\n"
+    // << space   << "#pragma t2s_arg B, b, b_dim" << "\n"
+    // << space   << "#pragma t2s_spec_start" << "\n\n" 
+    // << space << space << "ImageParam A(\"A\", TTYPE, 2), B(\"B\", TTYPE, 2);" << "\n" 
+    // << space << space << "// T2S Speficiations ... " << "\n" 
+    // << space << space << "C.compile_to_oneapi( { A, B }, \"gemm\", IntelFPGA);" << "\n\n" 
+    // << space   << "#pragma t2s_spec_end" << "\n\n"
+    // << "}\n\n";
     return rhs.str();
   }
 
@@ -229,14 +265,62 @@ namespace t2sprinter {
 
 }
 
+struct OneAPIArgStruct {
+  std::string arg_name;
+  std::string ptr_name;
+  std::string dim_name;
+
+  std::string full_args;
+
+  void ParseArgs(std::string s){
+    full_args = s;
+    std::vector<std::string> args;
+
+    // Remove all white spaces
+    s.erase(remove_if(s.begin(), s.end(), isspace), s.end());
+
+    // Seperate the args 
+    std::string tmp;    
+    size_t pos;
+    while((pos = s.find(',')) != std::string::npos ){
+      tmp = s.substr(0, pos);
+      args.push_back( tmp );
+      s.erase(0, pos + 1 );
+    }
+    args.push_back( s );
+
+    // Check that we have 3 args
+    assert( args.size() == 3);
+
+
+    // Allocate them to members accordingly
+    arg_name = args[0];
+    ptr_name = args[1];
+    dim_name = args[2];
+  }
+
+  std::string str(){
+    std::ostringstream rhs;
+    rhs << "\t" << arg_name << " -> ptr: [" << ptr_name << "] , dim: [" << dim_name << "]";
+    return rhs.str(); 
+  }
+};
+
 struct OneAPIFuncStruct {
   std::string funcName;
-  std::vector<std::string> args_pntr_names;
-  std::vector<std::string> args_dim_names;
+  std::vector<OneAPIArgStruct> SubmitArgs;
   std::vector<std::string> oneapi_args_names;
   std::string oneapi_output_arg;
 
   std::vector<const clang::Expr*> args_expr_pntrs;
+
+  // OneAPI Location i.e. `compile_to_onepai()` method
+  SourceLocation oneapi_start;
+  SourceLocation oneapi_end;
+
+  // Pragma t2s_submit pragma location
+  SourceLocation submit_start;
+  SourceLocation submit_end;
 
   std::string str(){
     std::ostringstream rhs;
@@ -244,24 +328,6 @@ struct OneAPIFuncStruct {
     rhs << "funcName: " << funcName << "\n";
     rhs << "OutputArg: " << oneapi_output_arg << "\n";
 
-    rhs << "args_pntr: [";
-    for(unsigned int i = 0; i < args_pntr_names.size(); i++){
-      rhs << args_pntr_names[i];
-      if(i < args_pntr_names.size()-1){
-        rhs << ", ";
-      }
-    }
-    rhs << "]\n";
-
-
-    rhs << "args_dim: [";
-    for(unsigned int i = 0; i < args_dim_names.size(); i++){
-      rhs << args_dim_names[i];
-      if(i < args_dim_names.size()-1){
-        rhs << ", ";
-      }
-    }
-    rhs << "]\n";
 
     rhs << "oneapi_args_names: [";
     for(unsigned int i = 0; i < oneapi_args_names.size(); i++){
@@ -271,10 +337,14 @@ struct OneAPIFuncStruct {
       }
     }
     rhs << "]\n";
+    for(unsigned int i = 0; i < SubmitArgs.size(); i++){
+      rhs << SubmitArgs[i].str() << "\n";
+    }
 
     return rhs.str();
   }
 
+  // For parsing the `compile_to_oneapi()` method 
   void parseExprPntrs(Rewriter &R, SourceLocation start, SourceLocation end){
 
     if( args_expr_pntrs.size() < 3){
@@ -300,6 +370,36 @@ struct OneAPIFuncStruct {
         R.getRewrittenText( SourceRange( start, end) ) 
       );
       oneapi_output_arg = ret;      
+    }
+  }
+
+
+
+  // For parsing the arugments themselves
+  void parseArgPntrs(Rewriter &R, SourceLocation start, SourceLocation end){
+    // Get the t2s_submit pragma line as a string
+    std::string Args = R.getRewrittenText( SourceRange( start, end) );
+    parseArgPntrsHelper(Args);
+  }
+
+  void parseArgPntrsHelper(std::string Args){
+    // Get the open & close bracket index
+    std::vector<int> open_bracket;
+    std::vector<int> close_bracket;
+    for(unsigned int i; i < Args.size(); i++){
+      if( Args.at(i) == '(' ){  open_bracket.push_back(i); }
+    }
+    for(unsigned int i; i < Args.size(); i++){
+      if( Args.at(i) == ')' ){  close_bracket.push_back(i); }
+    }
+
+
+    // Create and Push back the OneAPIArgStruct
+    for(unsigned int i = 0; i < open_bracket.size(); i++){
+      std::string sub_str = Args.substr( open_bracket[i]+1, close_bracket[i] - (open_bracket[i]+1)  );
+      OneAPIArgStruct tmp;
+      tmp.ParseArgs(  sub_str  );
+      SubmitArgs.push_back( tmp );
     }
   }
 
@@ -429,7 +529,7 @@ std::string GenRunPostCode(OneAPIFuncStruct oneapiStruct, std::vector<std::strin
         if( i != new_halide_names_vector.size() - 1){ rhs << ", "; }
       }
     }
-    rhs << ", " << new_halide_output_name << ".raw_buffer()";
+    rhs << new_halide_output_name << ".raw_buffer()";
     rhs << ");\n";
     rhs << "std::cout << \"Run completed!\\n\";\n";
     rhs << "std::cout << \"kernel exec time: \" << exec_time << \"\\n\";\n";

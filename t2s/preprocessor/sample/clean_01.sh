@@ -5,10 +5,10 @@ echo "CWD: $PWD"
 
 # Run
 echo "cleaning..."
-rm a.out;
-rm test.fpga_emu;
-rm post.*;
-rm gemm.generated_oneapi_header.h;
+rm -rf a.out;
+rm -rf test.fpga_emu;
+rm -rf post.*;
+rm -rf gemm.generated_oneapi_header.h;
 
 # Return back to the directory
 cd ${CWD}

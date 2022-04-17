@@ -12,30 +12,41 @@ The preprocessor generates two files given a file e.g. `filename.cpp`:
 - (2) `post.run.<filename>.cpp`: to generate a final executable 
 
 The preprocessor uses the following `#pragma`s & `.compile_to_oneapi()` method to identify:
-- (1) function argument elements
+- (1) Function Arguments
 - (2) T2S Specifications
-- (3) header file name created by the OneAPI Code Generater through the `.compile_to_oneapi()` method
+- (3) Header file name created by the OneAPI Code Generater through the `.compile_to_oneapi()` method
+
+Below is a boiled down example of the file structure the preprocessor is expecting.
 
 ```C++
 /* filename.cpp */
 int main(){
- // 
- float *a = new float[DIM_1 * DIM_2];
- float *b = new float[DIM_3 * DIM_4 * DIM_5];
+	// Initialize data 
+	const int TOTAL_I = III * II * I;
+	const int TOTAL_J = JJJ * JJ * J;
+	const int TOTAL_K = KKK * KK * K;
+	float *a = new float[TOTAL_K * TOTAL_I];
+	float *b = new float[TOTAL_J * TOTAL_K];
+	float *c = new float[TOTAL_J * TOTAL_I];
+	for(unsigned int i = 0; i < (TOTAL_K * TOTAL_I); i++){ a[i] = random(); }
+	for(unsigned int i = 0; i < (TOTAL_J * TOTAL_K); i++){ b[i] = random(); }
+	for(unsigned int i = 0; i < (TOTAL_J * TOTAL_I); i++){ c[i] = 0.0f; }
 
- int a_dim[2] = {DIM_1, DIM_2};
- int b_dim[3] = {DIM_3, DIM_4, DIM_5};
+	// Dimensions of the data
+	int a_dim[2] = {TOTAL_K, TOTAL_I};
+	int b_dim[2] = {TOTAL_J, TOTAL_K};
+	int c_dim[6] = {JJJ, III, JJ, II, J, I};
 
- #pragma t2s_arg A, a, a_dim
- #pragma t2s_arg C, c, c_dim
- #pragma t2s_arg B, b, b_dim
- #pragma t2s_spec_start
 
-  ImageParam A("A", TTYPE, 2), B("B", TTYPE, 2);
-  // T2S Speficiations ... 
-  C.compile_to_oneapi( { A, B }, "gemm", IntelFPGA);
+#pragma t2s_spec_start
+	// ...
+	ImageParam A("A", TTYPE, 2), B("B", TTYPE, 2);
+	// T2S Speficiations ... 
+	C.compile_to_oneapi( { A, B }, "gemm", IntelFPGA);
 
- #pragma t2s_spec_end
+#pragma t2s_spec_end
+
+#pragma t2s_submit gemm (A, a, a_dim) (B, b, b_dim) (C, c, c_dim)
 
 }
 ```
@@ -94,64 +105,75 @@ For further help assuming you have built the preprocessor, use the following ste
 cd ~/path/to/t2sp/
 cd t2s/preprocessor/src/
 ./t2spreprocessor --help
-# t2spreprocessor: started! ...
-# USAGE: t2spreprocessor [options] <source0> [... <sourceN>]
+#t2spreprocessor: started! ...
+#USAGE: t2spreprocessor [options] <source0> [... <sourceN>]
 #
-# OPTIONS:
+#OPTIONS:
 #
-# Generic Options:
+#Generic Options:
 #
-#   --help                      - Display available options (--help-hidden for more)
-#   --help-list                 - Display list of available options (--help-list-hidden for more)
-#   --version                   - Display the version of this program
+#  --help                      - Display available options (--help-hidden for more)
+#  --help-list                 - Display list of available options (--help-list-hidden for more)
+#  --version                   - Display the version of this program
 #
-# t2spreprocessor options:
+#t2spreprocessor options:
 #
-#   --extra-arg=<string>        - Additional argument to append to the compiler command line
-#   --extra-arg-before=<string> - Additional argument to prepend to the compiler command line
-#   -p=<string>                 - Build path
+#  --extra-arg=<string>        - Additional argument to append to the compiler command line
+#  --extra-arg-before=<string> - Additional argument to prepend to the compiler command line
+#  -p=<string>                 - Build path
 #
-# -p <build-path> is used to read a compile command database.
+#-p <build-path> is used to read a compile command database.
 #
-#         For example, it can be a CMake build directory in which a file named
-#         compile_commands.json exists (use -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
-#         CMake option to get this output). When no build path is specified,
-#         a search for compile_commands.json will be attempted through all
-#         parent paths of the first input file . See:
-#         https://clang.llvm.org/docs/HowToSetupToolingForLLVM.html for an
-#         example of setting up Clang Tooling on a source tree.
+#        For example, it can be a CMake build directory in which a file named
+#        compile_commands.json exists (use -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+#        CMake option to get this output). When no build path is specified,
+#        a search for compile_commands.json will be attempted through all
+#        parent paths of the first input file . See:
+#        https://clang.llvm.org/docs/HowToSetupToolingForLLVM.html for an
+#        example of setting up Clang Tooling on a source tree.
 #
-# <source0> ... specify the paths of source files. These paths are
-#         looked up in the compile command database. If the path of a file is
-#         absolute, it needs to point into CMake's source tree. If the path is
-#         relative, the current working directory needs to be in the CMake
-#         source tree and the file must be in a subdirectory of the current
-#         working directory. "./" prefixes in the relative files will be
-#         automatically removed, but the rest of a relative path must be a
-#         suffix of a path in the compile command database.
+#<source0> ... specify the paths of source files. These paths are
+#        looked up in the compile command database. If the path of a file is
+#        absolute, it needs to point into CMake's source tree. If the path is
+#        relative, the current working directory needs to be in the CMake
+#        source tree and the file must be in a subdirectory of the current
+#        working directory. "./" prefixes in the relative files will be
+#        automatically removed, but the rest of a relative path must be a
+#        suffix of a path in the compile command database.
 #
-# t2spreprocessor is inteded to convert mixed t2s specification and execution code into compiliable code
-# t2spreprocessor: Expected usage goes as follows: 
+#t2spreprocessor is inteded to convert mixed t2s specification and execution code into compiliable code
+#t2spreprocessor: Expected usage goes as follows: 
 #
-# int main(){
 #
-#  float *a = new float[DIM_1 * DIM_2];
-#  float *b = new float[DIM_3 * DIM_4 * DIM_5];
+#/* filename.cpp */
+#int main(){
+#        // Initialize data 
+#        const int TOTAL_I = III * II * I;
+#        const int TOTAL_J = JJJ * JJ * J;
+#        const int TOTAL_K = KKK * KK * K;
+#        float *a = new float[TOTAL_K * TOTAL_I];
+#        float *b = new float[TOTAL_J * TOTAL_K];
+#        float *c = new float[TOTAL_J * TOTAL_I];
+#        for(unsigned int i = 0; i < (TOTAL_K * TOTAL_I); i++){ a[i] = random(); }
+#        for(unsigned int i = 0; i < (TOTAL_J * TOTAL_K); i++){ b[i] = random(); }
+#        for(unsigned int i = 0; i < (TOTAL_J * TOTAL_I); i++){ c[i] = 0.0f; }
 #
-#  int a_dim[2] = {DIM_1, DIM_2};
-#  int b_dim[3] = {DIM_3, DIM_4, DIM_5};
+#        // Dimensions of the data
+#        int a_dim[2] = {TOTAL_K, TOTAL_I};
+#        int b_dim[2] = {TOTAL_J, TOTAL_K};
+#        int c_dim[6] = {JJJ, III, JJ, II, J, I};
 #
-#  #pragma t2s_arg A, a, a_dim
-#  #pragma t2s_arg C, c, c_dim
-#  #pragma t2s_arg B, b, b_dim
-#  #pragma t2s_spec_start
 #
-#   ImageParam A("A", TTYPE, 2), B("B", TTYPE, 2);
-#   // T2S Speficiations ... 
-#   C.compile_to_oneapi( { A, B }, "gemm", IntelFPGA);
+##pragma t2s_spec_start
+#        // ...
+#        ImageParam A("A", TTYPE, 2), B("B", TTYPE, 2);
+#        // T2S Speficiations ... 
+#        C.compile_to_oneapi( { A, B }, "gemm", IntelFPGA);
 #
-#  #pragma t2s_spec_end
+##pragma t2s_spec_end
 #
-# }
+##pragma t2s_submit gemm (A, a, a_dim) (B, b, b_dim) (C, c, c_dim)
+#
+#}
 ```
 
