@@ -11,7 +11,13 @@ function setup_dpcpp_devcloud {
     if ! command -v dpcpp &> /dev/null
     then
         echo "sourcing dpcpp setup script"
-        source /glob/development-tools/versions/oneapi/2022.1.2/oneapi/setvars.sh
+
+        # Using default configuration 
+        source /glob/development-tools/versions/oneapi/2022.1.2/oneapi/setvars.sh 
+        
+        # Using config file
+        # (NOTE) config file needs modification
+        # source /glob/development-tools/versions/oneapi/2022.1.2/oneapi/setvars.sh --config="${T2S_PATH}/oneapi_config.txt" 
     else
         echo "dpcpp command exists"
     fi
@@ -109,7 +115,6 @@ if [ "$2" = "fpga" ]; then
 
         source  /glob/development-tools/versions/intel-parallel-studio-2019/debugger_2019/bin/debuggervars.sh
         alias gdb='gdb-ia'
-        setup_dpcpp_devcloud
     fi
 
     # Figure out the emulator and hardware run platform

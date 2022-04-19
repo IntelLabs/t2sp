@@ -168,6 +168,21 @@ function test_func {
     $clean
 }
         
+function setup_dpcpp_devcloud {
+    if ! command -v dpcpp &> /dev/null
+    then
+        echo "sourcing dpcpp setup script!!!"
+        
+        # Using default configuration 
+        source /glob/development-tools/versions/oneapi/2022.1.2/oneapi/setvars.sh 
+        
+        # Using config file
+        # (NOTE) config file needs modification
+        # source /glob/development-tools/versions/oneapi/2022.1.2/oneapi/setvars.sh --config="${T2S_PATH}/oneapi_config.txt" 
+    else
+        echo "dpcpp command exists!!!"
+    fi
+}
 
 array_to_read=("${EMU[@]}")
 echo "Testing OneAPI-Integration"
@@ -175,6 +190,9 @@ echo "  usage ./test.sh (default:EMU|FPGA)"
 rm -f success.txt failure.txt
 index=0
 emu_var=$1
+
+# SETUP THE DPCPP COMPILER
+setup_dpcpp_devcloud
 
 # USE EITHER FPGA OR EMULATOR
 if [ $# -ge 1 ]
