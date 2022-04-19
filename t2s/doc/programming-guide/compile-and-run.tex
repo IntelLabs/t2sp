@@ -37,7 +37,9 @@ And suppose a host file \texttt{host.cpp} is ready to call \texttt{SomeKernel}.
     \end{markdown}
     For the kernel, this command generates an OpenCL file (named \texttt{a.cl} after name of the environment variable \texttt{BITSTREAM}), invokes Intel FPGA SDK for OpenCL to synthesize the OpenCL file into a device bitstream (\texttt{a.aocx}), and generates \texttt{interface.h/cpp} for the host to invoke the kernel, as if the kernel is a common CPU function.
 
-    You may modify the generated OpenCL file manually. After any modification, you may re-generate the bitstream in the following commands:
+    You may modify the generated OpenCL file manually. A common debugging practice is to add \texttt{printf} statements inside the generated OpenCL file, e.g. inserting \texttt{printf("Variable v=\%f", v)} to dump the value of variable \texttt{a}. Note \texttt{printf} works only with emulation.
+    
+    After any modification, you may re-generate the bitstream in the following commands:
     \begin{markdown}
     # For emulation:
     aoc $COMMON_AOC_OPTION_FOR_EMULATION a.cl -o a.aocx    
@@ -47,7 +49,7 @@ And suppose a host file \texttt{host.cpp} is ready to call \texttt{SomeKernel}.
     aoc $COMMON_AOC_OPTION_FOR_EXECUTION a.cl -o a.aocx    
     \end{markdown}
 
-    \item{\bf Comple the host file}
+    \item{\bf Compile the host file}
     \begin{markdown}
     # For emulation:
     g++ host.cpp interface.cpp $COMMON_OPTIONS_COMPILING_HOST_FOR_EMULATION -o host.out
@@ -57,7 +59,7 @@ And suppose a host file \texttt{host.cpp} is ready to call \texttt{SomeKernel}.
     \end{markdown}
     When compiling the host file, the kernel will be linked to the host code through the interface.
 
-    \item {Run the host file}
+    \item {\bf Run the host file}
     \begin{markdown}
     # For emulation:
     env BITSTREAM=a.aocx CL_CONTEXT_EMULATOR_DEVICE_INTELFPGA=1 \
@@ -73,6 +75,22 @@ And suppose a host file \texttt{host.cpp} is ready to call \texttt{SomeKernel}.
     aocl program acl0 a.aocx
     env BITSTREAM=a.aocx INTEL_FPGA_OCL_PLATFORM_NAME="$HW_PLATFORM" ./host.out
     \end{markdown}
+    
+    \item {\bf Debug a kernel (in an emulator only)}
+    
+    Just like debugging any executable in \texttt{gdb}, you would like to add \texttt{gdb} right before \texttt{./host.out}:
+    \begin{markdown}
+    env BITSTREAM=a.aocx CL_CONTEXT_EMULATOR_DEVICE_INTELFPGA=1 \
+        INTEL_FPGA_OCL_PLATFORM_NAME="$EMULATOR_PLATFORM" gdb ./host.out
+
+    # Now inside the gdb, set a breakpoint at the kernel
+    (gdb) b SomeKernel
+    
+    # Run. Gdb will stop at the kernel's entrance.
+    (gdb) r
+    \end{markdown}
+    
+    Note: whether \texttt{gdb} could successfully stop at the specified kernel seems to depend on the version of \texttt{aoc} (i.e. Intel FPGA SDK for OpenCL). We verified that the debugger stops at a kernel with aoc 19.2.0 on an S10 FPGA, but somehow does not stop with aoc 19.4.0 on an A10 FPGA.
 \end{enumerate}
 
 Note: if you want to re-run the above commands, remove the previously generated bitstream and intermediate files:
