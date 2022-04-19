@@ -7,6 +7,16 @@ function show_usage {
     echo "  source setenv.sh local    (fpga | gpu)"
 }       
 
+function setup_dpcpp_devcloud {
+    if ! command -v dpcpp &> /dev/null
+    then
+        echo "sourcing dpcpp setup script"
+        source /glob/development-tools/versions/oneapi/2022.1.2/oneapi/setvars.sh
+    else
+        echo "dpcpp command exists"
+    fi
+}
+
 if [ $0 == $BASH_SOURCE ]; then
    echo "This script should be sourced, not run."
    exit
@@ -99,6 +109,7 @@ if [ "$2" = "fpga" ]; then
 
         source  /glob/development-tools/versions/intel-parallel-studio-2019/debugger_2019/bin/debuggervars.sh
         alias gdb='gdb-ia'
+        setup_dpcpp_devcloud
     fi
 
     # Figure out the emulator and hardware run platform
