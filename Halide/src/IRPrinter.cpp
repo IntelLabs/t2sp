@@ -88,6 +88,9 @@ ostream &operator<<(ostream &out, const DeviceAPI &api) {
     case DeviceAPI::OpenCL:
         out << "<OpenCL>";
         break;
+    case DeviceAPI::OneAPI:
+        out << "<OneAPI>";
+        break;
     case DeviceAPI::CM:
         out << "<CM>";
         break;

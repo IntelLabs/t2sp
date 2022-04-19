@@ -7,6 +7,22 @@ function show_usage {
     echo "  source setenv.sh local    (fpga | gpu)"
 }       
 
+function setup_dpcpp_devcloud {
+    if ! command -v dpcpp &> /dev/null
+    then
+        echo "sourcing dpcpp setup script"
+
+        # Using default configuration 
+        source /glob/development-tools/versions/oneapi/2022.1.2/oneapi/setvars.sh 
+        
+        # Using config file
+        # (NOTE) config file needs modification
+        # source /glob/development-tools/versions/oneapi/2022.1.2/oneapi/setvars.sh --config="${T2S_PATH}/oneapi_config.txt" 
+    else
+        echo "dpcpp command exists"
+    fi
+}
+
 if [ $0 == $BASH_SOURCE ]; then
    echo "This script should be sourced, not run."
    exit
