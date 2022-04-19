@@ -5,6 +5,14 @@ This is a correctness test directory for the T2S OneAPI Code Generator.
 **NOTE:** There are some issues with full FPGA emulation for convolution and capsule tests. 
 If you wish do use real FPGA, it is encouraged to include the `-DTINY` in the compiling commands as to reduce hardware size and issues.
 
+**NOTE:** If you are using A10 on the Intel Devcloud FPGA, make sure you are using the `dpcpp` compiler and incldule directories. You can source the setup script using the following command
+```bash
+## The location of the local DPCPP on A10 w/ OpenCL 1.2.1
+## This step is not necessary if you use an A10 Node with the DPCPP setup
+## Note, this script and directory is subject to change
+source /glob/development-tools/versions/oneapi/2022.1.2/oneapi/setvars.sh 
+```
+
 ## Overview
 
 There are three tests within this directory:
