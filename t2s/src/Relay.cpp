@@ -227,43 +227,56 @@ class DataRelaying : public IRMutator {
     }
 
     // unrolled for (Z.pipe.b, 0, pipe_alloc.bank_extent) {
-    //   if (pipe.iter - pipe.base < lin_extents * PE_extents) {
-    //     write_channel(Out.channel, read_shift_reg(Z.pipe, Z.pipe.b, 0), Z.pipe.b, 0)
-    //   }
+    //   Out.channel.temp[Z.pipe.b] = read_shift_reg(Z.pipe, Z.pipe.b, 0)
     //   unrolled for (Z.pipe.b_dummy, 0, pipe_alloc.bank_extent) {
-    //     write_array(Out.channel, fpga_reg(read_array(Out.channel, Z.pipe.b_dummy, 0), Z.pipe.b_dummy, 0))
+    //     Out.channel.temp[Z.pipe.b] = fpga_reg(Out.channel.temp[Z.pipe.b])
     //   }
     // }
+    // if (pipe.iter - pipe.base < lin_extents * PE_extents) {
+    //   write_channel("Out.channel", Out.channel.temp)
+    // }
     Stmt make_write() {
-        string bank_name = unique_name(pipe_alloc.name + ".b");
-        Expr var_bank = Variable::make(Int(32), bank_name);
+        string chn_temp_name = param.to_func + ".channel.temp";
+        auto num_bank = pipe_alloc.bank_extent.as<IntImm>();
+        internal_assert(num_bank);
+
         // Write data to channel
-        Expr read_pipe = Call::make(pipe_alloc.t, Call::IntrinsicOp::read_shift_reg,
-                                    { pipe_alloc.name+".shreg", var_bank, 0 }, Call::CallType::PureIntrinsic);
+        Type vec_t = pipe_alloc.t.with_lanes(num_bank->value);
+        Expr read_temp = Call::make(vec_t, chn_temp_name, {}, Call::Intrinsic);
         vector<Expr> write_args;
         write_args.push_back(param.to_func + ".channel");
-        write_args.push_back(read_pipe);
-        write_args.push_back(var_bank);
-        Expr write_chn = Call::make(pipe_alloc.t, Call::IntrinsicOp::write_channel, write_args, Call::CallType::PureIntrinsic);
+        write_args.push_back(read_temp);
+        Expr write_chn = Call::make(vec_t, Call::IntrinsicOp::write_channel, write_args, Call::CallType::PureIntrinsic);
+
         // Flag is true
         Expr read_iter = Call::make(Int(32), pipe_alloc.name+".iter.temp", {}, Call::Intrinsic);
         Expr read_base = Call::make(Int(32), pipe_alloc.name+".base.temp", {}, Call::Intrinsic);
         Expr bound = pipe_alloc.lin_extent * pipe_alloc.PE_extent;
         Expr if_cond = simplify(read_iter - read_base < bound);
         Stmt if_stmt = IfThenElse::make(if_cond, Evaluate::make(write_chn));
+
         // Insert fpga_reg calls
+        string bank_name = unique_name(pipe_alloc.name + ".b");
         string dummy_bank = bank_name + "_dummy";
-        Expr var_dummy_bank = Variable::make(Int(32), bank_name + "_dummy");
-        Expr read_reg = Call::make(pipe_alloc.t, Call::IntrinsicOp::read_array,
-                                    { param.to_func+".channel", var_dummy_bank }, Call::CallType::PureIntrinsic);
+        Expr var_dummy_bank = Variable::make(Int(32), dummy_bank);
+        Expr read_reg = Call::make(pipe_alloc.t, chn_temp_name, { var_dummy_bank }, Call::Intrinsic);
         read_reg = Call::make(pipe_alloc.t, Call::IntrinsicOp::fpga_reg, { read_reg }, Call::CallType::PureIntrinsic);
-        Expr write_reg = Call::make(pipe_alloc.t, Call::IntrinsicOp::write_array,
-                                    { param.to_func+".channel", read_reg, var_dummy_bank }, Call::CallType::PureIntrinsic);
-        Stmt dummy_for_bank = For::make(dummy_bank, 0, pipe_alloc.bank_extent, ForType::Unrolled, DeviceAPI::None, Evaluate::make(write_reg));
-        // Bank loop
-        Stmt loop_body = Block::make(if_stmt, dummy_for_bank);
+        Stmt write_reg = Provide::make(chn_temp_name, { read_reg }, { var_dummy_bank });
+        Stmt dummy_for_bank = For::make(dummy_bank, 0, pipe_alloc.bank_extent, ForType::Unrolled, DeviceAPI::None, write_reg);
+
+        // Fill the temp variable
+        Expr var_bank = Variable::make(Int(32), bank_name);
+        Expr read_pipe = Call::make(pipe_alloc.t, Call::IntrinsicOp::read_shift_reg,
+                                    { pipe_alloc.name+".shreg", var_bank, 0 }, Call::CallType::PureIntrinsic);
+        Stmt write_temp = Provide::make(chn_temp_name, { read_pipe }, { var_bank });
+        Stmt loop_body = Block::make(write_temp, dummy_for_bank);
         Stmt for_bank = For::make(bank_name, 0, pipe_alloc.bank_extent, ForType::Unrolled, DeviceAPI::None, loop_body);
-        return for_bank;
+
+        // Realize
+        Stmt realize_body = Block::make(for_bank, if_stmt);
+        Stmt temp_node = Realize::make(chn_temp_name, { vec_t }, MemoryType::Auto, Region(), const_true(), realize_body);
+
+        return temp_node;
     }
 
     // pipe.iter = lin_extents * PE_extents

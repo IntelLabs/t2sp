@@ -158,7 +158,7 @@ int main(int argc, char *argv[])
     auto [hDriver, hDevice, hContext] = findDriverAndDevice();
     auto hCommandList = createImmCommandList(hContext, hDevice);
 
-    set_pseudo_input();
+    set_real_input();
     ze_image_format_t fmt_uint = {ZE_IMAGE_FORMAT_LAYOUT_8, ZE_IMAGE_FORMAT_TYPE_UINT};
     auto H_surf           = createImage2D(hContext, hDevice, hCommandList, fmt_uint, NUM_HAPS, HAP_LEN, H);
     auto R_surf           = createImage2D(hContext, hDevice, hCommandList, fmt_uint, READ_LEN, NUM_READS, R);
