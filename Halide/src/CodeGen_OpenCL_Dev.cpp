@@ -913,8 +913,20 @@ void CodeGen_OpenCL_Dev::CodeGen_OpenCL_C::visit(const Call *op) {
         stream << get_indent() << print_expr(op->args[0]) << ";\n";
         stream << get_indent() << addr_temp << " = " << addr_temp << " + " << offset << ";\n";
     } else if (op->is_intrinsic(Call::fpga_reg)) {
+        int times = 2;
+        if (op->args.size() > 1) {
+            auto val = op->args[1].as<IntImm>();
+            internal_assert(val);
+            times = val->value;
+        }
         ostringstream rhs;
-        rhs << "__fpga_reg(__fpga_reg(" << print_expr(op->args[0]) << "))";
+        for (int i = 0; i < times; i++) {
+            rhs << "__fpga_reg(";
+        }
+        rhs << print_expr(op->args[0]);
+        for (int i = 0; i < times; i++) {
+            rhs << ")";
+        }
         print_assignment(op->type, rhs.str());
 
     } else if (op->is_intrinsic(Call::overlay_switch)) {
