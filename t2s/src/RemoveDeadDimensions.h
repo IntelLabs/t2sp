@@ -16,27 +16,16 @@
 *
 * SPDX-License-Identifier: BSD-2-Clause-Patent
 *******************************************************************************/
-#ifndef T2S__FLATTEN_LOOPS_H
-#define T2S__FLATTEN_LOOPS_H
-
-/** \file
- * Methods for finding use-def chains halide statements and expressions
- */
+#ifndef T2S_REMOVE_DEAD_DIMS_H
+#define T2S_REMOVE_DEAD_DIMS_H
 
 #include "../../Halide/src/IR.h"
-
-using std::map;
-using std::pair;
-using std::set;
-using std::string;
-using std::vector;
 
 namespace Halide {
 namespace Internal {
 
-Stmt replace_mem_channels(Stmt s, const std::map<std::string, Function> &env, vector<std::pair<string, Expr>> &letstmts_backup);
-Stmt flatten_loops(Stmt s, const std::map<std::string, Function> &env);
-Stmt flatten_outer_loops(Stmt s, const string &loop_lvl, const std::map<std::string, Function> &env);
+
+Stmt remove_dead_dimensions(Stmt s);
 
 }
 }

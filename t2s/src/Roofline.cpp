@@ -110,7 +110,7 @@ double FMax() {
 }
 
 // Execution time in terms of nanoseconds
-double ExecTime() {
+double ExecTime(const char* kernel_name) {
     char *bitstream_dir = bitstream_directory();
     char *exec_time_file = concat_directory_and_file(bitstream_dir, "exec_time.txt");
 
@@ -121,6 +121,17 @@ double ExecTime() {
         printf("Cannot open %s!\n", exec_time_file);
     } else {
         fscanf(fp, "%lf", &_ret);
+        if (kernel_name) {
+            char tmp_s[100];
+            double tmp_t;
+            while (fscanf(fp, "%s %lf\n", tmp_s, &tmp_t) != EOF) {
+                if (strcmp(tmp_s, kernel_name) == 0) {
+                    printf("kernel %s exec time: %lf\n", tmp_s, tmp_t);
+                    _ret = tmp_t;
+                    break;
+                }
+            }
+        }
     }
     fclose(fp);
     free(bitstream_dir);
@@ -134,8 +145,9 @@ void roofline(double mem_bandwidth, double compute_roof, double number_ops, doub
         printf("Roofline parameters Error!\n");
         return;
     }
+    printf("GFlops: %lf\n", number_ops / exec_time);
     sprintf(command, "python $T2S_PATH/t2s/src/Roofline.py %lf %lf %lf %lf %lf", mem_bandwidth, compute_roof, number_ops, number_bytes, exec_time);
-    printf("%s\n", command);
+    printf("Run command: %s\n", command);
     int ret = system(command);
     assert(ret != -1);
 }

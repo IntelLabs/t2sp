@@ -155,10 +155,7 @@ public:
     ReplaceReferencesWithMemChannels(const set<string> &_mem_channels,
                                     const map<string, Function> &_env,
                                     vector<std::pair<string, Expr>> &_lets) :
-        mem_channels(_mem_channels), env(_env), letstmts_backup(_lets) {
-            user_assert(env.size() > 0);
-            is_set_bounds = true;
-        }
+        mem_channels(_mem_channels), env(_env), letstmts_backup(_lets) {}
 
 private:
     const set<string> &mem_channels;
@@ -166,7 +163,6 @@ private:
     vector<string> enclosing_unrolled_loops;
     set<string> channels;
     vector<std::pair<string, Expr>> &letstmts_backup;
-    bool is_set_bounds;
 
     string get_channel_name(string name) {
         string func_name = extract_first_token(name);
@@ -194,9 +190,6 @@ private:
         if ((op->for_type == ForType::Vectorized) && names.size() > 2) {
             enclosing_unrolled_loops.push_back(op->name);
         }
-        if (op->device_api != DeviceAPI::OpenCL && (op->min.as<Variable>() || op->extent.as<Variable>())) {
-            is_set_bounds = false;
-        }
         Stmt stmt = IRMutator::visit(op);
         if ((op->for_type == ForType::Vectorized) && names.size() > 2) {
             enclosing_unrolled_loops.pop_back();
@@ -206,7 +199,6 @@ private:
 
     // Mark the memory channel with a special name
     Stmt visit(const Allocate *op) override {
-        is_set_bounds = true;
         Stmt body = mutate(op->body);
         if (!get_channel_name(op->name).empty()) {
             string name = op->name + ".mem_channel";
@@ -846,81 +838,140 @@ set<string> identify_funcs_outputting_to_mem_channels(Stmt s, const map<string, 
     return funcs_outputting_to_mem_channels;
 }
 
-// The __fpga_reg function is useful to "Break the critical paths between spatially distant portions of a data path,
-// such as between processing elements of a large systolic array." We check the arguments' differences in the nested
-// write/read_shift_regs calls, which hints the data path across PEs:
-// write_shift_regs("X.shreg", iii, jjj, read_shift_regs("X.shreg", iii-1, jjj)), iii and jjj are space loops
-// The value of X is propogated along the iii dimension. After transformation, a fpga_reg call is inserted:
-// write_shift_regs("X.shreg", iii, jjj, fpga_reg( read_shift_regs("X.shreg", iii-1, jjj) ))
+/* The __fpga_reg function is useful to "break the critical paths between spatially distant portions of a data path,
+ * such as between processing elements of a large systolic array." We check the arguments' differences in the nested
+ * write/read_shift_regs calls, which hints the data path across PEs:
+ * write_shift_regs("X.shreg", i, j, read_shift_regs("X.shreg", i-1, j)), i and j are space loops
+ * The value of X is propogated along the i dimension. After transformation, the i dimension is removed:
+ * write_shift_regs("X.shreg", 0, j, fpga_reg( read_shift_regs("X.shreg", 0, j) ))
+ */
 class RegCallInserter : public IRMutator {
     using IRMutator::visit;
-    vector<Expr> write_args;
     vector<string> space_loops;
+    map<string, int> shift_dims;
+    vector<Stmt> reg_calls;
+    bool inside_if;
 
-    class FindSpaceVar : public IRVisitor {
-        using IRVisitor::visit;
-        string var;
-
-    public:
-        bool found = false;
-        FindSpaceVar(string &_s)
-            : var(_s) {}
-
-        void visit(const Variable *v) override {
-            if (extract_last_token(v->name) == var) {
-                found = true;
+    Expr get_read_node(string write_name, Expr arg) {
+        // To be safe, only three patterns are found:
+        // 1.  write_shift_regs("X.shreg", i, j, read_shift_regs("X.shreg", i-1, j))
+        // 2.  write_shift_regs("X.shreg", i, j, select(?, read_shift_regs("X.shreg", i-1, j), ?))
+        // 3.  write_shift_regs("X.shreg", i, j, select(?, ?, read_shift_regs("X.shreg", i-1, j)))
+        auto call_node = arg.as<Call>();
+        if (call_node && call_node->is_intrinsic(Call::read_shift_reg)) {
+            auto name = call_node->args[0].as<StringImm>();
+            if (name && name->value == write_name) {
+                return call_node;
             }
         }
-    };
+        auto sel_node = arg.as<Select>();
+        if (sel_node) {
+            auto true_as_call = sel_node->true_value.as<Call>();
+            if (true_as_call && true_as_call->is_intrinsic(Call::read_shift_reg)) {
+                auto name = true_as_call->args[0].as<StringImm>();
+                if (name && name->value == write_name) {
+                    return true_as_call;
+                }
+            }
+            auto false_as_call = sel_node->false_value.as<Call>();
+            if (false_as_call && false_as_call->is_intrinsic(Call::read_shift_reg)) {
+                auto name = false_as_call->args[0].as<StringImm>();
+                if (name && name->value == write_name) {
+                    return false_as_call;
+                }
+            }
+        }
+        return Expr();
+    }
+
 public:
     RegCallInserter(vector<string> &_s)
         : space_loops(_s) {}
 
+    Stmt visit(const Evaluate *op) override {
+        Expr value = mutate(op->value);
+        auto call = value.as<Call>();
+        if (call && call->is_intrinsic(Call::write_shift_reg)) {
+            auto write_name = call->args[0].as<StringImm>();
+            internal_assert(write_name);
+            if (shift_dims.find(write_name->value) != shift_dims.end()) {
+                vector<Expr> args;
+                for (size_t i = 0; i < call->args.size()-1; i++) {
+                    args.push_back(call->args[i]);
+                }
+                Expr read = Call::make(call->type, "read_shift_reg", args, Call::PureIntrinsic);
+                read = Call::make(call->type, "fpga_reg", { read }, Call::PureIntrinsic);
+                args.push_back(read);
+                Stmt write = Evaluate::make(Call::make(call->type, "write_shift_reg", args, Call::PureIntrinsic));
+                if (!inside_if) {
+                    // The shreg read values at the border and propagate values across PEs
+                    // Hence, it must have two branches, either in Select or IfThenElse
+                    // We must insert fpga_reg calls out of the two branches
+                    internal_assert(call->args.back().as<Select>());
+                    return Block::make(Evaluate::make(value), write);
+                }
+                reg_calls.push_back(write);
+            }
+        }
+        return Evaluate::make(value);
+    }
+
+    Stmt visit(const IfThenElse *op) override {
+        inside_if = true;
+        Expr condition = mutate(op->condition);
+        Stmt then_case = mutate(op->then_case);
+        Stmt else_case = mutate(op->else_case);
+        Stmt node = IfThenElse::make(condition, then_case, else_case);
+        inside_if = false;
+
+        if (!reg_calls.empty()) {
+            for (auto &c : reg_calls) {
+                node = Block::make(node, c);
+            }
+            reg_calls.clear();
+        }
+        return node;
+    }
+
     Expr visit(const Call *op) override {
         if (op->is_intrinsic(Call::write_shift_reg)) {
-            write_args = op->args;
-            vector<Expr> new_args;
-            for (size_t i = 0; i < op->args.size(); i++) {
-                new_args.push_back(mutate(op->args[i]));
-            }
-            write_args.clear();
-            return Call::make(op->type, op->name, new_args, op->call_type);
-        }
-        if (op->is_intrinsic(Call::read_shift_reg) && write_args.size() > 0) {
-            auto read_name = op->args[0].as<StringImm>();
-            auto write_name = write_args[0].as<StringImm>();
-            internal_assert(read_name && write_name);
-            if (read_name->value != write_name->value) {
-                // Add flag_reg only if read/write to the same register
+            auto write_name = op->args[0].as<StringImm>();
+            internal_assert(write_name);
+            auto read_node = get_read_node(write_name->value, op->args.back()).as<Call>();
+            if (!read_node) {
                 return IRMutator::visit(op);
             }
-            for (auto &v : space_loops) {
-                FindSpaceVar spv(v);
-                size_t iw = 1, end_w = write_args.size()-1;
-                size_t ir = 1, end_r = op->args.size();
-                spv.found = false;
-                for (; iw < end_w; iw++) {
-                    write_args[iw].accept(&spv);
-                    if (spv.found) {
-                        break;
-                    }
-                }
-                spv.found = false;
-                for (; ir < end_r; ir++) {
-                    op->args[ir].accept(&spv);
-                    if (spv.found) {
-                        break;
-                    }
-                }
-                if (iw < end_w && ir < end_r) {
-                    // Both iw (write) and ir (read) refer to one of the space loop
-                    // So we compare them and insert a fpga_reg if different
-                    Expr diff = simplify(write_args[iw] - op->args[ir]);
-                    if (!is_zero(diff)) {
-                        return Call::make(op->type, "fpga_reg", { op }, Call::PureIntrinsic);
+            vector<Expr> write_args = op->args;
+            for (size_t i = 1; i < op->args.size()-1; i++) {
+                auto v = op->args[i].as<Variable>();
+                if (v) {
+                    auto it = std::find(space_loops.begin(), space_loops.end(), extract_last_token(v->name));
+                    if (it != space_loops.end()) {
+                        Expr diff = simplify(read_node->args[i] - op->args[i]);
+                        if (is_const(diff) && !is_zero(diff)) {
+                            // Find a dimension where the value is propogated
+                            write_args[i] = 0;
+                            internal_assert(shift_dims.find(write_name->value) == shift_dims.end());
+                            shift_dims[write_name->value] = i;
+                        }
                     }
                 }
             }
+            write_args.back() = mutate(op->args.back());
+            return Call::make(op->type, op->name, write_args, op->call_type);
+        }
+        if (op->is_intrinsic(Call::read_shift_reg)) {
+            auto read_name = op->args[0].as<StringImm>();
+            internal_assert(read_name);
+            vector<Expr> read_args = op->args;
+            if (shift_dims.find(read_name->value) != shift_dims.end()) {
+                read_args[shift_dims.at(read_name->value)] = 0;
+            }
+            Expr call_node = Call::make(op->type, op->name, read_args, op->call_type);
+            // if (insert_reg_call) {
+            //     call_node = Call::make(op->type, "fpga_reg", { call_node }, Call::PureIntrinsic);
+            // }
+            return call_node;
         }
         return IRMutator::visit(op);
     }

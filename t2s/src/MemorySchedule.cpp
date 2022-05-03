@@ -1536,6 +1536,38 @@ public:
     }
 };
 
+class RemoveRedundantAllocations : public IRMutator
+{
+    const map<string, Function> &env;
+    std::map<string, const Load*> ori_value;
+public:
+    using IRMutator::visit;
+    RemoveRedundantAllocations(decltype(env) _env)
+        : env(_env) {}
+
+    Stmt visit(const Store *op) override {
+        Function func;
+        if (function_is_in_environment(op->name, env, func)
+            && (func.definition().schedule().is_merged() || func.has_merged_defs())) {
+            Expr value = op->value;
+            auto load = value.as<Load>();
+            if (load && (ends_with(load->name, "buf") || load->param.defined())) {
+                internal_assert(ori_value.count(op->name) == 0);
+                ori_value[op->name] = load;
+                return Evaluate::make(0);
+            }
+        }
+        return IRMutator::visit(op);
+    }
+
+    Expr visit(const Load *op) override {
+        if (ori_value.count(op->name)) {
+            return ori_value[op->name];
+        }
+        return IRMutator::visit(op);
+    }
+};
+
 void update_loop_vars(Stmt s) {
     LoopInfoCollector lc;
     s.accept(&lc);
@@ -1571,12 +1603,14 @@ Stmt do_memory_schedule(Stmt s, const map<string, Function> &env) {
         GPUStoreInserter gs_inserter(env);
         AutoUnroll auto_unroll(env);
         GPUInnerProductMatcher gpu_ipm(env);
+        RemoveRedundantAllocations rda(env);
 
         update_loop_vars(s);
         s = gb_inserter.mutate(s);
         s = gs_inserter.mutate(s);
         s = auto_unroll.mutate(s);
         s = gpu_ipm.mutate(s);
+        s = rda.mutate(s);
     }
     return s;
 }

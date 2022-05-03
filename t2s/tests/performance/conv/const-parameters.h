@@ -48,17 +48,29 @@
         #define XX          1
         #define Y           1
         #define X           1
+    #elif S10
+        #define CII         16
+        #define CI          16
+        #define COOO        16
+        #define COO         16
+        #define CO          1
+        #define YYY         14
+        #define XXX         14
+        #define YY          2
+        #define XX          2
+        #define Y           2
+        #define X           2
     #else
         #define CII         16
         #define CI          16
         #define COOO        8
-        #define COO         32
-        #define CO          1
+        #define COO         16
+        #define CO          2
         #define YYY         10
-        #define XXX         10
+        #define XXX         14
         #define YY          2
         #define XX          2
-        #define X           3
+        #define X           2
         #define Y           3
     #endif
 #endif

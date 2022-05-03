@@ -27,6 +27,9 @@ int main(void)
     #define FLOAT_URE_DECL          Float(32), {A}
     #define CHAR_URE_DECL           UInt(8), {A}
 
+    #define OH  (H.dim(0).extent() / HH)
+    #define OR  (R.dim(1).extent() / RR)
+
     // Hap data
     ImageParam H(UInt(8), 2);
 

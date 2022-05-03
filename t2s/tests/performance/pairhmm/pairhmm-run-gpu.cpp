@@ -2,6 +2,11 @@
 
 // Constant parameters (inner loop bounds) of the design
 #include "const-parameters.h"
+#define OR          16
+#define OH          16
+
+#define NUM_READS   (OR*RR)
+#define NUM_HAPS    (OH*HH)
 
 #include <math.h>
 #include <assert.h>
@@ -153,7 +158,7 @@ int main(int argc, char *argv[])
     auto [hDriver, hDevice, hContext] = findDriverAndDevice();
     auto hCommandList = createImmCommandList(hContext, hDevice);
 
-    set_pseudo_input();
+    set_real_input();
     ze_image_format_t fmt_uint = {ZE_IMAGE_FORMAT_LAYOUT_8, ZE_IMAGE_FORMAT_TYPE_UINT};
     auto H_surf           = createImage2D(hContext, hDevice, hCommandList, fmt_uint, NUM_HAPS, HAP_LEN, H);
     auto R_surf           = createImage2D(hContext, hDevice, hCommandList, fmt_uint, READ_LEN, NUM_READS, R);
@@ -168,13 +173,14 @@ int main(int argc, char *argv[])
     auto out_surf         = createImage2D(hContext, hDevice, hCommandList, fmt_float, NUM_HAPS, NUM_READS);
 
     auto hKernel = createKernel(hContext, hDevice, "pairhmm_genx.bin", "kernel_Hap");
-    setKernelArgs(hKernel, &zeta_surf, &eta_surf, &delta_surf,
-                           &beta_match_surf, &beta_gap_surf, &alpha_match_surf, &alpha_gap_surf,
-                           &out_surf, &R_surf, &H_surf);
+    setKernelArgs(hKernel, &H_surf, &R_surf, &out_surf,
+                           &alpha_gap_surf, &alpha_match_surf, &beta_gap_surf, &beta_match_surf,
+                           &delta_surf, &eta_surf, &zeta_surf);
     L0_SAFE_CALL(zeKernelSetGroupSize(hKernel, RR, 1, 1));
 
     double thost = 0;
-    for (size_t i = 0; i < ITER; i++) {
+    int iter = ITER == 1 ? 1 : ITER*100;
+    for (size_t i = 0; i < iter; i++) {
         ze_event_handle_t hEvent = createEvent(hContext, hDevice);
         ze_group_count_t launchArgs = {OH, OR, 1};
         double host_start = getTimeStamp();
@@ -183,7 +189,7 @@ int main(int argc, char *argv[])
         double host_end = getTimeStamp();
 
         thost += (host_end - host_start);
-        if (ITER == 1) {
+        if (iter == 1) {
             float *out = (float*)malloc(sizeof(float) * NUM_HAPS * NUM_READS);
             copyToMemory(hCommandList, out, out_surf, hEvent);
             zeEventHostSynchronize(hEvent, std::numeric_limits<uint32_t>::max());
@@ -195,13 +201,13 @@ int main(int argc, char *argv[])
     destroy(hCommandList);
     destroy(hContext);
 
-    if (ITER == 1) {
+    if (iter == 1) {
         cout << "Pass!\n";
     } else {
         double ops = (double)NUM_READS * READ_LEN * NUM_HAPS * HAP_LEN / (1.0f*1000*1000*1000);
         cout << "Length of read strings: " << NUM_READS << "*" << READ_LEN << "\n";
         cout << "Length of hap strings: " << NUM_HAPS << "*" << HAP_LEN << "\n";
-        cout << "GCups: " << ops / (thost / ITER) << "\n";
+        cout << "GCups: " << ops / (thost / iter) << "\n";
     }
 
     return 0;

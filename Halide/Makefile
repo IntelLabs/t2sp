@@ -821,6 +821,7 @@ T2S_SOURCE_FILES = \
   Place.cpp \
   PreprocessBeforeLower.cpp \
   Relay.cpp \
+  RemoveDeadDimensions.cpp \
   ScatterAndBuffer.cpp \
   SliceExprTree.cpp \
   SpaceTimeTransform.cpp \
@@ -832,6 +833,7 @@ T2S_SOURCE_FILES = \
 T2S_HEADER_FILES = \
   AutorunKernels.h \
   BuildCallRelation.h \
+  ChannelPromotion.h \
   CheckFuncConstraints.h \
   CheckRecursiveCalls.h \
   CombineChannels.h \
@@ -852,6 +854,7 @@ T2S_HEADER_FILES = \
   Place.h \
   PreprocessBeforeLower.h \
   Relay.h \
+  RemoveDeadDimensions.h \
   ScatterAndBuffer.h \
   SliceExprTree.h \
   SpaceTimeTransform.h \

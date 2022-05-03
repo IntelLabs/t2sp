@@ -4,6 +4,18 @@
 // Constant parameters (inner loop bounds) of the design
 #include "const-parameters.h"
 
+// Outer loop bounds for testing
+#ifdef TINY // For verifying correctness only
+    #define OR      4
+    #define OH      4
+#else
+    #define OR      16
+    #define OH      16
+#endif
+
+#define NUM_READS   (OR*RR)
+#define NUM_HAPS    (OH*HH)
+
 // Roofline Utilities
 #include "Roofline.h"
 

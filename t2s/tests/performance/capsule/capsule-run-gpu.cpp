@@ -29,12 +29,13 @@
 #include <stdio.h>
 #include <iostream>
 
-#define N           64
-#define SIZE_P_0    TOTAL_CI * MK * MX
+#define N           16
+#define TOTAL_N     N * NN
+#define SIZE_P_0    TOTAL_CI * MK * MX * NN
 #define SIZE_P_1    TOTAL_IY * TOTAL_IX * N
 #define SIZE_W_0    TOTAL_CO * MY
 #define SIZE_W_1    TOTAL_CI * KY * KX * MK
-#define SIZE_V_0    TOTAL_CO * MY * MX
+#define SIZE_V_0    TOTAL_CO * MY * MX * NN
 #define SIZE_V_1    OY * OX * N
 
 using namespace std;
@@ -42,6 +43,7 @@ using namespace std;
 void check_correctness(float *P, float *W, float *V)
 {
     for (int n = 0; n < N; n++)
+    for (int nn = 0; nn < NN; nn++)
     for (int x = 0; x < OX; x++)
     for (int y = 0; y < OY; y++)
     for (int mx = 0; mx < MX; mx++)
@@ -51,16 +53,18 @@ void check_correctness(float *P, float *W, float *V)
         for (int kx = 0; kx < KX; kx++)
         for (int ky = 0; ky < KY; ky++)
         for (int mk = 0; mk < MK; mk++)
-        for (int ci = 0; ci < TOTAL_CI; ci++) {
+        for (int ci = 0; ci < CI; ci++)
+        for (int cii = 0; cii < CII; cii++) {
             size_t total_ix = x*2 + kx;
             size_t total_iy = y*2 + ky;
-            size_t p_0 = ci + (TOTAL_CI)*mk + (TOTAL_CI*MK)*mx;
+            size_t total_ci = cii + CII*ci;
+            size_t p_0 = total_ci + (TOTAL_CI)*mk + (TOTAL_CI*MK)*mx + (TOTAL_CI*MK*MX)*nn;
             size_t p_1 = total_iy + (TOTAL_IY)*total_ix + (TOTAL_IY*TOTAL_IX)*n;
             size_t w_0 = co + (TOTAL_CO)*my;
-            size_t w_1 = (ci % CII) + (CII)*ky + (CII*KY)*kx + (CII*KY*KX)*(ci/CII) + (CII*KY*KX*CI)*mk;
+            size_t w_1 = cii + (CII)*ky + (CII*KY)*kx + (CII*KY*KX)*ci + (TOTAL_CI*KY*KX)*mk;
             golden += P[p_0 + SIZE_P_0 * p_1] * W[w_0 + SIZE_W_0 * w_1];
         }
-        size_t v_0 = co + TOTAL_CO*my + TOTAL_CO*MY*mx;
+        size_t v_0 = co + TOTAL_CO*my + TOTAL_CO*MY*mx + TOTAL_CO*MY*MX*nn;
         size_t v_1 = y + OY*x + OY*OX*n;
         assert(fabs(golden - V[v_0 + SIZE_V_0 * v_1]) < 0.005*fabs(golden));
     }
@@ -93,11 +97,10 @@ int main(int argc, char *argv[]) {
     // Creates a CmTask object.
     for (size_t i = 0; i < ITER; i++) {
         ze_event_handle_t hEvent = createEvent(hContext, hDevice);
-        ze_group_count_t launchArgs = {CO, N, 1};
+        ze_group_count_t launchArgs = {CO, NN, N};
         double host_start = getTimeStamp();
         appendLaunchKernel(hCommandList, hKernel, &launchArgs, hEvent);
         zeEventHostSynchronize(hEvent, std::numeric_limits<uint32_t>::max());
-        cout << "Exeuction finished\n";
         double host_end = getTimeStamp();
 
         thost += (host_end - host_start);
@@ -111,8 +114,8 @@ int main(int argc, char *argv[]) {
             check_correctness(a, b, c);
         }
     }
-    double tkern = thost / ITER;
-    double ops = 2 * (long)(N * TOTAL_CO) * (long)(MY * MX * OY * OX) * (long)(TOTAL_CI * MK * KY * KX) / (1.0f*1000*1000*1000);
+    thost = thost / ITER;
+    double ops = 2 * (long)(TOTAL_N * TOTAL_CO) * (long)(MY * MX * OY * OX) * (long)(TOTAL_CI * MK * KY * KX) / (1.0f*1000*1000*1000);
 
     destroy(hCommandList);
     destroy(hContext);
@@ -120,7 +123,7 @@ int main(int argc, char *argv[]) {
     if (ITER == 1) {
         printf("Pass!\n");
     } else {
-        cout << "Size of tensor P: " << N << ", " << TOTAL_CI << ", " << TOTAL_IX << ", " << TOTAL_IY
+        cout << "Size of tensor P: " << TOTAL_N << ", " << TOTAL_CI << ", " << TOTAL_IX << ", " << TOTAL_IY
                                      << ", " << MX << ", " << MK << "\n";
         cout << "Size of tensor W: " << TOTAL_CI << ", " << TOTAL_CO << ", " << KX << ", " << KY
                                      << ", " << MK << ", " << MY << "\n";

@@ -289,7 +289,7 @@ std::vector<Range> merge_channel_bounds(const std::vector<Range> &bounds1, const
     size_t i = bounds1.size() - 1;
     Range r(min(bounds1[i].min, bounds2[i].min), max(bounds1[i].extent, bounds2[i].extent));
     merged_bounds[i] = r;
-    return std::move(merged_bounds);
+    return merged_bounds;
 }
 
 Expr replace_prefix(const Expr &condition, const vector<string> &producer_loops,

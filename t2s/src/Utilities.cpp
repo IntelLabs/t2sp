@@ -108,7 +108,7 @@ Region loop_region(const vector<const For *> &loops, bool bounds_must_be_const) 
         }
         region.push_back(Range(l->min, l->extent));
     }
-    return std::move(region);
+    return region;
 }
 
 vector<Expr> loop_extents(const vector<const For *> &loops, bool extents_must_be_const) {
@@ -119,7 +119,7 @@ vector<Expr> loop_extents(const vector<const For *> &loops, bool extents_must_be
         }
         extents.push_back(l->extent);
     }
-    return std::move(extents);
+    return extents;
 }
 
 
@@ -128,7 +128,7 @@ vector<Expr> loop_indices(const vector<const For *> &loops) {
     for (auto l : loops) {
         indices.push_back(Variable::make(Int(32), l->name));
     }
-    return std::move(indices);
+    return indices;
 }
 
 vector<Expr> break_logic_into_conjunction(const Expr &cond) {
@@ -146,7 +146,7 @@ vector<Expr> break_logic_into_conjunction(const Expr &cond) {
             results.push_back(term);
         }
     }
-    return std::move(results);
+    return results;
 }
 
 bool check_is_single_PE(bool on_device, const Expr &cond, const vector<string> &unrolled_loops,
@@ -192,9 +192,8 @@ bool check_is_single_PE(bool on_device, const Expr &cond, const vector<string> &
 }
 
 // Loop variable is a constant
-bool loop_var_is_constant_in_condition(const string &loop_name, const Expr &cond) {
+bool loop_var_is_constant_in_condition(const string &loop_name, const Expr &cond, Expr &value) {
     vector<Expr> conjuction = break_logic_into_conjunction(cond);
-    Expr value; // Value found for the loop var from the condition. Initially undefined.
     for (auto e : conjuction) {
         // Look for loop var == a constant
         const EQ * eq = e.as<EQ>();

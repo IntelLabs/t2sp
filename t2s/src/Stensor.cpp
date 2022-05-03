@@ -139,7 +139,7 @@ struct FindVars
                 reuse_vars.push_back(Var(v));
             }
         }
-        return std::move(reuse_vars);
+        return reuse_vars;
     }
 
     // Find the first var below/above the given var v whose extent is not 1
@@ -245,7 +245,7 @@ class RealizeOnFPGA
         fv.ure.isolate_producer_chain(imp, producers);
         debug(1) << fv.ure.name() << ".isolate_producer_chain({"
                  << names_to_string(c.imp) << "}, " << names_to_string(producers) << ");\n";
-        return std::move(producers);
+        return producers;
     }
 
 #if 0
@@ -290,22 +290,23 @@ class RealizeOnFPGA
             c.outf.value().accept(&fpo);
             c.outf.relay(fpo.producer, bank);
             debug(1) << c.outf.name() << ".relay("
-                     << fpo.producer.name() << ", " << c.stensors[0].v_banks[0].name() << ");\n";
+                     << fpo.producer.name() << ", " << bank.name() << ");\n";
+            // The channel is inside the systolic array
+            if (c.stensors[0].fifo_depth != 0) {
+                c.outf.min_depth(c.stensors[0].fifo_depth);
+            }
             // Remove the first stensor as it is inside systolic array
             c.stensors.erase(c.stensors.begin());
             consumers.erase(consumers.begin());
-            // Similar to case with two-dimensional banks
-            Func first_func = consumers[0];
-            c.outf.isolate_consumer(first_func);
-            debug(1) << c.outf.name() << ".isolate_consumer("
-                     << first_func.name() << ");\n";
-            first_func.space_time_transform(bank);
-            debug(1) << first_func.name() << ".space_time_transform("
-                     << bank.name() << ");\n";
-            vector<Func> other_cons(consumers.begin()+1, consumers.end());
-            first_func.isolate_consumer_chain(other_cons);
-            debug(1) << first_func.name() << ".isolate_consumer_chain("
-                     << names_to_string(other_cons) << ");\n";
+            // Vectorize all the subsequent stensors
+            c.outf.isolate_consumer_chain(consumers);
+            debug(1) << c.outf.name() << ".isolate_consumer_chain("
+                     << names_to_string(consumers) << ");\n";
+            for (auto &f : consumers) {
+                f.vectorize(bank);
+                debug(1) << f.name() << ".vectorize("
+                         << bank.name() << ");\n";
+            }
         } else if (c.stensors[0].v_banks.size() == 2) {
             // The output stensor inherits loops of the output URE, generally less than that of systolic array
             // So we isolate the first consumer alone and apply space-time transform to regenerate loop structure,
@@ -327,7 +328,7 @@ class RealizeOnFPGA
             debug(1) << c.outf.name() << ".isolate_consumer_chain("
                      << names_to_string(consumers) << ");\n";
         }
-        return std::move(consumers);
+        return consumers;
     }
 
     // Remove reuse variables from stensors as per their scope
@@ -564,8 +565,8 @@ class RealizeOnGPU
             // Currently, we separately allocate registers in each thread, and view registers
             // throughout threads as an unified SRAM storage, to realize stensors on GPUs.
             if (s.position == SRAM) {
-            for (auto &p : c.imp) {
-                    int gpu_var_index = fv.free_vars.size() - num_gpu_vars;
+                for (auto &p : c.imp) {
+                    int gpu_var_index = fv.free_vars.size() - num_gpu_vars -1;
                     Var loop = fv.var_index(s.v_scope) < gpu_var_index ? s.v_scope : fv.free_vars[gpu_var_index];
                     p.gpu_fetch(loop, MemoryType::Register, s.v_outs);
                     debug(1) << p.name() << ".gpu_fetch("

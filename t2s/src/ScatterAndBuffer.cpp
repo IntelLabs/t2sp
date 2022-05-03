@@ -764,7 +764,7 @@ class ScatterInserter: public IRMutator{
             write_shreg_args.insert(write_shreg_args.begin(), shreg_name);
             write_shreg_args.push_back(read_from_channel);
             Stmt write_shreg_from_channel = Evaluate::make(
-                                                Call::make(Handle(iter->second.read_node.type().lanes()),
+                                                Call::make(iter->second.read_node.type(),
                                                         Call::write_shift_reg,
                                                         write_shreg_args,
                                                         Call::Intrinsic));
@@ -1038,7 +1038,7 @@ private:
     string producer_loop_name(const string &loop_name) {
         const Function &func = envs.find(producer)->second;
         string ploop = func.name() + ".s0." + extract_after_tokens(loop_name, 2);
-        return std::move(ploop);
+        return ploop;
     }
 
     // The loop is removed?
@@ -1188,7 +1188,8 @@ private:
                 debug(4) << "Found a reuse loop: " << loop_name << ". Not adding it to buffer dims.\n";
                 continue;
             }
-            if (loop_var_is_constant_in_condition(loop_name, original_read_condition)) {
+            Expr value;
+            if (loop_var_is_constant_in_condition(loop_name, original_read_condition, value)) {
                 debug(4) << "Found a loop that has only 1 iteration: " << loop_name << ". Not adding it to buffer dims\n";
                 continue;
             }
@@ -1206,7 +1207,8 @@ private:
 
         for (size_t i = 0; i < nonscatter_unroll_loops.size(); i++) {
             const string &loop_name = nonscatter_unroll_loop_vars[i].as<Variable>()->name;
-            if (loop_var_is_constant_in_condition(loop_name, original_read_condition)) {
+            Expr value;
+            if (loop_var_is_constant_in_condition(loop_name, original_read_condition, value)) {
                 debug(4) << "Unrolled loop " << loop_name << " has only 1 iteration. Not adding it to buffer dims\n";
                 continue;
             }
@@ -1370,7 +1372,16 @@ public:
         // Read input value before the scatterring
         get_input(new_body);
 
+        Expr single_PE_cond;
+        vector<string> unrolled_loops_without_terms;
+        vector<string> unrolled_loops_name;
+        for (auto &v : nonscatter_unroll_loop_vars) {
+            unrolled_loops_name.push_back(v.as<Variable>()->name);
+        }
         Stmt inc_cycle = Provide::make(var_name(cycle), {Call::make(UInt(32), var_name(cycle), nonscatter_unroll_loop_vars, Call::PureIntrinsic) + 1}, nonscatter_unroll_loop_vars);
+        if (check_is_single_PE(true, original_read_condition, unrolled_loops_name, {}, single_PE_cond, unrolled_loops_without_terms)) {
+            inc_cycle = IfThenElse::make(single_PE_cond, inc_cycle);
+        }
         new_body = Block::make(new_body, inc_cycle);
 
         add_nonscatter_unroll_loops(op->device_api, new_body);
@@ -1391,7 +1402,19 @@ public:
             init_args.push_back(Variable::make(Int(32), var_name(v) + "_init"));
         }
 
+        Expr single_PE_cond, original_cond = original_read_condition;
+        vector<string> unrolled_loops_without_terms;
+        vector<string> unrolled_loops_name;
+        for (auto &v : nonscatter_unroll_loop_vars) {
+            string name = v.as<Variable>()->name;
+            unrolled_loops_name.push_back(name + "_init");
+            original_cond = substitute(name, Variable::make(Int(32), name + "_init"), original_cond);
+        }
         Stmt init_cycle = Provide::make(var_name(cycle), {Expr(INIT)}, init_args);
+        if (check_is_single_PE(true, original_cond, unrolled_loops_name, {}, single_PE_cond, unrolled_loops_without_terms)) {
+            init_cycle = IfThenElse::make(single_PE_cond, init_cycle);
+        }
+
         for (int i = nonscatter_unroll_loops.size() - 1; i >= 0; i--) {
             auto &l = loops[nonscatter_unroll_loops[i]];
             string name = std::get<0>(l);

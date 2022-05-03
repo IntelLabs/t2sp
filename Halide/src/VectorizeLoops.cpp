@@ -1279,7 +1279,7 @@ class VecDatapath : public IRMutator {
                 new_args.push_back(args[j]);
             }
         }
-        return std::move(new_args);
+        return new_args;
     }
 
     Expr visit(const Call *op) override {
