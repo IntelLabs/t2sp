@@ -94,6 +94,9 @@ public:
     }
 
     void visit(const Call *op) override {
+        for (auto a : op->args) {
+            a.accept(this);
+        }
         if (op->is_intrinsic(Call::read_shift_reg)) {
             auto name = op->args[0].as<StringImm>();
             internal_assert(name);

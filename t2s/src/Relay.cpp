@@ -108,6 +108,7 @@ class DataRelaying : public IRMutator {
     struct {
         string name;
         Type t;
+        Expr emit_cond;
         Expr valid_cond;
         Expr lin_cond;
         Expr bank_extent;
@@ -292,6 +293,31 @@ class DataRelaying : public IRMutator {
         return body;
     }
 
+    Stmt make_flag_update() {
+        Expr new_emit_cond = const_true();
+        vector<Expr> conds = break_logic_into_conjunction(pipe_alloc.emit_cond);
+        // Remove conjunctions with variables inside PE dims
+        int PE_dim = alloc.PE_dims.back();
+        for (auto &e : conds) {
+            int i = 0;
+            for (; i <= PE_dim; i++) {
+                internal_assert(alloc.args[i].as<Variable>());
+                auto name = alloc.args[i].as<Variable>()->name;
+                CheckVarUsage cvu(name);
+                e.accept(&cvu);
+                if (cvu.used) break;
+            }
+            if (i > PE_dim) {
+                new_emit_cond = new_emit_cond && e;
+            }
+        }
+        // Update pipe.base to pipe.iter if emit_cond, lin_cond, and valid_cond are true
+        Expr read_iter = Call::make(Int(32), pipe_alloc.name+".iter.temp", {}, Call::Intrinsic);
+        Stmt write_base = Provide::make(pipe_alloc.name+".base.temp", { read_iter }, {});
+        Stmt if_cond = IfThenElse::make(new_emit_cond && pipe_alloc.lin_cond && pipe_alloc.valid_cond, write_base);
+        return if_cond;
+    }
+
 public:
     using IRMutator::visit;
 
@@ -320,25 +346,25 @@ public:
         return IRMutator::visit(op);
     }
 
-    Stmt visit(const Evaluate *op) override {
-        auto call = op->value.as<Call>();
-        if (call && call->is_intrinsic(Call::IntrinsicOp::write_channel)) {
-            auto p = call->args[0].as<StringImm>();
-            internal_assert(p);
-            if (inside_pipe && p->value == param.to_func + ".channel") {
-                // Replace the write_channel with write_shift_reg to the pipe
-                vector<Expr> args;
-                args.push_back(pipe_alloc.name+".shreg");
-                args.push_back(alloc.args[get_dim(param.bank_loop, alloc)]);
-                args.push_back(pipe_alloc.lin_extent * pipe_alloc.PE_arg);
-                args.push_back(call->args[1]);    // Value
-                Expr write_pipe = Call::make(call->type, Call::IntrinsicOp::write_shift_reg, args, Call::CallType::PureIntrinsic);
-                Stmt write_pipe_stmt = Evaluate::make(write_pipe);
-                // Update pipe.base to pipe.iter if lin_cond and valid_cond are true
-                Expr read_iter = Call::make(Int(32), pipe_alloc.name+".iter.temp", {}, Call::Intrinsic);
-                Stmt write_base = Provide::make(pipe_alloc.name+".base.temp", { read_iter }, {});
-                Stmt if_cond = IfThenElse::make(pipe_alloc.lin_cond && pipe_alloc.valid_cond, write_base);
-                return Block::make(write_pipe_stmt, if_cond);
+    Stmt visit(const IfThenElse *op) override {
+        auto eval = op->then_case.as<Evaluate>();
+        if (eval) {
+            auto call = eval->value.as<Call>();
+            if (call && call->is_intrinsic(Call::IntrinsicOp::write_channel)) {
+                auto p = call->args[0].as<StringImm>();
+                internal_assert(p);
+                if (inside_pipe && p->value == param.to_func + ".channel") {
+                    pipe_alloc.emit_cond = op->condition;
+                    // Replace the write_channel with write_shift_reg to the pipe
+                    vector<Expr> args;
+                    args.push_back(pipe_alloc.name+".shreg");
+                    args.push_back(alloc.args[get_dim(param.bank_loop, alloc)]);
+                    args.push_back(pipe_alloc.lin_extent * pipe_alloc.PE_arg);
+                    args.push_back(call->args[1]);    // Value
+                    Expr write_pipe = Call::make(call->type, Call::IntrinsicOp::write_shift_reg, args, Call::CallType::PureIntrinsic);
+                    Stmt write_pipe_stmt = Evaluate::make(write_pipe);
+                    return IfThenElse::make(op->condition, write_pipe_stmt);
+                }
             }
         }
         return IRMutator::visit(op);
@@ -367,7 +393,7 @@ public:
                              op->for_type, op->device_api, body);
             Expr read_iter = Call::make(Int(32), pipe_alloc.name+".iter.temp", {}, Call::Intrinsic);
             Stmt inc_iter = Provide::make(pipe_alloc.name+".iter.temp", { read_iter+1 }, {});
-            body = Block::make({ body, make_write(), make_pipe_shift(), inc_iter });
+            body = Block::make({ body, make_flag_update(), make_write(), make_pipe_shift(), inc_iter });
             return body;
         }
         return IRMutator::visit(op);

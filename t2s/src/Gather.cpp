@@ -318,7 +318,7 @@ class DataGathering : public IRMutator{
             Expr cond_read = strategy_up ? GT::make(origin_loop_var, 0) : LT::make(origin_loop_var, origin_loop_extent - 1);
             vector<Expr> write_channel_args(channel_args);
             write_channel_args.push_back(read_shreg_modify);
-            Stmt write_channel = Evaluate::make(Call::make(Handle(iter->second.call_node.type().lanes()),
+            Stmt write_channel = Evaluate::make(Call::make(iter->second.call_node.type(),
                                                 Call::write_shift_reg,
                                                 write_channel_args,
                                                 Call::Intrinsic));

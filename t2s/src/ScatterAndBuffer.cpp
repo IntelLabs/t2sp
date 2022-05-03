@@ -764,7 +764,7 @@ class ScatterInserter: public IRMutator{
             write_shreg_args.insert(write_shreg_args.begin(), shreg_name);
             write_shreg_args.push_back(read_from_channel);
             Stmt write_shreg_from_channel = Evaluate::make(
-                                                Call::make(Handle(iter->second.read_node.type().lanes()),
+                                                Call::make(iter->second.read_node.type(),
                                                         Call::write_shift_reg,
                                                         write_shreg_args,
                                                         Call::Intrinsic));
