@@ -1651,7 +1651,7 @@ class VecDatapath : public IRMutator {
             }
             Region new_bounds;
             // shreg ,the first dim is inner-most
-            if (lanes == 1) {
+            if (lanes == 1 && op->bounds.size() > 0) {
                 new_bounds.push_back(op->bounds[0]);
             }
             for (size_t i = 1; i < op->bounds.size(); ++i) {

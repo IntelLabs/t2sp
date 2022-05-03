@@ -94,6 +94,7 @@
 #include "../../t2s/src/ScatterAndBuffer.h"
 #include "../../t2s/src/SpaceTimeTransform.h"
 #include "../../t2s/src/ScatterAndBuffer.h"
+#include "../../t2s/src/TriangularLoopOptimize.h"
 
 namespace Halide {
 namespace Internal {
@@ -321,11 +322,6 @@ Module lower(const vector<Function> &output_funcs,
         debug(2) << "Lowering after canonicalizing GPU var names:\n"
                  << s << '\n';
     }
-
-    debug(1) << "Late fuse...\n";
-    s = do_late_fuse(s, env);
-    debug(2) << "Lowering after late fuse:\n"
-             << s << "\n\n";
 
     debug(1) << "Performing storage flattening...\n";
     s = storage_flattening(s, outputs, env, t);
@@ -578,10 +574,10 @@ Module lower(const vector<Function> &output_funcs,
     debug(1) << "Lowering after final simplification:\n"
              << s << "\n\n";
 
-    debug(1) << "Promoting channels...\n";
-    s = channel_promotion(s);
-    debug(2) << "Lowering after channel promotion:\n"
-             << s << "\n\n";
+    // debug(1) << "Promoting channels...\n";
+    // s = channel_promotion(s);
+    // debug(2) << "Lowering after channel promotion:\n"
+    //          << s << "\n\n";
 
     // For overlay, we don't need to flatten task loops.
     char *overlay_num = getenv("HL_OVERLAY_NUM");
@@ -590,6 +586,15 @@ Module lower(const vector<Function> &output_funcs,
         s = simplify(flatten_loops(s, env));
         debug(2) << "Lowering after loop flattening:\n" << s << "\n\n";
     }
+
+    debug(1) << "Flatten triangular loop...\n";
+    s = flatten_tirangualr_loop_nest(s, env);
+    debug(2) << "Lowering after triangular loop optimizing:\n" << s << "\n\n";
+
+    debug(1) << "Late fuse...\n";
+    s = do_late_fuse(s, env);
+    debug(2) << "Lowering after late fuse:\n"
+             << s << "\n\n";
 
     if (getenv("DISABLE_AUTORUN") == NULL) {
         if (t.has_feature(Target::IntelFPGA)) {

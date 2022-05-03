@@ -49,7 +49,9 @@ enum class ScatterStrategy {
 
     /** Scatter data down along a loop. That is, scatter from the last iteration N
      * to iteration N-1, then from iteration N-1 to iteration N-2, etc.*/
-    Down
+    Down,
+
+    FPGAReg
 
     /** TODO: add some other scattering styles, e.g. tree style. */
 };
@@ -62,7 +64,9 @@ enum class GatherStrategy {
 
     /** Gather data down along a loop. That is, gather from the last iteration N
      * to iteration N-1, then from iteration N-1 to iteration N-2, etc.*/
-    Down
+    Down,
+
+    FPGAReg
 
     /** TODO: add some other gathering styles, e.g. tree style. */
 };
@@ -489,6 +493,17 @@ struct SpaceTimeTransformParams {
                                    // stt, and the above sch_vector is what compiler automatically makes.
 };
 
+struct TriangularLoopParams {
+    std::string outer_loop_name;
+    std::string inner_loop_name;
+    int safelen;
+};
+
+struct LateFuseParams {
+    std::string late_fuse_level;
+    int v_outs;
+};
+
 /** Record arguments for each invocation. */
 class ScatterItem{
 public:
@@ -651,10 +666,10 @@ public:
     // @{
     const LoopLevel &store_level() const;
     const LoopLevel &compute_level() const;
-    const std::string &late_fuse_level() const;
+    const LateFuseParams &late_fuse_params() const;
     LoopLevel &store_level();
     LoopLevel &compute_level();
-    std::string &late_fuse_level();
+    LateFuseParams &late_fuse_params();
     // @}
 
     /** Pass an IRVisitor through to all Exprs referenced in the
@@ -831,6 +846,9 @@ public:
     bool is_extended_ure() const;
     bool &is_extended_ure();
     // @}
+
+    const std::vector<TriangularLoopParams> &triangular_loop_params() const;
+    std::vector<TriangularLoopParams> &triangular_loop_params();
 
     /** Space time transform parameters **/
     const std::vector<SpaceTimeTransformParams> &transform_params() const;

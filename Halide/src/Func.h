@@ -2211,7 +2211,9 @@ public:
      * g.
      */
     Func &compute_at(Func f, Var var);
-    Func &late_fuse(Func f, Var var);
+  
+    Func &late_fuse(Func f, int v_outs = 1);
+    Func &late_fuse(Func f, Var var, int v_outs = 1);
 
     /** Schedule a function to be computed within the iteration over
      * some dimension of an update domain. Produces equivalent code
@@ -2539,6 +2541,7 @@ public:
      */
     Func &merge_ures(std::vector<Func> &ures, bool isolate=false);
     Func &merge_ures(std::vector<Func> ures, std::vector<Func> output_ures, bool isolate=false);
+    Func &merge_ures(std::vector<VarOrRVar> loop_level, std::vector<Func> ures, std::vector<Func> output_ures, bool isolate=false);
 
     template <typename... Args>
     HALIDE_NO_USER_CODE_INLINE typename std::enable_if<Internal::all_are_convertible<Func, Args...>::value, Func &>::type
@@ -2803,6 +2806,11 @@ public:
                      Var w, Expr w_min, Expr w_extent) {
         return set_bounds({x, y, z, w}, {x_min, y_min, z_min, w_min}, {x_extent, y_extent, z_extent, w_extent});
     }
+    // @}
+
+    /** Triangular loop nest will merge into a a single loop annotated with ivdep pragma. */
+    // @{
+    Func &triangular_loop_optimize(Var outer_loop, Var inner_loop, int safelen);
     // @}
 
     /** With the given space loop variables, build a systolic array in the unscheduled approach.

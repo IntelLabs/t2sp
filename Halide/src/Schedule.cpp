@@ -218,7 +218,7 @@ struct FuncScheduleContents {
     mutable RefCount ref_count;
 
     LoopLevel store_level, compute_level;
-    std::string late_fuse_level;
+    LateFuseParams late_fuse_params;
     std::vector<StorageDim> storage_dims;
     std::vector<Bound> bounds;
     std::vector<Bound> estimates;
@@ -286,6 +286,7 @@ struct StageScheduleContents {
     std::vector<FusedPair> fused_pairs;
     std::vector<Func> merged_ures;
     std::vector<SpaceTimeTransformParams> transform_params;
+    std::vector<TriangularLoopParams> triangular_loop_params;
     std::vector<ScatterItem> scatter_params;
     std::vector<GatherItem> gather_params;
     std::vector<RelayItem> relay_params;
@@ -361,7 +362,7 @@ FuncSchedule FuncSchedule::deep_copy(
     copy.contents->memory_type = contents->memory_type;
     copy.contents->memoized = contents->memoized;
     copy.contents->async = contents->async;
-    copy.contents->late_fuse_level = contents->late_fuse_level;
+    copy.contents->late_fuse_params = contents->late_fuse_params;
 
     // Deep-copy wrapper functions.
     for (const auto &iter : contents->wrappers) {
@@ -450,12 +451,12 @@ LoopLevel &FuncSchedule::compute_level() {
     return contents->compute_level;
 }
 
-std::string &FuncSchedule::late_fuse_level() {
-    return contents->late_fuse_level;
+LateFuseParams &FuncSchedule::late_fuse_params() {
+    return contents->late_fuse_params;
 }
 
-const std::string &FuncSchedule::late_fuse_level() const {
-    return contents->late_fuse_level;
+const LateFuseParams &FuncSchedule::late_fuse_params() const {
+    return contents->late_fuse_params;
 }
 
 const LoopLevel &FuncSchedule::store_level() const {
@@ -521,6 +522,7 @@ StageSchedule StageSchedule::get_copy() const {
     copy.contents->is_remove = contents->is_remove;
     copy.contents->is_merged = contents->is_merged;
     copy.contents->is_extended_ure = contents->is_extended_ure;
+    copy.contents->triangular_loop_params = contents->triangular_loop_params;
     copy.contents->transform_params = contents->transform_params;
     copy.contents->fetch_params = contents->fetch_params;
     copy.contents->store_params = contents->store_params;
@@ -713,6 +715,14 @@ const std::map<int, std::vector<Expr>> &StageSchedule::task_deps() const {
 
 std::map<int, std::vector<Expr>> &StageSchedule::task_deps() {
     return contents->task_deps;
+}
+
+const std::vector<TriangularLoopParams> &StageSchedule::triangular_loop_params() const {
+    return contents->triangular_loop_params;
+}
+
+std::vector<TriangularLoopParams> &StageSchedule::triangular_loop_params() {
+    return contents->triangular_loop_params;
 }
 
 const std::vector<SpaceTimeTransformParams> &StageSchedule::transform_params() const {

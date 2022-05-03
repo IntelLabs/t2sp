@@ -2393,6 +2393,12 @@ Func &Func::reorder(const std::vector<VarOrRVar> &vars) {
                 f.reorder(out_var_order);
             }
         }
+        VarOrRVar innermost_loop = vars[0];
+        for (auto it = func.definition().schedule().merged_ures().rbegin(); it != func.definition().schedule().merged_ures().rend() - 1; it++) {
+            // Use compute_with iteratively to achieve merge_ure
+            it->compute_with(*(it + 1), innermost_loop);
+        }
+        func.definition().schedule().merged_ures()[0].compute_with(*this, innermost_loop);
     }
 
     return *this;
@@ -2667,13 +2673,19 @@ Func &Func::gpu_store(const vector<Expr> &args, size_t sz) {
     return *this;
 }
 
-Func &Func::late_fuse(Func f, Var var) {
+Func &Func::late_fuse(Func f, int v_outs) {
     invalidate_cache();
+    std::string name = f.name() + ".s0." + "run_on_device";
+    func.schedule().late_fuse_params().late_fuse_level = name;
+    func.schedule().late_fuse_params().v_outs = v_outs;
+    return *this;
+}
 
+Func &Func::late_fuse(Func f, Var var, int v_outs) {
+    invalidate_cache();
     std::string name = f.name() + ".s0." + var.name();
-    func.schedule().late_fuse_level() = name;
-    compute_root();
-
+    func.schedule().late_fuse_params().late_fuse_level = name;
+    func.schedule().late_fuse_params().v_outs = v_outs;
     return *this;
 }
 

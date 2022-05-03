@@ -928,7 +928,13 @@ void CodeGen_OpenCL_Dev::CodeGen_OpenCL_C::visit(const Call *op) {
             rhs << ")";
         }
         print_assignment(op->type, rhs.str());
-
+    } else if (op->is_intrinsic(Call::annotate)) {
+        if (op->args[0].as<StringImm>()->value == "Pragma") {
+            stream << get_indent() << "#pragma " << op->args[1].as<StringImm>()->value;
+            if (op->args.size() == 3) {
+                stream << " safelen(" << op->args[2].as<IntImm>()->value << ")\n";
+            }
+        }
     } else if (op->is_intrinsic(Call::overlay_switch)) {
         internal_assert(op->args.size() > 0);
 

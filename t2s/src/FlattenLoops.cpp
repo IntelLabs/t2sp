@@ -1302,18 +1302,26 @@ Stmt replace_mem_channels(Stmt s, const std::map<std::string, Function> &env, ve
 }
 
 Stmt flatten_loops(Stmt s, const std::map<std::string, Function> &env) {
-    ConstLoopFlattening clf;
-    s = clf.mutate(s);
-    debug(2) << "IR after const loop flattening ...\n\n" << s << "\n";
-
-    std::set<string> funcs;
-    for(auto entry : env){
-        if (entry.second.place() == Place::Device) {
-            funcs.insert(entry.first);
+    bool has_tri_opt = false;
+    for (auto &iter : env) {
+        if (iter.second.definition().schedule().triangular_loop_params().size() > 0) {
+            has_tri_opt = true;
         }
     }
-    s = remove_lets(s, false, true, true, true, funcs);
-    debug(2) << "IR after removing LetStmts in device kernels ...\n\n" << s << "\n";
+    if (!has_tri_opt) {
+        ConstLoopFlattening clf;
+        s = clf.mutate(s);
+        debug(2) << "IR after const loop flattening ...\n\n" << s << "\n";
+
+        std::set<string> funcs;
+        for(auto entry : env){
+            if (entry.second.place() == Place::Device) {
+                funcs.insert(entry.first);
+            }
+        }
+        s = remove_lets(s, false, true, true, true, funcs);
+        debug(2) << "IR after removing LetStmts in device kernels ...\n\n" << s << "\n";
+    }
 
     // DynamicLoopFlattening dlf;
     // Stmt stmt3 = dlf.mutate(stmt2);

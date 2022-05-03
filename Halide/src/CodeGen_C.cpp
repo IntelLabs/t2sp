@@ -3014,14 +3014,14 @@ void CodeGen_C::visit(const IfThenElse *op) {
 
 void CodeGen_C::visit(const Evaluate *op) {
     if (is_const(op->value)) return;
-    // Skip the evaluation of overlay intrinsics
-    bool has_overlay = false;
+    // Skip the evaluation of some intrinsics
+    bool skip_eval = false;
     if (auto call = op->value.as<Call>()) {
-        if (call->is_intrinsic(Call::overlay) || call->is_intrinsic(Call::overlay_switch))
-            has_overlay = true;
+        if (call->is_intrinsic(Call::overlay) || call->is_intrinsic(Call::overlay_switch) || call->is_intrinsic(Call::annotate))
+            skip_eval = true;
     }
     string id = print_expr(op->value);
-    if (!has_overlay) {
+    if (!skip_eval) {
         stream << get_indent() << "(void)" << id << ";\n";
     }
 }
