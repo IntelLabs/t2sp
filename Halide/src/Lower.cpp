@@ -574,10 +574,10 @@ Module lower(const vector<Function> &output_funcs,
     debug(1) << "Lowering after final simplification:\n"
              << s << "\n\n";
 
-    // debug(1) << "Promoting channels...\n";
-    // s = channel_promotion(s);
-    // debug(2) << "Lowering after channel promotion:\n"
-    //          << s << "\n\n";
+    debug(1) << "Promoting channels...\n";
+    s = channel_promotion(s);
+    debug(2) << "Lowering after channel promotion:\n"
+             << s << "\n\n";
 
     // For overlay, we don't need to flatten task loops.
     char *overlay_num = getenv("HL_OVERLAY_NUM");

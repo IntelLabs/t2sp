@@ -314,7 +314,7 @@ class DataRelaying : public IRMutator {
         // Update pipe.base to pipe.iter if emit_cond, lin_cond, and valid_cond are true
         Expr read_iter = Call::make(Int(32), pipe_alloc.name+".iter.temp", {}, Call::Intrinsic);
         Stmt write_base = Provide::make(pipe_alloc.name+".base.temp", { read_iter }, {});
-        Stmt if_cond = IfThenElse::make(new_emit_cond && pipe_alloc.lin_cond && pipe_alloc.valid_cond, write_base);
+        Stmt if_cond = IfThenElse::make(new_emit_cond && pipe_alloc.lin_cond, write_base);
         return if_cond;
     }
 
