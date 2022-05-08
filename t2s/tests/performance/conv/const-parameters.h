@@ -55,7 +55,7 @@
         #define COO         16
         #define CO          1
         #define YYY         14
-        #define XXX         14
+        #define XXX         16
         #define YY          2
         #define XX          2
         #define Y           2
@@ -67,7 +67,7 @@
         #define COO         16
         #define CO          2
         #define YYY         10
-        #define XXX         14
+        #define XXX         16
         #define YY          2
         #define XX          2
         #define X           2

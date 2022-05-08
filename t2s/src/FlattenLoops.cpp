@@ -297,7 +297,7 @@ typedef struct DynamicForLoopContainer {
 } DynamicForLoopContainer_t;
 
 class FlattenOuterLoops : public IRMutator {
-    string loop_level;
+    string &loop_level;
     bool up_loop_level = true;
 
     std::vector<DynamicForLoopContainer_t> flattened_loops;
@@ -305,7 +305,7 @@ class FlattenOuterLoops : public IRMutator {
 public:
     using IRMutator::visit;
 
-    FlattenOuterLoops(const string &_l)
+    FlattenOuterLoops(string &_l)
         : loop_level(_l) {}
 
     Stmt visit(const For* op) override {
@@ -326,6 +326,7 @@ public:
                 final_extent *= l.extent;
             }
             final_extent = simplify(final_extent);
+            loop_level = name;
 
             size_t num_loops = flattened_loops.size();
             Expr mod_part = 1;
@@ -1331,7 +1332,7 @@ Stmt flatten_loops(Stmt s, const std::map<std::string, Function> &env) {
     return s;
 }
 
-Stmt flatten_outer_loops(Stmt s, const string &loop_lvl, const std::map<std::string, Function> &env) {
+Stmt flatten_outer_loops(Stmt s, string &loop_lvl, const std::map<std::string, Function> &env) {
     FlattenOuterLoops fol(loop_lvl);
     s = fol.mutate(s);
 

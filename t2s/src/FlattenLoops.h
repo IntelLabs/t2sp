@@ -36,7 +36,7 @@ namespace Internal {
 
 Stmt replace_mem_channels(Stmt s, const std::map<std::string, Function> &env, vector<std::pair<string, Expr>> &letstmts_backup);
 Stmt flatten_loops(Stmt s, const std::map<std::string, Function> &env);
-Stmt flatten_outer_loops(Stmt s, const string &loop_lvl, const std::map<std::string, Function> &env);
+Stmt flatten_outer_loops(Stmt s, string &loop_lvl, const std::map<std::string, Function> &env);
 
 }
 }

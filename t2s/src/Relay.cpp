@@ -294,7 +294,7 @@ class DataRelaying : public IRMutator {
     }
 
     Stmt make_flag_update() {
-        Expr new_emit_cond = const_true();
+        Expr update_cond = pipe_alloc.lin_cond;
         vector<Expr> conds = break_logic_into_conjunction(pipe_alloc.emit_cond);
         // Remove conjunctions with variables inside PE dims
         int PE_dim = alloc.PE_dims.back();
@@ -308,13 +308,19 @@ class DataRelaying : public IRMutator {
                 if (cvu.used) break;
             }
             if (i > PE_dim) {
-                new_emit_cond = new_emit_cond && e;
+                update_cond = update_cond && e;
             }
         }
-        // Update pipe.base to pipe.iter if emit_cond, lin_cond, and valid_cond are true
+        CheckVarUsage cvu(flattened_loop);
+        debug(1) << pipe_alloc.emit_cond << "\n";
+        pipe_alloc.emit_cond.accept(&cvu);
+        if (!cvu.used) {
+            update_cond = update_cond && pipe_alloc.valid_cond;
+        }
+        // Update pipe.base to pipe.iter if emit_cond, lin_cond (and valid_cond) are true
         Expr read_iter = Call::make(Int(32), pipe_alloc.name+".iter.temp", {}, Call::Intrinsic);
         Stmt write_base = Provide::make(pipe_alloc.name+".base.temp", { read_iter }, {});
-        Stmt if_cond = IfThenElse::make(new_emit_cond && pipe_alloc.lin_cond, write_base);
+        Stmt if_cond = IfThenElse::make(update_cond, write_base);
         return if_cond;
     }
 
