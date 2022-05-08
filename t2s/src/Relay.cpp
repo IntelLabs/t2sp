@@ -312,7 +312,6 @@ class DataRelaying : public IRMutator {
             }
         }
         CheckVarUsage cvu(flattened_loop);
-        debug(1) << pipe_alloc.emit_cond << "\n";
         pipe_alloc.emit_cond.accept(&cvu);
         if (!cvu.used) {
             update_cond = update_cond && pipe_alloc.valid_cond;

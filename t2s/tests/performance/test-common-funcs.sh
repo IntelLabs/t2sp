@@ -29,7 +29,7 @@ function generate_fpga_kernel {
     # Generate a device kernel, and a C interface for the host to invoke the kernel:
     # The bitstream generated is a.aocx, as indicated by the environment variable, BITSTREAM.
     # The C interface generated is ${workload}-interface.cpp, as specified in ${workload}.cpp.
-    env BITSTREAM=a.aocx AOC_OPTION="$(aoc_options)" ./a.out
+    env BITSTREAM=$bitstream AOC_OPTION="$(aoc_options)" ./a.out
 
     # DevCloud A10PAC (1.2.1) only: further convert the signed bitstream to unsigned:
     if [ "$target" == "a10" -a "$platform" == "hw" ]; then
@@ -61,10 +61,11 @@ function generate_test_fpga_kernel {
         size="S10"
     fi
     if [ "$bitstream" == "" ]; then
-        cleanup
-        generate_fpga_kernel
+        echo "Use the default bitstream $(pwd)/${bitstream}"
         bitstream="a.aocx"
     fi
+    cleanup
+    generate_fpga_kernel
     test_fpga_kernel
 }
 

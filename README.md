@@ -172,12 +172,12 @@ Current release contains SGEMM, 2-D convolution and Capsule convolution on Arria
 
 Summary of throughput:
 
-|     | A10 | GEN 9.5 | GEN 12 |
-| --- | :-: | :-:    | :-:    |
-| SGEMM |  533 GFLOPS, 95% DSP efficiency  |  410 GFLOPS, 90% machine peak | 2165 GFLOPS, 85\% machine peak
-| 2-D convolution | 524 GFLOPS, 98% DSP efficiency | 421 GFLOPS, 92% machine peak | 2236 GFLOPS, 88\% machine peak
-| Capsule convolution | 487 GFLOPS, 94% DSP efficiency | 398 GFLOPS, 87% machine peak | 1850 GFLOPS, 73\% machine peak
-| PairHMM | 42.5 GCups, 97\% PE efficiency |  4.25 GCups | 14.8 GCups
+|     | A10 | S10 | GEN 9.5 | GEN 12 |
+| --- | :-: | :-: | :-:     | :-:    |
+| SGEMM | 620 GFLOPS, 97% DSP efficiency | 1790 GFLOPS, 99% DSP efficiency | 410 GFLOPS, 90% machine peak | 2165 GFLOPS, 85% machine peak
+| 2-D convolution | 605 GFLOPS, 99% DSP efficiency | | 421 GFLOPS, 92% machine peak | 2236 GFLOPS, 88\% machine peak
+| Capsule convolution | 487 GFLOPS, 94% DSP efficiency | | 398 GFLOPS, 87% machine peak | 1850 GFLOPS, 73\% machine peak
+| PairHMM | 42.5 GCups, 97\% PE efficiency | | 4.25 GCups | 14.8 GCups
 
 To reproduce the performance,
 ```
@@ -185,7 +185,6 @@ cd $HOME/t2sp/t2s/tests/performance
 ```
 then 
 + [DevCloud head node] Submit a job:
-
   ```
   # Test all kernels
   ./devcloud-jobs.sh (a10|gen9)
@@ -194,13 +193,20 @@ then
   ./devcloud-job.sh (gemm|conv|capsule) (a10|gen9) (tiny|large) (hw|emulator)
   ```
 + [A DevCloud compute node, or a local machine] Test directly:
-  
   ```
   # Test all kernels
   ./tests.sh (devcloud|local) (a10|gen9)
     
   # Or test 1 kernel
   ./test.sh (devcloud|local) (gemm|conv|capsule) (a10|gen9) (tiny|large) (hw|emulator)
+  ```
++ [A DevCloud compute node, or a local machine] Use the [pre-generated bitstreams](https://github.com/haoxiaochen/t2sp-pbs):
+  ```
+  # Test all kernels
+  ./tests.sh (devcloud|local) (a10|s10) bitstream
+
+  # Or test 1 kernel
+  ./test.sh (devcloud|local) (gemm|conv|capsule|pairhmm) (a10|s10) (tiny|large) (hw|emulator) bitstream
   ```
 
 Note:
@@ -237,12 +243,6 @@ The current release contains the following features:
 # Tutorials
 
 A 10-minute video `intro.mp4`, located at the root of the repository, introduces the basic concept of T2SP. There are also a set of [tutorials](https://github.com/intel/FPGA-Devcloud/tree/master/main/QuickStartGuides/T2S) at DevCloud. 
-
-# Next release
-We aim to release the following between December, 2021 and February, 2022:
-+ Throughput numbers of SGEMM, 2-D convolution, and Capsule convolution on GEN 12 GPU.
-+ Initial throughput numbers for Stratix 10 FPGA. 
-+ Embedding of T2SP into OneAPI for kernel programming on FPGAs, GPUs and CPUs.
 
 # Citation
 

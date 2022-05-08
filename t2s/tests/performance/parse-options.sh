@@ -1,7 +1,7 @@
 #!/bin/bash
 
 function show_usage {
-    echo "Options: (devcloud|local) (gemm|conv|capsule|pairhmm) (a10|s10|gen9|gen12) (tiny|large) (hw|emulator) [bitstream]"
+    echo "Options: (devcloud|local) (gemm|conv|capsule|pairhmm|qrd) (a10|s10|gen9|gen12) (tiny|large) (hw|emulator) [directory]"
 }
 
 if [ $0 == $BASH_SOURCE ]; then
@@ -47,7 +47,9 @@ else
 fi
 
 if [ "$6" != "" ]; then
-    bitstream="$6"
+    # Add prefix to the bitstream
+    bitstream="$(pwd)/$6/${workload}/a.aocx"
+    echo "Use the bitstream ${bitstream}"
 fi
 
 if [ "$platform" == "emulator" ]; then
