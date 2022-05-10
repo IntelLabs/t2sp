@@ -8,11 +8,12 @@ where `s` is the stride, operation `·` is scalar multiplication, and `O`, `I`, 
 
 ## Performance (single precision)
 
-| Device | Frequency | Throughput | Logic utilization | DSP blocks | RAM blocks | Efficiency | Tensor Sizes | Device compiler |
-| ------ | --------- | ------ | --------- | ---- | ----- | -------------- | ----- | -------------- |
-| Intel Arria 10 GX 1150 FPGA | 207 MHz | 524 GFLOPS | 225,268 / 427,200 ( 53 % ) | 1,286 / 1,518 ( 85 % ) | 1,801 / 2,713 ( 66 % ) | 98%  | I(64,256,62,62) * K(256,256,3,3) | aoc 19.4.0 |
-| Intel GEN9.5 GPU | 1200 MHz | 421 GFLOPS | - | - | - | 92%   | I(4, 256, 64, 64) * K(256, 256, 3, 3) | CM Dev Package 20200119 |
-| Intel GEN12 GPU | 1650 MHz | 2236 GFLOPS | - | - | - | 88%   | I(4, 256, 64, 64) * K(256, 256, 3, 3) | CM SDK 20211028 |
+| Device | Frequency | Throughput | Logic utilization | DSP blocks | RAM blocks | Efficiency | Matrix Size | Device compiler |
+| ------ | --------- | ---------- | ----------------- | ---------- | ---------- | -----------| ----------- | --------------- |
+| Intel Arria 10 GX 1150 | 237 MHz | 605 GFLOPS | 205,346 / 427,200 ( 48 % ) | 1,285 / 1,518 ( 85 % ) | 1,366 / 2,713 ( 50 % ) | 99% DSP efficiency | I(64,256,56,56) * K(256,256,3,3) | aoc 19.4.0 (on s001-n138) |
+| Intel Stratix 10 SX 2800 | 211 MHz | 1509 GFLOPS | 490,817 / 933,120 ( 53 % ) |3,584 / 5,760 ( 62 % ) | 3,447 / 11,721 ( 29 % ) | 99% DSP efficiency | I(64,256,56,56) * K(256,256,3,3) | aoc 19.2.0 (on s001-n006) |
+| Intel GEN9.5 GPU | 1200 MHz | 421 GFLOPS | - | - | - | 92% machine peak  | I(4,256,64,64) * K(256,256,3,3) | CM SDK 20200119 |
+| Intel GEN12 GPU | 1650 MHz | 2236 GFLOPS | - | - | - | 88% machine peak  | I(4,256,64,64) * K(256,256,3,3) | CM SDK 20211028 |
 
 Note: when [measuring the performance](../README.md#Performance-metrics),
 

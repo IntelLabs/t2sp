@@ -5,10 +5,11 @@
 ## Performance (single precision)
 
 | Device | Frequency | Throughput | Logic utilization | DSP blocks | RAM blocks | Efficiency | Matrix Size | Device compiler |
-| ------ | --------- | ------ | --------- | ---- | ----- | -------------- | ----- | -------------- |
-| Intel Arria 10 GX 1150 FPGA | 215 MHz | 533 GFLOPS | 211,199 / 427,200 ( 49 % ) | 1,304 / 1,518 ( 86 % ) | 2,087 / 2,713 ( 77 % ) | 95% DSP efficiency | 10K * 16K matrix times 16K * 8K matrix | aoc 19.4.0 |
-| Intel GEN9.5 GPU | 1200 MHz | 410 GFLOPS | - | - | - | 90% machine peak | 2K * 1K matrix times 1K * 2K matrix | CM Dev Package 20200119 |
-| Intel GEN12 GPU | 1650 Mhz | 2165 GFLOPS | - | - | - | 85% machine peak | 2K * 2K matrix times 2K * 2K matrix | CM SDK 20211028 |
+| ------ | --------- | ---------- | ----------------- | ---------- | ---------- | -----------| ----------- | --------------- |
+| Intel Arria 10 GX 1150 | 244 MHz | 620 GFLOPS | 207,854 / 427,200 ( 49 % ) | 1,305 / 1,518 ( 86 % ) | 2,075 / 2,713 ( 76 % ) | 97% DSP efficiency | A(10K,16K) * B(16K,8K) | aoc 19.4.0 (on s001-n137) |
+| Intel Stratix 10 SX 2800 | 251 MHz | 1790 GFLOPS | 446,671 / 933,120 ( 48 % ) | 3,605 / 5,760 ( 63 % ) | 4,054 / 11,721 ( 35 % ) | 99% DSP efficiency | A(14K,16K) * B(16K,16K) | aoc 19.2.0 (on s005-n005) |
+| Intel GEN9.5 GPU | 1200 MHz | 410 GFLOPS | - | - | - | 90% machine peak | A(2K,1K) * B(1K,2K) | CM Dev Package 20200119 |
+| Intel GEN12 GPU | 1650 Mhz | 2165 GFLOPS | - | - | - | 85% machine peak | A(2K,2K) * B(2K,2K) | CM SDK 20211028 |
 
 Note: when [measuring the performance](../README.md#Performance-metrics),
 

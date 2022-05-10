@@ -1,0 +1,434 @@
+{
+  "performanceSummary":
+  {
+    "name":"Kernel Summary"
+    , "columns":
+    ["Kernel Name", "Kernel Type", "Autorun", "Workgroup Size", "# Compute Units", "Hyper-Optimized Handshaking"]
+    , "children":
+    [
+      {
+        "name":"kernel_Out"
+        , "data":
+        [
+          "Single work-item"
+          , "No"
+          , [1, 1, 1]
+          , 1
+          , "Off"
+        ]
+        , "details":
+        [
+          {
+            "type":"text"
+            , "text":"Kernel type: Single work-item"
+          }
+          , {
+            "type":"text"
+            , "text":"Required workgroup size: (1, 1, 1)"
+          }
+          , {
+            "type":"text"
+            , "text":"Maximum workgroup size: 1"
+          }
+          , {
+            "type":"text"
+            , "text":"Hyper-optimized handshaking disabled due to instruction in Kernel kernel_rLoader_beta_gap_im"
+          }
+        ]
+        , "debug":
+        [
+          [
+            {
+              "filename":"/home/u146718/t2sp/t2s/tests/performance/pairhmm/a.cl"
+              , "line":687
+            }
+          ]
+        ]
+      }
+      , {
+        "name":"kernel_hFeeder"
+        , "data":
+        [
+          "Single work-item"
+          , "No"
+          , [1, 1, 1]
+          , 1
+          , "Off"
+        ]
+        , "details":
+        [
+          {
+            "type":"text"
+            , "text":"Kernel type: Single work-item"
+          }
+          , {
+            "type":"text"
+            , "text":"Required workgroup size: (1, 1, 1)"
+          }
+          , {
+            "type":"text"
+            , "text":"Maximum workgroup size: 1"
+          }
+          , {
+            "type":"text"
+            , "text":"Hyper-optimized handshaking disabled due to instruction in Kernel kernel_rLoader_beta_gap_im"
+          }
+        ]
+        , "debug":
+        [
+          [
+            {
+              "filename":"/home/u146718/t2sp/t2s/tests/performance/pairhmm/a.cl"
+              , "line":525
+            }
+          ]
+        ]
+      }
+      , {
+        "name":"kernel_hLoader"
+        , "data":
+        [
+          "Single work-item"
+          , "No"
+          , [1, 1, 1]
+          , 1
+          , "Off"
+        ]
+        , "details":
+        [
+          {
+            "type":"text"
+            , "text":"Kernel type: Single work-item"
+          }
+          , {
+            "type":"text"
+            , "text":"Required workgroup size: (1, 1, 1)"
+          }
+          , {
+            "type":"text"
+            , "text":"Maximum workgroup size: 1"
+          }
+          , {
+            "type":"text"
+            , "text":"Hyper-optimized handshaking disabled due to instruction in Kernel kernel_rLoader_beta_gap_im"
+          }
+        ]
+        , "debug":
+        [
+          [
+            {
+              "filename":"/home/u146718/t2sp/t2s/tests/performance/pairhmm/a.cl"
+              , "line":495
+            }
+          ]
+        ]
+      }
+      , {
+        "name":"kernel_rFeeder_beta_gap_im"
+        , "data":
+        [
+          "Single work-item"
+          , "No"
+          , [1, 1, 1]
+          , 1
+          , "Off"
+        ]
+        , "details":
+        [
+          {
+            "type":"text"
+            , "text":"Kernel type: Single work-item"
+          }
+          , {
+            "type":"text"
+            , "text":"Required workgroup size: (1, 1, 1)"
+          }
+          , {
+            "type":"text"
+            , "text":"Maximum workgroup size: 1"
+          }
+          , {
+            "type":"text"
+            , "text":"Hyper-optimized handshaking disabled due to instruction in Kernel kernel_rLoader_beta_gap_im"
+          }
+        ]
+        , "debug":
+        [
+          [
+            {
+              "filename":"/home/u146718/t2sp/t2s/tests/performance/pairhmm/a.cl"
+              , "line":154
+            }
+          ]
+        ]
+      }
+      , {
+        "name":"kernel_rLoader_beta_gap_im"
+        , "data":
+        [
+          "Single work-item"
+          , "No"
+          , [1, 1, 1]
+          , 1
+          , "Off"
+        ]
+        , "details":
+        [
+          {
+            "type":"text"
+            , "text":"Kernel type: Single work-item"
+          }
+          , {
+            "type":"text"
+            , "text":"Required workgroup size: (1, 1, 1)"
+          }
+          , {
+            "type":"text"
+            , "text":"Maximum workgroup size: 1"
+          }
+          , {
+            "type":"text"
+            , "text":"Hyper-optimized handshaking disabled due to loop orchestration compiler optimization being disabled in loop kernel_rLoader_beta_gap_im.B6."
+          }
+        ]
+        , "debug":
+        [
+          [
+            {
+              "filename":"/home/u146718/t2sp/t2s/tests/performance/pairhmm/a.cl"
+              , "line":70
+            }
+          ]
+        ]
+      }
+      , {
+        "name":"kernel_unloader"
+        , "data":
+        [
+          "Single work-item"
+          , "No"
+          , [1, 1, 1]
+          , 1
+          , "Off"
+        ]
+        , "details":
+        [
+          {
+            "type":"text"
+            , "text":"Kernel type: Single work-item"
+          }
+          , {
+            "type":"text"
+            , "text":"Required workgroup size: (1, 1, 1)"
+          }
+          , {
+            "type":"text"
+            , "text":"Maximum workgroup size: 1"
+          }
+          , {
+            "type":"text"
+            , "text":"Hyper-optimized handshaking disabled due to instruction in Kernel kernel_rLoader_beta_gap_im"
+          }
+        ]
+        , "debug":
+        [
+          [
+            {
+              "filename":"/home/u146718/t2sp/t2s/tests/performance/pairhmm/a.cl"
+              , "line":1321
+            }
+          ]
+        ]
+      }
+    ]
+  }
+  , "estimatedResources":
+  {
+    "name":"Estimated Resource Usage"
+    , "columns":
+    ["Kernel Name", "ALUTs ", "FFs  ", "RAMs ", "DSPs ", "MLABs"]
+    , "children":
+    [
+      {
+        "name":"kernel_Out"
+        , "data":
+        [50158, 135595, 571, 1392, 2391]
+        , "debug":
+        [
+          [
+            {
+              "filename":"/home/u146718/t2sp/t2s/tests/performance/pairhmm/a.cl"
+              , "line":687
+            }
+          ]
+        ]
+      }
+      , {
+        "name":"kernel_hFeeder"
+        , "data":
+        [377709, 444203, 54, 1.5, 140]
+        , "debug":
+        [
+          [
+            {
+              "filename":"/home/u146718/t2sp/t2s/tests/performance/pairhmm/a.cl"
+              , "line":525
+            }
+          ]
+        ]
+      }
+      , {
+        "name":"kernel_hLoader"
+        , "data":
+        [11722, 19497, 46, 0, 9]
+        , "debug":
+        [
+          [
+            {
+              "filename":"/home/u146718/t2sp/t2s/tests/performance/pairhmm/a.cl"
+              , "line":495
+            }
+          ]
+        ]
+      }
+      , {
+        "name":"kernel_rFeeder_beta_gap_im"
+        , "data":
+        [99537, 145059, 133, 1.5, 104]
+        , "debug":
+        [
+          [
+            {
+              "filename":"/home/u146718/t2sp/t2s/tests/performance/pairhmm/a.cl"
+              , "line":154
+            }
+          ]
+        ]
+      }
+      , {
+        "name":"kernel_rLoader_beta_gap_im"
+        , "data":
+        [11967, 15342, 50, 7, 37]
+        , "debug":
+        [
+          [
+            {
+              "filename":"/home/u146718/t2sp/t2s/tests/performance/pairhmm/a.cl"
+              , "line":70
+            }
+          ]
+        ]
+      }
+      , {
+        "name":"kernel_unloader"
+        , "data":
+        [3446, 4986, 17, 0, 17]
+        , "debug":
+        [
+          [
+            {
+              "filename":"/home/u146718/t2sp/t2s/tests/performance/pairhmm/a.cl"
+              , "line":1321
+            }
+          ]
+        ]
+      }
+      , {
+        "name":"Kernel Subtotal"
+        , "classes":
+        ["summary-highlight", "nohover"]
+        , "data":
+        [554539, 764682, 871, 1402, 2698]
+      }
+      , {
+        "name":"Global Interconnect"
+        , "classes":
+        ["summary-highlight", "nohover"]
+        , "data":
+        [13691, 19807, 78, 0, 0]
+      }
+      , {
+        "name":"Board Interface"
+        , "classes":
+        ["summary-highlight", "nohover"]
+        , "data":
+        [200000, 275150, 467, 0, 0]
+      }
+      , {
+        "name":"System description ROM"
+        , "classes":
+        ["summary-highlight", "nohover"]
+        , "data":
+        [2, 71, 2, 0, 0]
+      }
+      , {
+        "name":"Pipe and channel resources"
+        , "classes":
+        ["summary-highlight", "nohover"]
+        , "data":
+        [55, 7638, 7, 0, 116]
+      }
+      , {
+        "name":"Total"
+        , "classes":
+        ["summary-highlight", "nohover"]
+        , "data":
+        [768287, 1067348, 1425, 1402, 2814]
+        , "data_percent":
+        [41.1676, 28.5962, 12.1577, 24.3403]
+      }
+      , {
+        "name":"Available"
+        , "classes":
+        ["summary-highlight", "nohover"]
+        , "data":
+        [1866240, 3732480, 11721, 5760, 0]
+      }
+    ]
+  }
+  , "compileWarnings":
+  {
+    "name":"Compile Warnings"
+    , "children":
+    [
+      {
+        "name":"Load uses a Burst-coalesced cached LSU"
+        , "details":
+        [
+          {
+            "type":"text"
+            , "text":"Load with a private 512 kilobit cache. Cache is not shared with any other load. It is flushed on kernel start. Use Dynamic Profiler to verify cache effectiveness. Other kernels should not be updating the data in global memory while this kernel is using it. Cache is created when memory access pattern is data-dependent or appears to be repetitive. Simplify access pattern or mark pointer as 'volatile' to disable generation of this cache."
+          }
+        ]
+        , "debug":
+        [
+          [
+            {
+              "filename":"/home/u146718/t2sp/t2s/tests/performance/pairhmm/a.cl"
+              , "line":108
+            }
+          ]
+        ]
+      }
+      , {
+        "name":"Load uses a Burst-coalesced cached LSU"
+        , "details":
+        [
+          {
+            "type":"text"
+            , "text":"Load with a private 512 kilobit cache. Cache is not shared with any other load. It is flushed on kernel start. Use Dynamic Profiler to verify cache effectiveness. Other kernels should not be updating the data in global memory while this kernel is using it. Cache is created when memory access pattern is data-dependent or appears to be repetitive. Simplify access pattern or mark pointer as 'volatile' to disable generation of this cache."
+          }
+        ]
+        , "debug":
+        [
+          [
+            {
+              "filename":"/home/u146718/t2sp/t2s/tests/performance/pairhmm/a.cl"
+              , "line":514
+            }
+          ]
+        ]
+      }
+    ]
+  }
+}

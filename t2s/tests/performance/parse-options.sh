@@ -48,7 +48,7 @@ fi
 
 if [ "$6" != "" ]; then
     # Add prefix to the bitstream
-    bitstream="$(pwd)/$6/${workload}/a.aocx"
+    bitstream="${workload}/$6/$3/a.aocx"
     echo "Use the bitstream ${bitstream}"
 fi
 

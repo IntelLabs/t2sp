@@ -47,14 +47,15 @@ using namespace std;
 
 int main()
 {
-    Halide::Runtime::Buffer<float> P(TOTAL_CI*MK*MX, TOTAL_IY*TOTAL_IX*TOTAL_N), W(TOTAL_CO*MY, TOTAL_CI*KY*KX*MK);
-    for (size_t n = 0; n < TOTAL_N; n++)
+    Halide::Runtime::Buffer<float> P(TOTAL_CI*MK*MX*NN, TOTAL_IY*TOTAL_IX*N), W(TOTAL_CO*MY, TOTAL_CI*KY*KX*MK);
+    for (size_t n = 0; n < N; n++)
+    for (size_t nn = 0; nn < NN; nn++)
     for (size_t x = 0; x < TOTAL_IX; x++)
     for (size_t y = 0; y < TOTAL_IY; y++)
     for (size_t total_ci = 0; total_ci < TOTAL_CI; total_ci++) {
         for (size_t mx = 0; mx < MX; mx++) {
             for (size_t mk = 0; mk < MK; mk++) {
-                P(total_ci+TOTAL_CI*mk+(TOTAL_CI*MK)*mx, y+TOTAL_IY*x+(TOTAL_IY*TOTAL_IX)*n) = random();
+                P(total_ci+TOTAL_CI*mk+(TOTAL_CI*MK)*mx+(TOTAL_CI*MK*MX)*nn, y+TOTAL_IY*x+(TOTAL_IY*TOTAL_IX)*n) = random();
             }
         }
     }
@@ -87,7 +88,6 @@ int main()
         float golden = 0.0f;
         size_t total_oy = (yyy_xxx + YYY_XXX*yy_xx + YYY_XXX*YY_XX*y_x) % OY;
         size_t total_ox = (yyy_xxx + YYY_XXX*yy_xx + YYY_XXX*YY_XX*y_x) / OY;
-        size_t total_n  = (nn + NN*n);
         for (int kx = 0; kx < KX; kx++)
         for (int ky = 0; ky < KY; ky++)
         for (int mk = 0; mk < MK; mk++)
@@ -97,7 +97,7 @@ int main()
             size_t total_iy = total_oy * 2 + ky;
             size_t total_ix = total_ox * 2 + kx;
             size_t total_co = cooo + COOO*coo + COOO*COO*co;
-            golden += P(total_ci+TOTAL_CI*mk+(TOTAL_CI*MK)*mx, total_iy+TOTAL_IY*total_ix+(TOTAL_IY*TOTAL_IX)*total_n)
+            golden += P(total_ci+TOTAL_CI*mk+(TOTAL_CI*MK)*mx+(TOTAL_CI*MK*MX)*nn, total_iy+TOTAL_IY*total_ix+(TOTAL_IY*TOTAL_IX)*n)
                     * W(total_co+TOTAL_CO*my, cii+(CII)*ky+(CII*KY)*kx+(CII*KY*KX)*ci +(TOTAL_CI*KY*KX)*mk);
         }
         assert(fabs(golden - V(cooo, yyy_xxx, yy_xx, y_x, my, mx, coo, nn, co, n)) < 0.005*fabs(golden));
@@ -116,7 +116,7 @@ int main()
     double number_bytes = (long)(MX * MK * TOTAL_CI * TOTAL_IY * TOTAL_IX * TOTAL_N) * 4
                         + (long)(MY * MK * TOTAL_CI * TOTAL_CO * KY * KX) * 4
                         + (long)(TOTAL_CO * YYY_XXX * YY_XX * Y_X * MY * MX * TOTAL_N) * 4;
-    double exec_time = ExecTime();
+    double exec_time = ExecTime("kernel_unloader");
     roofline(mem_bandwidth, compute_roof, number_ops, number_bytes, exec_time);
     if (fopen("roofline.png", "r") == NULL) {
         cout << "Failed to draw roofline!\n";

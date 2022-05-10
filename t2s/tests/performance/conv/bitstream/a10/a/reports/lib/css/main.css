@@ -1,0 +1,507 @@
+/* Intel Clear font */
+@font-face{
+  font-family: "Intel Clear";
+  src:
+    local('Intel Clear'),
+    local('Intel-Clear'),
+    url('../../lib/media/fonts/IntelClear_Rg.ttf')
+    format('truetype');
+  font-weight:normal;
+  font-style:normal;
+}
+/* Intel Clear Bold font */
+@font-face{
+  font-family: "Intel Clear";
+  src:
+    local('Intel Clear Bold'),
+    local('Intel-Clear-Bold'),
+    url('../../lib/media/fonts/IntelClear_Bd.ttf')
+    format('truetype');
+  font-weight:bold;
+  font-style:normal;
+}
+/* Intel Clear Bold Italic font */
+@font-face{
+  font-family: "Intel Clear";
+  src:
+    local('Intel Clear Bold Italic'),
+    local('Intel-Clear-Bold-Italic'),
+    url('../../lib/media/fonts/IntelClear_BdIt.ttf')
+    format('truetype');
+  font-weight:bold;
+  font-style:italic;
+}
+/* Intel Clear Italic font */
+@font-face{
+  font-family: "Intel Clear";
+  src:
+    local('Intel Clear Italic'),
+    local('Intel-Clear-Italic'),
+    url('../../lib/media/fonts/IntelClear_It.ttf')
+    format('truetype');
+  font-weight:normal;
+  font-style:italic;
+}
+/* Intel Clear Lite font */
+@font-face{
+  font-family: "Intel Clear";
+  src:
+    local('Intel Clear Lite'),
+    local('Intel-Clear-Lite'),
+    url('../../lib/media/fonts/IntelClear_Lt.ttf')
+    format('truetype');
+  font-weight:200;
+  font-style:normal;
+}
+/* Intel Clear Lite Italic font */
+@font-face{
+  font-family: "Intel Clear";
+  src:
+    local('Intel Clear Lite Italic'),
+    local('Intel-Clear-Lite-Italic'),
+    url('../../lib/media/fonts/IntelClear_LtIt.ttf')
+    format('truetype');
+  font-weight:200;
+  font-style:italic;
+}
+/* Intel Clear Pro font */
+@font-face{
+  font-family: "Intel Clear Pro";
+  src:
+    local('Intel Clear Pro Bold'),
+    local('Intel-Clear-Pro-Bold'),
+    url('../../lib/media/fonts/IntelClearPro_Bd.ttf')
+    format('truetype');
+  font-weight:400;
+  font-style:bold;
+}
+/* Glyhicon */
+@font-face{
+  font-family: "Glyhicon";
+  src:
+    local('Glyhicon'),
+    local('Glyhicon'),
+    url('../../lib/media/fonts/glyphicons-halflings-regular.ttf')
+    format('truetype');
+  font-weight:normal;
+  font-style:normal;
+}
+.body {
+  font-family:"Intel Clear";
+}
+.body.glyphicon
+{
+  font-family:"Glyhicon";
+  font-size:12px;
+}
+.button {
+  font-size:12px;
+  margin-left:2px;
+  margin-right:2px;
+  padding:0px;
+}
+
+.navbar
+{
+  font-family:"Intel Clear";
+}
+
+section
+{
+  float: left;
+  overflow-x: auto;
+  padding: 2px;
+}
+
+footer
+{
+  position: fixed;
+  float: right;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  background-color: blue;
+  color: white;
+  clear: left;
+  text-align: center;
+  padding: 5px 0;
+}
+
+/* LMEM Filter dropdown menu */
+#lmem-tree-button
+{
+  margin-top: -5px;
+  margin-right: -10px;
+}
+
+/* Header Bar*/
+#header-bar
+{
+    border-radius:0px !important;
+    margin-bottom: 0px;
+    border-left: 0px;
+    border-top: 0px;
+    border-right: 0px;
+}
+
+#collapse_sidebar
+{
+    font-size: 20px;
+    border: 1px solid transparent;
+}
+
+.option {
+    width:100%;
+}
+
+#tabs
+{
+  float: right;
+  width: 39%;
+}
+
+.arch-view
+{
+  background: lightblue;
+  border: 1px;
+  height: 200px;
+  padding: 8px;
+  overflow-y: scroll;
+  resize: vertical;
+}
+
+.classWithPad
+{
+  height:100%;
+  margin:0px;
+  padding:0px;
+}
+
+.well
+{
+  overflow: auto;
+  height: 100%;
+  width: 100%;
+}
+
+/* Remove bottom margin from area report tables
+ * embedded inside wells.
+ */
+.well>table
+{
+  margin-bottom: 0px;
+}
+
+.nav-tabs li a
+{
+  font-size: 10px;
+}
+
+.chartGroup .background
+{
+  /* Match the background color of the well */
+  fill: #f5f5f5;
+  stroke-width: 0.5px;
+}
+
+/* These divs have their height set based on their
+ * content.
+ */
+#DetailsTable
+{
+  table-layout: fixed;
+  width: 100%;
+}
+
+#details ul
+{
+  white-space: pre-wrap;
+  list-style-type: disc;
+}
+
+.close-icon {
+  cursor: pointer;
+}
+
+/* Report sizing and formatting */
+#report-pane
+{
+  height: 100%;
+  min-height: 300px;
+  padding: 10px;
+  font-family: "Intel Clear";
+}
+
+#report-panel-tree
+{
+    margin-bottom: 0;
+}
+
+#report-pane-col2
+{
+    padding-right: 0;
+    padding-left: 10px;
+}
+
+#editor-pane
+{
+  height: 100%;
+  min-height: 300px;
+  padding-top: 10px;
+  padding-left: 0px;
+  padding-right: 10px;
+  padding-bottom: 10px;
+  width: 40%;
+}
+
+#lmem-tree-filter fieldset
+{
+  display: block;
+  margin-inline-start: 2px;
+  margin-inline-end: 2px;
+  padding-block-start: 0.35em;
+  padding-inline-start: 0.75em;
+  padding-inline-end: 0.75em;
+  padding-block-end: 0.625em;
+  min-inline-size: min-content;
+}
+
+#lmem-tree-filter span
+{
+  margin-inline-start: 2px;
+  margin-inline-end: 2px;
+}
+
+#detail-pane
+{
+  border: #e5e5e5;
+  margin-left: 0px !important;
+  padding: 10px;
+  padding-top: 0px !important;
+  width: 100%;
+}
+
+#detail-panel
+{
+  margin-right: 0px !important;
+  margin-top: 0px !important;
+}
+
+#details
+{
+  overflow:auto;
+  height: 150px;
+}
+
+#opt-area-panel, .report-pane-view-style
+{
+  height: 100% !important;
+  margin: 0px;
+}
+#report-panel-body
+{
+  overflow-y: hidden;
+  overflow-x: hidden;
+}
+
+#opt-body
+{
+  height: 100%;
+  overflow-y: auto;
+}
+
+#report-body
+{
+  position:relative;
+  padding-top: 0px !important;
+  padding-left: 0px !important;
+  padding-right: 0px !important;
+  height: 100%;
+  overflow-y: auto;
+  overflow-x: auto;
+}
+
+#spv-panel {
+  height: 100% !important;
+}
+
+#SPG
+{
+  position: relative;
+  padding-top: 0px !important;
+  padding-left: 0px !important;
+  padding-right: 0px !important;
+  padding-bottom: 0px !important;
+  overflow-x: hidden;
+  overflow-y: hidden;
+  height: 100%;
+}
+
+#LMEMG, #CSPG, #PVG, #BVG
+{
+  position: relative;
+  padding-top: 0px !important;
+  padding-left: 0px !important;
+  padding-right: 0px !important;
+  padding-bottom: 0px !important;
+  text-align: center;
+}
+
+.layers
+{
+  position: absolute;
+  top: 0px;
+  right: 0px;
+  background-color: white;
+  z-index:2;
+  padding-left:10px;
+  padding-right:10px;
+  padding-top:10px;
+  padding-bottom:10px;
+  border-left: 1px solid;
+  border-bottom: 1px solid;
+  border-color:#dddddd;
+  border-bottom-left-radius:4px;
+  font-size:12px;
+}
+
+/* Stall point viewer formatting*/
+.clusters rect {
+  fill: none;
+  stroke: #000;
+  stroke-width: 1.5px;
+}
+
+/* Graph Viewers SVG label font size */
+text {
+  font-size: 12px;
+}
+
+.edgePath path {
+  stroke: #333;
+  stroke-width: 2px;
+  opacity: 0.3;
+}
+
+/* Consolidated details and tooltip to use bootstrap card title */
+.card-title {
+  font-size: 16px;
+  font-weight: bold;
+}
+
+.card-title.custom_tooltip {  /* for tooltip in graph */
+  font-size: 14px;
+  font-weight: bold;
+}
+
+.card {
+  height: 100%;
+}
+
+.ui-helper-hidden-accessible {
+    border: 0;
+    clip: rect(0 0 0 0);
+    height: 1px;
+    margin: -1px;
+    overflow: hidden;
+    padding: 0;
+    position: absolute;
+    width: 1px;
+}
+
+.node rect, .node circle, .node polygon
+{
+  cursor: pointer;
+  fill: #ffffff;
+  fill-opacity: 1;
+  stroke: #333333;
+  stroke-width: 1px;
+}
+
+g:hover > polygon[fill="magenta"]{
+  cursor: pointer;
+  stroke-width:8px !important;
+}
+g:hover > polygon[fill="white"]{
+  stroke-width:8px !important;
+}
+
+.node text
+{
+  font: 10px sans-serif;
+  pointer-events: none;
+}
+
+#DetailsTable td, #DetailsTable th {
+  white-space: pre-wrap;
+  font-size: 14px;
+  padding-left:10px;
+}
+
+.table-striped>tbody>tr:nth-child(odd)>td, .table-striped>tbody>tr:nth-child(odd)>th {
+    background-color: #f2f2f2;
+}
+
+#DetailsTable {
+  margin-top:10px;
+}
+.nohover:hover>td,.nohover:hover>th
+{
+  background-color:inherit !important;
+}
+.selected-item-highlight
+{
+  background-color: gold !important;
+}
+.summary-highlight
+{
+  font-weight: bold;
+  background-color:#f8f8f8 !important;
+}
+
+.panel-body#details {
+  padding:0px;
+}
+
+.table-row-gray {
+  background-color:#f2f2f2;
+}
+
+.info-table td:first-child {
+  width:175px;
+}
+
+p.mouseovertext, p.mouseoverbuttontext{
+  display:none;
+  max-width: 70%;
+  position:absolute;
+  left: 30%;
+  border:1px solid #333;
+  background-color:#E0E0E0;
+  border-radius:5px;
+  padding:5px 10px;
+  color:#606060;
+  z-index: 2000;
+  box-shadow: 5px 5px 8px #CCC;
+
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+  word-break: break-all;
+  white-space: normal;
+}
+
+a.mouseover:hover + p {
+  display: block;
+}
+a.active:hover + p {
+  display: block;
+}
+span.selected:hover + p {
+  display: block;
+}
+.btn.btn-outline-primary {
+  margin-right:4px;
+}
+div.card-body {
+  padding:8px;
+}
