@@ -38,7 +38,7 @@
 #ifdef TINY // For verifying correctness only
     #define N       4
 #else
-    #define N       16
+    #define N       1024
 #endif
 
 #define TOTAL_N     NN*N
@@ -105,8 +105,11 @@ int main()
 #else
     // Report performance. DSPs, FMax and ExecTime are automatically figured out from the static analysis
     // during FPGA synthesis and and the dynamic profile during the FGPA execution.
-    // A10PAC on DevCloud has 33GB/s memory bandwidth
+#ifdef S10
+    double mem_bandwidth = 75;
+#else
     double mem_bandwidth = 33;
+#endif
     double compute_roof = 2 * DSPs() * FMax();
      // Total operations (GFLOP for CONV), independent of designs
     double number_ops = 2 * (long)(TOTAL_N * TOTAL_CO) * (long)(MY * MX * YYY_XXX * YY_XX * Y_X) * (long)(TOTAL_CI * MK * KY * KX);
@@ -119,7 +122,7 @@ int main()
         cout << "Failed to draw roofline!\n";
         return 1;
     }
-    cout << "Size of tensor P: " << N << ", " << TOTAL_CI << ", " << TOTAL_IX << ", " << TOTAL_IY
+    cout << "Size of tensor P: " << TOTAL_N << ", " << TOTAL_CI << ", " << TOTAL_IX << ", " << TOTAL_IY
                                  << ", " << MX << ", " << MK << "\n";
     cout << "Size of tensor W: " << TOTAL_CI << ", " << TOTAL_CO << ", " << KX << ", " << KY
                                  << ", " << MK << ", " << MY << "\n";

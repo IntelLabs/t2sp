@@ -50,8 +50,8 @@
         #define Y_X         7
         #define NN          1
     #elif S10
-        #define CII         16
-        #define CI          2
+        #define CII         32
+        #define CI          1
         #define COOO        8
         #define COO         4
         #define CO          1
@@ -68,7 +68,7 @@
         #define YYY_XXX     10
         #define YY_XX       1
         #define Y_X         5
-        #define NN          4
+        #define NN          1
     #endif
 #endif
 
