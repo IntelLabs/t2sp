@@ -68,7 +68,7 @@
         #define YYY_XXX     10
         #define YY_XX       1
         #define Y_X         5
-        #define NN          1
+        #define NN          4
     #endif
 #endif
 

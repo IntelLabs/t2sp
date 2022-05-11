@@ -33,9 +33,9 @@ function generate_fpga_kernel {
 
     # DevCloud A10PAC (1.2.1) only: further convert the signed bitstream to unsigned:
     if [ "$target" == "a10" -a "$platform" == "hw" ]; then
-        cp a.aocx a_signed.aocx # Keep a signed copy in case the conversion fails below and we can look at the issue manually
-        { echo "Y"; echo "Y"; echo "Y"; echo "Y"; } | source $AOCL_BOARD_PACKAGE_ROOT/linux64/libexec/sign_aocx.sh -H openssl_manager -i a.aocx -r NULL -k NULL -o a_unsigned.aocx
-        mv a_unsigned.aocx a.aocx
+        cp $bitstream a_signed.aocx # Keep a signed copy in case the conversion fails below and we can look at the issue manually
+        { echo "Y"; echo "Y"; echo "Y"; echo "Y"; } | source $AOCL_BOARD_PACKAGE_ROOT/linux64/libexec/sign_aocx.sh -H openssl_manager -i $bitstream -r NULL -k NULL -o a_unsigned.aocx
+        mv a_unsigned.aocx $bitstream
     fi
 }
 

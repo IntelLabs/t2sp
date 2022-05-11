@@ -194,11 +194,11 @@ then
   ```
 + [A DevCloud compute node, or a local machine] Use the pre-generated bitstreams:
   ```
-  # By default, files *.aocx are excluded. You can fetch all the files:
-  git lfs fetch --include="*.aocx" --exclude=""
+  # By default, files *.aocx are excluded. You can pull all the files:
+  git lfs pull --include="*.aocx" --exclude=""
   
   # Or a specific file for test (e.g., gemm on A10):
-  git lfs fetch --include="t2s/tests/performance/gemm/bitstream/a10/a.aocx" --exclude=""
+  git lfs pull --include="t2s/tests/performance/gemm/bitstream/a10/a.aocx" --exclude=""
 
   # Test all kernels
   ./tests.sh (devcloud|local) (a10|s10) bitstream

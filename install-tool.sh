@@ -154,6 +154,7 @@ function install_git_lfs {
     mkdir git-lfs
     tar -xvf git-lfs-linux-amd64-v$version.tar.gz -C git-lfs > /dev/null
     cd git-lfs
+    sed -i "4c prefix=${T2S_PATH}/install" install.sh
     ./install.sh
     cd ..
 }
