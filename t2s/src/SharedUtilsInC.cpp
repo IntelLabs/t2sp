@@ -99,3 +99,42 @@ extern "C" char *concat_directory_and_file(const char *dir, const char *file) {
     strncat(name, file, strlen(file));
     return name;
 }
+
+extern "C" char *bistream_file_name_with_absolute_path_oneapi() {
+    // Get the name of the bitstream file.
+    char *bitstream;
+    char *env = getenv("BITSTREAM");
+    if (env == NULL) {
+        // By default, the bitstream is $HOME/tmp/a.aocx
+        char *home = getenv("HOME");
+        bitstream = (char *)malloc(strlen(home) + 12);
+        STRING_COPY_WITH_NULL(bitstream, home);
+        strncat(bitstream, "/tmp/a.aocx", 11);
+    } else {
+        bitstream = (char *)malloc(strlen(env) + 1);
+        STRING_COPY_WITH_NULL(bitstream, env);
+    }
+
+    // Get the file name with the absolute path
+    char *full_name = realpath(bitstream, NULL);
+    // We cannot free the space returned by realpath(). Copy to our user space that caller can free
+    char *full_name1 = (char *)malloc(strlen(full_name) + 1);
+    STRING_COPY_WITH_NULL(full_name1, full_name);
+    free(bitstream);
+    return full_name1;
+}
+
+extern "C" char *quartus_output_directory_oneapi() {
+    char *bitstream = bistream_file_name_with_absolute_path_oneapi();
+    char *dir = (char *)malloc(strlen(bitstream) + 1);
+    strncpy(dir, bitstream, strlen(bitstream));
+    free(bitstream);
+    return dir;
+}
+
+extern "C" char *concat_simple(const char *dir, const char *file) {
+    char *name = (char *)malloc(strlen(dir) + strlen(file) + 1);
+    STRING_COPY_WITH_NULL(name, dir);
+    strncat(name, file, strlen(file));
+    return name;
+}

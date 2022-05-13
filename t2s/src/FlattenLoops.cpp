@@ -277,7 +277,8 @@ class ConstLoopFlattening : public IRMutator {
     }
 
     Stmt visit(const For* op) override {
-        if ((op->for_type != ForType::Serial || !is_open_cl) && op->device_api == DeviceAPI::OpenCL) {
+        if ((op->for_type != ForType::Serial || !is_open_cl) && 
+            (op->device_api == DeviceAPI::OpenCL || op->device_api == DeviceAPI::OneAPI)) {
             is_open_cl = true;
             return IRMutator::visit(op);
         } else {
@@ -431,7 +432,7 @@ class DynamicLoopFlattening : public IRMutator {
     }
     Stmt visit(const For* op) override {
         if (op->for_type != ForType::Serial || !is_open_cl) {
-            if (op->device_api == DeviceAPI::OpenCL)
+            if (op->device_api == DeviceAPI::OpenCL || op->device_api == DeviceAPI::OneAPI)
                 is_open_cl = true;
             return IRMutator::visit(op);
         } else {
@@ -729,7 +730,7 @@ class LoopMerging : public IRMutator {
     }
     Stmt visit(const For* op) override {
         if (op->for_type != ForType::Serial || !is_open_cl) {
-            if (op->device_api == DeviceAPI::OpenCL)
+            if (op->device_api == DeviceAPI::OpenCL || op->device_api == DeviceAPI::OneAPI)
                 is_open_cl = true;
             return IRMutator::visit(op);
         } else {

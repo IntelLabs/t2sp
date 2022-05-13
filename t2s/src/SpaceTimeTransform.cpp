@@ -913,7 +913,7 @@ class SpaceTimeTransformer : public IRMutator {
                 // loop as Unrolled.
                 ForType for_type = target.has_feature(Target::IntelFPGA) ? ForType::Unrolled : ForType::Serial;
                 if (k == 0) {
-                    if (target.has_feature(Target::IntelFPGA) && vectorized_loop_name != "") {\
+                    if ((target.has_feature(Target::IntelFPGA) || target.has_feature(Target::OneAPI)) && vectorized_loop_name != "") {\
                         debug(4) << "Vectorize loop: " << vectorized_loop_name << "\n";
                         internal_assert(extract_last_token(vectorized_loop_name) == param.dst_vars[k])
                         << "After space time transformation, the vectorized loop "

@@ -248,7 +248,7 @@ The current release contains the following features:
 
 # Tutorials
 
-A 10-minute video `intro.mp4`, located at the root of the repository, introduces the basic concept of T2SP. There are also a set of [tutorials](https://github.com/intel/FPGA-Devcloud/tree/master/main/QuickStartGuides/T2S) at DevCloud. 
+A 10-minute [video](./intro.mp4) introduces the basic concept of T2SP. There is an initial version of [programming guide](./t2s/doc/programming-guide/programming_guide.pdf). There are also a set of [tutorials](https://github.com/intel/FPGA-Devcloud/tree/master/main/QuickStartGuides/T2S) at DevCloud. 
 
 # Citation
 

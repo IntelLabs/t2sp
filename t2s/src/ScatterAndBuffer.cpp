@@ -1326,8 +1326,10 @@ public:
         }
         new_body = Realize::make(var_name(cycle), {UInt(32)}, MemoryType::Auto, nonscatter_unroll_loop_dims, const_true(), new_body);
         new_body = Realize::make(var_name(in_v), {TYPE}, MemoryType::Auto, nonscatter_unroll_loop_dims, const_true(), new_body);
-        new_body = For::make(replace_postfix(var_name(time_stamp), ".shreg", ".run_on_device"), 0, 1, ForType::Parallel, DeviceAPI::OpenCL, new_body);
-        new_body = For::make(replace_postfix(var_name(value), ".shreg", ".run_on_device"), 0, 1, ForType::Parallel, DeviceAPI::OpenCL, new_body);
+        // new_body = For::make(replace_postfix(var_name(time_stamp), ".shreg", ".run_on_device"), 0, 1, ForType::Parallel, DeviceAPI::OpenCL, new_body);
+        new_body = For::make(replace_postfix(var_name(time_stamp), ".shreg", ".run_on_device"), 0, 1, ForType::Parallel, op->device_api, new_body); 
+        // new_body = For::make(replace_postfix(var_name(value), ".shreg", ".run_on_device"), 0, 1, ForType::Parallel, DeviceAPI::OpenCL, new_body);  
+        new_body = For::make(replace_postfix(var_name(value), ".shreg", ".run_on_device"), 0, 1, ForType::Parallel, op->device_api, new_body);
         new_body = For::make(op->name, op->min, op->extent, op->for_type, op->device_api, new_body);
         new_body = Realize::make(var_name(time_stamp), {UInt(32)}, MemoryType::Auto, unroll_loop_dims, const_true(), new_body);
         new_body = Realize::make(var_name(value), {TYPE}, MemoryType::Auto, unroll_loop_dims, const_true(), new_body);

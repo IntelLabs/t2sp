@@ -800,6 +800,7 @@ T2S_SOURCE_FILES = \
   ChannelPromotion.cpp \
   CheckFuncConstraints.cpp \
   CheckRecursiveCalls.cpp \
+  CodeGen_OneAPI_Dev.cpp \
   CombineChannels.cpp \
   CmdQueue.cpp \
   ComputeLoopBounds.cpp \
@@ -836,6 +837,7 @@ T2S_HEADER_FILES = \
   ChannelPromotion.h \
   CheckFuncConstraints.h \
   CheckRecursiveCalls.h \
+  CodeGen_OneAPI_Dev.h \
   CombineChannels.h \
   CmdQueue.h \
   ComputeLoopBounds.h \

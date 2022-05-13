@@ -396,7 +396,8 @@ class DataGathering : public IRMutator{
             updated_body =  For::make(op->name + ".gather", op->min, op->extent, ForType::Serial, op->device_api, updated_body);
         // insert buffer
         } else if (ends_with(op->name, ".run_on_device") && wait_insert_device_loop != ""){
-            updated_body = For::make(wait_insert_device_loop, 0, 1, ForType::Parallel, DeviceAPI::OpenCL, updated_body);
+            // updated_body = For::make(wait_insert_device_loop, 0, 1, ForType::Parallel, DeviceAPI::OpenCL, updated_body);
+            updated_body = For::make(wait_insert_device_loop, 0, 1, ForType::Parallel, op->device_api, updated_body);
             wait_insert_device_loop = "";
         }
         return updated_body;

@@ -151,3 +151,88 @@ void roofline(double mem_bandwidth, double compute_roof, double number_ops, doub
     int ret = system(command);
     assert(ret != -1);
 }
+
+int DSPs_oneapi() {
+    char *quartus_output_dir = quartus_output_directory_oneapi();
+    char *report_file = concat_simple(quartus_output_dir, ".prj/acl_quartus_report.txt");
+
+    FILE* fp;
+    int _ret = 0;
+
+    char str[STR_SIZE];
+    if ((fp = fopen(report_file, "r")) == NULL) {
+        printf("cannot open quartus report: %s! \n", report_file);
+        free(quartus_output_dir);
+        free(report_file);
+        return -1;
+    }
+    while (fgets(str, 100, fp)) {
+        char* pos = strchr(str, ':');
+        if (pos == NULL)
+            continue;
+
+        char str1[STR_SIZE], str2[STR_SIZE];
+        assert(pos - str < STR_SIZE);
+        assert(strlen(pos + 2) < STR_SIZE);
+        strncpy(str1, str, pos - str); str1[pos - str] = '\0';
+        strncpy(str2, pos + 2, strlen(pos + 2)); str2[strlen(pos + 2)] = '\0';
+
+        if (strcmp(str1, "DSP blocks") == 0) {
+            char* p = strtok(str2, "/");
+            char number[STR_SIZE];
+            number[0] = '\0';
+
+            char* q = strtok(p, ",");
+            while (q != NULL) {
+                strncat(number, q, strlen(q));
+                q = strtok(NULL, ",");
+            }
+
+            number[strlen(number) - 1] = '\0';
+            sscanf(number, "%d", &_ret);
+            break;
+        }
+
+    }
+    fclose(fp);
+    free(quartus_output_dir);
+    free(report_file);
+    return _ret;
+}
+
+double FMax_oneapi() {
+    char *quartus_output_dir = quartus_output_directory_oneapi();
+    char *report_file = concat_simple(quartus_output_dir, ".prj/acl_quartus_report.txt");
+
+    FILE* fp;
+    double _ret = 0;
+
+    char str[STR_SIZE];
+    if ((fp = fopen(report_file, "r")) == NULL) {
+        printf("cannot open quartus report: %s! \n", report_file);
+        free(quartus_output_dir);
+        free(report_file);
+        return -1;
+    }
+    while (fgets(str, 100, fp)) {
+        char* pos = strchr(str, ':');
+        if (pos == NULL)
+            continue;
+
+        char str1[STR_SIZE], str2[STR_SIZE];
+        assert(pos - str < STR_SIZE);
+        assert(strlen(pos + 2) < STR_SIZE);
+        strncpy(str1, str, pos - str); str1[pos - str] = '\0';
+        strncpy(str2, pos + 2, strlen(pos + 2)); str2[strlen(pos + 2)] = '\0';
+
+        if (strcmp(str1, "Kernel fmax") == 0) {
+            sscanf(str2, "%lf", &_ret);
+            break;
+        }
+
+    }
+    fclose(fp);
+    free(quartus_output_dir);
+    free(report_file);
+    return _ret;
+}

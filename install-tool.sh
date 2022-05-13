@@ -198,5 +198,5 @@ fi
 if [ "$component" == "git-lfs" ]; then
     install_git_lfs 3.1.4
 fi
-
 cd ..
+
