@@ -178,6 +178,88 @@ Func &Func::merge_ures(std::vector<Func> ures, std::vector<Func> output_ures, bo
     return *this;
 }
 
+Func &Func::merge_ures(std::vector<VarOrRVar> loop_level, std::vector<Func> ures, std::vector<Func> output_ures, bool isolate) {
+    if (ures.size() == 0) {
+        return *this;
+    }
+
+    for (auto it : ures) {
+        it.compute_root();
+    }
+    this->compute_root();
+    user_assert(loop_level.size() == ures.size());
+
+    std::vector<Func> non_output_ures;
+    std::vector<VarOrRVar> non_output_loop_level;
+    int i = loop_level.size() - 1;
+    for (auto it = ures.rbegin(); it != ures.rend(); it++) {
+        bool is_output = false;
+        for (auto output_ure : output_ures) {
+            if (it->name() == output_ure.name()) {
+                is_output = true;
+            }
+        }
+        // Use compute_with iteratively to achieve merge_ure
+        if (is_output) {
+            it->compute_with(*(it + 1), loop_level[i]);
+        } else {
+            non_output_ures.push_back(*it);
+            non_output_loop_level.push_back(loop_level[i]);
+        }
+        i--;
+    }
+    
+    i = non_output_loop_level.size() - 1;
+    for (auto it = non_output_ures.begin(); it != non_output_ures.end() - 1; it++) {
+        // Use compute_with iteratively to achieve merge_ure
+        it->compute_with(*(it + 1), loop_level[i]);
+        debug(2) << it->name() << " "<< (it + 1)->name()<<"\n";
+    }
+
+    Func& first = ures[0];
+    vector<Func>& merge_ures_vector = func.definition().schedule().merged_ures();
+    if (func.has_merged_defs()) {
+        // Already call merge_ures() in the past
+        Func& last = merge_ures_vector.back();
+        first.compute_with(last, loop_level[0]);
+    } else {
+        first.compute_with(*this, loop_level[0]);
+    }
+   
+    for (auto f : ures) {
+        merge_ures_vector.push_back(f);
+        f.func.definition().schedule().is_merged() = true;
+    }
+
+    for (auto f : merge_ures_vector) {
+        f.func.definition().schedule().is_output() = false;
+    }
+    const vector<Dim> &all_dims = func.definition().schedule().dims();
+    for (auto f : non_output_ures) {
+        const vector<Dim> &ure_dims = f.func.definition().schedule().dims();
+        // Exetended ure syntax
+        if (ure_dims.size() != all_dims.size()) {
+            f.function().definition().schedule().is_extended_ure() = true;
+        }
+    }
+    for (auto f : output_ures) {
+        f.func.definition().schedule().is_output() = true;
+        const vector<Dim> &output_dims = f.func.definition().schedule().dims();
+        // Exetended ure syntax
+        if (output_dims.size() != all_dims.size()) {
+            f.function().definition().schedule().is_extended_ure() = true;
+        }
+    }
+
+    if (!isolate)
+        CheckFuncConstraints::check_merge_ures(*this, merge_ures_vector);
+
+    debug(4) << "After merging " << this->name() << " with " << names_to_string(ures)   << ":\n"
+             << to_string(*this, false, true) << "\n";
+
+    return *this;
+}
+
 Func &Func::set_bounds(const std::vector<Var> &vars, const std::vector<Expr> &mins, const std::vector<Expr> &extents) {
     user_assert(vars.size() == mins.size()) << "Number of variables (" << vars.size()
             << ") not equal to number of minimums (" << mins.size() << ").";

@@ -51,7 +51,7 @@ function emulate_func {
         # There is an error "Unterminated quoted string" using $run due to AOC_OPTION. To avoid it, explicitly run for every case.
         rm -f a
         run="env BITSTREAM=test.aocx PRAGMAUNROLL=1 CL_CONTEXT_EMULATOR_DEVICE_INTELFPGA=1 INTEL_FPGA_OCL_PLATFORM_NAME="$EMULATOR_PLATFORM" AOC_OPTION="\""$EMULATOR_AOC_OPTION -board=$FPGA_BOARD -emulator-channel-depth-model=strict "\"" ./a.out"
-        timeout 5m env CL_CONFIG_CHANNEL_DEPTH_EMULATION_MODE=strict CL_CONTEXT_EMULATOR_DEVICE_INTELFPGA=1 INTEL_FPGA_OCL_PLATFORM_NAME="$EMULATOR_PLATFORM" HL_DEBUG_CODEGEN=4 AOC_OPTION="$EMULATOR_AOC_OPTION -board=$FPGA_BOARD -I $INTELFPGAOCLSDKROOT/include/kernel_headers" BITSTREAM="$bitstream" ./a.out >& a
+        timeout 5m env CL_CONFIG_CHANNEL_DEPTH_EMULATION_MODE=strict CL_CONTEXT_EMULATOR_DEVICE_INTELFPGA=1 INTEL_FPGA_OCL_PLATFORM_NAME="$EMULATOR_PLATFORM" AOC_OPTION="$EMULATOR_AOC_OPTION -board=$FPGA_BOARD -I $INTELFPGAOCLSDKROOT/include/kernel_headers" BITSTREAM="$bitstream" ./a.out >& a
         if  tail -n 1 a | grep -q -E "^Success!"; then
             echo >> success.txt
             echo $clean >> success.txt

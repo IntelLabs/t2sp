@@ -60,7 +60,7 @@ std::map<Output, OutputInfo> get_output_info(const Target &target) {
         {Output::static_library, {"static_library", is_windows_coff ? ".lib" : ".a"}},
         {Output::stmt, {"stmt", ".stmt"}},
         {Output::stmt_html, {"stmt_html", ".stmt.html"}},
-        {Output::cm_devsrc, {"cm_devsrc", "_genx.cpp"}},
+        {Output::dev_src, {"dev_src", "_genx.cpp"}},
         {Output::host_header, {"host_header", ".h"}},
         {Output::host_src, {"host_src", ".cpp"}}
     };
@@ -584,8 +584,8 @@ void Module::compile(const std::map<Output, std::string> &output_files) const {
         resolve_submodules().compile(output_files_copy);
         return;
     }
-    if (contains(output_files, Output::cm_devsrc)) {
-        debug(1) << "Module.compile(): cm_devsrc " << output_files.at(Output::cm_devsrc) << "\n";
+    if (contains(output_files, Output::dev_src)) {
+        debug(1) << "Module.compile(): dev_src " << output_files.at(Output::dev_src) << "\n";
         llvm::LLVMContext context;
         CodeGen_LLVM *ret = new CodeGen_GPU_Host<CodeGen_X86>(this->target());
         ret->set_context(context);

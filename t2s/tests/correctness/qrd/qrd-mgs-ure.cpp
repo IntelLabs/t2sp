@@ -29,9 +29,6 @@
 using namespace Halide;
 using namespace std;
 
-
-#define COMPLEX_MATRIX
-
 #ifdef COMPLEX_MATRIX
     #define TYPE     {Float(32), Float(32)}
     #define FuncType ComplexFunc

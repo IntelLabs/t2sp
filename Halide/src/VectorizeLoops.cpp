@@ -550,7 +550,7 @@ class VectorSubs : public IRMutator {
                 // only change the data type
                 // other work is expected to be done in codegen
                 std::string name = new_args[0].as<StringImm>()->value;
-                
+
                 // must has a .channel suffix
                 internal_assert(ends_with(name, ".channel"));
                 name = name.substr(0, (int)name.size() - 8);
@@ -641,7 +641,7 @@ class VectorSubs : public IRMutator {
             if (op->is_intrinsic(Call::read_channel) || op->is_intrinsic(Call::write_channel)) {
 
                 std::string name = new_args[0].as<StringImm>()->value;
-                
+
                 // must has a .channel suffix
                 internal_assert(ends_with(name, ".channel"));
                 name = name.substr(0, (int)name.size() - 8);
@@ -943,12 +943,12 @@ class VectorSubs : public IRMutator {
 
     Stmt visit(const For *op) override {
         ForType for_type = op->for_type;
-        if (for_type == ForType::Vectorized) {
-            user_warning << "Encountered vector for loop over " << op->name
-                         << " inside vector for loop over " << var << "."
-                         << " Ignoring the vectorize directive for the inner for loop.\n";
-            for_type = ForType::Serial;
-        }
+        // if (for_type == ForType::Vectorized) {
+        //     user_warning << "Encountered vector for loop over " << op->name
+        //                  << " inside vector for loop over " << var << "."
+        //                  << " Ignoring the vectorize directive for the inner for loop.\n";
+        //     for_type = ForType::Serial;
+        // }
 
         Expr min = mutate(op->min);
         Expr extent = mutate(op->extent);
@@ -1118,6 +1118,7 @@ class VectorizeLoops : public IRMutator {
             Expr for_var = Variable::make(Int(32), for_loop->name);
             Expr replacement = Ramp::make(for_loop->min, 1, extent->value);
             stmt = VectorSubs(for_loop->name, replacement, in_hexagon, target, scatter_vchannels).mutate(for_loop->body);
+            stmt = mutate(stmt);
         } else {
             stmt = IRMutator::visit(for_loop);
         }
@@ -1278,7 +1279,7 @@ class VecDatapath : public IRMutator {
                 new_args.push_back(args[j]);
             }
         }
-        return std::move(new_args);
+        return new_args;
     }
 
     Expr visit(const Call *op) override {
@@ -1296,7 +1297,7 @@ class VecDatapath : public IRMutator {
             max_lanes = std::max(new_arg.type().lanes(), max_lanes);
         }
         int num_args = raw_new_args.size();
-        
+
         if (op->is_intrinsic(Call::read_channel) || op->is_intrinsic(Call::write_channel)) {
             // find the channel
             const StringImm* name_string = op->args[0].as<StringImm>();
@@ -1376,7 +1377,7 @@ class VecDatapath : public IRMutator {
                             // TODO: still not sure if it can works
                             std::string common_var_name = unique_name(
                                 "_common." + raw_new_args[0].as<StringImm>()->value);
-                            
+
                             int common_var_lanes = raw_new_args[1].type().lanes();
 
                             Expr common_var = Variable::make(
@@ -1421,11 +1422,11 @@ class VecDatapath : public IRMutator {
                             Expr let = Let::make(
                                 common_var_name, raw_new_args[num_args-1], Shuffle::make_concat(vectors));
                             return let;
-                        }                 
+                        }
                     }
                 } else {    // real_len < aim_len, impossible
                     user_error << "Impossible case happens, please check internel\n";
-                }   
+                }
             }
         } else if (op->is_intrinsic(Call::read_shift_reg) || op->is_intrinsic(Call::write_shift_reg)) {
             // find the shreg
@@ -1569,7 +1570,7 @@ class VecDatapath : public IRMutator {
                     }
                 } else {
                     user_error << "Impossible case happens, please check internel\n";
-                }   
+                }
             }
         } else if (op->is_intrinsic(Call::annotate) && op->args[0].as<StringImm>()->value == "Bounds") {
             std::string name = op->args[1].as<StringImm>()->value + ".shreg";
@@ -1643,14 +1644,14 @@ class VecDatapath : public IRMutator {
         auto itt = vec_shreg_len.find(op->name);
         if (itt != vec_shreg_len.end()) {  // vector shreg
             int lanes = std::max(vec_shreg_len[op->name].first, vec_shreg_len[op->name].second);
-            
+
             std::vector<Type> vt;
             for (auto t: op->types) {
                 vt.push_back(t.with_lanes(lanes));
             }
             Region new_bounds;
             // shreg ,the first dim is inner-most
-            if (lanes == 1) {
+            if (lanes == 1 && op->bounds.size() > 0) {
                 new_bounds.push_back(op->bounds[0]);
             }
             for (size_t i = 1; i < op->bounds.size(); ++i) {
@@ -1664,7 +1665,7 @@ class VecDatapath : public IRMutator {
     Stmt visit(const Evaluate *op) override {
         Expr new_val = mutate(op->value);
         const Shuffle *sop = new_val.as<Shuffle>();
-        
+
         if (sop != nullptr && sop->is_concat()) {
             const Call *cop = sop->vectors[0].as<Call>();
             // disable this part

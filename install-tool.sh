@@ -2,19 +2,19 @@
 
 function show_usage {
     echo "Usage:"
-    echo "  ./install-tool.sh m4|gmp|mpfr|mpc|cmake|gcc|llvm-clang|python-packages|cm|pandoc"
+    echo "  ./install-tool.sh m4|gmp|mpfr|mpc|cmake|gcc|llvm-clang|python-packages|cm|git-lfs"
 }
 
 # No matter the script is sourced or directly run, BASH_SOURCE is always this script, and $1 is the
 # argument to the script
 T2S_PATH="$( cd "$(dirname "$BASH_SOURCE" )" >/dev/null 2>&1 ; pwd -P )" # The path to this script
-if [ "$1" != "m4"  -a  "$1" != "gmp" -a  "$1" != "mpfr" -a  "$1" != "mpc" -a  "$1" != "cmake" -a  "$1" != "gcc" -a "$1" != "llvm-clang" -a "$1" != "python-packages" -a "$1" != "cm" -a "$1" != "pandoc" ]; then
+if [ "$1" != "m4"  -a  "$1" != "gmp" -a  "$1" != "mpfr" -a  "$1" != "mpc" -a  "$1" != "cmake" -a  "$1" != "gcc" -a "$1" != "llvm-clang" -a "$1" != "python-packages" -a "$1" != "cm" -a "$1" != "git-lfs" ]; then
     show_usage
     if [ $0 == $BASH_SOURCE ]; then
         # The script is directly run
         exit
-    else 
-        return 
+    else
+        return
     fi
 else
     component="$1"
@@ -122,33 +122,41 @@ function install_python-packages {
     pip install matplotlib
 }
 
-function install_cm {
+function install_cm_20211028 {
+    wget -c https://01.org/sites/default/files/downloads/cmsdk20211028.zip
+    unzip -d $T2S_PATH/install cmsdk20211028.zip
+}
+
+function install_cm_20200119 {
     wget -c https://github.com/intel/cm-compiler/releases/download/Master/Linux_C_for_Metal_Development_Package_20200119.zip
     unzip Linux_C_for_Metal_Development_Package_20200119.zip
 
     cd Linux_C_for_Metal_Development_Package_20200119
     chmod +x compiler/bin/cmc
-    
+
     cd drivers/media_driver/release
     mkdir extract
     dpkg -X intel-media-u18.04-release.deb extract/
     cd -
-    
+
     cd drivers/IGC
     mkdir extract
-    dpkg -X intel-igc.deb extract/    
+    dpkg -X intel-igc.deb extract/
     cd -
-    
+
     cd ..
     cp -rf Linux_C_for_Metal_Development_Package_20200119 $T2S_PATH/install
 }
 
-function install_pandoc {
-    cd $T2S_PATH/install
-    wget -c https://github.com/jgm/pandoc/releases/download/2.16.2/pandoc-2.16.2-linux-amd64.tar.gz
-    tar xvzf pandoc-2.16.2-linux-amd64.tar.gz
-    cp pandoc-2.16.2/bin/* $T2S_PATH/install/bin
-    cd -
+function install_git_lfs {
+    eval version="$1"
+    wget -c https://github.com/git-lfs/git-lfs/releases/download/v3.1.4/git-lfs-linux-amd64-v$version.tar.gz
+    mkdir git-lfs
+    tar -xvf git-lfs-linux-amd64-v$version.tar.gz -C git-lfs > /dev/null
+    cd git-lfs
+    sed -i "4c prefix=${T2S_PATH}/install" install.sh
+    ./install.sh
+    cd ..
 }
 
 # Below we install newer version of gcc and llvm-clang and their dependencies
@@ -163,7 +171,7 @@ if [ "$component" == "m4" ]; then
     install_m4         "1.4.18"
 fi
 if [ "$component" == "gmp" ]; then
-    install_gmp        "6.2.1"    
+    install_gmp        "6.2.1"
 fi
 if [ "$component" == "mpfr" ]; then
     install_mpfr       "4.1.0"
@@ -184,12 +192,11 @@ if [ "$component" == "python-packages" ]; then
     install_python-packages
 fi
 if [ "$component" == "cm" ]; then
-    install_cm
+    # install_cm_20211028
+    install_cm_20200119
 fi
-if [ "$component" == "pandoc" ]; then
-    install_pandoc
+if [ "$component" == "git-lfs" ]; then
+    install_git_lfs 3.1.4
 fi
-    
 cd ..
-
 

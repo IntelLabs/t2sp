@@ -403,14 +403,14 @@ public:
 
     Stmt visit (const For *op) override {
         if (op->for_type != ForType::Vectorized) {
-            user_assert(vectorized_loop.empty()) << "Func " << func_name
-                    << " has a non-vectorized loop " << op->name << " under a vectorized loop: " << vectorized_loop
-                    << ". Currently the vectorized loop must be at the innermost level.\n";
+            // user_assert(vectorized_loop.empty()) << "Func " << func_name
+            //         << " has a non-vectorized loop " << op->name << " under a vectorized loop: " << vectorized_loop
+            //         << ". Currently the vectorized loop must be at the innermost level.\n";
             return IRMutator::visit(op);
         }
-        user_assert(vectorized_loop.empty()) << "Func " << func_name
-                << " has more than 1 vectorized loop: " << vectorized_loop
-                << " and " << op->name << ". Currently only 1 vectorized loop allowed in a loop nest.\n";
+        // user_assert(vectorized_loop.empty()) << "Func " << func_name
+        //         << " has more than 1 vectorized loop: " << vectorized_loop
+        //         << " and " << op->name << ". Currently only 1 vectorized loop allowed in a loop nest.\n";
         vectorized_loop = op->name;
 
         // Check there is no loop below the vectorized loop

@@ -1,0 +1,8 @@
+{"rows":[
+{"debug":[[{"filename":"/home/u146242/t2sp/t2s/tests/performance/gemm/a.cl"
+,"line":120}]]
+,"details":["/home/u146242/t2sp/t2s/tests/performance/gemm/a.cl:120:59: warning: attributes numreadports/numwriteports/numports_readonly_writeonly are deprecated
+, use max_replicates attribute instead"]
+,"name":"attributes numreadports/numwriteports/numports_readonly_writeonly are deprecated
+, use max_replicates attribute instead"}
+]}

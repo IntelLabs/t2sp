@@ -1,0 +1,12 @@
+[foss]
+name = popper
+version = 1.14.3.min
+description = popper is used to manage tooltips and popovers
+case = 1409650434
+source = true
+binary = false
+modified = false
+usage = redistributed
+license_type = MIT
+license_url = https://github.com/FezVrasta/popper.js/blob/master/LICENSE.md
+download_url = https://github.com/FezVrasta/popper.js

@@ -23,7 +23,7 @@
 
 int DSPs();
 double FMax();
-double ExecTime();
+double ExecTime(const char* kernel_name = 0);
 void roofline(double mem_bandwidth, double compute_roof, double number_ops, double number_bytes, double exec_time);
 
 // Used for FPGA report generated through DPC++ OneAPI

@@ -821,16 +821,20 @@ T2S_SOURCE_FILES = \
   PatternMatcher.cpp \
   Place.cpp \
   PreprocessBeforeLower.cpp \
+  Relay.cpp \
+  RemoveDeadDimensions.cpp \
   ScatterAndBuffer.cpp \
   SliceExprTree.cpp \
   SpaceTimeTransform.cpp \
   Stensor.cpp \
   StructType.cpp \
+  TriangularLoopOptimize.cpp \
   Utilities.cpp
 
 T2S_HEADER_FILES = \
   AutorunKernels.h \
   BuildCallRelation.h \
+  ChannelPromotion.h \
   CheckFuncConstraints.h \
   CheckRecursiveCalls.h \
   CodeGen_OneAPI_Dev.h \
@@ -851,11 +855,14 @@ T2S_HEADER_FILES = \
   PatternMatcher.h \
   Place.h \
   PreprocessBeforeLower.h \
+  Relay.h \
+  RemoveDeadDimensions.h \
   ScatterAndBuffer.h \
   SliceExprTree.h \
   SpaceTimeTransform.h \
   Stensor.h \
   StructType.h \
+  TriangularLoopOptimize.h \
   Utilities.h
 
 OBJECTS += $(T2S_SOURCE_FILES:%.cpp=$(BUILD_DIR)/t2s/%.o)

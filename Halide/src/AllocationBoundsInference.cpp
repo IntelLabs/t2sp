@@ -3,6 +3,9 @@
 #include "IRMutator.h"
 #include "IROperator.h"
 #include "Simplify.h"
+#include "Substitute.h"
+
+#include "../../t2s/src/Utilities.h"
 
 namespace Halide {
 namespace Internal {
@@ -11,6 +14,30 @@ using std::map;
 using std::set;
 using std::string;
 using std::vector;
+
+class GlobalBoundsCollector : public IRMutator {
+    using IRMutator::visit;
+public:
+    std::map<std::string, Expr> global_min;
+    std::map<std::string, Expr> global_max;
+private:
+
+    Stmt visit(const For *op) override {
+        Expr min = op->min;
+        Expr extent = op->extent;
+        if (extent.as<IntImm>() == nullptr && !global_max.empty()) {
+            Expr max_substitute = substitute(global_max, extent);
+            Expr min_substitute = substitute(global_min, extent);
+            extent = Max::make(max_substitute, min_substitute);
+            max_substitute = substitute(global_max, min);
+            min_substitute = substitute(global_min, min);
+            min = Min::make(max_substitute, min_substitute);
+        }
+        global_max[extract_last_token(op->name)] = simplify(extent);
+        global_min[extract_last_token(op->name)] = simplify(min);
+        return IRMutator::visit(op);
+    }
+};
 
 // Figure out the region touched of each buffer, and deposit them as
 // let statements outside of each realize node, or at the top level if
@@ -45,6 +72,9 @@ class AllocationInference : public IRMutator {
 
             merge_boxes(b, required);
         }
+
+        GlobalBoundsCollector collector;
+        collector.mutate(op->body);
 
         Stmt new_body = mutate(op->body);
         Stmt stmt = Realize::make(op->name, op->types, op->memory_type, op->bounds, op->condition, new_body);
@@ -88,6 +118,16 @@ class AllocationInference : public IRMutator {
             } else {
                 max = b[i].max;
                 extent = simplify((max - min) + 1);
+            }
+            if (min.as<IntImm>() == nullptr && !collector.global_max.empty()) {
+                Expr max_substitute = substitute(collector.global_max, min);
+                Expr min_substitute = substitute(collector.global_min, min);
+                min = simplify(Min::make(max_substitute, min_substitute));
+            }
+            if (extent.as<IntImm>() == nullptr && !collector.global_max.empty()) {
+                Expr max_substitute = substitute(collector.global_max, extent);
+                Expr min_substitute = substitute(collector.global_min, extent);
+                extent = simplify(Max::make(max_substitute, min_substitute));
             }
             if (bound.modulus.defined()) {
                 internal_assert(bound.remainder.defined());

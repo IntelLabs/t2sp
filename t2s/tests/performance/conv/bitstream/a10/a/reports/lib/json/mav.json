@@ -1,0 +1,3711 @@
+{
+  "nodes":
+  [
+    {
+      "type":"kernel"
+      , "id":2
+      , "name":"kernel_iFeeder"
+      , "children":
+      [
+        {
+          "type":"bb"
+          , "id":3
+          , "name":"kernel_iFeeder.B0"
+          , "details":
+          [
+            {
+              "type":"table"
+              , "Latency":"8"
+            }
+          ]
+        }
+        , {
+          "type":"bb"
+          , "id":4
+          , "name":"kernel_iFeeder.B1"
+          , "details":
+          [
+            {
+              "type":"table"
+              , "Latency":"0"
+            }
+          ]
+        }
+        , {
+          "type":"bb"
+          , "id":5
+          , "name":"kernel_iFeeder.B2"
+          , "children":
+          [
+            {
+              "type":"inst"
+              , "id":6
+              , "name":"Channel Read"
+              , "debug":
+              [
+                [
+                  {
+                    "filename":"a.cl"
+                    , "line":131
+                  }
+                ]
+              ]
+              , "details":
+              [
+                {
+                  "type":"table"
+                  , "Width":"512 bits"
+                  , "Depth":"256"
+                  , "Stall-free":"No"
+                  , "Start Cycle":"9"
+                  , "Latency":"0"
+                  , "Reference":
+                  [
+                    {
+                      "type":"text"
+                      , "text":"See %L for more information"
+                      , "links":
+                      [
+                        {
+                          "guide":"Best Practices Guide : Channels"
+                          , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#qah1476410829821"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+            , {
+              "type":"inst"
+              , "id":8
+              , "name":"Store"
+              , "debug":
+              [
+                [
+                  {
+                    "filename":"a.cl"
+                    , "line":200
+                  }
+                ]
+              ]
+              , "details":
+              [
+                {
+                  "type":"table"
+                  , "Width":"512 bits"
+                  , "Type":"Pipelined never-stall"
+                  , "Stall-free":"Yes"
+                  , "Stores to":"_iFeeder_DB_0_ibuffer"
+                  , "Start Cycle":"20"
+                  , "Latency":"1"
+                  , "Reference":
+                  [
+                    {
+                      "type":"text"
+                      , "text":"See %L for more information"
+                      , "links":
+                      [
+                        {
+                          "guide":"Best Practices Guide : Load-Store Units"
+                          , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+            , {
+              "type":"inst"
+              , "id":9
+              , "name":"Load"
+              , "debug":
+              [
+                [
+                  {
+                    "filename":"a.cl"
+                    , "line":230
+                  }
+                ]
+              ]
+              , "details":
+              [
+                {
+                  "type":"table"
+                  , "Width":"512 bits"
+                  , "Type":"Pipelined never-stall"
+                  , "Stall-free":"Yes"
+                  , "Loads from":"_iFeeder_DB_0_ibuffer"
+                  , "Start Cycle":"21"
+                  , "Latency":"3"
+                  , "Reference":
+                  [
+                    {
+                      "type":"text"
+                      , "text":"See %L for more information"
+                      , "links":
+                      [
+                        {
+                          "guide":"Best Practices Guide : Load-Store Units"
+                          , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+            , {
+              "type":"inst"
+              , "id":10
+              , "name":"Store"
+              , "debug":
+              [
+                [
+                  {
+                    "filename":"a.cl"
+                    , "line":200
+                  }
+                ]
+              ]
+              , "details":
+              [
+                {
+                  "type":"table"
+                  , "Width":"512 bits"
+                  , "Type":"Pipelined never-stall"
+                  , "Stall-free":"Yes"
+                  , "Stores to":"_iFeeder_DB_0_ibuffer"
+                  , "Start Cycle":"22"
+                  , "Latency":"1"
+                  , "Reference":
+                  [
+                    {
+                      "type":"text"
+                      , "text":"See %L for more information"
+                      , "links":
+                      [
+                        {
+                          "guide":"Best Practices Guide : Load-Store Units"
+                          , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+            , {
+              "type":"inst"
+              , "id":11
+              , "name":"Load"
+              , "debug":
+              [
+                [
+                  {
+                    "filename":"a.cl"
+                    , "line":230
+                  }
+                ]
+              ]
+              , "details":
+              [
+                {
+                  "type":"table"
+                  , "Width":"512 bits"
+                  , "Type":"Pipelined never-stall"
+                  , "Stall-free":"Yes"
+                  , "Loads from":"_iFeeder_DB_0_ibuffer"
+                  , "Start Cycle":"23"
+                  , "Latency":"3"
+                  , "Reference":
+                  [
+                    {
+                      "type":"text"
+                      , "text":"See %L for more information"
+                      , "links":
+                      [
+                        {
+                          "guide":"Best Practices Guide : Load-Store Units"
+                          , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+            , {
+              "type":"inst"
+              , "id":12
+              , "name":"Store"
+              , "debug":
+              [
+                [
+                  {
+                    "filename":"a.cl"
+                    , "line":200
+                  }
+                ]
+              ]
+              , "details":
+              [
+                {
+                  "type":"table"
+                  , "Width":"512 bits"
+                  , "Type":"Pipelined never-stall"
+                  , "Stall-free":"Yes"
+                  , "Stores to":"_iFeeder_DB_0_ibuffer"
+                  , "Start Cycle":"24"
+                  , "Latency":"1"
+                  , "Reference":
+                  [
+                    {
+                      "type":"text"
+                      , "text":"See %L for more information"
+                      , "links":
+                      [
+                        {
+                          "guide":"Best Practices Guide : Load-Store Units"
+                          , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+            , {
+              "type":"inst"
+              , "id":13
+              , "name":"Load"
+              , "debug":
+              [
+                [
+                  {
+                    "filename":"a.cl"
+                    , "line":230
+                  }
+                ]
+              ]
+              , "details":
+              [
+                {
+                  "type":"table"
+                  , "Width":"512 bits"
+                  , "Type":"Pipelined never-stall"
+                  , "Stall-free":"Yes"
+                  , "Loads from":"_iFeeder_DB_0_ibuffer"
+                  , "Start Cycle":"25"
+                  , "Latency":"3"
+                  , "Reference":
+                  [
+                    {
+                      "type":"text"
+                      , "text":"See %L for more information"
+                      , "links":
+                      [
+                        {
+                          "guide":"Best Practices Guide : Load-Store Units"
+                          , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+            , {
+              "type":"inst"
+              , "id":14
+              , "name":"Store"
+              , "debug":
+              [
+                [
+                  {
+                    "filename":"a.cl"
+                    , "line":200
+                  }
+                ]
+              ]
+              , "details":
+              [
+                {
+                  "type":"table"
+                  , "Width":"512 bits"
+                  , "Type":"Pipelined never-stall"
+                  , "Stall-free":"Yes"
+                  , "Stores to":"_iFeeder_DB_0_ibuffer"
+                  , "Start Cycle":"26"
+                  , "Latency":"1"
+                  , "Reference":
+                  [
+                    {
+                      "type":"text"
+                      , "text":"See %L for more information"
+                      , "links":
+                      [
+                        {
+                          "guide":"Best Practices Guide : Load-Store Units"
+                          , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+            , {
+              "type":"inst"
+              , "id":15
+              , "name":"Load"
+              , "debug":
+              [
+                [
+                  {
+                    "filename":"a.cl"
+                    , "line":230
+                  }
+                ]
+              ]
+              , "details":
+              [
+                {
+                  "type":"table"
+                  , "Width":"512 bits"
+                  , "Type":"Pipelined never-stall"
+                  , "Stall-free":"Yes"
+                  , "Loads from":"_iFeeder_DB_0_ibuffer"
+                  , "Start Cycle":"27"
+                  , "Latency":"3"
+                  , "Reference":
+                  [
+                    {
+                      "type":"text"
+                      , "text":"See %L for more information"
+                      , "links":
+                      [
+                        {
+                          "guide":"Best Practices Guide : Load-Store Units"
+                          , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+            , {
+              "type":"inst"
+              , "id":16
+              , "name":"Store"
+              , "debug":
+              [
+                [
+                  {
+                    "filename":"a.cl"
+                    , "line":200
+                  }
+                ]
+              ]
+              , "details":
+              [
+                {
+                  "type":"table"
+                  , "Width":"512 bits"
+                  , "Type":"Pipelined never-stall"
+                  , "Stall-free":"Yes"
+                  , "Stores to":"_iFeeder_DB_0_ibuffer"
+                  , "Start Cycle":"28"
+                  , "Latency":"1"
+                  , "Reference":
+                  [
+                    {
+                      "type":"text"
+                      , "text":"See %L for more information"
+                      , "links":
+                      [
+                        {
+                          "guide":"Best Practices Guide : Load-Store Units"
+                          , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+            , {
+              "type":"inst"
+              , "id":17
+              , "name":"Load"
+              , "debug":
+              [
+                [
+                  {
+                    "filename":"a.cl"
+                    , "line":230
+                  }
+                ]
+              ]
+              , "details":
+              [
+                {
+                  "type":"table"
+                  , "Width":"512 bits"
+                  , "Type":"Pipelined never-stall"
+                  , "Stall-free":"Yes"
+                  , "Loads from":"_iFeeder_DB_0_ibuffer"
+                  , "Start Cycle":"29"
+                  , "Latency":"3"
+                  , "Reference":
+                  [
+                    {
+                      "type":"text"
+                      , "text":"See %L for more information"
+                      , "links":
+                      [
+                        {
+                          "guide":"Best Practices Guide : Load-Store Units"
+                          , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+            , {
+              "type":"inst"
+              , "id":18
+              , "name":"Store"
+              , "debug":
+              [
+                [
+                  {
+                    "filename":"a.cl"
+                    , "line":200
+                  }
+                ]
+              ]
+              , "details":
+              [
+                {
+                  "type":"table"
+                  , "Width":"512 bits"
+                  , "Type":"Pipelined never-stall"
+                  , "Stall-free":"Yes"
+                  , "Stores to":"_iFeeder_DB_0_ibuffer"
+                  , "Start Cycle":"30"
+                  , "Latency":"1"
+                  , "Reference":
+                  [
+                    {
+                      "type":"text"
+                      , "text":"See %L for more information"
+                      , "links":
+                      [
+                        {
+                          "guide":"Best Practices Guide : Load-Store Units"
+                          , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+            , {
+              "type":"inst"
+              , "id":19
+              , "name":"Load"
+              , "debug":
+              [
+                [
+                  {
+                    "filename":"a.cl"
+                    , "line":230
+                  }
+                ]
+              ]
+              , "details":
+              [
+                {
+                  "type":"table"
+                  , "Width":"512 bits"
+                  , "Type":"Pipelined never-stall"
+                  , "Stall-free":"Yes"
+                  , "Loads from":"_iFeeder_DB_0_ibuffer"
+                  , "Start Cycle":"31"
+                  , "Latency":"3"
+                  , "Reference":
+                  [
+                    {
+                      "type":"text"
+                      , "text":"See %L for more information"
+                      , "links":
+                      [
+                        {
+                          "guide":"Best Practices Guide : Load-Store Units"
+                          , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+            , {
+              "type":"inst"
+              , "id":20
+              , "name":"Store"
+              , "debug":
+              [
+                [
+                  {
+                    "filename":"a.cl"
+                    , "line":200
+                  }
+                ]
+              ]
+              , "details":
+              [
+                {
+                  "type":"table"
+                  , "Width":"512 bits"
+                  , "Type":"Pipelined never-stall"
+                  , "Stall-free":"Yes"
+                  , "Stores to":"_iFeeder_DB_0_ibuffer"
+                  , "Start Cycle":"32"
+                  , "Latency":"1"
+                  , "Reference":
+                  [
+                    {
+                      "type":"text"
+                      , "text":"See %L for more information"
+                      , "links":
+                      [
+                        {
+                          "guide":"Best Practices Guide : Load-Store Units"
+                          , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+            , {
+              "type":"inst"
+              , "id":21
+              , "name":"Load"
+              , "debug":
+              [
+                [
+                  {
+                    "filename":"a.cl"
+                    , "line":230
+                  }
+                ]
+              ]
+              , "details":
+              [
+                {
+                  "type":"table"
+                  , "Width":"512 bits"
+                  , "Type":"Pipelined never-stall"
+                  , "Stall-free":"Yes"
+                  , "Loads from":"_iFeeder_DB_0_ibuffer"
+                  , "Start Cycle":"33"
+                  , "Latency":"3"
+                  , "Reference":
+                  [
+                    {
+                      "type":"text"
+                      , "text":"See %L for more information"
+                      , "links":
+                      [
+                        {
+                          "guide":"Best Practices Guide : Load-Store Units"
+                          , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+            , {
+              "type":"inst"
+              , "id":22
+              , "name":"Store"
+              , "debug":
+              [
+                [
+                  {
+                    "filename":"a.cl"
+                    , "line":200
+                  }
+                ]
+              ]
+              , "details":
+              [
+                {
+                  "type":"table"
+                  , "Width":"512 bits"
+                  , "Type":"Pipelined never-stall"
+                  , "Stall-free":"Yes"
+                  , "Stores to":"_iFeeder_DB_0_ibuffer"
+                  , "Start Cycle":"34"
+                  , "Latency":"1"
+                  , "Reference":
+                  [
+                    {
+                      "type":"text"
+                      , "text":"See %L for more information"
+                      , "links":
+                      [
+                        {
+                          "guide":"Best Practices Guide : Load-Store Units"
+                          , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+            , {
+              "type":"inst"
+              , "id":23
+              , "name":"Load"
+              , "debug":
+              [
+                [
+                  {
+                    "filename":"a.cl"
+                    , "line":230
+                  }
+                ]
+              ]
+              , "details":
+              [
+                {
+                  "type":"table"
+                  , "Width":"512 bits"
+                  , "Type":"Pipelined never-stall"
+                  , "Stall-free":"Yes"
+                  , "Loads from":"_iFeeder_DB_0_ibuffer"
+                  , "Start Cycle":"35"
+                  , "Latency":"3"
+                  , "Reference":
+                  [
+                    {
+                      "type":"text"
+                      , "text":"See %L for more information"
+                      , "links":
+                      [
+                        {
+                          "guide":"Best Practices Guide : Load-Store Units"
+                          , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+            , {
+              "type":"inst"
+              , "id":24
+              , "name":"Store"
+              , "debug":
+              [
+                [
+                  {
+                    "filename":"a.cl"
+                    , "line":200
+                  }
+                ]
+              ]
+              , "details":
+              [
+                {
+                  "type":"table"
+                  , "Width":"512 bits"
+                  , "Type":"Pipelined never-stall"
+                  , "Stall-free":"Yes"
+                  , "Stores to":"_iFeeder_DB_0_ibuffer"
+                  , "Start Cycle":"36"
+                  , "Latency":"1"
+                  , "Reference":
+                  [
+                    {
+                      "type":"text"
+                      , "text":"See %L for more information"
+                      , "links":
+                      [
+                        {
+                          "guide":"Best Practices Guide : Load-Store Units"
+                          , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+            , {
+              "type":"inst"
+              , "id":25
+              , "name":"Load"
+              , "debug":
+              [
+                [
+                  {
+                    "filename":"a.cl"
+                    , "line":230
+                  }
+                ]
+              ]
+              , "details":
+              [
+                {
+                  "type":"table"
+                  , "Width":"512 bits"
+                  , "Type":"Pipelined never-stall"
+                  , "Stall-free":"Yes"
+                  , "Loads from":"_iFeeder_DB_0_ibuffer"
+                  , "Start Cycle":"37"
+                  , "Latency":"3"
+                  , "Reference":
+                  [
+                    {
+                      "type":"text"
+                      , "text":"See %L for more information"
+                      , "links":
+                      [
+                        {
+                          "guide":"Best Practices Guide : Load-Store Units"
+                          , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+            , {
+              "type":"inst"
+              , "id":26
+              , "name":"Store"
+              , "debug":
+              [
+                [
+                  {
+                    "filename":"a.cl"
+                    , "line":200
+                  }
+                ]
+              ]
+              , "details":
+              [
+                {
+                  "type":"table"
+                  , "Width":"512 bits"
+                  , "Type":"Pipelined never-stall"
+                  , "Stall-free":"Yes"
+                  , "Stores to":"_iFeeder_DB_0_ibuffer"
+                  , "Start Cycle":"38"
+                  , "Latency":"1"
+                  , "Reference":
+                  [
+                    {
+                      "type":"text"
+                      , "text":"See %L for more information"
+                      , "links":
+                      [
+                        {
+                          "guide":"Best Practices Guide : Load-Store Units"
+                          , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+            , {
+              "type":"inst"
+              , "id":27
+              , "name":"Load"
+              , "debug":
+              [
+                [
+                  {
+                    "filename":"a.cl"
+                    , "line":230
+                  }
+                ]
+              ]
+              , "details":
+              [
+                {
+                  "type":"table"
+                  , "Width":"512 bits"
+                  , "Type":"Pipelined never-stall"
+                  , "Stall-free":"Yes"
+                  , "Loads from":"_iFeeder_DB_0_ibuffer"
+                  , "Start Cycle":"39"
+                  , "Latency":"3"
+                  , "Reference":
+                  [
+                    {
+                      "type":"text"
+                      , "text":"See %L for more information"
+                      , "links":
+                      [
+                        {
+                          "guide":"Best Practices Guide : Load-Store Units"
+                          , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+            , {
+              "type":"inst"
+              , "id":28
+              , "name":"Channel Write"
+              , "debug":
+              [
+                [
+                  {
+                    "filename":"a.cl"
+                    , "line":247
+                  }
+                ]
+              ]
+              , "details":
+              [
+                {
+                  "type":"table"
+                  , "Width":"5120 bits"
+                  , "Depth":"256"
+                  , "Stall-free":"No"
+                  , "Start Cycle":"46"
+                  , "Latency":"0"
+                  , "Reference":
+                  [
+                    {
+                      "type":"text"
+                      , "text":"See %L for more information"
+                      , "links":
+                      [
+                        {
+                          "guide":"Best Practices Guide : Channels"
+                          , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#qah1476410829821"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+            , {
+              "type":"inst"
+              , "id":30
+              , "name":"Loop Input"
+              , "debug":
+              [
+                [
+                  {
+                    "filename":"a.cl"
+                    , "line":116
+                  }
+                ]
+              ]
+              , "details":
+              [
+                {
+                  "type":"table"
+                  , "Start Cycle":"0"
+                  , "Latency":"1"
+                  , "Loops To":"31"
+                }
+              ]
+            }
+            , {
+              "type":"inst"
+              , "id":31
+              , "name":"Loop End"
+              , "details":
+              [
+                {
+                  "type":"table"
+                  , "Start Cycle":"46"
+                  , "Latency":"1"
+                }
+              ]
+            }
+          ]
+          , "details":
+          [
+            {
+              "type":"table"
+              , "Latency":"46"
+              , "II":"1"
+              , "Subloops":"No"
+              , "Pipelined":"Yes"
+              , "Fmax Bottlenecks":"No"
+              , "Loop Info":""
+            }
+          ]
+        }
+        , {
+          "type":"memtype"
+          , "id":32
+          , "name":"Local Memory"
+          , "children":
+          [
+            {
+              "type":"memsys"
+              , "id":33
+              , "name":"_iFeeder_DB_0_ibuffer"
+              , "debug":
+              [
+                [
+                  {
+                    "filename":"a.cl"
+                    , "line":102
+                  }
+                ]
+              ]
+              , "details":
+              [
+                {
+                  "type":"table"
+                  , "details":
+                  [
+                    {
+                      "type":"brief"
+                      , "text":"393216B requested\n524288B implemented"
+                    }
+                  ]
+                  , "Requested size":"393216 bytes"
+                  , "Implemented size":"524288 bytes"
+                  , "Number of banks":"16"
+                  , "Bank width":"512 bits"
+                  , "Bank depth":"512 words"
+                  , "Total replication":"1"
+                  , "Reference":
+                  [
+                    {
+                      "type":"text"
+                      , "text":"See %L for more information"
+                      , "links":
+                      [
+                        {
+                          "guide":"Best Practices Guide : Local Memory"
+                          , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#chn1469549457114"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+    , {
+      "type":"kernel"
+      , "id":70
+      , "name":"kernel_kFeeder"
+      , "children":
+      [
+        {
+          "type":"bb"
+          , "id":71
+          , "name":"kernel_kFeeder.B0"
+          , "details":
+          [
+            {
+              "type":"table"
+              , "Latency":"8"
+            }
+          ]
+        }
+        , {
+          "type":"bb"
+          , "id":72
+          , "name":"kernel_kFeeder.B1"
+          , "details":
+          [
+            {
+              "type":"table"
+              , "Latency":"0"
+            }
+          ]
+        }
+        , {
+          "type":"bb"
+          , "id":73
+          , "name":"kernel_kFeeder.B2"
+          , "children":
+          [
+            {
+              "type":"inst"
+              , "id":74
+              , "name":"Channel Read"
+              , "debug":
+              [
+                [
+                  {
+                    "filename":"a.cl"
+                    , "line":327
+                  }
+                ]
+              ]
+              , "details":
+              [
+                {
+                  "type":"table"
+                  , "Width":"512 bits"
+                  , "Depth":"256"
+                  , "Stall-free":"No"
+                  , "Start Cycle":"9"
+                  , "Latency":"0"
+                  , "Reference":
+                  [
+                    {
+                      "type":"text"
+                      , "text":"See %L for more information"
+                      , "links":
+                      [
+                        {
+                          "guide":"Best Practices Guide : Channels"
+                          , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#qah1476410829821"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+            , {
+              "type":"inst"
+              , "id":76
+              , "name":"Store"
+              , "debug":
+              [
+                [
+                  {
+                    "filename":"a.cl"
+                    , "line":392
+                  }
+                ]
+              ]
+              , "details":
+              [
+                {
+                  "type":"table"
+                  , "Width":"512 bits"
+                  , "Type":"Pipelined never-stall"
+                  , "Stall-free":"Yes"
+                  , "Stores to":"_kFeeder_DB_0_ibuffer"
+                  , "Start Cycle":"16"
+                  , "Latency":"1"
+                  , "Reference":
+                  [
+                    {
+                      "type":"text"
+                      , "text":"See %L for more information"
+                      , "links":
+                      [
+                        {
+                          "guide":"Best Practices Guide : Load-Store Units"
+                          , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+            , {
+              "type":"inst"
+              , "id":77
+              , "name":"Load"
+              , "debug":
+              [
+                [
+                  {
+                    "filename":"a.cl"
+                    , "line":419
+                  }
+                ]
+              ]
+              , "details":
+              [
+                {
+                  "type":"table"
+                  , "Width":"512 bits"
+                  , "Type":"Pipelined never-stall"
+                  , "Stall-free":"Yes"
+                  , "Loads from":"_kFeeder_DB_0_ibuffer"
+                  , "Start Cycle":"17"
+                  , "Latency":"3"
+                  , "Reference":
+                  [
+                    {
+                      "type":"text"
+                      , "text":"See %L for more information"
+                      , "links":
+                      [
+                        {
+                          "guide":"Best Practices Guide : Load-Store Units"
+                          , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+            , {
+              "type":"inst"
+              , "id":78
+              , "name":"Store"
+              , "debug":
+              [
+                [
+                  {
+                    "filename":"a.cl"
+                    , "line":392
+                  }
+                ]
+              ]
+              , "details":
+              [
+                {
+                  "type":"table"
+                  , "Width":"512 bits"
+                  , "Type":"Pipelined never-stall"
+                  , "Stall-free":"Yes"
+                  , "Stores to":"_kFeeder_DB_0_ibuffer"
+                  , "Start Cycle":"18"
+                  , "Latency":"1"
+                  , "Reference":
+                  [
+                    {
+                      "type":"text"
+                      , "text":"See %L for more information"
+                      , "links":
+                      [
+                        {
+                          "guide":"Best Practices Guide : Load-Store Units"
+                          , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+            , {
+              "type":"inst"
+              , "id":79
+              , "name":"Load"
+              , "debug":
+              [
+                [
+                  {
+                    "filename":"a.cl"
+                    , "line":419
+                  }
+                ]
+              ]
+              , "details":
+              [
+                {
+                  "type":"table"
+                  , "Width":"512 bits"
+                  , "Type":"Pipelined never-stall"
+                  , "Stall-free":"Yes"
+                  , "Loads from":"_kFeeder_DB_0_ibuffer"
+                  , "Start Cycle":"19"
+                  , "Latency":"3"
+                  , "Reference":
+                  [
+                    {
+                      "type":"text"
+                      , "text":"See %L for more information"
+                      , "links":
+                      [
+                        {
+                          "guide":"Best Practices Guide : Load-Store Units"
+                          , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+            , {
+              "type":"inst"
+              , "id":80
+              , "name":"Store"
+              , "debug":
+              [
+                [
+                  {
+                    "filename":"a.cl"
+                    , "line":392
+                  }
+                ]
+              ]
+              , "details":
+              [
+                {
+                  "type":"table"
+                  , "Width":"512 bits"
+                  , "Type":"Pipelined never-stall"
+                  , "Stall-free":"Yes"
+                  , "Stores to":"_kFeeder_DB_0_ibuffer"
+                  , "Start Cycle":"20"
+                  , "Latency":"1"
+                  , "Reference":
+                  [
+                    {
+                      "type":"text"
+                      , "text":"See %L for more information"
+                      , "links":
+                      [
+                        {
+                          "guide":"Best Practices Guide : Load-Store Units"
+                          , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+            , {
+              "type":"inst"
+              , "id":81
+              , "name":"Load"
+              , "debug":
+              [
+                [
+                  {
+                    "filename":"a.cl"
+                    , "line":419
+                  }
+                ]
+              ]
+              , "details":
+              [
+                {
+                  "type":"table"
+                  , "Width":"512 bits"
+                  , "Type":"Pipelined never-stall"
+                  , "Stall-free":"Yes"
+                  , "Loads from":"_kFeeder_DB_0_ibuffer"
+                  , "Start Cycle":"21"
+                  , "Latency":"3"
+                  , "Reference":
+                  [
+                    {
+                      "type":"text"
+                      , "text":"See %L for more information"
+                      , "links":
+                      [
+                        {
+                          "guide":"Best Practices Guide : Load-Store Units"
+                          , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+            , {
+              "type":"inst"
+              , "id":82
+              , "name":"Store"
+              , "debug":
+              [
+                [
+                  {
+                    "filename":"a.cl"
+                    , "line":392
+                  }
+                ]
+              ]
+              , "details":
+              [
+                {
+                  "type":"table"
+                  , "Width":"512 bits"
+                  , "Type":"Pipelined never-stall"
+                  , "Stall-free":"Yes"
+                  , "Stores to":"_kFeeder_DB_0_ibuffer"
+                  , "Start Cycle":"22"
+                  , "Latency":"1"
+                  , "Reference":
+                  [
+                    {
+                      "type":"text"
+                      , "text":"See %L for more information"
+                      , "links":
+                      [
+                        {
+                          "guide":"Best Practices Guide : Load-Store Units"
+                          , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+            , {
+              "type":"inst"
+              , "id":83
+              , "name":"Load"
+              , "debug":
+              [
+                [
+                  {
+                    "filename":"a.cl"
+                    , "line":419
+                  }
+                ]
+              ]
+              , "details":
+              [
+                {
+                  "type":"table"
+                  , "Width":"512 bits"
+                  , "Type":"Pipelined never-stall"
+                  , "Stall-free":"Yes"
+                  , "Loads from":"_kFeeder_DB_0_ibuffer"
+                  , "Start Cycle":"23"
+                  , "Latency":"3"
+                  , "Reference":
+                  [
+                    {
+                      "type":"text"
+                      , "text":"See %L for more information"
+                      , "links":
+                      [
+                        {
+                          "guide":"Best Practices Guide : Load-Store Units"
+                          , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+            , {
+              "type":"inst"
+              , "id":84
+              , "name":"Store"
+              , "debug":
+              [
+                [
+                  {
+                    "filename":"a.cl"
+                    , "line":392
+                  }
+                ]
+              ]
+              , "details":
+              [
+                {
+                  "type":"table"
+                  , "Width":"512 bits"
+                  , "Type":"Pipelined never-stall"
+                  , "Stall-free":"Yes"
+                  , "Stores to":"_kFeeder_DB_0_ibuffer"
+                  , "Start Cycle":"24"
+                  , "Latency":"1"
+                  , "Reference":
+                  [
+                    {
+                      "type":"text"
+                      , "text":"See %L for more information"
+                      , "links":
+                      [
+                        {
+                          "guide":"Best Practices Guide : Load-Store Units"
+                          , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+            , {
+              "type":"inst"
+              , "id":85
+              , "name":"Load"
+              , "debug":
+              [
+                [
+                  {
+                    "filename":"a.cl"
+                    , "line":419
+                  }
+                ]
+              ]
+              , "details":
+              [
+                {
+                  "type":"table"
+                  , "Width":"512 bits"
+                  , "Type":"Pipelined never-stall"
+                  , "Stall-free":"Yes"
+                  , "Loads from":"_kFeeder_DB_0_ibuffer"
+                  , "Start Cycle":"25"
+                  , "Latency":"3"
+                  , "Reference":
+                  [
+                    {
+                      "type":"text"
+                      , "text":"See %L for more information"
+                      , "links":
+                      [
+                        {
+                          "guide":"Best Practices Guide : Load-Store Units"
+                          , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+            , {
+              "type":"inst"
+              , "id":86
+              , "name":"Store"
+              , "debug":
+              [
+                [
+                  {
+                    "filename":"a.cl"
+                    , "line":392
+                  }
+                ]
+              ]
+              , "details":
+              [
+                {
+                  "type":"table"
+                  , "Width":"512 bits"
+                  , "Type":"Pipelined never-stall"
+                  , "Stall-free":"Yes"
+                  , "Stores to":"_kFeeder_DB_0_ibuffer"
+                  , "Start Cycle":"26"
+                  , "Latency":"1"
+                  , "Reference":
+                  [
+                    {
+                      "type":"text"
+                      , "text":"See %L for more information"
+                      , "links":
+                      [
+                        {
+                          "guide":"Best Practices Guide : Load-Store Units"
+                          , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+            , {
+              "type":"inst"
+              , "id":87
+              , "name":"Load"
+              , "debug":
+              [
+                [
+                  {
+                    "filename":"a.cl"
+                    , "line":419
+                  }
+                ]
+              ]
+              , "details":
+              [
+                {
+                  "type":"table"
+                  , "Width":"512 bits"
+                  , "Type":"Pipelined never-stall"
+                  , "Stall-free":"Yes"
+                  , "Loads from":"_kFeeder_DB_0_ibuffer"
+                  , "Start Cycle":"27"
+                  , "Latency":"3"
+                  , "Reference":
+                  [
+                    {
+                      "type":"text"
+                      , "text":"See %L for more information"
+                      , "links":
+                      [
+                        {
+                          "guide":"Best Practices Guide : Load-Store Units"
+                          , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+            , {
+              "type":"inst"
+              , "id":88
+              , "name":"Store"
+              , "debug":
+              [
+                [
+                  {
+                    "filename":"a.cl"
+                    , "line":392
+                  }
+                ]
+              ]
+              , "details":
+              [
+                {
+                  "type":"table"
+                  , "Width":"512 bits"
+                  , "Type":"Pipelined never-stall"
+                  , "Stall-free":"Yes"
+                  , "Stores to":"_kFeeder_DB_0_ibuffer"
+                  , "Start Cycle":"28"
+                  , "Latency":"1"
+                  , "Reference":
+                  [
+                    {
+                      "type":"text"
+                      , "text":"See %L for more information"
+                      , "links":
+                      [
+                        {
+                          "guide":"Best Practices Guide : Load-Store Units"
+                          , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+            , {
+              "type":"inst"
+              , "id":89
+              , "name":"Load"
+              , "debug":
+              [
+                [
+                  {
+                    "filename":"a.cl"
+                    , "line":419
+                  }
+                ]
+              ]
+              , "details":
+              [
+                {
+                  "type":"table"
+                  , "Width":"512 bits"
+                  , "Type":"Pipelined never-stall"
+                  , "Stall-free":"Yes"
+                  , "Loads from":"_kFeeder_DB_0_ibuffer"
+                  , "Start Cycle":"29"
+                  , "Latency":"3"
+                  , "Reference":
+                  [
+                    {
+                      "type":"text"
+                      , "text":"See %L for more information"
+                      , "links":
+                      [
+                        {
+                          "guide":"Best Practices Guide : Load-Store Units"
+                          , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+            , {
+              "type":"inst"
+              , "id":90
+              , "name":"Store"
+              , "debug":
+              [
+                [
+                  {
+                    "filename":"a.cl"
+                    , "line":392
+                  }
+                ]
+              ]
+              , "details":
+              [
+                {
+                  "type":"table"
+                  , "Width":"512 bits"
+                  , "Type":"Pipelined never-stall"
+                  , "Stall-free":"Yes"
+                  , "Stores to":"_kFeeder_DB_0_ibuffer"
+                  , "Start Cycle":"30"
+                  , "Latency":"1"
+                  , "Reference":
+                  [
+                    {
+                      "type":"text"
+                      , "text":"See %L for more information"
+                      , "links":
+                      [
+                        {
+                          "guide":"Best Practices Guide : Load-Store Units"
+                          , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+            , {
+              "type":"inst"
+              , "id":91
+              , "name":"Load"
+              , "debug":
+              [
+                [
+                  {
+                    "filename":"a.cl"
+                    , "line":419
+                  }
+                ]
+              ]
+              , "details":
+              [
+                {
+                  "type":"table"
+                  , "Width":"512 bits"
+                  , "Type":"Pipelined never-stall"
+                  , "Stall-free":"Yes"
+                  , "Loads from":"_kFeeder_DB_0_ibuffer"
+                  , "Start Cycle":"31"
+                  , "Latency":"3"
+                  , "Reference":
+                  [
+                    {
+                      "type":"text"
+                      , "text":"See %L for more information"
+                      , "links":
+                      [
+                        {
+                          "guide":"Best Practices Guide : Load-Store Units"
+                          , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+            , {
+              "type":"inst"
+              , "id":92
+              , "name":"Channel Write"
+              , "debug":
+              [
+                [
+                  {
+                    "filename":"a.cl"
+                    , "line":436
+                  }
+                ]
+              ]
+              , "details":
+              [
+                {
+                  "type":"table"
+                  , "Width":"4096 bits"
+                  , "Depth":"256"
+                  , "Stall-free":"No"
+                  , "Start Cycle":"38"
+                  , "Latency":"0"
+                  , "Reference":
+                  [
+                    {
+                      "type":"text"
+                      , "text":"See %L for more information"
+                      , "links":
+                      [
+                        {
+                          "guide":"Best Practices Guide : Channels"
+                          , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#qah1476410829821"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+            , {
+              "type":"inst"
+              , "id":94
+              , "name":"Loop Input"
+              , "debug":
+              [
+                [
+                  {
+                    "filename":"a.cl"
+                    , "line":312
+                  }
+                ]
+              ]
+              , "details":
+              [
+                {
+                  "type":"table"
+                  , "Start Cycle":"0"
+                  , "Latency":"1"
+                  , "Loops To":"95"
+                }
+              ]
+            }
+            , {
+              "type":"inst"
+              , "id":95
+              , "name":"Loop End"
+              , "details":
+              [
+                {
+                  "type":"table"
+                  , "Start Cycle":"38"
+                  , "Latency":"1"
+                }
+              ]
+            }
+          ]
+          , "details":
+          [
+            {
+              "type":"table"
+              , "Latency":"38"
+              , "II":"1"
+              , "Subloops":"No"
+              , "Pipelined":"Yes"
+              , "Fmax Bottlenecks":"No"
+              , "Loop Info":""
+            }
+          ]
+        }
+        , {
+          "type":"memtype"
+          , "id":96
+          , "name":"Local Memory"
+          , "children":
+          [
+            {
+              "type":"memsys"
+              , "id":97
+              , "name":"_kFeeder_DB_0_ibuffer"
+              , "debug":
+              [
+                [
+                  {
+                    "filename":"a.cl"
+                    , "line":298
+                  }
+                ]
+              ]
+              , "details":
+              [
+                {
+                  "type":"table"
+                  , "details":
+                  [
+                    {
+                      "type":"brief"
+                      , "text":"49152B requested\n65536B implemented"
+                    }
+                  ]
+                  , "Requested size":"49152 bytes"
+                  , "Implemented size":"65536 bytes"
+                  , "Number of banks":"8"
+                  , "Bank width":"512 bits"
+                  , "Bank depth":"128 words"
+                  , "Total replication":"1"
+                  , "Reference":
+                  [
+                    {
+                      "type":"text"
+                      , "text":"See %L for more information"
+                      , "links":
+                      [
+                        {
+                          "guide":"Best Practices Guide : Local Memory"
+                          , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#chn1469549457114"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+    , {
+      "type":"kernel"
+      , "id":122
+      , "name":"kernel_Out"
+      , "children":
+      [
+        {
+          "type":"bb"
+          , "id":123
+          , "name":"kernel_Out.B0"
+          , "details":
+          [
+            {
+              "type":"table"
+              , "Latency":"3"
+            }
+          ]
+        }
+        , {
+          "type":"bb"
+          , "id":124
+          , "name":"kernel_Out.B1"
+          , "details":
+          [
+            {
+              "type":"table"
+              , "Latency":"5"
+              , "II":"1"
+              , "Subloops":"Yes"
+              , "Pipelined":"Yes"
+              , "Fmax Bottlenecks":"No"
+              , "Loop Info":"Entry to loop. "
+              , "Loops To":"127"
+            }
+          ]
+        }
+        , {
+          "type":"bb"
+          , "id":125
+          , "name":"kernel_Out.B2"
+          , "details":
+          [
+            {
+              "type":"table"
+              , "Latency":"0"
+            }
+          ]
+        }
+        , {
+          "type":"bb"
+          , "id":126
+          , "name":"kernel_Out.B3"
+          , "children":
+          [
+            {
+              "type":"inst"
+              , "id":128
+              , "name":"Channel Read"
+              , "debug":
+              [
+                [
+                  {
+                    "filename":"a.cl"
+                    , "line":498
+                  }
+                ]
+              ]
+              , "details":
+              [
+                {
+                  "type":"table"
+                  , "Width":"4096 bits"
+                  , "Depth":"256"
+                  , "Stall-free":"No"
+                  , "Start Cycle":"23"
+                  , "Latency":"0"
+                  , "Reference":
+                  [
+                    {
+                      "type":"text"
+                      , "text":"See %L for more information"
+                      , "links":
+                      [
+                        {
+                          "guide":"Best Practices Guide : Channels"
+                          , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#qah1476410829821"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+            , {
+              "type":"inst"
+              , "id":129
+              , "name":"Channel Read"
+              , "debug":
+              [
+                [
+                  {
+                    "filename":"a.cl"
+                    , "line":501
+                  }
+                ]
+              ]
+              , "details":
+              [
+                {
+                  "type":"table"
+                  , "Width":"5120 bits"
+                  , "Depth":"256"
+                  , "Stall-free":"No"
+                  , "Start Cycle":"23"
+                  , "Latency":"0"
+                  , "Reference":
+                  [
+                    {
+                      "type":"text"
+                      , "text":"See %L for more information"
+                      , "links":
+                      [
+                        {
+                          "guide":"Best Practices Guide : Channels"
+                          , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#qah1476410829821"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+            , {
+              "type":"inst"
+              , "id":130
+              , "name":"Channel Write"
+              , "debug":
+              [
+                [
+                  {
+                    "filename":"a.cl"
+                    , "line":667
+                  }
+                ]
+              ]
+              , "details":
+              [
+                {
+                  "type":"table"
+                  , "Width":"256 bits"
+                  , "Depth":"256"
+                  , "Stall-free":"No"
+                  , "Start Cycle":"90"
+                  , "Latency":"0"
+                  , "Reference":
+                  [
+                    {
+                      "type":"text"
+                      , "text":"See %L for more information"
+                      , "links":
+                      [
+                        {
+                          "guide":"Best Practices Guide : Channels"
+                          , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#qah1476410829821"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+            , {
+              "type":"inst"
+              , "id":132
+              , "name":"Loop Input"
+              , "debug":
+              [
+                [
+                  {
+                    "filename":"a.cl"
+                    , "line":469
+                  }
+                ]
+              ]
+              , "details":
+              [
+                {
+                  "type":"table"
+                  , "Start Cycle":"0"
+                  , "Latency":"1"
+                  , "Loops To":"133"
+                }
+              ]
+            }
+            , {
+              "type":"inst"
+              , "id":133
+              , "name":"Loop End"
+              , "details":
+              [
+                {
+                  "type":"table"
+                  , "Start Cycle":"90"
+                  , "Latency":"1"
+                }
+              ]
+            }
+          ]
+          , "details":
+          [
+            {
+              "type":"table"
+              , "Latency":"90"
+              , "II":"1"
+              , "Subloops":"No"
+              , "Pipelined":"Yes"
+              , "Fmax Bottlenecks":"No"
+              , "Loop Info":""
+            }
+          ]
+        }
+        , {
+          "type":"bb"
+          , "id":127
+          , "name":"kernel_Out.B4"
+          , "details":
+          [
+            {
+              "type":"table"
+              , "Latency":"0"
+              , "II":"1"
+              , "Subloops":"Yes"
+              , "Pipelined":"Yes"
+              , "Fmax Bottlenecks":"No"
+              , "Loop Info":"Exit which branches back to loop. "
+            }
+          ]
+        }
+      ]
+    }
+    , {
+      "type":"kernel"
+      , "id":134
+      , "name":"kernel_iLoader"
+      , "children":
+      [
+        {
+          "type":"bb"
+          , "id":135
+          , "name":"kernel_iLoader.B0"
+          , "details":
+          [
+            {
+              "type":"table"
+              , "Latency":"2"
+            }
+          ]
+        }
+        , {
+          "type":"bb"
+          , "id":136
+          , "name":"kernel_iLoader.B1"
+          , "details":
+          [
+            {
+              "type":"table"
+              , "Latency":"5"
+              , "II":"1"
+              , "Subloops":"Yes"
+              , "Pipelined":"Yes"
+              , "Fmax Bottlenecks":"No"
+              , "Loop Info":"Entry to loop. "
+              , "Loops To":"138"
+            }
+          ]
+        }
+        , {
+          "type":"bb"
+          , "id":137
+          , "name":"kernel_iLoader.B2"
+          , "details":
+          [
+            {
+              "type":"table"
+              , "Latency":"0"
+            }
+          ]
+        }
+        , {
+          "type":"bb"
+          , "id":138
+          , "name":"kernel_iLoader.B3"
+          , "details":
+          [
+            {
+              "type":"table"
+              , "Latency":"0"
+              , "II":"1"
+              , "Subloops":"Yes"
+              , "Pipelined":"Yes"
+              , "Fmax Bottlenecks":"No"
+              , "Loop Info":"Exit which branches back to loop. "
+            }
+          ]
+        }
+        , {
+          "type":"bb"
+          , "id":139
+          , "name":"kernel_iLoader.B4"
+          , "children":
+          [
+            {
+              "type":"inst"
+              , "id":140
+              , "name":"Load"
+              , "debug":
+              [
+                [
+                  {
+                    "filename":"a.cl"
+                    , "line":84
+                  }
+                ]
+              ]
+              , "details":
+              [
+                {
+                  "type":"table"
+                  , "Width":"512 bits"
+                  , "Type":"Burst-coalesced"
+                  , "Stall-free":"No"
+                  , "Start Cycle":"41"
+                  , "Latency":"127"
+                  , "Reference":
+                  [
+                    {
+                      "type":"text"
+                      , "text":"See %L for more information"
+                      , "links":
+                      [
+                        {
+                          "guide":"Best Practices Guide : Load-Store Units"
+                          , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+            , {
+              "type":"inst"
+              , "id":141
+              , "name":"Channel Write"
+              , "debug":
+              [
+                [
+                  {
+                    "filename":"a.cl"
+                    , "line":85
+                  }
+                ]
+              ]
+              , "details":
+              [
+                {
+                  "type":"table"
+                  , "Width":"512 bits"
+                  , "Depth":"256"
+                  , "Stall-free":"No"
+                  , "Start Cycle":"169"
+                  , "Latency":"0"
+                  , "Reference":
+                  [
+                    {
+                      "type":"text"
+                      , "text":"See %L for more information"
+                      , "links":
+                      [
+                        {
+                          "guide":"Best Practices Guide : Channels"
+                          , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#qah1476410829821"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+            , {
+              "type":"inst"
+              , "id":142
+              , "name":"Loop Input"
+              , "debug":
+              [
+                [
+                  {
+                    "filename":"a.cl"
+                    , "line":76
+                  }
+                ]
+              ]
+              , "details":
+              [
+                {
+                  "type":"table"
+                  , "Start Cycle":"0"
+                  , "Latency":"1"
+                  , "Loops To":"143"
+                }
+              ]
+            }
+            , {
+              "type":"inst"
+              , "id":143
+              , "name":"Loop End"
+              , "details":
+              [
+                {
+                  "type":"table"
+                  , "Start Cycle":"169"
+                  , "Latency":"1"
+                }
+              ]
+            }
+          ]
+          , "details":
+          [
+            {
+              "type":"table"
+              , "Latency":"169"
+              , "II":"1"
+              , "Subloops":"No"
+              , "Pipelined":"Yes"
+              , "Fmax Bottlenecks":"No"
+              , "Loop Info":""
+            }
+          ]
+        }
+      ]
+    }
+    , {
+      "type":"kernel"
+      , "id":145
+      , "name":"kernel_kLoader"
+      , "children":
+      [
+        {
+          "type":"bb"
+          , "id":146
+          , "name":"kernel_kLoader.B0"
+          , "details":
+          [
+            {
+              "type":"table"
+              , "Latency":"2"
+            }
+          ]
+        }
+        , {
+          "type":"bb"
+          , "id":147
+          , "name":"kernel_kLoader.B1"
+          , "details":
+          [
+            {
+              "type":"table"
+              , "Latency":"5"
+              , "II":"1"
+              , "Subloops":"Yes"
+              , "Pipelined":"Yes"
+              , "Fmax Bottlenecks":"No"
+              , "Loop Info":"Entry to loop. "
+              , "Loops To":"149"
+            }
+          ]
+        }
+        , {
+          "type":"bb"
+          , "id":148
+          , "name":"kernel_kLoader.B2"
+          , "details":
+          [
+            {
+              "type":"table"
+              , "Latency":"0"
+            }
+          ]
+        }
+        , {
+          "type":"bb"
+          , "id":149
+          , "name":"kernel_kLoader.B3"
+          , "details":
+          [
+            {
+              "type":"table"
+              , "Latency":"0"
+              , "II":"1"
+              , "Subloops":"Yes"
+              , "Pipelined":"Yes"
+              , "Fmax Bottlenecks":"No"
+              , "Loop Info":"Exit which branches back to loop. "
+            }
+          ]
+        }
+        , {
+          "type":"bb"
+          , "id":150
+          , "name":"kernel_kLoader.B4"
+          , "children":
+          [
+            {
+              "type":"inst"
+              , "id":151
+              , "name":"Load"
+              , "debug":
+              [
+                [
+                  {
+                    "filename":"a.cl"
+                    , "line":280
+                  }
+                ]
+              ]
+              , "details":
+              [
+                {
+                  "type":"table"
+                  , "Width":"512 bits"
+                  , "Type":"Burst-coalesced"
+                  , "Stall-free":"No"
+                  , "Start Cycle":"75"
+                  , "Latency":"127"
+                  , "Reference":
+                  [
+                    {
+                      "type":"text"
+                      , "text":"See %L for more information"
+                      , "links":
+                      [
+                        {
+                          "guide":"Best Practices Guide : Load-Store Units"
+                          , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+            , {
+              "type":"inst"
+              , "id":152
+              , "name":"Channel Write"
+              , "debug":
+              [
+                [
+                  {
+                    "filename":"a.cl"
+                    , "line":281
+                  }
+                ]
+              ]
+              , "details":
+              [
+                {
+                  "type":"table"
+                  , "Width":"512 bits"
+                  , "Depth":"256"
+                  , "Stall-free":"No"
+                  , "Start Cycle":"203"
+                  , "Latency":"0"
+                  , "Reference":
+                  [
+                    {
+                      "type":"text"
+                      , "text":"See %L for more information"
+                      , "links":
+                      [
+                        {
+                          "guide":"Best Practices Guide : Channels"
+                          , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#qah1476410829821"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+            , {
+              "type":"inst"
+              , "id":153
+              , "name":"Loop Input"
+              , "debug":
+              [
+                [
+                  {
+                    "filename":"a.cl"
+                    , "line":271
+                  }
+                ]
+              ]
+              , "details":
+              [
+                {
+                  "type":"table"
+                  , "Start Cycle":"0"
+                  , "Latency":"1"
+                  , "Loops To":"154"
+                }
+              ]
+            }
+            , {
+              "type":"inst"
+              , "id":154
+              , "name":"Loop End"
+              , "details":
+              [
+                {
+                  "type":"table"
+                  , "Start Cycle":"203"
+                  , "Latency":"1"
+                }
+              ]
+            }
+          ]
+          , "details":
+          [
+            {
+              "type":"table"
+              , "Latency":"203"
+              , "II":"1"
+              , "Subloops":"No"
+              , "Pipelined":"Yes"
+              , "Fmax Bottlenecks":"No"
+              , "Loop Info":""
+            }
+          ]
+        }
+      ]
+    }
+    , {
+      "type":"kernel"
+      , "id":155
+      , "name":"kernel_unloader"
+      , "children":
+      [
+        {
+          "type":"bb"
+          , "id":156
+          , "name":"kernel_unloader.B0"
+          , "details":
+          [
+            {
+              "type":"table"
+              , "Latency":"2"
+            }
+          ]
+        }
+        , {
+          "type":"bb"
+          , "id":157
+          , "name":"kernel_unloader.B1"
+          , "details":
+          [
+            {
+              "type":"table"
+              , "Latency":"5"
+              , "II":"1"
+              , "Subloops":"Yes"
+              , "Pipelined":"Yes"
+              , "Fmax Bottlenecks":"No"
+              , "Loop Info":"Entry to loop. "
+              , "Loops To":"159"
+            }
+          ]
+        }
+        , {
+          "type":"bb"
+          , "id":158
+          , "name":"kernel_unloader.B2"
+          , "details":
+          [
+            {
+              "type":"table"
+              , "Latency":"0"
+            }
+          ]
+        }
+        , {
+          "type":"bb"
+          , "id":159
+          , "name":"kernel_unloader.B3"
+          , "details":
+          [
+            {
+              "type":"table"
+              , "Latency":"0"
+              , "II":"1"
+              , "Subloops":"Yes"
+              , "Pipelined":"Yes"
+              , "Fmax Bottlenecks":"No"
+              , "Loop Info":"Exit which branches back to loop. "
+            }
+          ]
+        }
+        , {
+          "type":"bb"
+          , "id":160
+          , "name":"kernel_unloader.B4"
+          , "children":
+          [
+            {
+              "type":"inst"
+              , "id":161
+              , "name":"Channel Read"
+              , "debug":
+              [
+                [
+                  {
+                    "filename":"a.cl"
+                    , "line":714
+                  }
+                ]
+              ]
+              , "details":
+              [
+                {
+                  "type":"table"
+                  , "Width":"256 bits"
+                  , "Depth":"256"
+                  , "Stall-free":"No"
+                  , "Start Cycle":"10"
+                  , "Latency":"0"
+                  , "Reference":
+                  [
+                    {
+                      "type":"text"
+                      , "text":"See %L for more information"
+                      , "links":
+                      [
+                        {
+                          "guide":"Best Practices Guide : Channels"
+                          , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#qah1476410829821"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+            , {
+              "type":"inst"
+              , "id":162
+              , "name":"Store"
+              , "debug":
+              [
+                [
+                  {
+                    "filename":"a.cl"
+                    , "line":717
+                  }
+                ]
+              ]
+              , "details":
+              [
+                {
+                  "type":"table"
+                  , "Width":"256 bits"
+                  , "Type":"Burst-coalesced"
+                  , "Stall-free":"No"
+                  , "Start Cycle":"10"
+                  , "Latency":"2"
+                  , "Reference":
+                  [
+                    {
+                      "type":"text"
+                      , "text":"See %L for more information"
+                      , "links":
+                      [
+                        {
+                          "guide":"Best Practices Guide : Load-Store Units"
+                          , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+            , {
+              "type":"inst"
+              , "id":163
+              , "name":"Loop Input"
+              , "debug":
+              [
+                [
+                  {
+                    "filename":"a.cl"
+                    , "line":712
+                  }
+                ]
+              ]
+              , "details":
+              [
+                {
+                  "type":"table"
+                  , "Start Cycle":"0"
+                  , "Latency":"1"
+                  , "Loops To":"164"
+                }
+              ]
+            }
+            , {
+              "type":"inst"
+              , "id":164
+              , "name":"Loop End"
+              , "details":
+              [
+                {
+                  "type":"table"
+                  , "Start Cycle":"12"
+                  , "Latency":"1"
+                }
+              ]
+            }
+          ]
+          , "details":
+          [
+            {
+              "type":"table"
+              , "Latency":"12"
+              , "II":"1"
+              , "Subloops":"No"
+              , "Pipelined":"Yes"
+              , "Fmax Bottlenecks":"No"
+              , "Loop Info":""
+            }
+          ]
+        }
+      ]
+    }
+    , {
+      "type":"memtype"
+      , "id":1
+      , "name":"Global Memory"
+      , "children":
+      [
+        {
+          "type":"memsys"
+          , "id":144
+          , "name":"DDR"
+          , "details":
+          [
+            {
+              "type":"table"
+              , "Number of banks":"2"
+            }
+          ]
+        }
+      ]
+    }
+    , {
+      "type":"channel"
+      , "id":131
+      , "name":"_Out_channel"
+      , "debug":
+      [
+        [
+          {
+            "filename":"a.cl"
+            , "line":446
+          }
+        ]
+      ]
+      , "details":
+      [
+        {
+          "type":"table"
+          , "Width":"256 bits"
+          , "Depth":"256"
+        }
+      ]
+    }
+    , {
+      "type":"channel"
+      , "id":29
+      , "name":"_iFeeder_channel"
+      , "debug":
+      [
+        [
+          {
+            "filename":"a.cl"
+            , "line":94
+          }
+        ]
+      ]
+      , "details":
+      [
+        {
+          "type":"table"
+          , "Width":"5120 bits"
+          , "Depth":"256"
+        }
+      ]
+    }
+    , {
+      "type":"channel"
+      , "id":7
+      , "name":"_iLoader_channel"
+      , "debug":
+      [
+        [
+          {
+            "filename":"a.cl"
+            , "line":94
+          }
+        ]
+      ]
+      , "details":
+      [
+        {
+          "type":"table"
+          , "Width":"512 bits"
+          , "Depth":"256"
+        }
+      ]
+    }
+    , {
+      "type":"channel"
+      , "id":93
+      , "name":"_kFeeder_channel"
+      , "debug":
+      [
+        [
+          {
+            "filename":"a.cl"
+            , "line":290
+          }
+        ]
+      ]
+      , "details":
+      [
+        {
+          "type":"table"
+          , "Width":"4096 bits"
+          , "Depth":"256"
+        }
+      ]
+    }
+    , {
+      "type":"channel"
+      , "id":75
+      , "name":"_kLoader_channel"
+      , "debug":
+      [
+        [
+          {
+            "filename":"a.cl"
+            , "line":290
+          }
+        ]
+      ]
+      , "details":
+      [
+        {
+          "type":"table"
+          , "Width":"512 bits"
+          , "Depth":"256"
+        }
+      ]
+    }
+  ]
+  , "links":
+  [
+    {
+      "from":7
+      , "to":6
+    }
+    , {
+      "from":28
+      , "to":29
+    }
+    , {
+      "from":33
+      , "to":9
+    }
+    , {
+      "from":33
+      , "to":11
+    }
+    , {
+      "from":33
+      , "to":13
+    }
+    , {
+      "from":33
+      , "to":15
+    }
+    , {
+      "from":33
+      , "to":17
+    }
+    , {
+      "from":33
+      , "to":19
+    }
+    , {
+      "from":33
+      , "to":21
+    }
+    , {
+      "from":33
+      , "to":23
+    }
+    , {
+      "from":33
+      , "to":25
+    }
+    , {
+      "from":33
+      , "to":27
+    }
+    , {
+      "from":8
+      , "to":33
+    }
+    , {
+      "from":10
+      , "to":33
+    }
+    , {
+      "from":12
+      , "to":33
+    }
+    , {
+      "from":14
+      , "to":33
+    }
+    , {
+      "from":16
+      , "to":33
+    }
+    , {
+      "from":18
+      , "to":33
+    }
+    , {
+      "from":20
+      , "to":33
+    }
+    , {
+      "from":22
+      , "to":33
+    }
+    , {
+      "from":24
+      , "to":33
+    }
+    , {
+      "from":26
+      , "to":33
+    }
+    , {
+      "from":31
+      , "to":4
+    }
+    , {
+      "from":31
+      , "to":30
+    }
+    , {
+      "from":3
+      , "to":30
+    }
+    , {
+      "from":6
+      , "to":31
+    }
+    , {
+      "from":8
+      , "to":31
+    }
+    , {
+      "from":9
+      , "to":31
+    }
+    , {
+      "from":10
+      , "to":31
+    }
+    , {
+      "from":11
+      , "to":31
+    }
+    , {
+      "from":12
+      , "to":31
+    }
+    , {
+      "from":13
+      , "to":31
+    }
+    , {
+      "from":14
+      , "to":31
+    }
+    , {
+      "from":15
+      , "to":31
+    }
+    , {
+      "from":16
+      , "to":31
+    }
+    , {
+      "from":17
+      , "to":31
+    }
+    , {
+      "from":18
+      , "to":31
+    }
+    , {
+      "from":19
+      , "to":31
+    }
+    , {
+      "from":20
+      , "to":31
+    }
+    , {
+      "from":21
+      , "to":31
+    }
+    , {
+      "from":22
+      , "to":31
+    }
+    , {
+      "from":23
+      , "to":31
+    }
+    , {
+      "from":24
+      , "to":31
+    }
+    , {
+      "from":25
+      , "to":31
+    }
+    , {
+      "from":26
+      , "to":31
+    }
+    , {
+      "from":27
+      , "to":31
+    }
+    , {
+      "from":28
+      , "to":31
+    }
+    , {
+      "from":30
+      , "to":6
+    }
+    , {
+      "from":6
+      , "to":8
+    }
+    , {
+      "from":6
+      , "to":9
+    }
+    , {
+      "from":6
+      , "to":10
+    }
+    , {
+      "from":6
+      , "to":11
+    }
+    , {
+      "from":6
+      , "to":12
+    }
+    , {
+      "from":6
+      , "to":13
+    }
+    , {
+      "from":6
+      , "to":14
+    }
+    , {
+      "from":6
+      , "to":15
+    }
+    , {
+      "from":6
+      , "to":16
+    }
+    , {
+      "from":6
+      , "to":17
+    }
+    , {
+      "from":6
+      , "to":18
+    }
+    , {
+      "from":6
+      , "to":19
+    }
+    , {
+      "from":6
+      , "to":20
+    }
+    , {
+      "from":6
+      , "to":21
+    }
+    , {
+      "from":6
+      , "to":22
+    }
+    , {
+      "from":6
+      , "to":23
+    }
+    , {
+      "from":6
+      , "to":24
+    }
+    , {
+      "from":6
+      , "to":25
+    }
+    , {
+      "from":6
+      , "to":26
+    }
+    , {
+      "from":6
+      , "to":27
+    }
+    , {
+      "from":8
+      , "to":28
+    }
+    , {
+      "from":9
+      , "to":28
+    }
+    , {
+      "from":10
+      , "to":28
+    }
+    , {
+      "from":11
+      , "to":28
+    }
+    , {
+      "from":12
+      , "to":28
+    }
+    , {
+      "from":13
+      , "to":28
+    }
+    , {
+      "from":14
+      , "to":28
+    }
+    , {
+      "from":15
+      , "to":28
+    }
+    , {
+      "from":16
+      , "to":28
+    }
+    , {
+      "from":17
+      , "to":28
+    }
+    , {
+      "from":18
+      , "to":28
+    }
+    , {
+      "from":19
+      , "to":28
+    }
+    , {
+      "from":20
+      , "to":28
+    }
+    , {
+      "from":21
+      , "to":28
+    }
+    , {
+      "from":22
+      , "to":28
+    }
+    , {
+      "from":23
+      , "to":28
+    }
+    , {
+      "from":24
+      , "to":28
+    }
+    , {
+      "from":25
+      , "to":28
+    }
+    , {
+      "from":26
+      , "to":28
+    }
+    , {
+      "from":27
+      , "to":28
+    }
+    , {
+      "from":75
+      , "to":74
+    }
+    , {
+      "from":92
+      , "to":93
+    }
+    , {
+      "from":97
+      , "to":77
+    }
+    , {
+      "from":97
+      , "to":79
+    }
+    , {
+      "from":97
+      , "to":81
+    }
+    , {
+      "from":97
+      , "to":83
+    }
+    , {
+      "from":97
+      , "to":85
+    }
+    , {
+      "from":97
+      , "to":87
+    }
+    , {
+      "from":97
+      , "to":89
+    }
+    , {
+      "from":97
+      , "to":91
+    }
+    , {
+      "from":76
+      , "to":97
+    }
+    , {
+      "from":78
+      , "to":97
+    }
+    , {
+      "from":80
+      , "to":97
+    }
+    , {
+      "from":82
+      , "to":97
+    }
+    , {
+      "from":84
+      , "to":97
+    }
+    , {
+      "from":86
+      , "to":97
+    }
+    , {
+      "from":88
+      , "to":97
+    }
+    , {
+      "from":90
+      , "to":97
+    }
+    , {
+      "from":95
+      , "to":72
+    }
+    , {
+      "from":95
+      , "to":94
+    }
+    , {
+      "from":71
+      , "to":94
+    }
+    , {
+      "from":74
+      , "to":95
+    }
+    , {
+      "from":76
+      , "to":95
+    }
+    , {
+      "from":77
+      , "to":95
+    }
+    , {
+      "from":78
+      , "to":95
+    }
+    , {
+      "from":79
+      , "to":95
+    }
+    , {
+      "from":80
+      , "to":95
+    }
+    , {
+      "from":81
+      , "to":95
+    }
+    , {
+      "from":82
+      , "to":95
+    }
+    , {
+      "from":83
+      , "to":95
+    }
+    , {
+      "from":84
+      , "to":95
+    }
+    , {
+      "from":85
+      , "to":95
+    }
+    , {
+      "from":86
+      , "to":95
+    }
+    , {
+      "from":87
+      , "to":95
+    }
+    , {
+      "from":88
+      , "to":95
+    }
+    , {
+      "from":89
+      , "to":95
+    }
+    , {
+      "from":90
+      , "to":95
+    }
+    , {
+      "from":91
+      , "to":95
+    }
+    , {
+      "from":92
+      , "to":95
+    }
+    , {
+      "from":94
+      , "to":74
+    }
+    , {
+      "from":74
+      , "to":76
+    }
+    , {
+      "from":74
+      , "to":77
+    }
+    , {
+      "from":74
+      , "to":78
+    }
+    , {
+      "from":74
+      , "to":79
+    }
+    , {
+      "from":74
+      , "to":80
+    }
+    , {
+      "from":74
+      , "to":81
+    }
+    , {
+      "from":74
+      , "to":82
+    }
+    , {
+      "from":74
+      , "to":83
+    }
+    , {
+      "from":74
+      , "to":84
+    }
+    , {
+      "from":74
+      , "to":85
+    }
+    , {
+      "from":74
+      , "to":86
+    }
+    , {
+      "from":74
+      , "to":87
+    }
+    , {
+      "from":74
+      , "to":88
+    }
+    , {
+      "from":74
+      , "to":89
+    }
+    , {
+      "from":74
+      , "to":90
+    }
+    , {
+      "from":74
+      , "to":91
+    }
+    , {
+      "from":76
+      , "to":92
+    }
+    , {
+      "from":77
+      , "to":92
+    }
+    , {
+      "from":78
+      , "to":92
+    }
+    , {
+      "from":79
+      , "to":92
+    }
+    , {
+      "from":80
+      , "to":92
+    }
+    , {
+      "from":81
+      , "to":92
+    }
+    , {
+      "from":82
+      , "to":92
+    }
+    , {
+      "from":83
+      , "to":92
+    }
+    , {
+      "from":84
+      , "to":92
+    }
+    , {
+      "from":85
+      , "to":92
+    }
+    , {
+      "from":86
+      , "to":92
+    }
+    , {
+      "from":87
+      , "to":92
+    }
+    , {
+      "from":88
+      , "to":92
+    }
+    , {
+      "from":89
+      , "to":92
+    }
+    , {
+      "from":90
+      , "to":92
+    }
+    , {
+      "from":91
+      , "to":92
+    }
+    , {
+      "from":93
+      , "to":128
+    }
+    , {
+      "from":29
+      , "to":129
+    }
+    , {
+      "from":130
+      , "to":131
+    }
+    , {
+      "from":127
+      , "to":124
+    }
+    , {
+      "from":123
+      , "to":124
+    }
+    , {
+      "from":127
+      , "to":125
+    }
+    , {
+      "from":133
+      , "to":132
+    }
+    , {
+      "from":124
+      , "to":132
+    }
+    , {
+      "from":128
+      , "to":133
+    }
+    , {
+      "from":129
+      , "to":133
+    }
+    , {
+      "from":130
+      , "to":133
+    }
+    , {
+      "from":133
+      , "to":127
+    }
+    , {
+      "from":132
+      , "to":128
+    }
+    , {
+      "from":132
+      , "to":129
+    }
+    , {
+      "from":128
+      , "to":130
+    }
+    , {
+      "from":129
+      , "to":130
+    }
+    , {
+      "from":141
+      , "to":7
+    }
+    , {
+      "from":138
+      , "to":136
+    }
+    , {
+      "from":135
+      , "to":136
+    }
+    , {
+      "from":138
+      , "to":137
+    }
+    , {
+      "from":143
+      , "to":138
+    }
+    , {
+      "from":143
+      , "to":142
+    }
+    , {
+      "from":136
+      , "to":142
+    }
+    , {
+      "from":140
+      , "to":143
+    }
+    , {
+      "from":141
+      , "to":143
+    }
+    , {
+      "from":142
+      , "to":140
+    }
+    , {
+      "from":140
+      , "to":141
+    }
+    , {
+      "from":144
+      , "to":140
+    }
+    , {
+      "from":152
+      , "to":75
+    }
+    , {
+      "from":149
+      , "to":147
+    }
+    , {
+      "from":146
+      , "to":147
+    }
+    , {
+      "from":149
+      , "to":148
+    }
+    , {
+      "from":154
+      , "to":149
+    }
+    , {
+      "from":154
+      , "to":153
+    }
+    , {
+      "from":147
+      , "to":153
+    }
+    , {
+      "from":151
+      , "to":154
+    }
+    , {
+      "from":152
+      , "to":154
+    }
+    , {
+      "from":153
+      , "to":151
+    }
+    , {
+      "from":151
+      , "to":152
+    }
+    , {
+      "from":144
+      , "to":151
+    }
+    , {
+      "from":131
+      , "to":161
+    }
+    , {
+      "from":159
+      , "to":157
+    }
+    , {
+      "from":156
+      , "to":157
+    }
+    , {
+      "from":159
+      , "to":158
+    }
+    , {
+      "from":164
+      , "to":159
+    }
+    , {
+      "from":164
+      , "to":163
+    }
+    , {
+      "from":157
+      , "to":163
+    }
+    , {
+      "from":161
+      , "to":164
+    }
+    , {
+      "from":162
+      , "to":164
+    }
+    , {
+      "from":163
+      , "to":161
+    }
+    , {
+      "from":161
+      , "to":162
+    }
+    , {
+      "from":162
+      , "to":144
+    }
+  ]
+}

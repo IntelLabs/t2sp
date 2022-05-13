@@ -1,0 +1,34 @@
+{
+"quartusFitClockSummary":
+{
+  "name":"Quartus Fit Clock Summary"
+  ,"columns":["", "Kernel fmax", "2x clock fmax"]  ,"children":[
+  {
+    "name":"Frequency (MHz)","data":["Kernel fmax": 224.00 ,"2x clock fmax": 448.00]
+  }
+]}
+,"quartusFitResourceUsageSummary":
+{
+  "name":"Quartus Fit Resource Utilization Summary"
+  ,"columns":["", "ALMs", "FFs", "RAMs", "DSPs", "MLABs"]  ,"children":[
+  {"name":"Full design (all kernels)","data":["ALMs": 142312.6 ,"FFs": 382836 ,"RAMs": 1543 ,"DSPs": 1329 ,"MLABs": 1316  ]
+  }
+,
+  {"name":"kernel_Out","data":["ALMs": 80620.8 ,"FFs": 265549 ,"RAMs": 650 ,"DSPs": 1280 ,"MLABs": 575]
+  }
+,
+  {"name":"kernel_PFeeder","data":["ALMs": 35855.3 ,"FFs": 62824 ,"RAMs": 650 ,"DSPs": 31 ,"MLABs": 403]
+  }
+,
+  {"name":"kernel_PLoader","data":["ALMs": 1495.7 ,"FFs": 3077 ,"RAMs": 17 ,"DSPs": 0 ,"MLABs": 4]
+  }
+,
+  {"name":"kernel_WFeeder","data":["ALMs": 19195.3 ,"FFs": 42164 ,"RAMs": 208 ,"DSPs": 18 ,"MLABs": 292]
+  }
+,
+  {"name":"kernel_WLoader","data":["ALMs": 2800.4 ,"FFs": 4775 ,"RAMs": 18 ,"DSPs": 0 ,"MLABs": 5]
+  }
+,
+  {"name":"kernel_unloader","data":["ALMs": 2345.1 ,"FFs": 4447 ,"RAMs": 0 ,"DSPs": 0 ,"MLABs": 37]
+  }
+]}}

@@ -1,0 +1,3670 @@
+{
+  "nodes":
+  [
+    {
+      "name":"kernel_iFeeder"
+      , "id":433713736
+      , "type":"kernel"
+      , "children":
+      [
+        {
+          "name":"Local Memory"
+          , "id":1
+          , "type":"memtype"
+          , "children":
+          [
+            {
+              "name":"_iFeeder_DB_0_ibuffer"
+              , "id":2
+              , "details":
+              [
+                {
+                  "type":"table"
+                  , "Declared at":
+                  [
+                    {
+                      "type":"text"
+                      , "text":"%L"
+                      , "links":
+                      [
+                        {
+                          "filename":"a.cl"
+                          , "line":"102"
+                        }
+                      ]
+                    }
+                  ]
+                  , "Requested size":"384 kilobytes"
+                  , "Implemented size":"512 kilobytes = 2<sup>ceil(log2(Requested size))</sup>"
+                  , "Number of banks":"16 (6 banks are unused and will be optimized away)"
+                  , "Bank width (word size)":"512 bits"
+                  , "Bank depth":"512 words"
+                  , "RAM Mode":"Simple dual-port"
+                  , "Memory layout information":"In each private copy:\n  Variable '_iFeeder_DB_0_ibuffer' occupies memory words [0-6143] and has 1 array element per memory word.\n  Memory words [6144-8191] are unused padding, since private copies are sized to be power-of-2 deep."
+                  , "Address bit information":"<table><tr><td>Byte address</td><td>b<sub>18</sub></td><td>b<sub>17</sub></td><td>b<sub>16</sub></td><td>b<sub>15</sub></td><td>b<sub>14</sub></td><td>b<sub>13</sub></td><td>b<sub>12</sub></td><td>b<sub>11</sub></td><td>b<sub>10</sub></td><td>b<sub>9</sub></td><td>b<sub>8</sub></td><td>b<sub>7</sub></td><td>b<sub>6</sub></td><td>b<sub>5</sub></td><td>b<sub>4</sub></td><td>b<sub>3</sub></td><td>b<sub>2</sub></td><td>b<sub>1</sub></td><td>b<sub>0</sub></td></tr><tr><td>Sub-word bits</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr><tr><td>Word address bits</td><td>b<sub>18</sub></td><td>b<sub>17</sub></td><td>b<sub>16</sub></td><td>b<sub>15</sub></td><td>b<sub>14</sub></td><td>b<sub>13</sub></td><td>b<sub>12</sub></td><td>b<sub>11</sub></td><td>b<sub>10</sub></td><td>b<sub>9</sub></td><td>b<sub>8</sub></td><td>b<sub>7</sub></td><td>b<sub>6</sub></td><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr><td>Bank bits</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>b<sub>9</sub></td><td>b<sub>8</sub></td><td>b<sub>7</sub></td><td>b<sub>6</sub></td><td></td><td></td><td></td><td></td><td></td><td></td></tr></table>"
+                  , "User defined attributes":"memory(DEFAULT), singlepump, numbanks(16), numreadports(1), numwriteports(1)"
+                  , "Reference":
+                  [
+                    {
+                      "type":"text"
+                      , "text":"See %L for more information"
+                      , "links":
+                      [
+                        {
+                          "guide":"Best Practices Guide : Local Memory"
+                          , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#chn1469549457114"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+              , "debug":
+              [
+                [
+                  {
+                    "filename":"a.cl"
+                    , "line":102
+                  }
+                ]
+              ]
+              , "type":"memsys"
+              , "children":
+              [
+                {
+                  "name":"Bank 0"
+                  , "id":3
+                  , "details":
+                  [
+                    {
+                      "type":"table"
+                      , "Bank width":"512 bits"
+                      , "Implemented bank depth":"512 words"
+                      , "Implemented bank size":"32 kilobytes =  bank width x implemented bank depth"
+                      , "Number of active ports":"2"
+                      , "Number of read ports":"1"
+                      , "Number of write ports":"1"
+                      , "Memory layout information":"In each private copy:\n  Variable '_iFeeder_DB_0_ibuffer' occupies memory words [0-6143] and has 1 array element per memory word.\n  Memory words [6144-8191] are unused padding, since private copies are sized to be power-of-2 deep."
+                      , "Address bit information":"<table><tr><td>Byte address</td><td>b<sub>18</sub></td><td>b<sub>17</sub></td><td>b<sub>16</sub></td><td>b<sub>15</sub></td><td>b<sub>14</sub></td><td>b<sub>13</sub></td><td>b<sub>12</sub></td><td>b<sub>11</sub></td><td>b<sub>10</sub></td><td>b<sub>9</sub></td><td>b<sub>8</sub></td><td>b<sub>7</sub></td><td>b<sub>6</sub></td><td>b<sub>5</sub></td><td>b<sub>4</sub></td><td>b<sub>3</sub></td><td>b<sub>2</sub></td><td>b<sub>1</sub></td><td>b<sub>0</sub></td></tr><tr><td>Sub-word bits</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr><tr><td>Word address bits</td><td>b<sub>18</sub></td><td>b<sub>17</sub></td><td>b<sub>16</sub></td><td>b<sub>15</sub></td><td>b<sub>14</sub></td><td>b<sub>13</sub></td><td>b<sub>12</sub></td><td>b<sub>11</sub></td><td>b<sub>10</sub></td><td><b>0</b></td><td><b>0</b></td><td><b>0</b></td><td><b>0</b></td><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr><td>Bank bits</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td><b>0</b></td><td><b>0</b></td><td><b>0</b></td><td><b>0</b></td><td></td><td></td><td></td><td></td><td></td><td></td></tr></table>"
+                    }
+                  ]
+                  , "debug":
+                  [
+                    [
+                      {
+                        "filename":"a.cl"
+                        , "line":102
+                      }
+                    ]
+                  ]
+                  , "type":"bank"
+                  , "children":
+                  [
+                    {
+                      "name":"Replicate 0"
+                      , "id":4
+                      , "details":
+                      [
+                        {
+                          "type":"table"
+                          , "Implemented size":"32 kilobytes (512 words deep x 512 bits wide)"
+                          , "Number of physical ports":"2"
+                          , "Number of read ports":"1"
+                          , "Number of write ports":"1"
+                          , "Memory layout information":"In each private copy:\n  Variable '_iFeeder_DB_0_ibuffer' occupies memory words [0-6143] and has 1 array element per memory word.\n  Memory words [6144-8191] are unused padding, since private copies are sized to be power-of-2 deep."
+                          , "Address bit information":"<table><tr><td>Byte address</td><td>b<sub>18</sub></td><td>b<sub>17</sub></td><td>b<sub>16</sub></td><td>b<sub>15</sub></td><td>b<sub>14</sub></td><td>b<sub>13</sub></td><td>b<sub>12</sub></td><td>b<sub>11</sub></td><td>b<sub>10</sub></td><td>b<sub>9</sub></td><td>b<sub>8</sub></td><td>b<sub>7</sub></td><td>b<sub>6</sub></td><td>b<sub>5</sub></td><td>b<sub>4</sub></td><td>b<sub>3</sub></td><td>b<sub>2</sub></td><td>b<sub>1</sub></td><td>b<sub>0</sub></td></tr><tr><td>Sub-word bits</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr><tr><td>Word address bits</td><td>b<sub>18</sub></td><td>b<sub>17</sub></td><td>b<sub>16</sub></td><td>b<sub>15</sub></td><td>b<sub>14</sub></td><td>b<sub>13</sub></td><td>b<sub>12</sub></td><td>b<sub>11</sub></td><td>b<sub>10</sub></td><td><b>0</b></td><td><b>0</b></td><td><b>0</b></td><td><b>0</b></td><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr><td>Bank bits</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td><b>0</b></td><td><b>0</b></td><td><b>0</b></td><td><b>0</b></td><td></td><td></td><td></td><td></td><td></td><td></td></tr></table>"
+                        }
+                      ]
+                      , "debug":
+                      [
+                        [
+                          {
+                            "filename":"a.cl"
+                            , "line":102
+                          }
+                        ]
+                      ]
+                      , "type":"replicate"
+                      , "children":
+                      [
+                        {
+                          "name":"R"
+                          , "id":5
+                          , "type":"port"
+                        }
+                        , {
+                          "name":"W"
+                          , "id":6
+                          , "type":"port"
+                        }
+                      ]
+                      , "copies":
+                      {
+                        "num":1
+                        , "details":
+                        [
+                          {
+                            "type":"table"
+                            , "Width":"512 bits"
+                            , "Depth per copy":"512 words"
+                            , "Number of private copies":"1"
+                            , "Memory layout information":"In each private copy:\n  Variable '_iFeeder_DB_0_ibuffer' occupies memory words [0-6143] and has 1 array element per memory word.\n  Memory words [6144-8191] are unused padding, since private copies are sized to be power-of-2 deep."
+                            , "Address bit information":"<table><tr><td>Byte address</td><td>b<sub>18</sub></td><td>b<sub>17</sub></td><td>b<sub>16</sub></td><td>b<sub>15</sub></td><td>b<sub>14</sub></td><td>b<sub>13</sub></td><td>b<sub>12</sub></td><td>b<sub>11</sub></td><td>b<sub>10</sub></td><td>b<sub>9</sub></td><td>b<sub>8</sub></td><td>b<sub>7</sub></td><td>b<sub>6</sub></td><td>b<sub>5</sub></td><td>b<sub>4</sub></td><td>b<sub>3</sub></td><td>b<sub>2</sub></td><td>b<sub>1</sub></td><td>b<sub>0</sub></td></tr><tr><td>Sub-word bits</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr><tr><td>Word address bits</td><td>b<sub>18</sub></td><td>b<sub>17</sub></td><td>b<sub>16</sub></td><td>b<sub>15</sub></td><td>b<sub>14</sub></td><td>b<sub>13</sub></td><td>b<sub>12</sub></td><td>b<sub>11</sub></td><td>b<sub>10</sub></td><td><b>0</b></td><td><b>0</b></td><td><b>0</b></td><td><b>0</b></td><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr><td>Bank bits</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td><b>0</b></td><td><b>0</b></td><td><b>0</b></td><td><b>0</b></td><td></td><td></td><td></td><td></td><td></td><td></td></tr></table>"
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
+                , {
+                  "name":"Bank 1"
+                  , "id":7
+                  , "details":
+                  [
+                    {
+                      "type":"table"
+                      , "Bank width":"512 bits"
+                      , "Implemented bank depth":"512 words"
+                      , "Implemented bank size":"32 kilobytes =  bank width x implemented bank depth"
+                      , "Number of active ports":"2"
+                      , "Number of read ports":"1"
+                      , "Number of write ports":"1"
+                      , "Memory layout information":"In each private copy:\n  Variable '_iFeeder_DB_0_ibuffer' occupies memory words [0-6143] and has 1 array element per memory word.\n  Memory words [6144-8191] are unused padding, since private copies are sized to be power-of-2 deep."
+                      , "Address bit information":"<table><tr><td>Byte address</td><td>b<sub>18</sub></td><td>b<sub>17</sub></td><td>b<sub>16</sub></td><td>b<sub>15</sub></td><td>b<sub>14</sub></td><td>b<sub>13</sub></td><td>b<sub>12</sub></td><td>b<sub>11</sub></td><td>b<sub>10</sub></td><td>b<sub>9</sub></td><td>b<sub>8</sub></td><td>b<sub>7</sub></td><td>b<sub>6</sub></td><td>b<sub>5</sub></td><td>b<sub>4</sub></td><td>b<sub>3</sub></td><td>b<sub>2</sub></td><td>b<sub>1</sub></td><td>b<sub>0</sub></td></tr><tr><td>Sub-word bits</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr><tr><td>Word address bits</td><td>b<sub>18</sub></td><td>b<sub>17</sub></td><td>b<sub>16</sub></td><td>b<sub>15</sub></td><td>b<sub>14</sub></td><td>b<sub>13</sub></td><td>b<sub>12</sub></td><td>b<sub>11</sub></td><td>b<sub>10</sub></td><td><b>0</b></td><td><b>0</b></td><td><b>0</b></td><td><b>1</b></td><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr><td>Bank bits</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td><b>0</b></td><td><b>0</b></td><td><b>0</b></td><td><b>1</b></td><td></td><td></td><td></td><td></td><td></td><td></td></tr></table>"
+                    }
+                  ]
+                  , "debug":
+                  [
+                    [
+                      {
+                        "filename":"a.cl"
+                        , "line":102
+                      }
+                    ]
+                  ]
+                  , "type":"bank"
+                  , "children":
+                  [
+                    {
+                      "name":"Replicate 0"
+                      , "id":8
+                      , "details":
+                      [
+                        {
+                          "type":"table"
+                          , "Implemented size":"32 kilobytes (512 words deep x 512 bits wide)"
+                          , "Number of physical ports":"2"
+                          , "Number of read ports":"1"
+                          , "Number of write ports":"1"
+                          , "Memory layout information":"In each private copy:\n  Variable '_iFeeder_DB_0_ibuffer' occupies memory words [0-6143] and has 1 array element per memory word.\n  Memory words [6144-8191] are unused padding, since private copies are sized to be power-of-2 deep."
+                          , "Address bit information":"<table><tr><td>Byte address</td><td>b<sub>18</sub></td><td>b<sub>17</sub></td><td>b<sub>16</sub></td><td>b<sub>15</sub></td><td>b<sub>14</sub></td><td>b<sub>13</sub></td><td>b<sub>12</sub></td><td>b<sub>11</sub></td><td>b<sub>10</sub></td><td>b<sub>9</sub></td><td>b<sub>8</sub></td><td>b<sub>7</sub></td><td>b<sub>6</sub></td><td>b<sub>5</sub></td><td>b<sub>4</sub></td><td>b<sub>3</sub></td><td>b<sub>2</sub></td><td>b<sub>1</sub></td><td>b<sub>0</sub></td></tr><tr><td>Sub-word bits</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr><tr><td>Word address bits</td><td>b<sub>18</sub></td><td>b<sub>17</sub></td><td>b<sub>16</sub></td><td>b<sub>15</sub></td><td>b<sub>14</sub></td><td>b<sub>13</sub></td><td>b<sub>12</sub></td><td>b<sub>11</sub></td><td>b<sub>10</sub></td><td><b>0</b></td><td><b>0</b></td><td><b>0</b></td><td><b>1</b></td><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr><td>Bank bits</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td><b>0</b></td><td><b>0</b></td><td><b>0</b></td><td><b>1</b></td><td></td><td></td><td></td><td></td><td></td><td></td></tr></table>"
+                        }
+                      ]
+                      , "debug":
+                      [
+                        [
+                          {
+                            "filename":"a.cl"
+                            , "line":102
+                          }
+                        ]
+                      ]
+                      , "type":"replicate"
+                      , "children":
+                      [
+                        {
+                          "name":"R"
+                          , "id":9
+                          , "type":"port"
+                        }
+                        , {
+                          "name":"W"
+                          , "id":10
+                          , "type":"port"
+                        }
+                      ]
+                      , "copies":
+                      {
+                        "num":1
+                        , "details":
+                        [
+                          {
+                            "type":"table"
+                            , "Width":"512 bits"
+                            , "Depth per copy":"512 words"
+                            , "Number of private copies":"1"
+                            , "Memory layout information":"In each private copy:\n  Variable '_iFeeder_DB_0_ibuffer' occupies memory words [0-6143] and has 1 array element per memory word.\n  Memory words [6144-8191] are unused padding, since private copies are sized to be power-of-2 deep."
+                            , "Address bit information":"<table><tr><td>Byte address</td><td>b<sub>18</sub></td><td>b<sub>17</sub></td><td>b<sub>16</sub></td><td>b<sub>15</sub></td><td>b<sub>14</sub></td><td>b<sub>13</sub></td><td>b<sub>12</sub></td><td>b<sub>11</sub></td><td>b<sub>10</sub></td><td>b<sub>9</sub></td><td>b<sub>8</sub></td><td>b<sub>7</sub></td><td>b<sub>6</sub></td><td>b<sub>5</sub></td><td>b<sub>4</sub></td><td>b<sub>3</sub></td><td>b<sub>2</sub></td><td>b<sub>1</sub></td><td>b<sub>0</sub></td></tr><tr><td>Sub-word bits</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr><tr><td>Word address bits</td><td>b<sub>18</sub></td><td>b<sub>17</sub></td><td>b<sub>16</sub></td><td>b<sub>15</sub></td><td>b<sub>14</sub></td><td>b<sub>13</sub></td><td>b<sub>12</sub></td><td>b<sub>11</sub></td><td>b<sub>10</sub></td><td><b>0</b></td><td><b>0</b></td><td><b>0</b></td><td><b>1</b></td><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr><td>Bank bits</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td><b>0</b></td><td><b>0</b></td><td><b>0</b></td><td><b>1</b></td><td></td><td></td><td></td><td></td><td></td><td></td></tr></table>"
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
+                , {
+                  "name":"Bank 2"
+                  , "id":11
+                  , "details":
+                  [
+                    {
+                      "type":"table"
+                      , "Bank width":"512 bits"
+                      , "Implemented bank depth":"512 words"
+                      , "Implemented bank size":"32 kilobytes =  bank width x implemented bank depth"
+                      , "Number of active ports":"2"
+                      , "Number of read ports":"1"
+                      , "Number of write ports":"1"
+                      , "Memory layout information":"In each private copy:\n  Variable '_iFeeder_DB_0_ibuffer' occupies memory words [0-6143] and has 1 array element per memory word.\n  Memory words [6144-8191] are unused padding, since private copies are sized to be power-of-2 deep."
+                      , "Address bit information":"<table><tr><td>Byte address</td><td>b<sub>18</sub></td><td>b<sub>17</sub></td><td>b<sub>16</sub></td><td>b<sub>15</sub></td><td>b<sub>14</sub></td><td>b<sub>13</sub></td><td>b<sub>12</sub></td><td>b<sub>11</sub></td><td>b<sub>10</sub></td><td>b<sub>9</sub></td><td>b<sub>8</sub></td><td>b<sub>7</sub></td><td>b<sub>6</sub></td><td>b<sub>5</sub></td><td>b<sub>4</sub></td><td>b<sub>3</sub></td><td>b<sub>2</sub></td><td>b<sub>1</sub></td><td>b<sub>0</sub></td></tr><tr><td>Sub-word bits</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr><tr><td>Word address bits</td><td>b<sub>18</sub></td><td>b<sub>17</sub></td><td>b<sub>16</sub></td><td>b<sub>15</sub></td><td>b<sub>14</sub></td><td>b<sub>13</sub></td><td>b<sub>12</sub></td><td>b<sub>11</sub></td><td>b<sub>10</sub></td><td><b>0</b></td><td><b>0</b></td><td><b>1</b></td><td><b>0</b></td><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr><td>Bank bits</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td><b>0</b></td><td><b>0</b></td><td><b>1</b></td><td><b>0</b></td><td></td><td></td><td></td><td></td><td></td><td></td></tr></table>"
+                    }
+                  ]
+                  , "debug":
+                  [
+                    [
+                      {
+                        "filename":"a.cl"
+                        , "line":102
+                      }
+                    ]
+                  ]
+                  , "type":"bank"
+                  , "children":
+                  [
+                    {
+                      "name":"Replicate 0"
+                      , "id":12
+                      , "details":
+                      [
+                        {
+                          "type":"table"
+                          , "Implemented size":"32 kilobytes (512 words deep x 512 bits wide)"
+                          , "Number of physical ports":"2"
+                          , "Number of read ports":"1"
+                          , "Number of write ports":"1"
+                          , "Memory layout information":"In each private copy:\n  Variable '_iFeeder_DB_0_ibuffer' occupies memory words [0-6143] and has 1 array element per memory word.\n  Memory words [6144-8191] are unused padding, since private copies are sized to be power-of-2 deep."
+                          , "Address bit information":"<table><tr><td>Byte address</td><td>b<sub>18</sub></td><td>b<sub>17</sub></td><td>b<sub>16</sub></td><td>b<sub>15</sub></td><td>b<sub>14</sub></td><td>b<sub>13</sub></td><td>b<sub>12</sub></td><td>b<sub>11</sub></td><td>b<sub>10</sub></td><td>b<sub>9</sub></td><td>b<sub>8</sub></td><td>b<sub>7</sub></td><td>b<sub>6</sub></td><td>b<sub>5</sub></td><td>b<sub>4</sub></td><td>b<sub>3</sub></td><td>b<sub>2</sub></td><td>b<sub>1</sub></td><td>b<sub>0</sub></td></tr><tr><td>Sub-word bits</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr><tr><td>Word address bits</td><td>b<sub>18</sub></td><td>b<sub>17</sub></td><td>b<sub>16</sub></td><td>b<sub>15</sub></td><td>b<sub>14</sub></td><td>b<sub>13</sub></td><td>b<sub>12</sub></td><td>b<sub>11</sub></td><td>b<sub>10</sub></td><td><b>0</b></td><td><b>0</b></td><td><b>1</b></td><td><b>0</b></td><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr><td>Bank bits</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td><b>0</b></td><td><b>0</b></td><td><b>1</b></td><td><b>0</b></td><td></td><td></td><td></td><td></td><td></td><td></td></tr></table>"
+                        }
+                      ]
+                      , "debug":
+                      [
+                        [
+                          {
+                            "filename":"a.cl"
+                            , "line":102
+                          }
+                        ]
+                      ]
+                      , "type":"replicate"
+                      , "children":
+                      [
+                        {
+                          "name":"R"
+                          , "id":13
+                          , "type":"port"
+                        }
+                        , {
+                          "name":"W"
+                          , "id":14
+                          , "type":"port"
+                        }
+                      ]
+                      , "copies":
+                      {
+                        "num":1
+                        , "details":
+                        [
+                          {
+                            "type":"table"
+                            , "Width":"512 bits"
+                            , "Depth per copy":"512 words"
+                            , "Number of private copies":"1"
+                            , "Memory layout information":"In each private copy:\n  Variable '_iFeeder_DB_0_ibuffer' occupies memory words [0-6143] and has 1 array element per memory word.\n  Memory words [6144-8191] are unused padding, since private copies are sized to be power-of-2 deep."
+                            , "Address bit information":"<table><tr><td>Byte address</td><td>b<sub>18</sub></td><td>b<sub>17</sub></td><td>b<sub>16</sub></td><td>b<sub>15</sub></td><td>b<sub>14</sub></td><td>b<sub>13</sub></td><td>b<sub>12</sub></td><td>b<sub>11</sub></td><td>b<sub>10</sub></td><td>b<sub>9</sub></td><td>b<sub>8</sub></td><td>b<sub>7</sub></td><td>b<sub>6</sub></td><td>b<sub>5</sub></td><td>b<sub>4</sub></td><td>b<sub>3</sub></td><td>b<sub>2</sub></td><td>b<sub>1</sub></td><td>b<sub>0</sub></td></tr><tr><td>Sub-word bits</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr><tr><td>Word address bits</td><td>b<sub>18</sub></td><td>b<sub>17</sub></td><td>b<sub>16</sub></td><td>b<sub>15</sub></td><td>b<sub>14</sub></td><td>b<sub>13</sub></td><td>b<sub>12</sub></td><td>b<sub>11</sub></td><td>b<sub>10</sub></td><td><b>0</b></td><td><b>0</b></td><td><b>1</b></td><td><b>0</b></td><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr><td>Bank bits</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td><b>0</b></td><td><b>0</b></td><td><b>1</b></td><td><b>0</b></td><td></td><td></td><td></td><td></td><td></td><td></td></tr></table>"
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
+                , {
+                  "name":"Bank 3"
+                  , "id":15
+                  , "details":
+                  [
+                    {
+                      "type":"table"
+                      , "Bank width":"512 bits"
+                      , "Implemented bank depth":"512 words"
+                      , "Implemented bank size":"32 kilobytes =  bank width x implemented bank depth"
+                      , "Number of active ports":"2"
+                      , "Number of read ports":"1"
+                      , "Number of write ports":"1"
+                      , "Memory layout information":"In each private copy:\n  Variable '_iFeeder_DB_0_ibuffer' occupies memory words [0-6143] and has 1 array element per memory word.\n  Memory words [6144-8191] are unused padding, since private copies are sized to be power-of-2 deep."
+                      , "Address bit information":"<table><tr><td>Byte address</td><td>b<sub>18</sub></td><td>b<sub>17</sub></td><td>b<sub>16</sub></td><td>b<sub>15</sub></td><td>b<sub>14</sub></td><td>b<sub>13</sub></td><td>b<sub>12</sub></td><td>b<sub>11</sub></td><td>b<sub>10</sub></td><td>b<sub>9</sub></td><td>b<sub>8</sub></td><td>b<sub>7</sub></td><td>b<sub>6</sub></td><td>b<sub>5</sub></td><td>b<sub>4</sub></td><td>b<sub>3</sub></td><td>b<sub>2</sub></td><td>b<sub>1</sub></td><td>b<sub>0</sub></td></tr><tr><td>Sub-word bits</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr><tr><td>Word address bits</td><td>b<sub>18</sub></td><td>b<sub>17</sub></td><td>b<sub>16</sub></td><td>b<sub>15</sub></td><td>b<sub>14</sub></td><td>b<sub>13</sub></td><td>b<sub>12</sub></td><td>b<sub>11</sub></td><td>b<sub>10</sub></td><td><b>0</b></td><td><b>0</b></td><td><b>1</b></td><td><b>1</b></td><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr><td>Bank bits</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td><b>0</b></td><td><b>0</b></td><td><b>1</b></td><td><b>1</b></td><td></td><td></td><td></td><td></td><td></td><td></td></tr></table>"
+                    }
+                  ]
+                  , "debug":
+                  [
+                    [
+                      {
+                        "filename":"a.cl"
+                        , "line":102
+                      }
+                    ]
+                  ]
+                  , "type":"bank"
+                  , "children":
+                  [
+                    {
+                      "name":"Replicate 0"
+                      , "id":16
+                      , "details":
+                      [
+                        {
+                          "type":"table"
+                          , "Implemented size":"32 kilobytes (512 words deep x 512 bits wide)"
+                          , "Number of physical ports":"2"
+                          , "Number of read ports":"1"
+                          , "Number of write ports":"1"
+                          , "Memory layout information":"In each private copy:\n  Variable '_iFeeder_DB_0_ibuffer' occupies memory words [0-6143] and has 1 array element per memory word.\n  Memory words [6144-8191] are unused padding, since private copies are sized to be power-of-2 deep."
+                          , "Address bit information":"<table><tr><td>Byte address</td><td>b<sub>18</sub></td><td>b<sub>17</sub></td><td>b<sub>16</sub></td><td>b<sub>15</sub></td><td>b<sub>14</sub></td><td>b<sub>13</sub></td><td>b<sub>12</sub></td><td>b<sub>11</sub></td><td>b<sub>10</sub></td><td>b<sub>9</sub></td><td>b<sub>8</sub></td><td>b<sub>7</sub></td><td>b<sub>6</sub></td><td>b<sub>5</sub></td><td>b<sub>4</sub></td><td>b<sub>3</sub></td><td>b<sub>2</sub></td><td>b<sub>1</sub></td><td>b<sub>0</sub></td></tr><tr><td>Sub-word bits</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr><tr><td>Word address bits</td><td>b<sub>18</sub></td><td>b<sub>17</sub></td><td>b<sub>16</sub></td><td>b<sub>15</sub></td><td>b<sub>14</sub></td><td>b<sub>13</sub></td><td>b<sub>12</sub></td><td>b<sub>11</sub></td><td>b<sub>10</sub></td><td><b>0</b></td><td><b>0</b></td><td><b>1</b></td><td><b>1</b></td><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr><td>Bank bits</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td><b>0</b></td><td><b>0</b></td><td><b>1</b></td><td><b>1</b></td><td></td><td></td><td></td><td></td><td></td><td></td></tr></table>"
+                        }
+                      ]
+                      , "debug":
+                      [
+                        [
+                          {
+                            "filename":"a.cl"
+                            , "line":102
+                          }
+                        ]
+                      ]
+                      , "type":"replicate"
+                      , "children":
+                      [
+                        {
+                          "name":"R"
+                          , "id":17
+                          , "type":"port"
+                        }
+                        , {
+                          "name":"W"
+                          , "id":18
+                          , "type":"port"
+                        }
+                      ]
+                      , "copies":
+                      {
+                        "num":1
+                        , "details":
+                        [
+                          {
+                            "type":"table"
+                            , "Width":"512 bits"
+                            , "Depth per copy":"512 words"
+                            , "Number of private copies":"1"
+                            , "Memory layout information":"In each private copy:\n  Variable '_iFeeder_DB_0_ibuffer' occupies memory words [0-6143] and has 1 array element per memory word.\n  Memory words [6144-8191] are unused padding, since private copies are sized to be power-of-2 deep."
+                            , "Address bit information":"<table><tr><td>Byte address</td><td>b<sub>18</sub></td><td>b<sub>17</sub></td><td>b<sub>16</sub></td><td>b<sub>15</sub></td><td>b<sub>14</sub></td><td>b<sub>13</sub></td><td>b<sub>12</sub></td><td>b<sub>11</sub></td><td>b<sub>10</sub></td><td>b<sub>9</sub></td><td>b<sub>8</sub></td><td>b<sub>7</sub></td><td>b<sub>6</sub></td><td>b<sub>5</sub></td><td>b<sub>4</sub></td><td>b<sub>3</sub></td><td>b<sub>2</sub></td><td>b<sub>1</sub></td><td>b<sub>0</sub></td></tr><tr><td>Sub-word bits</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr><tr><td>Word address bits</td><td>b<sub>18</sub></td><td>b<sub>17</sub></td><td>b<sub>16</sub></td><td>b<sub>15</sub></td><td>b<sub>14</sub></td><td>b<sub>13</sub></td><td>b<sub>12</sub></td><td>b<sub>11</sub></td><td>b<sub>10</sub></td><td><b>0</b></td><td><b>0</b></td><td><b>1</b></td><td><b>1</b></td><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr><td>Bank bits</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td><b>0</b></td><td><b>0</b></td><td><b>1</b></td><td><b>1</b></td><td></td><td></td><td></td><td></td><td></td><td></td></tr></table>"
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
+                , {
+                  "name":"Bank 4"
+                  , "id":19
+                  , "details":
+                  [
+                    {
+                      "type":"table"
+                      , "Bank width":"512 bits"
+                      , "Implemented bank depth":"512 words"
+                      , "Implemented bank size":"32 kilobytes =  bank width x implemented bank depth"
+                      , "Number of active ports":"2"
+                      , "Number of read ports":"1"
+                      , "Number of write ports":"1"
+                      , "Memory layout information":"In each private copy:\n  Variable '_iFeeder_DB_0_ibuffer' occupies memory words [0-6143] and has 1 array element per memory word.\n  Memory words [6144-8191] are unused padding, since private copies are sized to be power-of-2 deep."
+                      , "Address bit information":"<table><tr><td>Byte address</td><td>b<sub>18</sub></td><td>b<sub>17</sub></td><td>b<sub>16</sub></td><td>b<sub>15</sub></td><td>b<sub>14</sub></td><td>b<sub>13</sub></td><td>b<sub>12</sub></td><td>b<sub>11</sub></td><td>b<sub>10</sub></td><td>b<sub>9</sub></td><td>b<sub>8</sub></td><td>b<sub>7</sub></td><td>b<sub>6</sub></td><td>b<sub>5</sub></td><td>b<sub>4</sub></td><td>b<sub>3</sub></td><td>b<sub>2</sub></td><td>b<sub>1</sub></td><td>b<sub>0</sub></td></tr><tr><td>Sub-word bits</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr><tr><td>Word address bits</td><td>b<sub>18</sub></td><td>b<sub>17</sub></td><td>b<sub>16</sub></td><td>b<sub>15</sub></td><td>b<sub>14</sub></td><td>b<sub>13</sub></td><td>b<sub>12</sub></td><td>b<sub>11</sub></td><td>b<sub>10</sub></td><td><b>0</b></td><td><b>1</b></td><td><b>0</b></td><td><b>0</b></td><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr><td>Bank bits</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td><b>0</b></td><td><b>1</b></td><td><b>0</b></td><td><b>0</b></td><td></td><td></td><td></td><td></td><td></td><td></td></tr></table>"
+                    }
+                  ]
+                  , "debug":
+                  [
+                    [
+                      {
+                        "filename":"a.cl"
+                        , "line":102
+                      }
+                    ]
+                  ]
+                  , "type":"bank"
+                  , "children":
+                  [
+                    {
+                      "name":"Replicate 0"
+                      , "id":20
+                      , "details":
+                      [
+                        {
+                          "type":"table"
+                          , "Implemented size":"32 kilobytes (512 words deep x 512 bits wide)"
+                          , "Number of physical ports":"2"
+                          , "Number of read ports":"1"
+                          , "Number of write ports":"1"
+                          , "Memory layout information":"In each private copy:\n  Variable '_iFeeder_DB_0_ibuffer' occupies memory words [0-6143] and has 1 array element per memory word.\n  Memory words [6144-8191] are unused padding, since private copies are sized to be power-of-2 deep."
+                          , "Address bit information":"<table><tr><td>Byte address</td><td>b<sub>18</sub></td><td>b<sub>17</sub></td><td>b<sub>16</sub></td><td>b<sub>15</sub></td><td>b<sub>14</sub></td><td>b<sub>13</sub></td><td>b<sub>12</sub></td><td>b<sub>11</sub></td><td>b<sub>10</sub></td><td>b<sub>9</sub></td><td>b<sub>8</sub></td><td>b<sub>7</sub></td><td>b<sub>6</sub></td><td>b<sub>5</sub></td><td>b<sub>4</sub></td><td>b<sub>3</sub></td><td>b<sub>2</sub></td><td>b<sub>1</sub></td><td>b<sub>0</sub></td></tr><tr><td>Sub-word bits</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr><tr><td>Word address bits</td><td>b<sub>18</sub></td><td>b<sub>17</sub></td><td>b<sub>16</sub></td><td>b<sub>15</sub></td><td>b<sub>14</sub></td><td>b<sub>13</sub></td><td>b<sub>12</sub></td><td>b<sub>11</sub></td><td>b<sub>10</sub></td><td><b>0</b></td><td><b>1</b></td><td><b>0</b></td><td><b>0</b></td><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr><td>Bank bits</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td><b>0</b></td><td><b>1</b></td><td><b>0</b></td><td><b>0</b></td><td></td><td></td><td></td><td></td><td></td><td></td></tr></table>"
+                        }
+                      ]
+                      , "debug":
+                      [
+                        [
+                          {
+                            "filename":"a.cl"
+                            , "line":102
+                          }
+                        ]
+                      ]
+                      , "type":"replicate"
+                      , "children":
+                      [
+                        {
+                          "name":"R"
+                          , "id":21
+                          , "type":"port"
+                        }
+                        , {
+                          "name":"W"
+                          , "id":22
+                          , "type":"port"
+                        }
+                      ]
+                      , "copies":
+                      {
+                        "num":1
+                        , "details":
+                        [
+                          {
+                            "type":"table"
+                            , "Width":"512 bits"
+                            , "Depth per copy":"512 words"
+                            , "Number of private copies":"1"
+                            , "Memory layout information":"In each private copy:\n  Variable '_iFeeder_DB_0_ibuffer' occupies memory words [0-6143] and has 1 array element per memory word.\n  Memory words [6144-8191] are unused padding, since private copies are sized to be power-of-2 deep."
+                            , "Address bit information":"<table><tr><td>Byte address</td><td>b<sub>18</sub></td><td>b<sub>17</sub></td><td>b<sub>16</sub></td><td>b<sub>15</sub></td><td>b<sub>14</sub></td><td>b<sub>13</sub></td><td>b<sub>12</sub></td><td>b<sub>11</sub></td><td>b<sub>10</sub></td><td>b<sub>9</sub></td><td>b<sub>8</sub></td><td>b<sub>7</sub></td><td>b<sub>6</sub></td><td>b<sub>5</sub></td><td>b<sub>4</sub></td><td>b<sub>3</sub></td><td>b<sub>2</sub></td><td>b<sub>1</sub></td><td>b<sub>0</sub></td></tr><tr><td>Sub-word bits</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr><tr><td>Word address bits</td><td>b<sub>18</sub></td><td>b<sub>17</sub></td><td>b<sub>16</sub></td><td>b<sub>15</sub></td><td>b<sub>14</sub></td><td>b<sub>13</sub></td><td>b<sub>12</sub></td><td>b<sub>11</sub></td><td>b<sub>10</sub></td><td><b>0</b></td><td><b>1</b></td><td><b>0</b></td><td><b>0</b></td><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr><td>Bank bits</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td><b>0</b></td><td><b>1</b></td><td><b>0</b></td><td><b>0</b></td><td></td><td></td><td></td><td></td><td></td><td></td></tr></table>"
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
+                , {
+                  "name":"Bank 5"
+                  , "id":23
+                  , "details":
+                  [
+                    {
+                      "type":"table"
+                      , "Bank width":"512 bits"
+                      , "Implemented bank depth":"512 words"
+                      , "Implemented bank size":"32 kilobytes =  bank width x implemented bank depth"
+                      , "Number of active ports":"2"
+                      , "Number of read ports":"1"
+                      , "Number of write ports":"1"
+                      , "Memory layout information":"In each private copy:\n  Variable '_iFeeder_DB_0_ibuffer' occupies memory words [0-6143] and has 1 array element per memory word.\n  Memory words [6144-8191] are unused padding, since private copies are sized to be power-of-2 deep."
+                      , "Address bit information":"<table><tr><td>Byte address</td><td>b<sub>18</sub></td><td>b<sub>17</sub></td><td>b<sub>16</sub></td><td>b<sub>15</sub></td><td>b<sub>14</sub></td><td>b<sub>13</sub></td><td>b<sub>12</sub></td><td>b<sub>11</sub></td><td>b<sub>10</sub></td><td>b<sub>9</sub></td><td>b<sub>8</sub></td><td>b<sub>7</sub></td><td>b<sub>6</sub></td><td>b<sub>5</sub></td><td>b<sub>4</sub></td><td>b<sub>3</sub></td><td>b<sub>2</sub></td><td>b<sub>1</sub></td><td>b<sub>0</sub></td></tr><tr><td>Sub-word bits</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr><tr><td>Word address bits</td><td>b<sub>18</sub></td><td>b<sub>17</sub></td><td>b<sub>16</sub></td><td>b<sub>15</sub></td><td>b<sub>14</sub></td><td>b<sub>13</sub></td><td>b<sub>12</sub></td><td>b<sub>11</sub></td><td>b<sub>10</sub></td><td><b>0</b></td><td><b>1</b></td><td><b>0</b></td><td><b>1</b></td><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr><td>Bank bits</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td><b>0</b></td><td><b>1</b></td><td><b>0</b></td><td><b>1</b></td><td></td><td></td><td></td><td></td><td></td><td></td></tr></table>"
+                    }
+                  ]
+                  , "debug":
+                  [
+                    [
+                      {
+                        "filename":"a.cl"
+                        , "line":102
+                      }
+                    ]
+                  ]
+                  , "type":"bank"
+                  , "children":
+                  [
+                    {
+                      "name":"Replicate 0"
+                      , "id":24
+                      , "details":
+                      [
+                        {
+                          "type":"table"
+                          , "Implemented size":"32 kilobytes (512 words deep x 512 bits wide)"
+                          , "Number of physical ports":"2"
+                          , "Number of read ports":"1"
+                          , "Number of write ports":"1"
+                          , "Memory layout information":"In each private copy:\n  Variable '_iFeeder_DB_0_ibuffer' occupies memory words [0-6143] and has 1 array element per memory word.\n  Memory words [6144-8191] are unused padding, since private copies are sized to be power-of-2 deep."
+                          , "Address bit information":"<table><tr><td>Byte address</td><td>b<sub>18</sub></td><td>b<sub>17</sub></td><td>b<sub>16</sub></td><td>b<sub>15</sub></td><td>b<sub>14</sub></td><td>b<sub>13</sub></td><td>b<sub>12</sub></td><td>b<sub>11</sub></td><td>b<sub>10</sub></td><td>b<sub>9</sub></td><td>b<sub>8</sub></td><td>b<sub>7</sub></td><td>b<sub>6</sub></td><td>b<sub>5</sub></td><td>b<sub>4</sub></td><td>b<sub>3</sub></td><td>b<sub>2</sub></td><td>b<sub>1</sub></td><td>b<sub>0</sub></td></tr><tr><td>Sub-word bits</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr><tr><td>Word address bits</td><td>b<sub>18</sub></td><td>b<sub>17</sub></td><td>b<sub>16</sub></td><td>b<sub>15</sub></td><td>b<sub>14</sub></td><td>b<sub>13</sub></td><td>b<sub>12</sub></td><td>b<sub>11</sub></td><td>b<sub>10</sub></td><td><b>0</b></td><td><b>1</b></td><td><b>0</b></td><td><b>1</b></td><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr><td>Bank bits</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td><b>0</b></td><td><b>1</b></td><td><b>0</b></td><td><b>1</b></td><td></td><td></td><td></td><td></td><td></td><td></td></tr></table>"
+                        }
+                      ]
+                      , "debug":
+                      [
+                        [
+                          {
+                            "filename":"a.cl"
+                            , "line":102
+                          }
+                        ]
+                      ]
+                      , "type":"replicate"
+                      , "children":
+                      [
+                        {
+                          "name":"R"
+                          , "id":25
+                          , "type":"port"
+                        }
+                        , {
+                          "name":"W"
+                          , "id":26
+                          , "type":"port"
+                        }
+                      ]
+                      , "copies":
+                      {
+                        "num":1
+                        , "details":
+                        [
+                          {
+                            "type":"table"
+                            , "Width":"512 bits"
+                            , "Depth per copy":"512 words"
+                            , "Number of private copies":"1"
+                            , "Memory layout information":"In each private copy:\n  Variable '_iFeeder_DB_0_ibuffer' occupies memory words [0-6143] and has 1 array element per memory word.\n  Memory words [6144-8191] are unused padding, since private copies are sized to be power-of-2 deep."
+                            , "Address bit information":"<table><tr><td>Byte address</td><td>b<sub>18</sub></td><td>b<sub>17</sub></td><td>b<sub>16</sub></td><td>b<sub>15</sub></td><td>b<sub>14</sub></td><td>b<sub>13</sub></td><td>b<sub>12</sub></td><td>b<sub>11</sub></td><td>b<sub>10</sub></td><td>b<sub>9</sub></td><td>b<sub>8</sub></td><td>b<sub>7</sub></td><td>b<sub>6</sub></td><td>b<sub>5</sub></td><td>b<sub>4</sub></td><td>b<sub>3</sub></td><td>b<sub>2</sub></td><td>b<sub>1</sub></td><td>b<sub>0</sub></td></tr><tr><td>Sub-word bits</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr><tr><td>Word address bits</td><td>b<sub>18</sub></td><td>b<sub>17</sub></td><td>b<sub>16</sub></td><td>b<sub>15</sub></td><td>b<sub>14</sub></td><td>b<sub>13</sub></td><td>b<sub>12</sub></td><td>b<sub>11</sub></td><td>b<sub>10</sub></td><td><b>0</b></td><td><b>1</b></td><td><b>0</b></td><td><b>1</b></td><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr><td>Bank bits</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td><b>0</b></td><td><b>1</b></td><td><b>0</b></td><td><b>1</b></td><td></td><td></td><td></td><td></td><td></td><td></td></tr></table>"
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
+                , {
+                  "name":"Bank 6"
+                  , "id":27
+                  , "details":
+                  [
+                    {
+                      "type":"table"
+                      , "Bank width":"512 bits"
+                      , "Implemented bank depth":"512 words"
+                      , "Implemented bank size":"32 kilobytes =  bank width x implemented bank depth"
+                      , "Number of active ports":"2"
+                      , "Number of read ports":"1"
+                      , "Number of write ports":"1"
+                      , "Memory layout information":"In each private copy:\n  Variable '_iFeeder_DB_0_ibuffer' occupies memory words [0-6143] and has 1 array element per memory word.\n  Memory words [6144-8191] are unused padding, since private copies are sized to be power-of-2 deep."
+                      , "Address bit information":"<table><tr><td>Byte address</td><td>b<sub>18</sub></td><td>b<sub>17</sub></td><td>b<sub>16</sub></td><td>b<sub>15</sub></td><td>b<sub>14</sub></td><td>b<sub>13</sub></td><td>b<sub>12</sub></td><td>b<sub>11</sub></td><td>b<sub>10</sub></td><td>b<sub>9</sub></td><td>b<sub>8</sub></td><td>b<sub>7</sub></td><td>b<sub>6</sub></td><td>b<sub>5</sub></td><td>b<sub>4</sub></td><td>b<sub>3</sub></td><td>b<sub>2</sub></td><td>b<sub>1</sub></td><td>b<sub>0</sub></td></tr><tr><td>Sub-word bits</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr><tr><td>Word address bits</td><td>b<sub>18</sub></td><td>b<sub>17</sub></td><td>b<sub>16</sub></td><td>b<sub>15</sub></td><td>b<sub>14</sub></td><td>b<sub>13</sub></td><td>b<sub>12</sub></td><td>b<sub>11</sub></td><td>b<sub>10</sub></td><td><b>0</b></td><td><b>1</b></td><td><b>1</b></td><td><b>0</b></td><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr><td>Bank bits</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td><b>0</b></td><td><b>1</b></td><td><b>1</b></td><td><b>0</b></td><td></td><td></td><td></td><td></td><td></td><td></td></tr></table>"
+                    }
+                  ]
+                  , "debug":
+                  [
+                    [
+                      {
+                        "filename":"a.cl"
+                        , "line":102
+                      }
+                    ]
+                  ]
+                  , "type":"bank"
+                  , "children":
+                  [
+                    {
+                      "name":"Replicate 0"
+                      , "id":28
+                      , "details":
+                      [
+                        {
+                          "type":"table"
+                          , "Implemented size":"32 kilobytes (512 words deep x 512 bits wide)"
+                          , "Number of physical ports":"2"
+                          , "Number of read ports":"1"
+                          , "Number of write ports":"1"
+                          , "Memory layout information":"In each private copy:\n  Variable '_iFeeder_DB_0_ibuffer' occupies memory words [0-6143] and has 1 array element per memory word.\n  Memory words [6144-8191] are unused padding, since private copies are sized to be power-of-2 deep."
+                          , "Address bit information":"<table><tr><td>Byte address</td><td>b<sub>18</sub></td><td>b<sub>17</sub></td><td>b<sub>16</sub></td><td>b<sub>15</sub></td><td>b<sub>14</sub></td><td>b<sub>13</sub></td><td>b<sub>12</sub></td><td>b<sub>11</sub></td><td>b<sub>10</sub></td><td>b<sub>9</sub></td><td>b<sub>8</sub></td><td>b<sub>7</sub></td><td>b<sub>6</sub></td><td>b<sub>5</sub></td><td>b<sub>4</sub></td><td>b<sub>3</sub></td><td>b<sub>2</sub></td><td>b<sub>1</sub></td><td>b<sub>0</sub></td></tr><tr><td>Sub-word bits</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr><tr><td>Word address bits</td><td>b<sub>18</sub></td><td>b<sub>17</sub></td><td>b<sub>16</sub></td><td>b<sub>15</sub></td><td>b<sub>14</sub></td><td>b<sub>13</sub></td><td>b<sub>12</sub></td><td>b<sub>11</sub></td><td>b<sub>10</sub></td><td><b>0</b></td><td><b>1</b></td><td><b>1</b></td><td><b>0</b></td><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr><td>Bank bits</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td><b>0</b></td><td><b>1</b></td><td><b>1</b></td><td><b>0</b></td><td></td><td></td><td></td><td></td><td></td><td></td></tr></table>"
+                        }
+                      ]
+                      , "debug":
+                      [
+                        [
+                          {
+                            "filename":"a.cl"
+                            , "line":102
+                          }
+                        ]
+                      ]
+                      , "type":"replicate"
+                      , "children":
+                      [
+                        {
+                          "name":"R"
+                          , "id":29
+                          , "type":"port"
+                        }
+                        , {
+                          "name":"W"
+                          , "id":30
+                          , "type":"port"
+                        }
+                      ]
+                      , "copies":
+                      {
+                        "num":1
+                        , "details":
+                        [
+                          {
+                            "type":"table"
+                            , "Width":"512 bits"
+                            , "Depth per copy":"512 words"
+                            , "Number of private copies":"1"
+                            , "Memory layout information":"In each private copy:\n  Variable '_iFeeder_DB_0_ibuffer' occupies memory words [0-6143] and has 1 array element per memory word.\n  Memory words [6144-8191] are unused padding, since private copies are sized to be power-of-2 deep."
+                            , "Address bit information":"<table><tr><td>Byte address</td><td>b<sub>18</sub></td><td>b<sub>17</sub></td><td>b<sub>16</sub></td><td>b<sub>15</sub></td><td>b<sub>14</sub></td><td>b<sub>13</sub></td><td>b<sub>12</sub></td><td>b<sub>11</sub></td><td>b<sub>10</sub></td><td>b<sub>9</sub></td><td>b<sub>8</sub></td><td>b<sub>7</sub></td><td>b<sub>6</sub></td><td>b<sub>5</sub></td><td>b<sub>4</sub></td><td>b<sub>3</sub></td><td>b<sub>2</sub></td><td>b<sub>1</sub></td><td>b<sub>0</sub></td></tr><tr><td>Sub-word bits</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr><tr><td>Word address bits</td><td>b<sub>18</sub></td><td>b<sub>17</sub></td><td>b<sub>16</sub></td><td>b<sub>15</sub></td><td>b<sub>14</sub></td><td>b<sub>13</sub></td><td>b<sub>12</sub></td><td>b<sub>11</sub></td><td>b<sub>10</sub></td><td><b>0</b></td><td><b>1</b></td><td><b>1</b></td><td><b>0</b></td><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr><td>Bank bits</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td><b>0</b></td><td><b>1</b></td><td><b>1</b></td><td><b>0</b></td><td></td><td></td><td></td><td></td><td></td><td></td></tr></table>"
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
+                , {
+                  "name":"Bank 7"
+                  , "id":31
+                  , "details":
+                  [
+                    {
+                      "type":"table"
+                      , "Bank width":"512 bits"
+                      , "Implemented bank depth":"512 words"
+                      , "Implemented bank size":"32 kilobytes =  bank width x implemented bank depth"
+                      , "Number of active ports":"2"
+                      , "Number of read ports":"1"
+                      , "Number of write ports":"1"
+                      , "Memory layout information":"In each private copy:\n  Variable '_iFeeder_DB_0_ibuffer' occupies memory words [0-6143] and has 1 array element per memory word.\n  Memory words [6144-8191] are unused padding, since private copies are sized to be power-of-2 deep."
+                      , "Address bit information":"<table><tr><td>Byte address</td><td>b<sub>18</sub></td><td>b<sub>17</sub></td><td>b<sub>16</sub></td><td>b<sub>15</sub></td><td>b<sub>14</sub></td><td>b<sub>13</sub></td><td>b<sub>12</sub></td><td>b<sub>11</sub></td><td>b<sub>10</sub></td><td>b<sub>9</sub></td><td>b<sub>8</sub></td><td>b<sub>7</sub></td><td>b<sub>6</sub></td><td>b<sub>5</sub></td><td>b<sub>4</sub></td><td>b<sub>3</sub></td><td>b<sub>2</sub></td><td>b<sub>1</sub></td><td>b<sub>0</sub></td></tr><tr><td>Sub-word bits</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr><tr><td>Word address bits</td><td>b<sub>18</sub></td><td>b<sub>17</sub></td><td>b<sub>16</sub></td><td>b<sub>15</sub></td><td>b<sub>14</sub></td><td>b<sub>13</sub></td><td>b<sub>12</sub></td><td>b<sub>11</sub></td><td>b<sub>10</sub></td><td><b>0</b></td><td><b>1</b></td><td><b>1</b></td><td><b>1</b></td><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr><td>Bank bits</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td><b>0</b></td><td><b>1</b></td><td><b>1</b></td><td><b>1</b></td><td></td><td></td><td></td><td></td><td></td><td></td></tr></table>"
+                    }
+                  ]
+                  , "debug":
+                  [
+                    [
+                      {
+                        "filename":"a.cl"
+                        , "line":102
+                      }
+                    ]
+                  ]
+                  , "type":"bank"
+                  , "children":
+                  [
+                    {
+                      "name":"Replicate 0"
+                      , "id":32
+                      , "details":
+                      [
+                        {
+                          "type":"table"
+                          , "Implemented size":"32 kilobytes (512 words deep x 512 bits wide)"
+                          , "Number of physical ports":"2"
+                          , "Number of read ports":"1"
+                          , "Number of write ports":"1"
+                          , "Memory layout information":"In each private copy:\n  Variable '_iFeeder_DB_0_ibuffer' occupies memory words [0-6143] and has 1 array element per memory word.\n  Memory words [6144-8191] are unused padding, since private copies are sized to be power-of-2 deep."
+                          , "Address bit information":"<table><tr><td>Byte address</td><td>b<sub>18</sub></td><td>b<sub>17</sub></td><td>b<sub>16</sub></td><td>b<sub>15</sub></td><td>b<sub>14</sub></td><td>b<sub>13</sub></td><td>b<sub>12</sub></td><td>b<sub>11</sub></td><td>b<sub>10</sub></td><td>b<sub>9</sub></td><td>b<sub>8</sub></td><td>b<sub>7</sub></td><td>b<sub>6</sub></td><td>b<sub>5</sub></td><td>b<sub>4</sub></td><td>b<sub>3</sub></td><td>b<sub>2</sub></td><td>b<sub>1</sub></td><td>b<sub>0</sub></td></tr><tr><td>Sub-word bits</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr><tr><td>Word address bits</td><td>b<sub>18</sub></td><td>b<sub>17</sub></td><td>b<sub>16</sub></td><td>b<sub>15</sub></td><td>b<sub>14</sub></td><td>b<sub>13</sub></td><td>b<sub>12</sub></td><td>b<sub>11</sub></td><td>b<sub>10</sub></td><td><b>0</b></td><td><b>1</b></td><td><b>1</b></td><td><b>1</b></td><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr><td>Bank bits</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td><b>0</b></td><td><b>1</b></td><td><b>1</b></td><td><b>1</b></td><td></td><td></td><td></td><td></td><td></td><td></td></tr></table>"
+                        }
+                      ]
+                      , "debug":
+                      [
+                        [
+                          {
+                            "filename":"a.cl"
+                            , "line":102
+                          }
+                        ]
+                      ]
+                      , "type":"replicate"
+                      , "children":
+                      [
+                        {
+                          "name":"R"
+                          , "id":33
+                          , "type":"port"
+                        }
+                        , {
+                          "name":"W"
+                          , "id":34
+                          , "type":"port"
+                        }
+                      ]
+                      , "copies":
+                      {
+                        "num":1
+                        , "details":
+                        [
+                          {
+                            "type":"table"
+                            , "Width":"512 bits"
+                            , "Depth per copy":"512 words"
+                            , "Number of private copies":"1"
+                            , "Memory layout information":"In each private copy:\n  Variable '_iFeeder_DB_0_ibuffer' occupies memory words [0-6143] and has 1 array element per memory word.\n  Memory words [6144-8191] are unused padding, since private copies are sized to be power-of-2 deep."
+                            , "Address bit information":"<table><tr><td>Byte address</td><td>b<sub>18</sub></td><td>b<sub>17</sub></td><td>b<sub>16</sub></td><td>b<sub>15</sub></td><td>b<sub>14</sub></td><td>b<sub>13</sub></td><td>b<sub>12</sub></td><td>b<sub>11</sub></td><td>b<sub>10</sub></td><td>b<sub>9</sub></td><td>b<sub>8</sub></td><td>b<sub>7</sub></td><td>b<sub>6</sub></td><td>b<sub>5</sub></td><td>b<sub>4</sub></td><td>b<sub>3</sub></td><td>b<sub>2</sub></td><td>b<sub>1</sub></td><td>b<sub>0</sub></td></tr><tr><td>Sub-word bits</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr><tr><td>Word address bits</td><td>b<sub>18</sub></td><td>b<sub>17</sub></td><td>b<sub>16</sub></td><td>b<sub>15</sub></td><td>b<sub>14</sub></td><td>b<sub>13</sub></td><td>b<sub>12</sub></td><td>b<sub>11</sub></td><td>b<sub>10</sub></td><td><b>0</b></td><td><b>1</b></td><td><b>1</b></td><td><b>1</b></td><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr><td>Bank bits</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td><b>0</b></td><td><b>1</b></td><td><b>1</b></td><td><b>1</b></td><td></td><td></td><td></td><td></td><td></td><td></td></tr></table>"
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
+                , {
+                  "name":"Bank 8"
+                  , "id":35
+                  , "details":
+                  [
+                    {
+                      "type":"table"
+                      , "Bank width":"512 bits"
+                      , "Implemented bank depth":"512 words"
+                      , "Implemented bank size":"32 kilobytes =  bank width x implemented bank depth"
+                      , "Number of active ports":"2"
+                      , "Number of read ports":"1"
+                      , "Number of write ports":"1"
+                      , "Memory layout information":"In each private copy:\n  Variable '_iFeeder_DB_0_ibuffer' occupies memory words [0-6143] and has 1 array element per memory word.\n  Memory words [6144-8191] are unused padding, since private copies are sized to be power-of-2 deep."
+                      , "Address bit information":"<table><tr><td>Byte address</td><td>b<sub>18</sub></td><td>b<sub>17</sub></td><td>b<sub>16</sub></td><td>b<sub>15</sub></td><td>b<sub>14</sub></td><td>b<sub>13</sub></td><td>b<sub>12</sub></td><td>b<sub>11</sub></td><td>b<sub>10</sub></td><td>b<sub>9</sub></td><td>b<sub>8</sub></td><td>b<sub>7</sub></td><td>b<sub>6</sub></td><td>b<sub>5</sub></td><td>b<sub>4</sub></td><td>b<sub>3</sub></td><td>b<sub>2</sub></td><td>b<sub>1</sub></td><td>b<sub>0</sub></td></tr><tr><td>Sub-word bits</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr><tr><td>Word address bits</td><td>b<sub>18</sub></td><td>b<sub>17</sub></td><td>b<sub>16</sub></td><td>b<sub>15</sub></td><td>b<sub>14</sub></td><td>b<sub>13</sub></td><td>b<sub>12</sub></td><td>b<sub>11</sub></td><td>b<sub>10</sub></td><td><b>1</b></td><td><b>0</b></td><td><b>0</b></td><td><b>0</b></td><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr><td>Bank bits</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td><b>1</b></td><td><b>0</b></td><td><b>0</b></td><td><b>0</b></td><td></td><td></td><td></td><td></td><td></td><td></td></tr></table>"
+                    }
+                  ]
+                  , "debug":
+                  [
+                    [
+                      {
+                        "filename":"a.cl"
+                        , "line":102
+                      }
+                    ]
+                  ]
+                  , "type":"bank"
+                  , "children":
+                  [
+                    {
+                      "name":"Replicate 0"
+                      , "id":36
+                      , "details":
+                      [
+                        {
+                          "type":"table"
+                          , "Implemented size":"32 kilobytes (512 words deep x 512 bits wide)"
+                          , "Number of physical ports":"2"
+                          , "Number of read ports":"1"
+                          , "Number of write ports":"1"
+                          , "Memory layout information":"In each private copy:\n  Variable '_iFeeder_DB_0_ibuffer' occupies memory words [0-6143] and has 1 array element per memory word.\n  Memory words [6144-8191] are unused padding, since private copies are sized to be power-of-2 deep."
+                          , "Address bit information":"<table><tr><td>Byte address</td><td>b<sub>18</sub></td><td>b<sub>17</sub></td><td>b<sub>16</sub></td><td>b<sub>15</sub></td><td>b<sub>14</sub></td><td>b<sub>13</sub></td><td>b<sub>12</sub></td><td>b<sub>11</sub></td><td>b<sub>10</sub></td><td>b<sub>9</sub></td><td>b<sub>8</sub></td><td>b<sub>7</sub></td><td>b<sub>6</sub></td><td>b<sub>5</sub></td><td>b<sub>4</sub></td><td>b<sub>3</sub></td><td>b<sub>2</sub></td><td>b<sub>1</sub></td><td>b<sub>0</sub></td></tr><tr><td>Sub-word bits</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr><tr><td>Word address bits</td><td>b<sub>18</sub></td><td>b<sub>17</sub></td><td>b<sub>16</sub></td><td>b<sub>15</sub></td><td>b<sub>14</sub></td><td>b<sub>13</sub></td><td>b<sub>12</sub></td><td>b<sub>11</sub></td><td>b<sub>10</sub></td><td><b>1</b></td><td><b>0</b></td><td><b>0</b></td><td><b>0</b></td><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr><td>Bank bits</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td><b>1</b></td><td><b>0</b></td><td><b>0</b></td><td><b>0</b></td><td></td><td></td><td></td><td></td><td></td><td></td></tr></table>"
+                        }
+                      ]
+                      , "debug":
+                      [
+                        [
+                          {
+                            "filename":"a.cl"
+                            , "line":102
+                          }
+                        ]
+                      ]
+                      , "type":"replicate"
+                      , "children":
+                      [
+                        {
+                          "name":"R"
+                          , "id":37
+                          , "type":"port"
+                        }
+                        , {
+                          "name":"W"
+                          , "id":38
+                          , "type":"port"
+                        }
+                      ]
+                      , "copies":
+                      {
+                        "num":1
+                        , "details":
+                        [
+                          {
+                            "type":"table"
+                            , "Width":"512 bits"
+                            , "Depth per copy":"512 words"
+                            , "Number of private copies":"1"
+                            , "Memory layout information":"In each private copy:\n  Variable '_iFeeder_DB_0_ibuffer' occupies memory words [0-6143] and has 1 array element per memory word.\n  Memory words [6144-8191] are unused padding, since private copies are sized to be power-of-2 deep."
+                            , "Address bit information":"<table><tr><td>Byte address</td><td>b<sub>18</sub></td><td>b<sub>17</sub></td><td>b<sub>16</sub></td><td>b<sub>15</sub></td><td>b<sub>14</sub></td><td>b<sub>13</sub></td><td>b<sub>12</sub></td><td>b<sub>11</sub></td><td>b<sub>10</sub></td><td>b<sub>9</sub></td><td>b<sub>8</sub></td><td>b<sub>7</sub></td><td>b<sub>6</sub></td><td>b<sub>5</sub></td><td>b<sub>4</sub></td><td>b<sub>3</sub></td><td>b<sub>2</sub></td><td>b<sub>1</sub></td><td>b<sub>0</sub></td></tr><tr><td>Sub-word bits</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr><tr><td>Word address bits</td><td>b<sub>18</sub></td><td>b<sub>17</sub></td><td>b<sub>16</sub></td><td>b<sub>15</sub></td><td>b<sub>14</sub></td><td>b<sub>13</sub></td><td>b<sub>12</sub></td><td>b<sub>11</sub></td><td>b<sub>10</sub></td><td><b>1</b></td><td><b>0</b></td><td><b>0</b></td><td><b>0</b></td><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr><td>Bank bits</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td><b>1</b></td><td><b>0</b></td><td><b>0</b></td><td><b>0</b></td><td></td><td></td><td></td><td></td><td></td><td></td></tr></table>"
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
+                , {
+                  "name":"Bank 9"
+                  , "id":39
+                  , "details":
+                  [
+                    {
+                      "type":"table"
+                      , "Bank width":"512 bits"
+                      , "Implemented bank depth":"512 words"
+                      , "Implemented bank size":"32 kilobytes =  bank width x implemented bank depth"
+                      , "Number of active ports":"2"
+                      , "Number of read ports":"1"
+                      , "Number of write ports":"1"
+                      , "Memory layout information":"In each private copy:\n  Variable '_iFeeder_DB_0_ibuffer' occupies memory words [0-6143] and has 1 array element per memory word.\n  Memory words [6144-8191] are unused padding, since private copies are sized to be power-of-2 deep."
+                      , "Address bit information":"<table><tr><td>Byte address</td><td>b<sub>18</sub></td><td>b<sub>17</sub></td><td>b<sub>16</sub></td><td>b<sub>15</sub></td><td>b<sub>14</sub></td><td>b<sub>13</sub></td><td>b<sub>12</sub></td><td>b<sub>11</sub></td><td>b<sub>10</sub></td><td>b<sub>9</sub></td><td>b<sub>8</sub></td><td>b<sub>7</sub></td><td>b<sub>6</sub></td><td>b<sub>5</sub></td><td>b<sub>4</sub></td><td>b<sub>3</sub></td><td>b<sub>2</sub></td><td>b<sub>1</sub></td><td>b<sub>0</sub></td></tr><tr><td>Sub-word bits</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr><tr><td>Word address bits</td><td>b<sub>18</sub></td><td>b<sub>17</sub></td><td>b<sub>16</sub></td><td>b<sub>15</sub></td><td>b<sub>14</sub></td><td>b<sub>13</sub></td><td>b<sub>12</sub></td><td>b<sub>11</sub></td><td>b<sub>10</sub></td><td><b>1</b></td><td><b>0</b></td><td><b>0</b></td><td><b>1</b></td><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr><td>Bank bits</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td><b>1</b></td><td><b>0</b></td><td><b>0</b></td><td><b>1</b></td><td></td><td></td><td></td><td></td><td></td><td></td></tr></table>"
+                    }
+                  ]
+                  , "debug":
+                  [
+                    [
+                      {
+                        "filename":"a.cl"
+                        , "line":102
+                      }
+                    ]
+                  ]
+                  , "type":"bank"
+                  , "children":
+                  [
+                    {
+                      "name":"Replicate 0"
+                      , "id":40
+                      , "details":
+                      [
+                        {
+                          "type":"table"
+                          , "Implemented size":"32 kilobytes (512 words deep x 512 bits wide)"
+                          , "Number of physical ports":"2"
+                          , "Number of read ports":"1"
+                          , "Number of write ports":"1"
+                          , "Memory layout information":"In each private copy:\n  Variable '_iFeeder_DB_0_ibuffer' occupies memory words [0-6143] and has 1 array element per memory word.\n  Memory words [6144-8191] are unused padding, since private copies are sized to be power-of-2 deep."
+                          , "Address bit information":"<table><tr><td>Byte address</td><td>b<sub>18</sub></td><td>b<sub>17</sub></td><td>b<sub>16</sub></td><td>b<sub>15</sub></td><td>b<sub>14</sub></td><td>b<sub>13</sub></td><td>b<sub>12</sub></td><td>b<sub>11</sub></td><td>b<sub>10</sub></td><td>b<sub>9</sub></td><td>b<sub>8</sub></td><td>b<sub>7</sub></td><td>b<sub>6</sub></td><td>b<sub>5</sub></td><td>b<sub>4</sub></td><td>b<sub>3</sub></td><td>b<sub>2</sub></td><td>b<sub>1</sub></td><td>b<sub>0</sub></td></tr><tr><td>Sub-word bits</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr><tr><td>Word address bits</td><td>b<sub>18</sub></td><td>b<sub>17</sub></td><td>b<sub>16</sub></td><td>b<sub>15</sub></td><td>b<sub>14</sub></td><td>b<sub>13</sub></td><td>b<sub>12</sub></td><td>b<sub>11</sub></td><td>b<sub>10</sub></td><td><b>1</b></td><td><b>0</b></td><td><b>0</b></td><td><b>1</b></td><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr><td>Bank bits</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td><b>1</b></td><td><b>0</b></td><td><b>0</b></td><td><b>1</b></td><td></td><td></td><td></td><td></td><td></td><td></td></tr></table>"
+                        }
+                      ]
+                      , "debug":
+                      [
+                        [
+                          {
+                            "filename":"a.cl"
+                            , "line":102
+                          }
+                        ]
+                      ]
+                      , "type":"replicate"
+                      , "children":
+                      [
+                        {
+                          "name":"R"
+                          , "id":41
+                          , "type":"port"
+                        }
+                        , {
+                          "name":"W"
+                          , "id":42
+                          , "type":"port"
+                        }
+                      ]
+                      , "copies":
+                      {
+                        "num":1
+                        , "details":
+                        [
+                          {
+                            "type":"table"
+                            , "Width":"512 bits"
+                            , "Depth per copy":"512 words"
+                            , "Number of private copies":"1"
+                            , "Memory layout information":"In each private copy:\n  Variable '_iFeeder_DB_0_ibuffer' occupies memory words [0-6143] and has 1 array element per memory word.\n  Memory words [6144-8191] are unused padding, since private copies are sized to be power-of-2 deep."
+                            , "Address bit information":"<table><tr><td>Byte address</td><td>b<sub>18</sub></td><td>b<sub>17</sub></td><td>b<sub>16</sub></td><td>b<sub>15</sub></td><td>b<sub>14</sub></td><td>b<sub>13</sub></td><td>b<sub>12</sub></td><td>b<sub>11</sub></td><td>b<sub>10</sub></td><td>b<sub>9</sub></td><td>b<sub>8</sub></td><td>b<sub>7</sub></td><td>b<sub>6</sub></td><td>b<sub>5</sub></td><td>b<sub>4</sub></td><td>b<sub>3</sub></td><td>b<sub>2</sub></td><td>b<sub>1</sub></td><td>b<sub>0</sub></td></tr><tr><td>Sub-word bits</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr><tr><td>Word address bits</td><td>b<sub>18</sub></td><td>b<sub>17</sub></td><td>b<sub>16</sub></td><td>b<sub>15</sub></td><td>b<sub>14</sub></td><td>b<sub>13</sub></td><td>b<sub>12</sub></td><td>b<sub>11</sub></td><td>b<sub>10</sub></td><td><b>1</b></td><td><b>0</b></td><td><b>0</b></td><td><b>1</b></td><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr><td>Bank bits</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td><b>1</b></td><td><b>0</b></td><td><b>0</b></td><td><b>1</b></td><td></td><td></td><td></td><td></td><td></td><td></td></tr></table>"
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+            , {
+              "name":"_iFeeder_channel_array"
+              , "id":43
+              , "details":
+              [
+                {
+                  "type":"table"
+                  , "Declared at":
+                  [
+                    {
+                      "type":"text"
+                      , "text":"%L"
+                      , "links":
+                      [
+                        {
+                          "filename":"a.cl"
+                          , "line":"97"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+              , "debug":
+              [
+                [
+                  {
+                    "filename":"a.cl"
+                    , "line":97
+                  }
+                ]
+              ]
+              , "type":"unsynth"
+            }
+          ]
+        }
+        , {
+          "name":"Load"
+          , "id":433874048
+          , "details":
+          [
+            {
+              "type":"table"
+              , "Width":"512 bits"
+              , "Stall-free":"Yes"
+              , "Type":"Pipelined never-stall"
+              , "Loads from":"_iFeeder_DB_0_ibuffer"
+              , "Start cycle":"21"
+              , "Latency":"3"
+              , "Reference":
+              [
+                {
+                  "type":"text"
+                  , "text":"See %L for more information"
+                  , "links":
+                  [
+                    {
+                      "guide":"Best Practices Guide : Load-Store Units"
+                      , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+          , "debug":
+          [
+            [
+              {
+                "filename":"a.cl"
+                , "line":230
+              }
+            ]
+          ]
+          , "type":"inst"
+        }
+        , {
+          "name":"Load"
+          , "id":434440720
+          , "details":
+          [
+            {
+              "type":"table"
+              , "Width":"512 bits"
+              , "Stall-free":"Yes"
+              , "Type":"Pipelined never-stall"
+              , "Loads from":"_iFeeder_DB_0_ibuffer"
+              , "Start cycle":"23"
+              , "Latency":"3"
+              , "Reference":
+              [
+                {
+                  "type":"text"
+                  , "text":"See %L for more information"
+                  , "links":
+                  [
+                    {
+                      "guide":"Best Practices Guide : Load-Store Units"
+                      , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+          , "debug":
+          [
+            [
+              {
+                "filename":"a.cl"
+                , "line":230
+              }
+            ]
+          ]
+          , "type":"inst"
+        }
+        , {
+          "name":"Load"
+          , "id":434417264
+          , "details":
+          [
+            {
+              "type":"table"
+              , "Width":"512 bits"
+              , "Stall-free":"Yes"
+              , "Type":"Pipelined never-stall"
+              , "Loads from":"_iFeeder_DB_0_ibuffer"
+              , "Start cycle":"25"
+              , "Latency":"3"
+              , "Reference":
+              [
+                {
+                  "type":"text"
+                  , "text":"See %L for more information"
+                  , "links":
+                  [
+                    {
+                      "guide":"Best Practices Guide : Load-Store Units"
+                      , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+          , "debug":
+          [
+            [
+              {
+                "filename":"a.cl"
+                , "line":230
+              }
+            ]
+          ]
+          , "type":"inst"
+        }
+        , {
+          "name":"Load"
+          , "id":434490736
+          , "details":
+          [
+            {
+              "type":"table"
+              , "Width":"512 bits"
+              , "Stall-free":"Yes"
+              , "Type":"Pipelined never-stall"
+              , "Loads from":"_iFeeder_DB_0_ibuffer"
+              , "Start cycle":"27"
+              , "Latency":"3"
+              , "Reference":
+              [
+                {
+                  "type":"text"
+                  , "text":"See %L for more information"
+                  , "links":
+                  [
+                    {
+                      "guide":"Best Practices Guide : Load-Store Units"
+                      , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+          , "debug":
+          [
+            [
+              {
+                "filename":"a.cl"
+                , "line":230
+              }
+            ]
+          ]
+          , "type":"inst"
+        }
+        , {
+          "name":"Load"
+          , "id":434513648
+          , "details":
+          [
+            {
+              "type":"table"
+              , "Width":"512 bits"
+              , "Stall-free":"Yes"
+              , "Type":"Pipelined never-stall"
+              , "Loads from":"_iFeeder_DB_0_ibuffer"
+              , "Start cycle":"29"
+              , "Latency":"3"
+              , "Reference":
+              [
+                {
+                  "type":"text"
+                  , "text":"See %L for more information"
+                  , "links":
+                  [
+                    {
+                      "guide":"Best Practices Guide : Load-Store Units"
+                      , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+          , "debug":
+          [
+            [
+              {
+                "filename":"a.cl"
+                , "line":230
+              }
+            ]
+          ]
+          , "type":"inst"
+        }
+        , {
+          "name":"Load"
+          , "id":434329792
+          , "details":
+          [
+            {
+              "type":"table"
+              , "Width":"512 bits"
+              , "Stall-free":"Yes"
+              , "Type":"Pipelined never-stall"
+              , "Loads from":"_iFeeder_DB_0_ibuffer"
+              , "Start cycle":"31"
+              , "Latency":"3"
+              , "Reference":
+              [
+                {
+                  "type":"text"
+                  , "text":"See %L for more information"
+                  , "links":
+                  [
+                    {
+                      "guide":"Best Practices Guide : Load-Store Units"
+                      , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+          , "debug":
+          [
+            [
+              {
+                "filename":"a.cl"
+                , "line":230
+              }
+            ]
+          ]
+          , "type":"inst"
+        }
+        , {
+          "name":"Load"
+          , "id":434464464
+          , "details":
+          [
+            {
+              "type":"table"
+              , "Width":"512 bits"
+              , "Stall-free":"Yes"
+              , "Type":"Pipelined never-stall"
+              , "Loads from":"_iFeeder_DB_0_ibuffer"
+              , "Start cycle":"33"
+              , "Latency":"3"
+              , "Reference":
+              [
+                {
+                  "type":"text"
+                  , "text":"See %L for more information"
+                  , "links":
+                  [
+                    {
+                      "guide":"Best Practices Guide : Load-Store Units"
+                      , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+          , "debug":
+          [
+            [
+              {
+                "filename":"a.cl"
+                , "line":230
+              }
+            ]
+          ]
+          , "type":"inst"
+        }
+        , {
+          "name":"Load"
+          , "id":434623328
+          , "details":
+          [
+            {
+              "type":"table"
+              , "Width":"512 bits"
+              , "Stall-free":"Yes"
+              , "Type":"Pipelined never-stall"
+              , "Loads from":"_iFeeder_DB_0_ibuffer"
+              , "Start cycle":"35"
+              , "Latency":"3"
+              , "Reference":
+              [
+                {
+                  "type":"text"
+                  , "text":"See %L for more information"
+                  , "links":
+                  [
+                    {
+                      "guide":"Best Practices Guide : Load-Store Units"
+                      , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+          , "debug":
+          [
+            [
+              {
+                "filename":"a.cl"
+                , "line":230
+              }
+            ]
+          ]
+          , "type":"inst"
+        }
+        , {
+          "name":"Load"
+          , "id":434646240
+          , "details":
+          [
+            {
+              "type":"table"
+              , "Width":"512 bits"
+              , "Stall-free":"Yes"
+              , "Type":"Pipelined never-stall"
+              , "Loads from":"_iFeeder_DB_0_ibuffer"
+              , "Start cycle":"37"
+              , "Latency":"3"
+              , "Reference":
+              [
+                {
+                  "type":"text"
+                  , "text":"See %L for more information"
+                  , "links":
+                  [
+                    {
+                      "guide":"Best Practices Guide : Load-Store Units"
+                      , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+          , "debug":
+          [
+            [
+              {
+                "filename":"a.cl"
+                , "line":230
+              }
+            ]
+          ]
+          , "type":"inst"
+        }
+        , {
+          "name":"Load"
+          , "id":434669296
+          , "details":
+          [
+            {
+              "type":"table"
+              , "Width":"512 bits"
+              , "Stall-free":"Yes"
+              , "Type":"Pipelined never-stall"
+              , "Loads from":"_iFeeder_DB_0_ibuffer"
+              , "Start cycle":"39"
+              , "Latency":"3"
+              , "Reference":
+              [
+                {
+                  "type":"text"
+                  , "text":"See %L for more information"
+                  , "links":
+                  [
+                    {
+                      "guide":"Best Practices Guide : Load-Store Units"
+                      , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+          , "debug":
+          [
+            [
+              {
+                "filename":"a.cl"
+                , "line":230
+              }
+            ]
+          ]
+          , "type":"inst"
+        }
+        , {
+          "name":"Store"
+          , "id":433235408
+          , "details":
+          [
+            {
+              "type":"table"
+              , "Width":"512 bits"
+              , "Stall-free":"Yes"
+              , "Type":"Pipelined never-stall"
+              , "Stores to":"_iFeeder_DB_0_ibuffer"
+              , "Start cycle":"20"
+              , "Latency":"1"
+              , "Reference":
+              [
+                {
+                  "type":"text"
+                  , "text":"See %L for more information"
+                  , "links":
+                  [
+                    {
+                      "guide":"Best Practices Guide : Load-Store Units"
+                      , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+          , "debug":
+          [
+            [
+              {
+                "filename":"a.cl"
+                , "line":200
+              }
+            ]
+          ]
+          , "type":"inst"
+        }
+        , {
+          "name":"Store"
+          , "id":434437616
+          , "details":
+          [
+            {
+              "type":"table"
+              , "Width":"512 bits"
+              , "Stall-free":"Yes"
+              , "Type":"Pipelined never-stall"
+              , "Stores to":"_iFeeder_DB_0_ibuffer"
+              , "Start cycle":"22"
+              , "Latency":"1"
+              , "Reference":
+              [
+                {
+                  "type":"text"
+                  , "text":"See %L for more information"
+                  , "links":
+                  [
+                    {
+                      "guide":"Best Practices Guide : Load-Store Units"
+                      , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+          , "debug":
+          [
+            [
+              {
+                "filename":"a.cl"
+                , "line":200
+              }
+            ]
+          ]
+          , "type":"inst"
+        }
+        , {
+          "name":"Store"
+          , "id":434460528
+          , "details":
+          [
+            {
+              "type":"table"
+              , "Width":"512 bits"
+              , "Stall-free":"Yes"
+              , "Type":"Pipelined never-stall"
+              , "Stores to":"_iFeeder_DB_0_ibuffer"
+              , "Start cycle":"24"
+              , "Latency":"1"
+              , "Reference":
+              [
+                {
+                  "type":"text"
+                  , "text":"See %L for more information"
+                  , "links":
+                  [
+                    {
+                      "guide":"Best Practices Guide : Load-Store Units"
+                      , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+          , "debug":
+          [
+            [
+              {
+                "filename":"a.cl"
+                , "line":200
+              }
+            ]
+          ]
+          , "type":"inst"
+        }
+        , {
+          "name":"Store"
+          , "id":434487632
+          , "details":
+          [
+            {
+              "type":"table"
+              , "Width":"512 bits"
+              , "Stall-free":"Yes"
+              , "Type":"Pipelined never-stall"
+              , "Stores to":"_iFeeder_DB_0_ibuffer"
+              , "Start cycle":"26"
+              , "Latency":"1"
+              , "Reference":
+              [
+                {
+                  "type":"text"
+                  , "text":"See %L for more information"
+                  , "links":
+                  [
+                    {
+                      "guide":"Best Practices Guide : Load-Store Units"
+                      , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+          , "debug":
+          [
+            [
+              {
+                "filename":"a.cl"
+                , "line":200
+              }
+            ]
+          ]
+          , "type":"inst"
+        }
+        , {
+          "name":"Store"
+          , "id":434510544
+          , "details":
+          [
+            {
+              "type":"table"
+              , "Width":"512 bits"
+              , "Stall-free":"Yes"
+              , "Type":"Pipelined never-stall"
+              , "Stores to":"_iFeeder_DB_0_ibuffer"
+              , "Start cycle":"28"
+              , "Latency":"1"
+              , "Reference":
+              [
+                {
+                  "type":"text"
+                  , "text":"See %L for more information"
+                  , "links":
+                  [
+                    {
+                      "guide":"Best Practices Guide : Load-Store Units"
+                      , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+          , "debug":
+          [
+            [
+              {
+                "filename":"a.cl"
+                , "line":200
+              }
+            ]
+          ]
+          , "type":"inst"
+        }
+        , {
+          "name":"Store"
+          , "id":434326688
+          , "details":
+          [
+            {
+              "type":"table"
+              , "Width":"512 bits"
+              , "Stall-free":"Yes"
+              , "Type":"Pipelined never-stall"
+              , "Stores to":"_iFeeder_DB_0_ibuffer"
+              , "Start cycle":"30"
+              , "Latency":"1"
+              , "Reference":
+              [
+                {
+                  "type":"text"
+                  , "text":"See %L for more information"
+                  , "links":
+                  [
+                    {
+                      "guide":"Best Practices Guide : Load-Store Units"
+                      , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+          , "debug":
+          [
+            [
+              {
+                "filename":"a.cl"
+                , "line":200
+              }
+            ]
+          ]
+          , "type":"inst"
+        }
+        , {
+          "name":"Store"
+          , "id":434461360
+          , "details":
+          [
+            {
+              "type":"table"
+              , "Width":"512 bits"
+              , "Stall-free":"Yes"
+              , "Type":"Pipelined never-stall"
+              , "Stores to":"_iFeeder_DB_0_ibuffer"
+              , "Start cycle":"32"
+              , "Latency":"1"
+              , "Reference":
+              [
+                {
+                  "type":"text"
+                  , "text":"See %L for more information"
+                  , "links":
+                  [
+                    {
+                      "guide":"Best Practices Guide : Load-Store Units"
+                      , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+          , "debug":
+          [
+            [
+              {
+                "filename":"a.cl"
+                , "line":200
+              }
+            ]
+          ]
+          , "type":"inst"
+        }
+        , {
+          "name":"Store"
+          , "id":434620224
+          , "details":
+          [
+            {
+              "type":"table"
+              , "Width":"512 bits"
+              , "Stall-free":"Yes"
+              , "Type":"Pipelined never-stall"
+              , "Stores to":"_iFeeder_DB_0_ibuffer"
+              , "Start cycle":"34"
+              , "Latency":"1"
+              , "Reference":
+              [
+                {
+                  "type":"text"
+                  , "text":"See %L for more information"
+                  , "links":
+                  [
+                    {
+                      "guide":"Best Practices Guide : Load-Store Units"
+                      , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+          , "debug":
+          [
+            [
+              {
+                "filename":"a.cl"
+                , "line":200
+              }
+            ]
+          ]
+          , "type":"inst"
+        }
+        , {
+          "name":"Store"
+          , "id":434643136
+          , "details":
+          [
+            {
+              "type":"table"
+              , "Width":"512 bits"
+              , "Stall-free":"Yes"
+              , "Type":"Pipelined never-stall"
+              , "Stores to":"_iFeeder_DB_0_ibuffer"
+              , "Start cycle":"36"
+              , "Latency":"1"
+              , "Reference":
+              [
+                {
+                  "type":"text"
+                  , "text":"See %L for more information"
+                  , "links":
+                  [
+                    {
+                      "guide":"Best Practices Guide : Load-Store Units"
+                      , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+          , "debug":
+          [
+            [
+              {
+                "filename":"a.cl"
+                , "line":200
+              }
+            ]
+          ]
+          , "type":"inst"
+        }
+        , {
+          "name":"Store"
+          , "id":434666048
+          , "details":
+          [
+            {
+              "type":"table"
+              , "Width":"512 bits"
+              , "Stall-free":"Yes"
+              , "Type":"Pipelined never-stall"
+              , "Stores to":"_iFeeder_DB_0_ibuffer"
+              , "Start cycle":"38"
+              , "Latency":"1"
+              , "Reference":
+              [
+                {
+                  "type":"text"
+                  , "text":"See %L for more information"
+                  , "links":
+                  [
+                    {
+                      "guide":"Best Practices Guide : Load-Store Units"
+                      , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+          , "debug":
+          [
+            [
+              {
+                "filename":"a.cl"
+                , "line":200
+              }
+            ]
+          ]
+          , "type":"inst"
+        }
+      ]
+    }
+    , {
+      "name":"kernel_kFeeder"
+      , "id":433902968
+      , "type":"kernel"
+      , "children":
+      [
+        {
+          "name":"Local Memory"
+          , "id":44
+          , "type":"memtype"
+          , "children":
+          [
+            {
+              "name":"_kFeeder_DB_0_ibuffer"
+              , "id":45
+              , "details":
+              [
+                {
+                  "type":"table"
+                  , "Declared at":
+                  [
+                    {
+                      "type":"text"
+                      , "text":"%L"
+                      , "links":
+                      [
+                        {
+                          "filename":"a.cl"
+                          , "line":"298"
+                        }
+                      ]
+                    }
+                  ]
+                  , "Requested size":"48 kilobytes"
+                  , "Implemented size":"64 kilobytes = 2<sup>ceil(log2(Requested size))</sup>"
+                  , "Number of banks":"8"
+                  , "Bank width (word size)":"512 bits"
+                  , "Bank depth":"128 words"
+                  , "RAM Mode":"Simple dual-port"
+                  , "Memory layout information":"In each private copy:\n  Variable '_kFeeder_DB_0_ibuffer' occupies memory words [0-767] and has 1 array element per memory word.\n  Memory words [768-1023] are unused padding, since private copies are sized to be power-of-2 deep."
+                  , "Address bit information":"<table><tr><td>Byte address</td><td>b<sub>15</sub></td><td>b<sub>14</sub></td><td>b<sub>13</sub></td><td>b<sub>12</sub></td><td>b<sub>11</sub></td><td>b<sub>10</sub></td><td>b<sub>9</sub></td><td>b<sub>8</sub></td><td>b<sub>7</sub></td><td>b<sub>6</sub></td><td>b<sub>5</sub></td><td>b<sub>4</sub></td><td>b<sub>3</sub></td><td>b<sub>2</sub></td><td>b<sub>1</sub></td><td>b<sub>0</sub></td></tr><tr><td>Sub-word bits</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr><tr><td>Word address bits</td><td>b<sub>15</sub></td><td>b<sub>14</sub></td><td>b<sub>13</sub></td><td>b<sub>12</sub></td><td>b<sub>11</sub></td><td>b<sub>10</sub></td><td>b<sub>9</sub></td><td>b<sub>8</sub></td><td>b<sub>7</sub></td><td>b<sub>6</sub></td><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr><td>Bank bits</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>b<sub>8</sub></td><td>b<sub>7</sub></td><td>b<sub>6</sub></td><td></td><td></td><td></td><td></td><td></td><td></td></tr></table>"
+                  , "User defined attributes":"memory(DEFAULT), singlepump, numbanks(8), numreadports(1), numwriteports(1)"
+                  , "Reference":
+                  [
+                    {
+                      "type":"text"
+                      , "text":"See %L for more information"
+                      , "links":
+                      [
+                        {
+                          "guide":"Best Practices Guide : Local Memory"
+                          , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#chn1469549457114"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+              , "debug":
+              [
+                [
+                  {
+                    "filename":"a.cl"
+                    , "line":298
+                  }
+                ]
+              ]
+              , "type":"memsys"
+              , "children":
+              [
+                {
+                  "name":"Bank 0"
+                  , "id":46
+                  , "details":
+                  [
+                    {
+                      "type":"table"
+                      , "Bank width":"512 bits"
+                      , "Implemented bank depth":"128 words"
+                      , "Implemented bank size":"8192 bytes =  bank width x implemented bank depth"
+                      , "Number of active ports":"2"
+                      , "Number of read ports":"1"
+                      , "Number of write ports":"1"
+                      , "Memory layout information":"In each private copy:\n  Variable '_kFeeder_DB_0_ibuffer' occupies memory words [0-767] and has 1 array element per memory word.\n  Memory words [768-1023] are unused padding, since private copies are sized to be power-of-2 deep."
+                      , "Address bit information":"<table><tr><td>Byte address</td><td>b<sub>15</sub></td><td>b<sub>14</sub></td><td>b<sub>13</sub></td><td>b<sub>12</sub></td><td>b<sub>11</sub></td><td>b<sub>10</sub></td><td>b<sub>9</sub></td><td>b<sub>8</sub></td><td>b<sub>7</sub></td><td>b<sub>6</sub></td><td>b<sub>5</sub></td><td>b<sub>4</sub></td><td>b<sub>3</sub></td><td>b<sub>2</sub></td><td>b<sub>1</sub></td><td>b<sub>0</sub></td></tr><tr><td>Sub-word bits</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr><tr><td>Word address bits</td><td>b<sub>15</sub></td><td>b<sub>14</sub></td><td>b<sub>13</sub></td><td>b<sub>12</sub></td><td>b<sub>11</sub></td><td>b<sub>10</sub></td><td>b<sub>9</sub></td><td><b>0</b></td><td><b>0</b></td><td><b>0</b></td><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr><td>Bank bits</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td><b>0</b></td><td><b>0</b></td><td><b>0</b></td><td></td><td></td><td></td><td></td><td></td><td></td></tr></table>"
+                    }
+                  ]
+                  , "debug":
+                  [
+                    [
+                      {
+                        "filename":"a.cl"
+                        , "line":298
+                      }
+                    ]
+                  ]
+                  , "type":"bank"
+                  , "children":
+                  [
+                    {
+                      "name":"Replicate 0"
+                      , "id":47
+                      , "details":
+                      [
+                        {
+                          "type":"table"
+                          , "Implemented size":"8192 bytes (128 words deep x 512 bits wide)"
+                          , "Number of physical ports":"2"
+                          , "Number of read ports":"1"
+                          , "Number of write ports":"1"
+                          , "Memory layout information":"In each private copy:\n  Variable '_kFeeder_DB_0_ibuffer' occupies memory words [0-767] and has 1 array element per memory word.\n  Memory words [768-1023] are unused padding, since private copies are sized to be power-of-2 deep."
+                          , "Address bit information":"<table><tr><td>Byte address</td><td>b<sub>15</sub></td><td>b<sub>14</sub></td><td>b<sub>13</sub></td><td>b<sub>12</sub></td><td>b<sub>11</sub></td><td>b<sub>10</sub></td><td>b<sub>9</sub></td><td>b<sub>8</sub></td><td>b<sub>7</sub></td><td>b<sub>6</sub></td><td>b<sub>5</sub></td><td>b<sub>4</sub></td><td>b<sub>3</sub></td><td>b<sub>2</sub></td><td>b<sub>1</sub></td><td>b<sub>0</sub></td></tr><tr><td>Sub-word bits</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr><tr><td>Word address bits</td><td>b<sub>15</sub></td><td>b<sub>14</sub></td><td>b<sub>13</sub></td><td>b<sub>12</sub></td><td>b<sub>11</sub></td><td>b<sub>10</sub></td><td>b<sub>9</sub></td><td><b>0</b></td><td><b>0</b></td><td><b>0</b></td><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr><td>Bank bits</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td><b>0</b></td><td><b>0</b></td><td><b>0</b></td><td></td><td></td><td></td><td></td><td></td><td></td></tr></table>"
+                        }
+                      ]
+                      , "debug":
+                      [
+                        [
+                          {
+                            "filename":"a.cl"
+                            , "line":298
+                          }
+                        ]
+                      ]
+                      , "type":"replicate"
+                      , "children":
+                      [
+                        {
+                          "name":"R"
+                          , "id":48
+                          , "type":"port"
+                        }
+                        , {
+                          "name":"W"
+                          , "id":49
+                          , "type":"port"
+                        }
+                      ]
+                      , "copies":
+                      {
+                        "num":1
+                        , "details":
+                        [
+                          {
+                            "type":"table"
+                            , "Width":"512 bits"
+                            , "Depth per copy":"128 words"
+                            , "Number of private copies":"1"
+                            , "Memory layout information":"In each private copy:\n  Variable '_kFeeder_DB_0_ibuffer' occupies memory words [0-767] and has 1 array element per memory word.\n  Memory words [768-1023] are unused padding, since private copies are sized to be power-of-2 deep."
+                            , "Address bit information":"<table><tr><td>Byte address</td><td>b<sub>15</sub></td><td>b<sub>14</sub></td><td>b<sub>13</sub></td><td>b<sub>12</sub></td><td>b<sub>11</sub></td><td>b<sub>10</sub></td><td>b<sub>9</sub></td><td>b<sub>8</sub></td><td>b<sub>7</sub></td><td>b<sub>6</sub></td><td>b<sub>5</sub></td><td>b<sub>4</sub></td><td>b<sub>3</sub></td><td>b<sub>2</sub></td><td>b<sub>1</sub></td><td>b<sub>0</sub></td></tr><tr><td>Sub-word bits</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr><tr><td>Word address bits</td><td>b<sub>15</sub></td><td>b<sub>14</sub></td><td>b<sub>13</sub></td><td>b<sub>12</sub></td><td>b<sub>11</sub></td><td>b<sub>10</sub></td><td>b<sub>9</sub></td><td><b>0</b></td><td><b>0</b></td><td><b>0</b></td><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr><td>Bank bits</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td><b>0</b></td><td><b>0</b></td><td><b>0</b></td><td></td><td></td><td></td><td></td><td></td><td></td></tr></table>"
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
+                , {
+                  "name":"Bank 1"
+                  , "id":50
+                  , "details":
+                  [
+                    {
+                      "type":"table"
+                      , "Bank width":"512 bits"
+                      , "Implemented bank depth":"128 words"
+                      , "Implemented bank size":"8192 bytes =  bank width x implemented bank depth"
+                      , "Number of active ports":"2"
+                      , "Number of read ports":"1"
+                      , "Number of write ports":"1"
+                      , "Memory layout information":"In each private copy:\n  Variable '_kFeeder_DB_0_ibuffer' occupies memory words [0-767] and has 1 array element per memory word.\n  Memory words [768-1023] are unused padding, since private copies are sized to be power-of-2 deep."
+                      , "Address bit information":"<table><tr><td>Byte address</td><td>b<sub>15</sub></td><td>b<sub>14</sub></td><td>b<sub>13</sub></td><td>b<sub>12</sub></td><td>b<sub>11</sub></td><td>b<sub>10</sub></td><td>b<sub>9</sub></td><td>b<sub>8</sub></td><td>b<sub>7</sub></td><td>b<sub>6</sub></td><td>b<sub>5</sub></td><td>b<sub>4</sub></td><td>b<sub>3</sub></td><td>b<sub>2</sub></td><td>b<sub>1</sub></td><td>b<sub>0</sub></td></tr><tr><td>Sub-word bits</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr><tr><td>Word address bits</td><td>b<sub>15</sub></td><td>b<sub>14</sub></td><td>b<sub>13</sub></td><td>b<sub>12</sub></td><td>b<sub>11</sub></td><td>b<sub>10</sub></td><td>b<sub>9</sub></td><td><b>0</b></td><td><b>0</b></td><td><b>1</b></td><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr><td>Bank bits</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td><b>0</b></td><td><b>0</b></td><td><b>1</b></td><td></td><td></td><td></td><td></td><td></td><td></td></tr></table>"
+                    }
+                  ]
+                  , "debug":
+                  [
+                    [
+                      {
+                        "filename":"a.cl"
+                        , "line":298
+                      }
+                    ]
+                  ]
+                  , "type":"bank"
+                  , "children":
+                  [
+                    {
+                      "name":"Replicate 0"
+                      , "id":51
+                      , "details":
+                      [
+                        {
+                          "type":"table"
+                          , "Implemented size":"8192 bytes (128 words deep x 512 bits wide)"
+                          , "Number of physical ports":"2"
+                          , "Number of read ports":"1"
+                          , "Number of write ports":"1"
+                          , "Memory layout information":"In each private copy:\n  Variable '_kFeeder_DB_0_ibuffer' occupies memory words [0-767] and has 1 array element per memory word.\n  Memory words [768-1023] are unused padding, since private copies are sized to be power-of-2 deep."
+                          , "Address bit information":"<table><tr><td>Byte address</td><td>b<sub>15</sub></td><td>b<sub>14</sub></td><td>b<sub>13</sub></td><td>b<sub>12</sub></td><td>b<sub>11</sub></td><td>b<sub>10</sub></td><td>b<sub>9</sub></td><td>b<sub>8</sub></td><td>b<sub>7</sub></td><td>b<sub>6</sub></td><td>b<sub>5</sub></td><td>b<sub>4</sub></td><td>b<sub>3</sub></td><td>b<sub>2</sub></td><td>b<sub>1</sub></td><td>b<sub>0</sub></td></tr><tr><td>Sub-word bits</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr><tr><td>Word address bits</td><td>b<sub>15</sub></td><td>b<sub>14</sub></td><td>b<sub>13</sub></td><td>b<sub>12</sub></td><td>b<sub>11</sub></td><td>b<sub>10</sub></td><td>b<sub>9</sub></td><td><b>0</b></td><td><b>0</b></td><td><b>1</b></td><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr><td>Bank bits</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td><b>0</b></td><td><b>0</b></td><td><b>1</b></td><td></td><td></td><td></td><td></td><td></td><td></td></tr></table>"
+                        }
+                      ]
+                      , "debug":
+                      [
+                        [
+                          {
+                            "filename":"a.cl"
+                            , "line":298
+                          }
+                        ]
+                      ]
+                      , "type":"replicate"
+                      , "children":
+                      [
+                        {
+                          "name":"R"
+                          , "id":52
+                          , "type":"port"
+                        }
+                        , {
+                          "name":"W"
+                          , "id":53
+                          , "type":"port"
+                        }
+                      ]
+                      , "copies":
+                      {
+                        "num":1
+                        , "details":
+                        [
+                          {
+                            "type":"table"
+                            , "Width":"512 bits"
+                            , "Depth per copy":"128 words"
+                            , "Number of private copies":"1"
+                            , "Memory layout information":"In each private copy:\n  Variable '_kFeeder_DB_0_ibuffer' occupies memory words [0-767] and has 1 array element per memory word.\n  Memory words [768-1023] are unused padding, since private copies are sized to be power-of-2 deep."
+                            , "Address bit information":"<table><tr><td>Byte address</td><td>b<sub>15</sub></td><td>b<sub>14</sub></td><td>b<sub>13</sub></td><td>b<sub>12</sub></td><td>b<sub>11</sub></td><td>b<sub>10</sub></td><td>b<sub>9</sub></td><td>b<sub>8</sub></td><td>b<sub>7</sub></td><td>b<sub>6</sub></td><td>b<sub>5</sub></td><td>b<sub>4</sub></td><td>b<sub>3</sub></td><td>b<sub>2</sub></td><td>b<sub>1</sub></td><td>b<sub>0</sub></td></tr><tr><td>Sub-word bits</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr><tr><td>Word address bits</td><td>b<sub>15</sub></td><td>b<sub>14</sub></td><td>b<sub>13</sub></td><td>b<sub>12</sub></td><td>b<sub>11</sub></td><td>b<sub>10</sub></td><td>b<sub>9</sub></td><td><b>0</b></td><td><b>0</b></td><td><b>1</b></td><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr><td>Bank bits</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td><b>0</b></td><td><b>0</b></td><td><b>1</b></td><td></td><td></td><td></td><td></td><td></td><td></td></tr></table>"
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
+                , {
+                  "name":"Bank 2"
+                  , "id":54
+                  , "details":
+                  [
+                    {
+                      "type":"table"
+                      , "Bank width":"512 bits"
+                      , "Implemented bank depth":"128 words"
+                      , "Implemented bank size":"8192 bytes =  bank width x implemented bank depth"
+                      , "Number of active ports":"2"
+                      , "Number of read ports":"1"
+                      , "Number of write ports":"1"
+                      , "Memory layout information":"In each private copy:\n  Variable '_kFeeder_DB_0_ibuffer' occupies memory words [0-767] and has 1 array element per memory word.\n  Memory words [768-1023] are unused padding, since private copies are sized to be power-of-2 deep."
+                      , "Address bit information":"<table><tr><td>Byte address</td><td>b<sub>15</sub></td><td>b<sub>14</sub></td><td>b<sub>13</sub></td><td>b<sub>12</sub></td><td>b<sub>11</sub></td><td>b<sub>10</sub></td><td>b<sub>9</sub></td><td>b<sub>8</sub></td><td>b<sub>7</sub></td><td>b<sub>6</sub></td><td>b<sub>5</sub></td><td>b<sub>4</sub></td><td>b<sub>3</sub></td><td>b<sub>2</sub></td><td>b<sub>1</sub></td><td>b<sub>0</sub></td></tr><tr><td>Sub-word bits</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr><tr><td>Word address bits</td><td>b<sub>15</sub></td><td>b<sub>14</sub></td><td>b<sub>13</sub></td><td>b<sub>12</sub></td><td>b<sub>11</sub></td><td>b<sub>10</sub></td><td>b<sub>9</sub></td><td><b>0</b></td><td><b>1</b></td><td><b>0</b></td><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr><td>Bank bits</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td><b>0</b></td><td><b>1</b></td><td><b>0</b></td><td></td><td></td><td></td><td></td><td></td><td></td></tr></table>"
+                    }
+                  ]
+                  , "debug":
+                  [
+                    [
+                      {
+                        "filename":"a.cl"
+                        , "line":298
+                      }
+                    ]
+                  ]
+                  , "type":"bank"
+                  , "children":
+                  [
+                    {
+                      "name":"Replicate 0"
+                      , "id":55
+                      , "details":
+                      [
+                        {
+                          "type":"table"
+                          , "Implemented size":"8192 bytes (128 words deep x 512 bits wide)"
+                          , "Number of physical ports":"2"
+                          , "Number of read ports":"1"
+                          , "Number of write ports":"1"
+                          , "Memory layout information":"In each private copy:\n  Variable '_kFeeder_DB_0_ibuffer' occupies memory words [0-767] and has 1 array element per memory word.\n  Memory words [768-1023] are unused padding, since private copies are sized to be power-of-2 deep."
+                          , "Address bit information":"<table><tr><td>Byte address</td><td>b<sub>15</sub></td><td>b<sub>14</sub></td><td>b<sub>13</sub></td><td>b<sub>12</sub></td><td>b<sub>11</sub></td><td>b<sub>10</sub></td><td>b<sub>9</sub></td><td>b<sub>8</sub></td><td>b<sub>7</sub></td><td>b<sub>6</sub></td><td>b<sub>5</sub></td><td>b<sub>4</sub></td><td>b<sub>3</sub></td><td>b<sub>2</sub></td><td>b<sub>1</sub></td><td>b<sub>0</sub></td></tr><tr><td>Sub-word bits</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr><tr><td>Word address bits</td><td>b<sub>15</sub></td><td>b<sub>14</sub></td><td>b<sub>13</sub></td><td>b<sub>12</sub></td><td>b<sub>11</sub></td><td>b<sub>10</sub></td><td>b<sub>9</sub></td><td><b>0</b></td><td><b>1</b></td><td><b>0</b></td><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr><td>Bank bits</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td><b>0</b></td><td><b>1</b></td><td><b>0</b></td><td></td><td></td><td></td><td></td><td></td><td></td></tr></table>"
+                        }
+                      ]
+                      , "debug":
+                      [
+                        [
+                          {
+                            "filename":"a.cl"
+                            , "line":298
+                          }
+                        ]
+                      ]
+                      , "type":"replicate"
+                      , "children":
+                      [
+                        {
+                          "name":"R"
+                          , "id":56
+                          , "type":"port"
+                        }
+                        , {
+                          "name":"W"
+                          , "id":57
+                          , "type":"port"
+                        }
+                      ]
+                      , "copies":
+                      {
+                        "num":1
+                        , "details":
+                        [
+                          {
+                            "type":"table"
+                            , "Width":"512 bits"
+                            , "Depth per copy":"128 words"
+                            , "Number of private copies":"1"
+                            , "Memory layout information":"In each private copy:\n  Variable '_kFeeder_DB_0_ibuffer' occupies memory words [0-767] and has 1 array element per memory word.\n  Memory words [768-1023] are unused padding, since private copies are sized to be power-of-2 deep."
+                            , "Address bit information":"<table><tr><td>Byte address</td><td>b<sub>15</sub></td><td>b<sub>14</sub></td><td>b<sub>13</sub></td><td>b<sub>12</sub></td><td>b<sub>11</sub></td><td>b<sub>10</sub></td><td>b<sub>9</sub></td><td>b<sub>8</sub></td><td>b<sub>7</sub></td><td>b<sub>6</sub></td><td>b<sub>5</sub></td><td>b<sub>4</sub></td><td>b<sub>3</sub></td><td>b<sub>2</sub></td><td>b<sub>1</sub></td><td>b<sub>0</sub></td></tr><tr><td>Sub-word bits</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr><tr><td>Word address bits</td><td>b<sub>15</sub></td><td>b<sub>14</sub></td><td>b<sub>13</sub></td><td>b<sub>12</sub></td><td>b<sub>11</sub></td><td>b<sub>10</sub></td><td>b<sub>9</sub></td><td><b>0</b></td><td><b>1</b></td><td><b>0</b></td><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr><td>Bank bits</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td><b>0</b></td><td><b>1</b></td><td><b>0</b></td><td></td><td></td><td></td><td></td><td></td><td></td></tr></table>"
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
+                , {
+                  "name":"Bank 3"
+                  , "id":58
+                  , "details":
+                  [
+                    {
+                      "type":"table"
+                      , "Bank width":"512 bits"
+                      , "Implemented bank depth":"128 words"
+                      , "Implemented bank size":"8192 bytes =  bank width x implemented bank depth"
+                      , "Number of active ports":"2"
+                      , "Number of read ports":"1"
+                      , "Number of write ports":"1"
+                      , "Memory layout information":"In each private copy:\n  Variable '_kFeeder_DB_0_ibuffer' occupies memory words [0-767] and has 1 array element per memory word.\n  Memory words [768-1023] are unused padding, since private copies are sized to be power-of-2 deep."
+                      , "Address bit information":"<table><tr><td>Byte address</td><td>b<sub>15</sub></td><td>b<sub>14</sub></td><td>b<sub>13</sub></td><td>b<sub>12</sub></td><td>b<sub>11</sub></td><td>b<sub>10</sub></td><td>b<sub>9</sub></td><td>b<sub>8</sub></td><td>b<sub>7</sub></td><td>b<sub>6</sub></td><td>b<sub>5</sub></td><td>b<sub>4</sub></td><td>b<sub>3</sub></td><td>b<sub>2</sub></td><td>b<sub>1</sub></td><td>b<sub>0</sub></td></tr><tr><td>Sub-word bits</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr><tr><td>Word address bits</td><td>b<sub>15</sub></td><td>b<sub>14</sub></td><td>b<sub>13</sub></td><td>b<sub>12</sub></td><td>b<sub>11</sub></td><td>b<sub>10</sub></td><td>b<sub>9</sub></td><td><b>0</b></td><td><b>1</b></td><td><b>1</b></td><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr><td>Bank bits</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td><b>0</b></td><td><b>1</b></td><td><b>1</b></td><td></td><td></td><td></td><td></td><td></td><td></td></tr></table>"
+                    }
+                  ]
+                  , "debug":
+                  [
+                    [
+                      {
+                        "filename":"a.cl"
+                        , "line":298
+                      }
+                    ]
+                  ]
+                  , "type":"bank"
+                  , "children":
+                  [
+                    {
+                      "name":"Replicate 0"
+                      , "id":59
+                      , "details":
+                      [
+                        {
+                          "type":"table"
+                          , "Implemented size":"8192 bytes (128 words deep x 512 bits wide)"
+                          , "Number of physical ports":"2"
+                          , "Number of read ports":"1"
+                          , "Number of write ports":"1"
+                          , "Memory layout information":"In each private copy:\n  Variable '_kFeeder_DB_0_ibuffer' occupies memory words [0-767] and has 1 array element per memory word.\n  Memory words [768-1023] are unused padding, since private copies are sized to be power-of-2 deep."
+                          , "Address bit information":"<table><tr><td>Byte address</td><td>b<sub>15</sub></td><td>b<sub>14</sub></td><td>b<sub>13</sub></td><td>b<sub>12</sub></td><td>b<sub>11</sub></td><td>b<sub>10</sub></td><td>b<sub>9</sub></td><td>b<sub>8</sub></td><td>b<sub>7</sub></td><td>b<sub>6</sub></td><td>b<sub>5</sub></td><td>b<sub>4</sub></td><td>b<sub>3</sub></td><td>b<sub>2</sub></td><td>b<sub>1</sub></td><td>b<sub>0</sub></td></tr><tr><td>Sub-word bits</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr><tr><td>Word address bits</td><td>b<sub>15</sub></td><td>b<sub>14</sub></td><td>b<sub>13</sub></td><td>b<sub>12</sub></td><td>b<sub>11</sub></td><td>b<sub>10</sub></td><td>b<sub>9</sub></td><td><b>0</b></td><td><b>1</b></td><td><b>1</b></td><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr><td>Bank bits</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td><b>0</b></td><td><b>1</b></td><td><b>1</b></td><td></td><td></td><td></td><td></td><td></td><td></td></tr></table>"
+                        }
+                      ]
+                      , "debug":
+                      [
+                        [
+                          {
+                            "filename":"a.cl"
+                            , "line":298
+                          }
+                        ]
+                      ]
+                      , "type":"replicate"
+                      , "children":
+                      [
+                        {
+                          "name":"R"
+                          , "id":60
+                          , "type":"port"
+                        }
+                        , {
+                          "name":"W"
+                          , "id":61
+                          , "type":"port"
+                        }
+                      ]
+                      , "copies":
+                      {
+                        "num":1
+                        , "details":
+                        [
+                          {
+                            "type":"table"
+                            , "Width":"512 bits"
+                            , "Depth per copy":"128 words"
+                            , "Number of private copies":"1"
+                            , "Memory layout information":"In each private copy:\n  Variable '_kFeeder_DB_0_ibuffer' occupies memory words [0-767] and has 1 array element per memory word.\n  Memory words [768-1023] are unused padding, since private copies are sized to be power-of-2 deep."
+                            , "Address bit information":"<table><tr><td>Byte address</td><td>b<sub>15</sub></td><td>b<sub>14</sub></td><td>b<sub>13</sub></td><td>b<sub>12</sub></td><td>b<sub>11</sub></td><td>b<sub>10</sub></td><td>b<sub>9</sub></td><td>b<sub>8</sub></td><td>b<sub>7</sub></td><td>b<sub>6</sub></td><td>b<sub>5</sub></td><td>b<sub>4</sub></td><td>b<sub>3</sub></td><td>b<sub>2</sub></td><td>b<sub>1</sub></td><td>b<sub>0</sub></td></tr><tr><td>Sub-word bits</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr><tr><td>Word address bits</td><td>b<sub>15</sub></td><td>b<sub>14</sub></td><td>b<sub>13</sub></td><td>b<sub>12</sub></td><td>b<sub>11</sub></td><td>b<sub>10</sub></td><td>b<sub>9</sub></td><td><b>0</b></td><td><b>1</b></td><td><b>1</b></td><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr><td>Bank bits</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td><b>0</b></td><td><b>1</b></td><td><b>1</b></td><td></td><td></td><td></td><td></td><td></td><td></td></tr></table>"
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
+                , {
+                  "name":"Bank 4"
+                  , "id":62
+                  , "details":
+                  [
+                    {
+                      "type":"table"
+                      , "Bank width":"512 bits"
+                      , "Implemented bank depth":"128 words"
+                      , "Implemented bank size":"8192 bytes =  bank width x implemented bank depth"
+                      , "Number of active ports":"2"
+                      , "Number of read ports":"1"
+                      , "Number of write ports":"1"
+                      , "Memory layout information":"In each private copy:\n  Variable '_kFeeder_DB_0_ibuffer' occupies memory words [0-767] and has 1 array element per memory word.\n  Memory words [768-1023] are unused padding, since private copies are sized to be power-of-2 deep."
+                      , "Address bit information":"<table><tr><td>Byte address</td><td>b<sub>15</sub></td><td>b<sub>14</sub></td><td>b<sub>13</sub></td><td>b<sub>12</sub></td><td>b<sub>11</sub></td><td>b<sub>10</sub></td><td>b<sub>9</sub></td><td>b<sub>8</sub></td><td>b<sub>7</sub></td><td>b<sub>6</sub></td><td>b<sub>5</sub></td><td>b<sub>4</sub></td><td>b<sub>3</sub></td><td>b<sub>2</sub></td><td>b<sub>1</sub></td><td>b<sub>0</sub></td></tr><tr><td>Sub-word bits</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr><tr><td>Word address bits</td><td>b<sub>15</sub></td><td>b<sub>14</sub></td><td>b<sub>13</sub></td><td>b<sub>12</sub></td><td>b<sub>11</sub></td><td>b<sub>10</sub></td><td>b<sub>9</sub></td><td><b>1</b></td><td><b>0</b></td><td><b>0</b></td><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr><td>Bank bits</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td><b>1</b></td><td><b>0</b></td><td><b>0</b></td><td></td><td></td><td></td><td></td><td></td><td></td></tr></table>"
+                    }
+                  ]
+                  , "debug":
+                  [
+                    [
+                      {
+                        "filename":"a.cl"
+                        , "line":298
+                      }
+                    ]
+                  ]
+                  , "type":"bank"
+                  , "children":
+                  [
+                    {
+                      "name":"Replicate 0"
+                      , "id":63
+                      , "details":
+                      [
+                        {
+                          "type":"table"
+                          , "Implemented size":"8192 bytes (128 words deep x 512 bits wide)"
+                          , "Number of physical ports":"2"
+                          , "Number of read ports":"1"
+                          , "Number of write ports":"1"
+                          , "Memory layout information":"In each private copy:\n  Variable '_kFeeder_DB_0_ibuffer' occupies memory words [0-767] and has 1 array element per memory word.\n  Memory words [768-1023] are unused padding, since private copies are sized to be power-of-2 deep."
+                          , "Address bit information":"<table><tr><td>Byte address</td><td>b<sub>15</sub></td><td>b<sub>14</sub></td><td>b<sub>13</sub></td><td>b<sub>12</sub></td><td>b<sub>11</sub></td><td>b<sub>10</sub></td><td>b<sub>9</sub></td><td>b<sub>8</sub></td><td>b<sub>7</sub></td><td>b<sub>6</sub></td><td>b<sub>5</sub></td><td>b<sub>4</sub></td><td>b<sub>3</sub></td><td>b<sub>2</sub></td><td>b<sub>1</sub></td><td>b<sub>0</sub></td></tr><tr><td>Sub-word bits</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr><tr><td>Word address bits</td><td>b<sub>15</sub></td><td>b<sub>14</sub></td><td>b<sub>13</sub></td><td>b<sub>12</sub></td><td>b<sub>11</sub></td><td>b<sub>10</sub></td><td>b<sub>9</sub></td><td><b>1</b></td><td><b>0</b></td><td><b>0</b></td><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr><td>Bank bits</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td><b>1</b></td><td><b>0</b></td><td><b>0</b></td><td></td><td></td><td></td><td></td><td></td><td></td></tr></table>"
+                        }
+                      ]
+                      , "debug":
+                      [
+                        [
+                          {
+                            "filename":"a.cl"
+                            , "line":298
+                          }
+                        ]
+                      ]
+                      , "type":"replicate"
+                      , "children":
+                      [
+                        {
+                          "name":"R"
+                          , "id":64
+                          , "type":"port"
+                        }
+                        , {
+                          "name":"W"
+                          , "id":65
+                          , "type":"port"
+                        }
+                      ]
+                      , "copies":
+                      {
+                        "num":1
+                        , "details":
+                        [
+                          {
+                            "type":"table"
+                            , "Width":"512 bits"
+                            , "Depth per copy":"128 words"
+                            , "Number of private copies":"1"
+                            , "Memory layout information":"In each private copy:\n  Variable '_kFeeder_DB_0_ibuffer' occupies memory words [0-767] and has 1 array element per memory word.\n  Memory words [768-1023] are unused padding, since private copies are sized to be power-of-2 deep."
+                            , "Address bit information":"<table><tr><td>Byte address</td><td>b<sub>15</sub></td><td>b<sub>14</sub></td><td>b<sub>13</sub></td><td>b<sub>12</sub></td><td>b<sub>11</sub></td><td>b<sub>10</sub></td><td>b<sub>9</sub></td><td>b<sub>8</sub></td><td>b<sub>7</sub></td><td>b<sub>6</sub></td><td>b<sub>5</sub></td><td>b<sub>4</sub></td><td>b<sub>3</sub></td><td>b<sub>2</sub></td><td>b<sub>1</sub></td><td>b<sub>0</sub></td></tr><tr><td>Sub-word bits</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr><tr><td>Word address bits</td><td>b<sub>15</sub></td><td>b<sub>14</sub></td><td>b<sub>13</sub></td><td>b<sub>12</sub></td><td>b<sub>11</sub></td><td>b<sub>10</sub></td><td>b<sub>9</sub></td><td><b>1</b></td><td><b>0</b></td><td><b>0</b></td><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr><td>Bank bits</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td><b>1</b></td><td><b>0</b></td><td><b>0</b></td><td></td><td></td><td></td><td></td><td></td><td></td></tr></table>"
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
+                , {
+                  "name":"Bank 5"
+                  , "id":66
+                  , "details":
+                  [
+                    {
+                      "type":"table"
+                      , "Bank width":"512 bits"
+                      , "Implemented bank depth":"128 words"
+                      , "Implemented bank size":"8192 bytes =  bank width x implemented bank depth"
+                      , "Number of active ports":"2"
+                      , "Number of read ports":"1"
+                      , "Number of write ports":"1"
+                      , "Memory layout information":"In each private copy:\n  Variable '_kFeeder_DB_0_ibuffer' occupies memory words [0-767] and has 1 array element per memory word.\n  Memory words [768-1023] are unused padding, since private copies are sized to be power-of-2 deep."
+                      , "Address bit information":"<table><tr><td>Byte address</td><td>b<sub>15</sub></td><td>b<sub>14</sub></td><td>b<sub>13</sub></td><td>b<sub>12</sub></td><td>b<sub>11</sub></td><td>b<sub>10</sub></td><td>b<sub>9</sub></td><td>b<sub>8</sub></td><td>b<sub>7</sub></td><td>b<sub>6</sub></td><td>b<sub>5</sub></td><td>b<sub>4</sub></td><td>b<sub>3</sub></td><td>b<sub>2</sub></td><td>b<sub>1</sub></td><td>b<sub>0</sub></td></tr><tr><td>Sub-word bits</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr><tr><td>Word address bits</td><td>b<sub>15</sub></td><td>b<sub>14</sub></td><td>b<sub>13</sub></td><td>b<sub>12</sub></td><td>b<sub>11</sub></td><td>b<sub>10</sub></td><td>b<sub>9</sub></td><td><b>1</b></td><td><b>0</b></td><td><b>1</b></td><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr><td>Bank bits</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td><b>1</b></td><td><b>0</b></td><td><b>1</b></td><td></td><td></td><td></td><td></td><td></td><td></td></tr></table>"
+                    }
+                  ]
+                  , "debug":
+                  [
+                    [
+                      {
+                        "filename":"a.cl"
+                        , "line":298
+                      }
+                    ]
+                  ]
+                  , "type":"bank"
+                  , "children":
+                  [
+                    {
+                      "name":"Replicate 0"
+                      , "id":67
+                      , "details":
+                      [
+                        {
+                          "type":"table"
+                          , "Implemented size":"8192 bytes (128 words deep x 512 bits wide)"
+                          , "Number of physical ports":"2"
+                          , "Number of read ports":"1"
+                          , "Number of write ports":"1"
+                          , "Memory layout information":"In each private copy:\n  Variable '_kFeeder_DB_0_ibuffer' occupies memory words [0-767] and has 1 array element per memory word.\n  Memory words [768-1023] are unused padding, since private copies are sized to be power-of-2 deep."
+                          , "Address bit information":"<table><tr><td>Byte address</td><td>b<sub>15</sub></td><td>b<sub>14</sub></td><td>b<sub>13</sub></td><td>b<sub>12</sub></td><td>b<sub>11</sub></td><td>b<sub>10</sub></td><td>b<sub>9</sub></td><td>b<sub>8</sub></td><td>b<sub>7</sub></td><td>b<sub>6</sub></td><td>b<sub>5</sub></td><td>b<sub>4</sub></td><td>b<sub>3</sub></td><td>b<sub>2</sub></td><td>b<sub>1</sub></td><td>b<sub>0</sub></td></tr><tr><td>Sub-word bits</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr><tr><td>Word address bits</td><td>b<sub>15</sub></td><td>b<sub>14</sub></td><td>b<sub>13</sub></td><td>b<sub>12</sub></td><td>b<sub>11</sub></td><td>b<sub>10</sub></td><td>b<sub>9</sub></td><td><b>1</b></td><td><b>0</b></td><td><b>1</b></td><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr><td>Bank bits</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td><b>1</b></td><td><b>0</b></td><td><b>1</b></td><td></td><td></td><td></td><td></td><td></td><td></td></tr></table>"
+                        }
+                      ]
+                      , "debug":
+                      [
+                        [
+                          {
+                            "filename":"a.cl"
+                            , "line":298
+                          }
+                        ]
+                      ]
+                      , "type":"replicate"
+                      , "children":
+                      [
+                        {
+                          "name":"R"
+                          , "id":68
+                          , "type":"port"
+                        }
+                        , {
+                          "name":"W"
+                          , "id":69
+                          , "type":"port"
+                        }
+                      ]
+                      , "copies":
+                      {
+                        "num":1
+                        , "details":
+                        [
+                          {
+                            "type":"table"
+                            , "Width":"512 bits"
+                            , "Depth per copy":"128 words"
+                            , "Number of private copies":"1"
+                            , "Memory layout information":"In each private copy:\n  Variable '_kFeeder_DB_0_ibuffer' occupies memory words [0-767] and has 1 array element per memory word.\n  Memory words [768-1023] are unused padding, since private copies are sized to be power-of-2 deep."
+                            , "Address bit information":"<table><tr><td>Byte address</td><td>b<sub>15</sub></td><td>b<sub>14</sub></td><td>b<sub>13</sub></td><td>b<sub>12</sub></td><td>b<sub>11</sub></td><td>b<sub>10</sub></td><td>b<sub>9</sub></td><td>b<sub>8</sub></td><td>b<sub>7</sub></td><td>b<sub>6</sub></td><td>b<sub>5</sub></td><td>b<sub>4</sub></td><td>b<sub>3</sub></td><td>b<sub>2</sub></td><td>b<sub>1</sub></td><td>b<sub>0</sub></td></tr><tr><td>Sub-word bits</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr><tr><td>Word address bits</td><td>b<sub>15</sub></td><td>b<sub>14</sub></td><td>b<sub>13</sub></td><td>b<sub>12</sub></td><td>b<sub>11</sub></td><td>b<sub>10</sub></td><td>b<sub>9</sub></td><td><b>1</b></td><td><b>0</b></td><td><b>1</b></td><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr><td>Bank bits</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td><b>1</b></td><td><b>0</b></td><td><b>1</b></td><td></td><td></td><td></td><td></td><td></td><td></td></tr></table>"
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
+                , {
+                  "name":"Bank 6"
+                  , "id":70
+                  , "details":
+                  [
+                    {
+                      "type":"table"
+                      , "Bank width":"512 bits"
+                      , "Implemented bank depth":"128 words"
+                      , "Implemented bank size":"8192 bytes =  bank width x implemented bank depth"
+                      , "Number of active ports":"2"
+                      , "Number of read ports":"1"
+                      , "Number of write ports":"1"
+                      , "Memory layout information":"In each private copy:\n  Variable '_kFeeder_DB_0_ibuffer' occupies memory words [0-767] and has 1 array element per memory word.\n  Memory words [768-1023] are unused padding, since private copies are sized to be power-of-2 deep."
+                      , "Address bit information":"<table><tr><td>Byte address</td><td>b<sub>15</sub></td><td>b<sub>14</sub></td><td>b<sub>13</sub></td><td>b<sub>12</sub></td><td>b<sub>11</sub></td><td>b<sub>10</sub></td><td>b<sub>9</sub></td><td>b<sub>8</sub></td><td>b<sub>7</sub></td><td>b<sub>6</sub></td><td>b<sub>5</sub></td><td>b<sub>4</sub></td><td>b<sub>3</sub></td><td>b<sub>2</sub></td><td>b<sub>1</sub></td><td>b<sub>0</sub></td></tr><tr><td>Sub-word bits</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr><tr><td>Word address bits</td><td>b<sub>15</sub></td><td>b<sub>14</sub></td><td>b<sub>13</sub></td><td>b<sub>12</sub></td><td>b<sub>11</sub></td><td>b<sub>10</sub></td><td>b<sub>9</sub></td><td><b>1</b></td><td><b>1</b></td><td><b>0</b></td><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr><td>Bank bits</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td><b>1</b></td><td><b>1</b></td><td><b>0</b></td><td></td><td></td><td></td><td></td><td></td><td></td></tr></table>"
+                    }
+                  ]
+                  , "debug":
+                  [
+                    [
+                      {
+                        "filename":"a.cl"
+                        , "line":298
+                      }
+                    ]
+                  ]
+                  , "type":"bank"
+                  , "children":
+                  [
+                    {
+                      "name":"Replicate 0"
+                      , "id":71
+                      , "details":
+                      [
+                        {
+                          "type":"table"
+                          , "Implemented size":"8192 bytes (128 words deep x 512 bits wide)"
+                          , "Number of physical ports":"2"
+                          , "Number of read ports":"1"
+                          , "Number of write ports":"1"
+                          , "Memory layout information":"In each private copy:\n  Variable '_kFeeder_DB_0_ibuffer' occupies memory words [0-767] and has 1 array element per memory word.\n  Memory words [768-1023] are unused padding, since private copies are sized to be power-of-2 deep."
+                          , "Address bit information":"<table><tr><td>Byte address</td><td>b<sub>15</sub></td><td>b<sub>14</sub></td><td>b<sub>13</sub></td><td>b<sub>12</sub></td><td>b<sub>11</sub></td><td>b<sub>10</sub></td><td>b<sub>9</sub></td><td>b<sub>8</sub></td><td>b<sub>7</sub></td><td>b<sub>6</sub></td><td>b<sub>5</sub></td><td>b<sub>4</sub></td><td>b<sub>3</sub></td><td>b<sub>2</sub></td><td>b<sub>1</sub></td><td>b<sub>0</sub></td></tr><tr><td>Sub-word bits</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr><tr><td>Word address bits</td><td>b<sub>15</sub></td><td>b<sub>14</sub></td><td>b<sub>13</sub></td><td>b<sub>12</sub></td><td>b<sub>11</sub></td><td>b<sub>10</sub></td><td>b<sub>9</sub></td><td><b>1</b></td><td><b>1</b></td><td><b>0</b></td><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr><td>Bank bits</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td><b>1</b></td><td><b>1</b></td><td><b>0</b></td><td></td><td></td><td></td><td></td><td></td><td></td></tr></table>"
+                        }
+                      ]
+                      , "debug":
+                      [
+                        [
+                          {
+                            "filename":"a.cl"
+                            , "line":298
+                          }
+                        ]
+                      ]
+                      , "type":"replicate"
+                      , "children":
+                      [
+                        {
+                          "name":"R"
+                          , "id":72
+                          , "type":"port"
+                        }
+                        , {
+                          "name":"W"
+                          , "id":73
+                          , "type":"port"
+                        }
+                      ]
+                      , "copies":
+                      {
+                        "num":1
+                        , "details":
+                        [
+                          {
+                            "type":"table"
+                            , "Width":"512 bits"
+                            , "Depth per copy":"128 words"
+                            , "Number of private copies":"1"
+                            , "Memory layout information":"In each private copy:\n  Variable '_kFeeder_DB_0_ibuffer' occupies memory words [0-767] and has 1 array element per memory word.\n  Memory words [768-1023] are unused padding, since private copies are sized to be power-of-2 deep."
+                            , "Address bit information":"<table><tr><td>Byte address</td><td>b<sub>15</sub></td><td>b<sub>14</sub></td><td>b<sub>13</sub></td><td>b<sub>12</sub></td><td>b<sub>11</sub></td><td>b<sub>10</sub></td><td>b<sub>9</sub></td><td>b<sub>8</sub></td><td>b<sub>7</sub></td><td>b<sub>6</sub></td><td>b<sub>5</sub></td><td>b<sub>4</sub></td><td>b<sub>3</sub></td><td>b<sub>2</sub></td><td>b<sub>1</sub></td><td>b<sub>0</sub></td></tr><tr><td>Sub-word bits</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr><tr><td>Word address bits</td><td>b<sub>15</sub></td><td>b<sub>14</sub></td><td>b<sub>13</sub></td><td>b<sub>12</sub></td><td>b<sub>11</sub></td><td>b<sub>10</sub></td><td>b<sub>9</sub></td><td><b>1</b></td><td><b>1</b></td><td><b>0</b></td><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr><td>Bank bits</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td><b>1</b></td><td><b>1</b></td><td><b>0</b></td><td></td><td></td><td></td><td></td><td></td><td></td></tr></table>"
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
+                , {
+                  "name":"Bank 7"
+                  , "id":74
+                  , "details":
+                  [
+                    {
+                      "type":"table"
+                      , "Bank width":"512 bits"
+                      , "Implemented bank depth":"128 words"
+                      , "Implemented bank size":"8192 bytes =  bank width x implemented bank depth"
+                      , "Number of active ports":"2"
+                      , "Number of read ports":"1"
+                      , "Number of write ports":"1"
+                      , "Memory layout information":"In each private copy:\n  Variable '_kFeeder_DB_0_ibuffer' occupies memory words [0-767] and has 1 array element per memory word.\n  Memory words [768-1023] are unused padding, since private copies are sized to be power-of-2 deep."
+                      , "Address bit information":"<table><tr><td>Byte address</td><td>b<sub>15</sub></td><td>b<sub>14</sub></td><td>b<sub>13</sub></td><td>b<sub>12</sub></td><td>b<sub>11</sub></td><td>b<sub>10</sub></td><td>b<sub>9</sub></td><td>b<sub>8</sub></td><td>b<sub>7</sub></td><td>b<sub>6</sub></td><td>b<sub>5</sub></td><td>b<sub>4</sub></td><td>b<sub>3</sub></td><td>b<sub>2</sub></td><td>b<sub>1</sub></td><td>b<sub>0</sub></td></tr><tr><td>Sub-word bits</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr><tr><td>Word address bits</td><td>b<sub>15</sub></td><td>b<sub>14</sub></td><td>b<sub>13</sub></td><td>b<sub>12</sub></td><td>b<sub>11</sub></td><td>b<sub>10</sub></td><td>b<sub>9</sub></td><td><b>1</b></td><td><b>1</b></td><td><b>1</b></td><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr><td>Bank bits</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td><b>1</b></td><td><b>1</b></td><td><b>1</b></td><td></td><td></td><td></td><td></td><td></td><td></td></tr></table>"
+                    }
+                  ]
+                  , "debug":
+                  [
+                    [
+                      {
+                        "filename":"a.cl"
+                        , "line":298
+                      }
+                    ]
+                  ]
+                  , "type":"bank"
+                  , "children":
+                  [
+                    {
+                      "name":"Replicate 0"
+                      , "id":75
+                      , "details":
+                      [
+                        {
+                          "type":"table"
+                          , "Implemented size":"8192 bytes (128 words deep x 512 bits wide)"
+                          , "Number of physical ports":"2"
+                          , "Number of read ports":"1"
+                          , "Number of write ports":"1"
+                          , "Memory layout information":"In each private copy:\n  Variable '_kFeeder_DB_0_ibuffer' occupies memory words [0-767] and has 1 array element per memory word.\n  Memory words [768-1023] are unused padding, since private copies are sized to be power-of-2 deep."
+                          , "Address bit information":"<table><tr><td>Byte address</td><td>b<sub>15</sub></td><td>b<sub>14</sub></td><td>b<sub>13</sub></td><td>b<sub>12</sub></td><td>b<sub>11</sub></td><td>b<sub>10</sub></td><td>b<sub>9</sub></td><td>b<sub>8</sub></td><td>b<sub>7</sub></td><td>b<sub>6</sub></td><td>b<sub>5</sub></td><td>b<sub>4</sub></td><td>b<sub>3</sub></td><td>b<sub>2</sub></td><td>b<sub>1</sub></td><td>b<sub>0</sub></td></tr><tr><td>Sub-word bits</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr><tr><td>Word address bits</td><td>b<sub>15</sub></td><td>b<sub>14</sub></td><td>b<sub>13</sub></td><td>b<sub>12</sub></td><td>b<sub>11</sub></td><td>b<sub>10</sub></td><td>b<sub>9</sub></td><td><b>1</b></td><td><b>1</b></td><td><b>1</b></td><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr><td>Bank bits</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td><b>1</b></td><td><b>1</b></td><td><b>1</b></td><td></td><td></td><td></td><td></td><td></td><td></td></tr></table>"
+                        }
+                      ]
+                      , "debug":
+                      [
+                        [
+                          {
+                            "filename":"a.cl"
+                            , "line":298
+                          }
+                        ]
+                      ]
+                      , "type":"replicate"
+                      , "children":
+                      [
+                        {
+                          "name":"R"
+                          , "id":76
+                          , "type":"port"
+                        }
+                        , {
+                          "name":"W"
+                          , "id":77
+                          , "type":"port"
+                        }
+                      ]
+                      , "copies":
+                      {
+                        "num":1
+                        , "details":
+                        [
+                          {
+                            "type":"table"
+                            , "Width":"512 bits"
+                            , "Depth per copy":"128 words"
+                            , "Number of private copies":"1"
+                            , "Memory layout information":"In each private copy:\n  Variable '_kFeeder_DB_0_ibuffer' occupies memory words [0-767] and has 1 array element per memory word.\n  Memory words [768-1023] are unused padding, since private copies are sized to be power-of-2 deep."
+                            , "Address bit information":"<table><tr><td>Byte address</td><td>b<sub>15</sub></td><td>b<sub>14</sub></td><td>b<sub>13</sub></td><td>b<sub>12</sub></td><td>b<sub>11</sub></td><td>b<sub>10</sub></td><td>b<sub>9</sub></td><td>b<sub>8</sub></td><td>b<sub>7</sub></td><td>b<sub>6</sub></td><td>b<sub>5</sub></td><td>b<sub>4</sub></td><td>b<sub>3</sub></td><td>b<sub>2</sub></td><td>b<sub>1</sub></td><td>b<sub>0</sub></td></tr><tr><td>Sub-word bits</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr><tr><td>Word address bits</td><td>b<sub>15</sub></td><td>b<sub>14</sub></td><td>b<sub>13</sub></td><td>b<sub>12</sub></td><td>b<sub>11</sub></td><td>b<sub>10</sub></td><td>b<sub>9</sub></td><td><b>1</b></td><td><b>1</b></td><td><b>1</b></td><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr><td>Bank bits</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td><b>1</b></td><td><b>1</b></td><td><b>1</b></td><td></td><td></td><td></td><td></td><td></td><td></td></tr></table>"
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+            , {
+              "name":"_kFeeder_channel_array"
+              , "id":78
+              , "details":
+              [
+                {
+                  "type":"table"
+                  , "Declared at":
+                  [
+                    {
+                      "type":"text"
+                      , "text":"%L"
+                      , "links":
+                      [
+                        {
+                          "filename":"a.cl"
+                          , "line":"293"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+              , "debug":
+              [
+                [
+                  {
+                    "filename":"a.cl"
+                    , "line":293
+                  }
+                ]
+              ]
+              , "type":"unsynth"
+            }
+          ]
+        }
+        , {
+          "name":"Load"
+          , "id":435232624
+          , "details":
+          [
+            {
+              "type":"table"
+              , "Width":"512 bits"
+              , "Stall-free":"Yes"
+              , "Type":"Pipelined never-stall"
+              , "Loads from":"_kFeeder_DB_0_ibuffer"
+              , "Start cycle":"17"
+              , "Latency":"3"
+              , "Reference":
+              [
+                {
+                  "type":"text"
+                  , "text":"See %L for more information"
+                  , "links":
+                  [
+                    {
+                      "guide":"Best Practices Guide : Load-Store Units"
+                      , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+          , "debug":
+          [
+            [
+              {
+                "filename":"a.cl"
+                , "line":419
+              }
+            ]
+          ]
+          , "type":"inst"
+        }
+        , {
+          "name":"Load"
+          , "id":435253696
+          , "details":
+          [
+            {
+              "type":"table"
+              , "Width":"512 bits"
+              , "Stall-free":"Yes"
+              , "Type":"Pipelined never-stall"
+              , "Loads from":"_kFeeder_DB_0_ibuffer"
+              , "Start cycle":"19"
+              , "Latency":"3"
+              , "Reference":
+              [
+                {
+                  "type":"text"
+                  , "text":"See %L for more information"
+                  , "links":
+                  [
+                    {
+                      "guide":"Best Practices Guide : Load-Store Units"
+                      , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+          , "debug":
+          [
+            [
+              {
+                "filename":"a.cl"
+                , "line":419
+              }
+            ]
+          ]
+          , "type":"inst"
+        }
+        , {
+          "name":"Load"
+          , "id":435274768
+          , "details":
+          [
+            {
+              "type":"table"
+              , "Width":"512 bits"
+              , "Stall-free":"Yes"
+              , "Type":"Pipelined never-stall"
+              , "Loads from":"_kFeeder_DB_0_ibuffer"
+              , "Start cycle":"21"
+              , "Latency":"3"
+              , "Reference":
+              [
+                {
+                  "type":"text"
+                  , "text":"See %L for more information"
+                  , "links":
+                  [
+                    {
+                      "guide":"Best Practices Guide : Load-Store Units"
+                      , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+          , "debug":
+          [
+            [
+              {
+                "filename":"a.cl"
+                , "line":419
+              }
+            ]
+          ]
+          , "type":"inst"
+        }
+        , {
+          "name":"Load"
+          , "id":435295840
+          , "details":
+          [
+            {
+              "type":"table"
+              , "Width":"512 bits"
+              , "Stall-free":"Yes"
+              , "Type":"Pipelined never-stall"
+              , "Loads from":"_kFeeder_DB_0_ibuffer"
+              , "Start cycle":"23"
+              , "Latency":"3"
+              , "Reference":
+              [
+                {
+                  "type":"text"
+                  , "text":"See %L for more information"
+                  , "links":
+                  [
+                    {
+                      "guide":"Best Practices Guide : Load-Store Units"
+                      , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+          , "debug":
+          [
+            [
+              {
+                "filename":"a.cl"
+                , "line":419
+              }
+            ]
+          ]
+          , "type":"inst"
+        }
+        , {
+          "name":"Load"
+          , "id":435316912
+          , "details":
+          [
+            {
+              "type":"table"
+              , "Width":"512 bits"
+              , "Stall-free":"Yes"
+              , "Type":"Pipelined never-stall"
+              , "Loads from":"_kFeeder_DB_0_ibuffer"
+              , "Start cycle":"25"
+              , "Latency":"3"
+              , "Reference":
+              [
+                {
+                  "type":"text"
+                  , "text":"See %L for more information"
+                  , "links":
+                  [
+                    {
+                      "guide":"Best Practices Guide : Load-Store Units"
+                      , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+          , "debug":
+          [
+            [
+              {
+                "filename":"a.cl"
+                , "line":419
+              }
+            ]
+          ]
+          , "type":"inst"
+        }
+        , {
+          "name":"Load"
+          , "id":435337984
+          , "details":
+          [
+            {
+              "type":"table"
+              , "Width":"512 bits"
+              , "Stall-free":"Yes"
+              , "Type":"Pipelined never-stall"
+              , "Loads from":"_kFeeder_DB_0_ibuffer"
+              , "Start cycle":"27"
+              , "Latency":"3"
+              , "Reference":
+              [
+                {
+                  "type":"text"
+                  , "text":"See %L for more information"
+                  , "links":
+                  [
+                    {
+                      "guide":"Best Practices Guide : Load-Store Units"
+                      , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+          , "debug":
+          [
+            [
+              {
+                "filename":"a.cl"
+                , "line":419
+              }
+            ]
+          ]
+          , "type":"inst"
+        }
+        , {
+          "name":"Load"
+          , "id":435359056
+          , "details":
+          [
+            {
+              "type":"table"
+              , "Width":"512 bits"
+              , "Stall-free":"Yes"
+              , "Type":"Pipelined never-stall"
+              , "Loads from":"_kFeeder_DB_0_ibuffer"
+              , "Start cycle":"29"
+              , "Latency":"3"
+              , "Reference":
+              [
+                {
+                  "type":"text"
+                  , "text":"See %L for more information"
+                  , "links":
+                  [
+                    {
+                      "guide":"Best Practices Guide : Load-Store Units"
+                      , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+          , "debug":
+          [
+            [
+              {
+                "filename":"a.cl"
+                , "line":419
+              }
+            ]
+          ]
+          , "type":"inst"
+        }
+        , {
+          "name":"Load"
+          , "id":435380272
+          , "details":
+          [
+            {
+              "type":"table"
+              , "Width":"512 bits"
+              , "Stall-free":"Yes"
+              , "Type":"Pipelined never-stall"
+              , "Loads from":"_kFeeder_DB_0_ibuffer"
+              , "Start cycle":"31"
+              , "Latency":"3"
+              , "Reference":
+              [
+                {
+                  "type":"text"
+                  , "text":"See %L for more information"
+                  , "links":
+                  [
+                    {
+                      "guide":"Best Practices Guide : Load-Store Units"
+                      , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+          , "debug":
+          [
+            [
+              {
+                "filename":"a.cl"
+                , "line":419
+              }
+            ]
+          ]
+          , "type":"inst"
+        }
+        , {
+          "name":"Store"
+          , "id":435228080
+          , "details":
+          [
+            {
+              "type":"table"
+              , "Width":"512 bits"
+              , "Stall-free":"Yes"
+              , "Type":"Pipelined never-stall"
+              , "Stores to":"_kFeeder_DB_0_ibuffer"
+              , "Start cycle":"16"
+              , "Latency":"1"
+              , "Reference":
+              [
+                {
+                  "type":"text"
+                  , "text":"See %L for more information"
+                  , "links":
+                  [
+                    {
+                      "guide":"Best Practices Guide : Load-Store Units"
+                      , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+          , "debug":
+          [
+            [
+              {
+                "filename":"a.cl"
+                , "line":392
+              }
+            ]
+          ]
+          , "type":"inst"
+        }
+        , {
+          "name":"Store"
+          , "id":435251216
+          , "details":
+          [
+            {
+              "type":"table"
+              , "Width":"512 bits"
+              , "Stall-free":"Yes"
+              , "Type":"Pipelined never-stall"
+              , "Stores to":"_kFeeder_DB_0_ibuffer"
+              , "Start cycle":"18"
+              , "Latency":"1"
+              , "Reference":
+              [
+                {
+                  "type":"text"
+                  , "text":"See %L for more information"
+                  , "links":
+                  [
+                    {
+                      "guide":"Best Practices Guide : Load-Store Units"
+                      , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+          , "debug":
+          [
+            [
+              {
+                "filename":"a.cl"
+                , "line":392
+              }
+            ]
+          ]
+          , "type":"inst"
+        }
+        , {
+          "name":"Store"
+          , "id":435272288
+          , "details":
+          [
+            {
+              "type":"table"
+              , "Width":"512 bits"
+              , "Stall-free":"Yes"
+              , "Type":"Pipelined never-stall"
+              , "Stores to":"_kFeeder_DB_0_ibuffer"
+              , "Start cycle":"20"
+              , "Latency":"1"
+              , "Reference":
+              [
+                {
+                  "type":"text"
+                  , "text":"See %L for more information"
+                  , "links":
+                  [
+                    {
+                      "guide":"Best Practices Guide : Load-Store Units"
+                      , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+          , "debug":
+          [
+            [
+              {
+                "filename":"a.cl"
+                , "line":392
+              }
+            ]
+          ]
+          , "type":"inst"
+        }
+        , {
+          "name":"Store"
+          , "id":435293360
+          , "details":
+          [
+            {
+              "type":"table"
+              , "Width":"512 bits"
+              , "Stall-free":"Yes"
+              , "Type":"Pipelined never-stall"
+              , "Stores to":"_kFeeder_DB_0_ibuffer"
+              , "Start cycle":"22"
+              , "Latency":"1"
+              , "Reference":
+              [
+                {
+                  "type":"text"
+                  , "text":"See %L for more information"
+                  , "links":
+                  [
+                    {
+                      "guide":"Best Practices Guide : Load-Store Units"
+                      , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+          , "debug":
+          [
+            [
+              {
+                "filename":"a.cl"
+                , "line":392
+              }
+            ]
+          ]
+          , "type":"inst"
+        }
+        , {
+          "name":"Store"
+          , "id":435314432
+          , "details":
+          [
+            {
+              "type":"table"
+              , "Width":"512 bits"
+              , "Stall-free":"Yes"
+              , "Type":"Pipelined never-stall"
+              , "Stores to":"_kFeeder_DB_0_ibuffer"
+              , "Start cycle":"24"
+              , "Latency":"1"
+              , "Reference":
+              [
+                {
+                  "type":"text"
+                  , "text":"See %L for more information"
+                  , "links":
+                  [
+                    {
+                      "guide":"Best Practices Guide : Load-Store Units"
+                      , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+          , "debug":
+          [
+            [
+              {
+                "filename":"a.cl"
+                , "line":392
+              }
+            ]
+          ]
+          , "type":"inst"
+        }
+        , {
+          "name":"Store"
+          , "id":435335504
+          , "details":
+          [
+            {
+              "type":"table"
+              , "Width":"512 bits"
+              , "Stall-free":"Yes"
+              , "Type":"Pipelined never-stall"
+              , "Stores to":"_kFeeder_DB_0_ibuffer"
+              , "Start cycle":"26"
+              , "Latency":"1"
+              , "Reference":
+              [
+                {
+                  "type":"text"
+                  , "text":"See %L for more information"
+                  , "links":
+                  [
+                    {
+                      "guide":"Best Practices Guide : Load-Store Units"
+                      , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+          , "debug":
+          [
+            [
+              {
+                "filename":"a.cl"
+                , "line":392
+              }
+            ]
+          ]
+          , "type":"inst"
+        }
+        , {
+          "name":"Store"
+          , "id":435356576
+          , "details":
+          [
+            {
+              "type":"table"
+              , "Width":"512 bits"
+              , "Stall-free":"Yes"
+              , "Type":"Pipelined never-stall"
+              , "Stores to":"_kFeeder_DB_0_ibuffer"
+              , "Start cycle":"28"
+              , "Latency":"1"
+              , "Reference":
+              [
+                {
+                  "type":"text"
+                  , "text":"See %L for more information"
+                  , "links":
+                  [
+                    {
+                      "guide":"Best Practices Guide : Load-Store Units"
+                      , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+          , "debug":
+          [
+            [
+              {
+                "filename":"a.cl"
+                , "line":392
+              }
+            ]
+          ]
+          , "type":"inst"
+        }
+        , {
+          "name":"Store"
+          , "id":435377648
+          , "details":
+          [
+            {
+              "type":"table"
+              , "Width":"512 bits"
+              , "Stall-free":"Yes"
+              , "Type":"Pipelined never-stall"
+              , "Stores to":"_kFeeder_DB_0_ibuffer"
+              , "Start cycle":"30"
+              , "Latency":"1"
+              , "Reference":
+              [
+                {
+                  "type":"text"
+                  , "text":"See %L for more information"
+                  , "links":
+                  [
+                    {
+                      "guide":"Best Practices Guide : Load-Store Units"
+                      , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+          , "debug":
+          [
+            [
+              {
+                "filename":"a.cl"
+                , "line":392
+              }
+            ]
+          ]
+          , "type":"inst"
+        }
+      ]
+    }
+    , {
+      "name":"kernel_Out"
+      , "id":433911480
+      , "type":"kernel"
+      , "children":
+      [
+        {
+          "name":"Local Memory"
+          , "id":79
+          , "type":"memtype"
+          , "children":
+          [
+            {
+              "name":"_kFeeder_channel_array"
+              , "id":80
+              , "details":
+              [
+                {
+                  "type":"table"
+                  , "Declared at":
+                  [
+                    {
+                      "type":"text"
+                      , "text":"%L"
+                      , "links":
+                      [
+                        {
+                          "filename":"a.cl"
+                          , "line":"449"
+                        }
+                      ]
+                    }
+                  ]
+                  , "Additional information":"This variable is carried through the pipeline in registers (rather than being stored in RAM)"
+                }
+              ]
+              , "debug":
+              [
+                [
+                  {
+                    "filename":"a.cl"
+                    , "line":449
+                  }
+                ]
+              ]
+              , "type":"reg"
+            }
+            , {
+              "name":"_iFeeder_channel_array"
+              , "id":81
+              , "details":
+              [
+                {
+                  "type":"table"
+                  , "Declared at":
+                  [
+                    {
+                      "type":"text"
+                      , "text":"%L"
+                      , "links":
+                      [
+                        {
+                          "filename":"a.cl"
+                          , "line":"450"
+                        }
+                      ]
+                    }
+                  ]
+                  , "Additional information":"This variable is carried through the pipeline in registers (rather than being stored in RAM)"
+                }
+              ]
+              , "debug":
+              [
+                [
+                  {
+                    "filename":"a.cl"
+                    , "line":450
+                  }
+                ]
+              ]
+              , "type":"reg"
+            }
+            , {
+              "name":"_C_shreg"
+              , "id":82
+              , "details":
+              [
+                {
+                  "type":"table"
+                  , "Declared at":
+                  [
+                    {
+                      "type":"text"
+                      , "text":"%L"
+                      , "links":
+                      [
+                        {
+                          "filename":"a.cl"
+                          , "line":"452"
+                        }
+                      ]
+                    }
+                  ]
+                  , "Additional information":"This variable is carried through the pipeline in registers (rather than being stored in RAM)"
+                }
+              ]
+              , "debug":
+              [
+                [
+                  {
+                    "filename":"a.cl"
+                    , "line":452
+                  }
+                ]
+              ]
+              , "type":"reg"
+            }
+            , {
+              "name":"_C_pipe_shreg"
+              , "id":83
+              , "details":
+              [
+                {
+                  "type":"table"
+                  , "Declared at":
+                  [
+                    {
+                      "type":"text"
+                      , "text":"%L"
+                      , "links":
+                      [
+                        {
+                          "filename":"a.cl"
+                          , "line":"453"
+                        }
+                      ]
+                    }
+                  ]
+                  , "Additional information":"This variable is carried through the pipeline in registers (rather than being stored in RAM)"
+                }
+              ]
+              , "debug":
+              [
+                [
+                  {
+                    "filename":"a.cl"
+                    , "line":453
+                  }
+                ]
+              ]
+              , "type":"reg"
+            }
+            , {
+              "name":"_B_shreg"
+              , "id":84
+              , "details":
+              [
+                {
+                  "type":"table"
+                  , "Declared at":
+                  [
+                    {
+                      "type":"text"
+                      , "text":"%L"
+                      , "links":
+                      [
+                        {
+                          "filename":"a.cl"
+                          , "line":"455"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+              , "debug":
+              [
+                [
+                  {
+                    "filename":"a.cl"
+                    , "line":455
+                  }
+                ]
+              ]
+              , "type":"unsynth"
+            }
+            , {
+              "name":"_C_temp"
+              , "id":85
+              , "details":
+              [
+                {
+                  "type":"table"
+                  , "Declared at":
+                  [
+                    {
+                      "type":"text"
+                      , "text":"%L"
+                      , "links":
+                      [
+                        {
+                          "filename":"a.cl"
+                          , "line":"456"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+              , "debug":
+              [
+                [
+                  {
+                    "filename":"a.cl"
+                    , "line":456
+                  }
+                ]
+              ]
+              , "type":"unsynth"
+            }
+            , {
+              "name":"_A_shreg"
+              , "id":86
+              , "details":
+              [
+                {
+                  "type":"table"
+                  , "Declared at":
+                  [
+                    {
+                      "type":"text"
+                      , "text":"%L"
+                      , "links":
+                      [
+                        {
+                          "filename":"a.cl"
+                          , "line":"458"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+              , "debug":
+              [
+                [
+                  {
+                    "filename":"a.cl"
+                    , "line":458
+                  }
+                ]
+              ]
+              , "type":"unsynth"
+            }
+            , {
+              "name":"__257"
+              , "id":87
+              , "details":
+              [
+                {
+                  "type":"table"
+                  , "Declared at":
+                  [
+                    {
+                      "type":"text"
+                      , "text":"%L"
+                      , "links":
+                      [
+                        {
+                          "filename":"a.cl"
+                          , "line":"498"
+                        }
+                      ]
+                    }
+                  ]
+                  , "Additional information":"This variable is carried through the pipeline in registers (rather than being stored in RAM)"
+                }
+              ]
+              , "debug":
+              [
+                [
+                  {
+                    "filename":"a.cl"
+                    , "line":498
+                  }
+                ]
+              ]
+              , "type":"reg"
+            }
+            , {
+              "name":"__258"
+              , "id":88
+              , "details":
+              [
+                {
+                  "type":"table"
+                  , "Declared at":
+                  [
+                    {
+                      "type":"text"
+                      , "text":"%L"
+                      , "links":
+                      [
+                        {
+                          "filename":"a.cl"
+                          , "line":"501"
+                        }
+                      ]
+                    }
+                  ]
+                  , "Additional information":"This variable is carried through the pipeline in registers (rather than being stored in RAM)"
+                }
+              ]
+              , "debug":
+              [
+                [
+                  {
+                    "filename":"a.cl"
+                    , "line":501
+                  }
+                ]
+              ]
+              , "type":"reg"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+  , "links":
+  [
+    {
+      "from":5
+      , "to":433874048
+    }
+    , {
+      "from":433235408
+      , "to":6
+    }
+    , {
+      "from":9
+      , "to":434440720
+    }
+    , {
+      "from":434437616
+      , "to":10
+    }
+    , {
+      "from":13
+      , "to":434417264
+    }
+    , {
+      "from":434460528
+      , "to":14
+    }
+    , {
+      "from":17
+      , "to":434490736
+    }
+    , {
+      "from":434487632
+      , "to":18
+    }
+    , {
+      "from":21
+      , "to":434513648
+    }
+    , {
+      "from":434510544
+      , "to":22
+    }
+    , {
+      "from":25
+      , "to":434329792
+    }
+    , {
+      "from":434326688
+      , "to":26
+    }
+    , {
+      "from":29
+      , "to":434464464
+    }
+    , {
+      "from":434461360
+      , "to":30
+    }
+    , {
+      "from":33
+      , "to":434623328
+    }
+    , {
+      "from":434620224
+      , "to":34
+    }
+    , {
+      "from":37
+      , "to":434646240
+    }
+    , {
+      "from":434643136
+      , "to":38
+    }
+    , {
+      "from":41
+      , "to":434669296
+    }
+    , {
+      "from":434666048
+      , "to":42
+    }
+    , {
+      "from":48
+      , "to":435232624
+    }
+    , {
+      "from":435228080
+      , "to":49
+    }
+    , {
+      "from":52
+      , "to":435253696
+    }
+    , {
+      "from":435251216
+      , "to":53
+    }
+    , {
+      "from":56
+      , "to":435274768
+    }
+    , {
+      "from":435272288
+      , "to":57
+    }
+    , {
+      "from":60
+      , "to":435295840
+    }
+    , {
+      "from":435293360
+      , "to":61
+    }
+    , {
+      "from":64
+      , "to":435316912
+    }
+    , {
+      "from":435314432
+      , "to":65
+    }
+    , {
+      "from":68
+      , "to":435337984
+    }
+    , {
+      "from":435335504
+      , "to":69
+    }
+    , {
+      "from":72
+      , "to":435359056
+    }
+    , {
+      "from":435356576
+      , "to":73
+    }
+    , {
+      "from":76
+      , "to":435380272
+    }
+    , {
+      "from":435377648
+      , "to":77
+    }
+  ]
+}

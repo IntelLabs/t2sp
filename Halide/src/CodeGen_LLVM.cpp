@@ -3275,7 +3275,7 @@ void CodeGen_LLVM::visit(const Call *op) {
     } else if (is_float16_transcendental(op)) {
         value = codegen(lower_float16_transcendental_to_float32_equivalent(op));
     } else if (ends_with(op->name, ".temp")) {
-        value = builder->CreateLoad(sym_get(op->name));    
+        value = builder->CreateLoad(sym_get(op->name));
     } else if (op->is_intrinsic()) {
         internal_error << "Unknown intrinsic: " << op->name << "\n";
     } else if (op->call_type == Call::PureExtern && op->name == "pow_f32") {

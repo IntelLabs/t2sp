@@ -17,6 +17,7 @@
 * SPDX-License-Identifier: BSD-2-Clause-Patent
 *******************************************************************************/
 #include "./CheckFuncConstraints.h"
+#include "./DebugPrint.h"
 #include "../../Halide/src/Expr.h"
 #include "../../Halide/src/IR.h"
 #include "../../Halide/src/IRVisitor.h"
@@ -143,10 +144,11 @@ public:
     vector<Var> args;
     bool is_ure = true;
     InvalidType invalid_type;
+    const Call *invalid_call; // The call that fails the check
 
     using IRVisitor::visit;
     
-    CheckCallsArgs(const std::vector<Func> &funcs, vector<Var> args) : funcs(funcs), args(args) { }
+    CheckCallsArgs(const std::vector<Func> &funcs, vector<Var> args) : funcs(funcs), args(args), invalid_call(NULL) { }
 
     void visit(const Call *call) override {
         bool is_ure_candidate = false;
@@ -178,15 +180,17 @@ public:
                 }
                 if (!is_ure) {
                     invalid_type = InvalidType::NotSimple;
+                    invalid_call = call;
                     return;
                 }
             }
 
-            if (call_args.size() < args.size()) {
-                invalid_type = InvalidType::Lack;
-                is_ure = false;
-                return;
-            }
+            // if (call_args.size() < args.size()) {
+            //     invalid_type = InvalidType::Lack;
+            //     is_ure = false;
+            //     invalid_call = call;
+            //     return;
+            // }
 
             // Compare the RHS order with LHS
             if (!args.empty() && !call_args.empty()) {
@@ -195,12 +199,17 @@ public:
                     if (args[i].name() == call_args[j]) {
                         i++, j++;
                     } else {
-                        j++;
+                        if (call_args.size() >= args.size()) {
+                            j++;
+                        } else {
+                            i++;
+                        }
                     }
                 }
                 if (i < args.size()) {
                     invalid_type = InvalidType::WrongOrder;
                     is_ure = false;
+                    invalid_call = call;
                 }
             }
         }
@@ -251,7 +260,7 @@ void CheckFuncConstraints::check_ure(const Func& f, const std::vector<Func> &fun
         string message;
         switch(check_calls_args.invalid_type) {
             case CheckCallsArgs::InvalidType::NotSimple: 
-                message = "The URE arguments shoule be simple form.";
+                message = "The arguments of the call expected to be simple, i.e. have constant distances from the corresponding arguments of the definition of the Func.";
                 break;
             case CheckCallsArgs::InvalidType::WrongOrder: 
                 message = "The order of LHS arguments is different from RHS arguments.";
@@ -261,7 +270,8 @@ void CheckFuncConstraints::check_ure(const Func& f, const std::vector<Func> &fun
                 break;
         }
         user_assert(check_calls_args.is_ure) << "The definition of Func " 
-        << f.name() << " doesn't satisfy URE constraints: " << message << "\n";
+            << f.name() << "(" << names_to_string(f.args()) << ") doesn't satisfy URE constraints due to the call to "
+            << to_string(check_calls_args.invalid_call) << ": " << message << "\n";
     }
 
     // Compare the LHS

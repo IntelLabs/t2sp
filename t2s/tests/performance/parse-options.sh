@@ -1,8 +1,8 @@
 #!/bin/bash
 
 function show_usage {
-    echo "Options: (devcloud|local) (gemm|conv|capsule) (a10|s10|gen9|gen12) (tiny|large) (hw|emulator)"
-}       
+    echo "Options: (devcloud|local) (gemm|conv|capsule|pairhmm|qrd) (a10|s10|gen9|gen12) (tiny|large) (hw|emulator) [bitstream]"
+}
 
 if [ $0 == $BASH_SOURCE ]; then
    echo "This script should be sourced, not run."
@@ -18,7 +18,7 @@ else
     location="$1"
 fi
 
-if [ "$2" != "gemm" -a "$2" != "conv"  -a  "$2" != "capsule" ]; then
+if [ "$2" != "gemm" -a "$2" != "conv"  -a  "$2" != "capsule" -a "$2" != "pairhmm" ]; then
     show_usage
     return
 else
@@ -36,7 +36,7 @@ if [ "$4" != "tiny" -a "$4" != "large" ]; then
     show_usage
     return
 else
-    size=$4
+    size="$4"
 fi
 
 if [ "$5" != "hw" -a "$5" != "emulator" ]; then
@@ -44,6 +44,12 @@ if [ "$5" != "hw" -a "$5" != "emulator" ]; then
     return
 else
     platform="$5"
+fi
+
+if [ "$6" != "" ]; then
+    # Add prefix to the bitstream
+    bitstream="$6/$3/a.aocx"
+    echo "Use the bitstream ${bitstream}"
 fi
 
 if [ "$platform" == "emulator" ]; then

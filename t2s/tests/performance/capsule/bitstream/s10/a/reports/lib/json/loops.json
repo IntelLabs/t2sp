@@ -1,0 +1,1462 @@
+{
+  "columns":
+  ["", "Pipelined", "II", "Speculated iterations", "Details"]
+  , "children":
+  [
+    {
+      "name":"Kernel: kernel_PLoader"
+      , "data":
+      ["", "", ""]
+      , "debug":
+      [
+        [
+          {
+            "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/capsule/a.cl"
+            , "line":75
+          }
+        ]
+      ]
+      , "details":
+      [
+        {
+          "type":"brief"
+          , "text":"Single work-item execution"
+        }
+        , {
+          "type":"text"
+          , "text":"Single work-item execution"
+        }
+        , {
+          "type":"text"
+          , "text":"Fmax bottlenck block: kernel_PLoader.B4"
+        }
+        , {
+          "type":"text"
+          , "text":"Use the %L report to view more details"
+          , "links":
+          [
+            {
+              "view":"Fmax II Report"
+            }
+          ]
+        }
+        , {
+          "type":"text"
+          , "text":"See %L for more information"
+          , "links":
+          [
+            {
+              "guide":"Best Practices Guide : Kernels"
+              , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#ipp1476408832230"
+            }
+          ]
+        }
+      ]
+      , "children":
+      [
+        {
+          "name":"kernel_PLoader.B1"
+          , "data":
+          ["Yes", ">=1", "4"]
+          , "debug":
+          [
+            [
+              {
+                "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/capsule/a.cl"
+                , "line":82
+              }
+            ]
+          ]
+          , "details":
+          [
+            {
+              "type":"brief"
+              , "text":" "
+            }
+            , {
+              "type":"text"
+              , "text":"Hyper-Optimized loop structure: enabled."
+            }
+            , {
+              "type":"text"
+              , "text":"Stallable instruction: n/a"
+            }
+            , {
+              "type":"text"
+              , "text":"Maximum concurrent iterations: Capacity of loop"
+              , "details":
+              [
+                {
+                  "type":"text"
+                  , "text":"Use the %L viewer to estimate capacity"
+                  , "links":
+                  [
+                    {
+                      "view":"Fmax II Report"
+                    }
+                  ]
+                }
+              ]
+            }
+            , {
+              "type":"text"
+              , "text":"See %L for more information"
+              , "links":
+              [
+                {
+                  "guide":"Best Practices Guide : Nested Loops"
+                  , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#rfr1469543500580"
+                }
+              ]
+            }
+          ]
+          , "children":
+          [
+            {
+              "name":"kernel_PLoader.B4"
+              , "data":
+              ["Yes", "~1", "0"]
+              , "debug":
+              [
+                [
+                  {
+                    "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/capsule/a.cl"
+                    , "line":84
+                  }
+                ]
+              ]
+              , "details":
+              [
+                {
+                  "type":"brief"
+                  , "text":" "
+                }
+                , {
+                  "type":"text"
+                  , "text":"Hyper-Optimized loop structure: disabled."
+                }
+                , {
+                  "type":"text"
+                  , "text":"II is an approximation due to the following stallable instructions:"
+                  , "details":
+                  [
+                    {
+                      "type":"text"
+                      , "text":"Load Operation (%L)"
+                      , "links":
+                      [
+                        {
+                          "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/capsule/a.cl"
+                          , "line":"88"
+                        }
+                      ]
+                    }
+                    , {
+                      "type":"text"
+                      , "text":"Channel Write Operation (%L)"
+                      , "links":
+                      [
+                        {
+                          "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/capsule/a.cl"
+                          , "line":"89"
+                        }
+                      ]
+                    }
+                  ]
+                }
+                , {
+                  "type":"text"
+                  , "text":"Maximum concurrent iterations: Capacity of loop"
+                  , "details":
+                  [
+                    {
+                      "type":"text"
+                      , "text":"Use the %L viewer to estimate capacity"
+                      , "links":
+                      [
+                        {
+                          "view":"Fmax II Report"
+                        }
+                      ]
+                    }
+                  ]
+                }
+                , {
+                  "type":"text"
+                  , "text":"See %L for more information"
+                  , "links":
+                  [
+                    {
+                      "guide":"Best Practices Guide : Loops in a Single Work-Item Kernel"
+                      , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#wfa1476380079940"
+                    }
+                  ]
+                }
+              ]
+              , "children":
+              [
+              ]
+            }
+          ]
+        }
+      ]
+    }
+    , {
+      "name":"Kernel: kernel_PFeeder"
+      , "data":
+      ["", "", ""]
+      , "debug":
+      [
+        [
+          {
+            "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/capsule/a.cl"
+            , "line":98
+          }
+        ]
+      ]
+      , "details":
+      [
+        {
+          "type":"brief"
+          , "text":"Single work-item execution"
+        }
+        , {
+          "type":"text"
+          , "text":"Single work-item execution"
+        }
+        , {
+          "type":"text"
+          , "text":"Fmax bottlenck block: None"
+        }
+        , {
+          "type":"text"
+          , "text":"See %L for more information"
+          , "links":
+          [
+            {
+              "guide":"Best Practices Guide : Kernels"
+              , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#ipp1476408832230"
+            }
+          ]
+        }
+      ]
+      , "children":
+      [
+        {
+          "name":"kernel_PFeeder.B2"
+          , "data":
+          ["Yes", "~1", "9"]
+          , "debug":
+          [
+            [
+              {
+                "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/capsule/a.cl"
+                , "line":120
+              }
+            ]
+          ]
+          , "details":
+          [
+            {
+              "type":"brief"
+              , "text":" "
+            }
+            , {
+              "type":"text"
+              , "text":"Hyper-Optimized loop structure: enabled."
+            }
+            , {
+              "type":"text"
+              , "text":"II is an approximation due to the following stallable instructions:"
+              , "details":
+              [
+                {
+                  "type":"text"
+                  , "text":"Channel Read Operation (%L)"
+                  , "links":
+                  [
+                    {
+                      "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/capsule/a.cl"
+                      , "line":"135"
+                    }
+                  ]
+                }
+                , {
+                  "type":"text"
+                  , "text":"Channel Write Operation (%L)"
+                  , "links":
+                  [
+                    {
+                      "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/capsule/a.cl"
+                      , "line":"255"
+                    }
+                  ]
+                }
+              ]
+            }
+            , {
+              "type":"text"
+              , "text":"Maximum concurrent iterations: Capacity of loop"
+              , "details":
+              [
+                {
+                  "type":"text"
+                  , "text":"Use the %L viewer to estimate capacity"
+                  , "links":
+                  [
+                    {
+                      "view":"Fmax II Report"
+                    }
+                  ]
+                }
+              ]
+            }
+            , {
+              "type":"text"
+              , "text":"See %L for more information"
+              , "links":
+              [
+                {
+                  "guide":"Best Practices Guide : Loops in a Single Work-Item Kernel"
+                  , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#wfa1476380079940"
+                }
+              ]
+            }
+          ]
+          , "children":
+          [
+            {
+              "name":"Fully unrolled loop"
+              , "data":
+              ["n/a", "n/a", "n/a"]
+              , "debug":
+              [
+                [
+                  {
+                    "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/capsule/a.cl"
+                    , "line":139
+                  }
+                ]
+              ]
+              , "details":
+              [
+                {
+                  "type":"brief"
+                  , "text":"Unrolled by #pragma unroll"
+                }
+                , {
+                  "type":"text"
+                  , "text":"Unrolled by #pragma unroll"
+                }
+              ]
+              , "children":
+              [
+              ]
+            }
+          ]
+        }
+      ]
+    }
+    , {
+      "name":"Kernel: kernel_WLoader"
+      , "data":
+      ["", "", ""]
+      , "debug":
+      [
+        [
+          {
+            "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/capsule/a.cl"
+            , "line":270
+          }
+        ]
+      ]
+      , "details":
+      [
+        {
+          "type":"brief"
+          , "text":"Single work-item execution"
+        }
+        , {
+          "type":"text"
+          , "text":"Single work-item execution"
+        }
+        , {
+          "type":"text"
+          , "text":"Fmax bottlenck block: kernel_WLoader.B4"
+        }
+        , {
+          "type":"text"
+          , "text":"Use the %L report to view more details"
+          , "links":
+          [
+            {
+              "view":"Fmax II Report"
+            }
+          ]
+        }
+        , {
+          "type":"text"
+          , "text":"See %L for more information"
+          , "links":
+          [
+            {
+              "guide":"Best Practices Guide : Kernels"
+              , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#ipp1476408832230"
+            }
+          ]
+        }
+      ]
+      , "children":
+      [
+        {
+          "name":"kernel_WLoader.B1"
+          , "data":
+          ["Yes", ">=1", "4"]
+          , "debug":
+          [
+            [
+              {
+                "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/capsule/a.cl"
+                , "line":277
+              }
+            ]
+          ]
+          , "details":
+          [
+            {
+              "type":"brief"
+              , "text":" "
+            }
+            , {
+              "type":"text"
+              , "text":"Hyper-Optimized loop structure: enabled."
+            }
+            , {
+              "type":"text"
+              , "text":"Stallable instruction: n/a"
+            }
+            , {
+              "type":"text"
+              , "text":"Maximum concurrent iterations: Capacity of loop"
+              , "details":
+              [
+                {
+                  "type":"text"
+                  , "text":"Use the %L viewer to estimate capacity"
+                  , "links":
+                  [
+                    {
+                      "view":"Fmax II Report"
+                    }
+                  ]
+                }
+              ]
+            }
+            , {
+              "type":"text"
+              , "text":"See %L for more information"
+              , "links":
+              [
+                {
+                  "guide":"Best Practices Guide : Nested Loops"
+                  , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#rfr1469543500580"
+                }
+              ]
+            }
+          ]
+          , "children":
+          [
+            {
+              "name":"kernel_WLoader.B4"
+              , "data":
+              ["Yes", "~1", "0"]
+              , "debug":
+              [
+                [
+                  {
+                    "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/capsule/a.cl"
+                    , "line":279
+                  }
+                ]
+              ]
+              , "details":
+              [
+                {
+                  "type":"brief"
+                  , "text":" "
+                }
+                , {
+                  "type":"text"
+                  , "text":"Hyper-Optimized loop structure: disabled."
+                }
+                , {
+                  "type":"text"
+                  , "text":"II is an approximation due to the following stallable instructions:"
+                  , "details":
+                  [
+                    {
+                      "type":"text"
+                      , "text":"Load Operation (%L)"
+                      , "links":
+                      [
+                        {
+                          "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/capsule/a.cl"
+                          , "line":"284"
+                        }
+                      ]
+                    }
+                    , {
+                      "type":"text"
+                      , "text":"Channel Write Operation (%L)"
+                      , "links":
+                      [
+                        {
+                          "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/capsule/a.cl"
+                          , "line":"285"
+                        }
+                      ]
+                    }
+                  ]
+                }
+                , {
+                  "type":"text"
+                  , "text":"Maximum concurrent iterations: Capacity of loop"
+                  , "details":
+                  [
+                    {
+                      "type":"text"
+                      , "text":"Use the %L viewer to estimate capacity"
+                      , "links":
+                      [
+                        {
+                          "view":"Fmax II Report"
+                        }
+                      ]
+                    }
+                  ]
+                }
+                , {
+                  "type":"text"
+                  , "text":"See %L for more information"
+                  , "links":
+                  [
+                    {
+                      "guide":"Best Practices Guide : Loops in a Single Work-Item Kernel"
+                      , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#wfa1476380079940"
+                    }
+                  ]
+                }
+              ]
+              , "children":
+              [
+              ]
+            }
+          ]
+        }
+      ]
+    }
+    , {
+      "name":"Kernel: kernel_WFeeder"
+      , "data":
+      ["", "", ""]
+      , "debug":
+      [
+        [
+          {
+            "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/capsule/a.cl"
+            , "line":294
+          }
+        ]
+      ]
+      , "details":
+      [
+        {
+          "type":"brief"
+          , "text":"Single work-item execution"
+        }
+        , {
+          "type":"text"
+          , "text":"Single work-item execution"
+        }
+        , {
+          "type":"text"
+          , "text":"Fmax bottlenck block: None"
+        }
+        , {
+          "type":"text"
+          , "text":"See %L for more information"
+          , "links":
+          [
+            {
+              "guide":"Best Practices Guide : Kernels"
+              , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#ipp1476408832230"
+            }
+          ]
+        }
+      ]
+      , "children":
+      [
+        {
+          "name":"kernel_WFeeder.B2"
+          , "data":
+          ["Yes", "~1", "9"]
+          , "debug":
+          [
+            [
+              {
+                "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/capsule/a.cl"
+                , "line":316
+              }
+            ]
+          ]
+          , "details":
+          [
+            {
+              "type":"brief"
+              , "text":" "
+            }
+            , {
+              "type":"text"
+              , "text":"Hyper-Optimized loop structure: enabled."
+            }
+            , {
+              "type":"text"
+              , "text":"II is an approximation due to the following stallable instructions:"
+              , "details":
+              [
+                {
+                  "type":"text"
+                  , "text":"Channel Read Operation (%L)"
+                  , "links":
+                  [
+                    {
+                      "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/capsule/a.cl"
+                      , "line":"331"
+                    }
+                  ]
+                }
+                , {
+                  "type":"text"
+                  , "text":"Channel Write Operation (%L)"
+                  , "links":
+                  [
+                    {
+                      "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/capsule/a.cl"
+                      , "line":"448"
+                    }
+                  ]
+                }
+              ]
+            }
+            , {
+              "type":"text"
+              , "text":"Maximum concurrent iterations: Capacity of loop"
+              , "details":
+              [
+                {
+                  "type":"text"
+                  , "text":"Use the %L viewer to estimate capacity"
+                  , "links":
+                  [
+                    {
+                      "view":"Fmax II Report"
+                    }
+                  ]
+                }
+              ]
+            }
+            , {
+              "type":"text"
+              , "text":"See %L for more information"
+              , "links":
+              [
+                {
+                  "guide":"Best Practices Guide : Loops in a Single Work-Item Kernel"
+                  , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#wfa1476380079940"
+                }
+              ]
+            }
+          ]
+          , "children":
+          [
+            {
+              "name":"Fully unrolled loop"
+              , "data":
+              ["n/a", "n/a", "n/a"]
+              , "debug":
+              [
+                [
+                  {
+                    "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/capsule/a.cl"
+                    , "line":335
+                  }
+                ]
+              ]
+              , "details":
+              [
+                {
+                  "type":"brief"
+                  , "text":"Unrolled by #pragma unroll"
+                }
+                , {
+                  "type":"text"
+                  , "text":"Unrolled by #pragma unroll"
+                }
+              ]
+              , "children":
+              [
+              ]
+            }
+          ]
+        }
+      ]
+    }
+    , {
+      "name":"Kernel: kernel_Out"
+      , "data":
+      ["", "", ""]
+      , "debug":
+      [
+        [
+          {
+            "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/capsule/a.cl"
+            , "line":458
+          }
+        ]
+      ]
+      , "details":
+      [
+        {
+          "type":"brief"
+          , "text":"Single work-item execution"
+        }
+        , {
+          "type":"text"
+          , "text":"Single work-item execution"
+        }
+        , {
+          "type":"text"
+          , "text":"Fmax bottlenck block: kernel_Out.B3"
+        }
+        , {
+          "type":"text"
+          , "text":"Use the %L report to view more details"
+          , "links":
+          [
+            {
+              "view":"Fmax II Report"
+            }
+          ]
+        }
+        , {
+          "type":"text"
+          , "text":"See %L for more information"
+          , "links":
+          [
+            {
+              "guide":"Best Practices Guide : Kernels"
+              , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#ipp1476408832230"
+            }
+          ]
+        }
+      ]
+      , "children":
+      [
+        {
+          "name":"kernel_Out.B1"
+          , "data":
+          ["Yes", ">=1", "4"]
+          , "debug":
+          [
+            [
+              {
+                "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/capsule/a.cl"
+                , "line":478
+              }
+            ]
+          ]
+          , "details":
+          [
+            {
+              "type":"brief"
+              , "text":" "
+            }
+            , {
+              "type":"text"
+              , "text":"Hyper-Optimized loop structure: enabled."
+            }
+            , {
+              "type":"text"
+              , "text":"Stallable instruction: n/a"
+            }
+            , {
+              "type":"text"
+              , "text":"Maximum concurrent iterations: Capacity of loop"
+              , "details":
+              [
+                {
+                  "type":"text"
+                  , "text":"Use the %L viewer to estimate capacity"
+                  , "links":
+                  [
+                    {
+                      "view":"Fmax II Report"
+                    }
+                  ]
+                }
+              ]
+            }
+            , {
+              "type":"text"
+              , "text":"See %L for more information"
+              , "links":
+              [
+                {
+                  "guide":"Best Practices Guide : Nested Loops"
+                  , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#rfr1469543500580"
+                }
+              ]
+            }
+          ]
+          , "children":
+          [
+            {
+              "name":"kernel_Out.B3"
+              , "data":
+              ["Yes", "~1", "0"]
+              , "debug":
+              [
+                [
+                  {
+                    "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/capsule/a.cl"
+                    , "line":480
+                  }
+                ]
+              ]
+              , "details":
+              [
+                {
+                  "type":"brief"
+                  , "text":" "
+                }
+                , {
+                  "type":"text"
+                  , "text":"Hyper-Optimized loop structure: disabled."
+                }
+                , {
+                  "type":"text"
+                  , "text":"II is an approximation due to the following stallable instructions:"
+                  , "details":
+                  [
+                    {
+                      "type":"text"
+                      , "text":"Channel Read Operation (%L)"
+                      , "links":
+                      [
+                        {
+                          "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/capsule/a.cl"
+                          , "line":"508"
+                        }
+                      ]
+                    }
+                    , {
+                      "type":"text"
+                      , "text":"Channel Read Operation (%L)"
+                      , "links":
+                      [
+                        {
+                          "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/capsule/a.cl"
+                          , "line":"511"
+                        }
+                      ]
+                    }
+                    , {
+                      "type":"text"
+                      , "text":"Channel Write Operation (%L)"
+                      , "links":
+                      [
+                        {
+                          "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/capsule/a.cl"
+                          , "line":"687"
+                        }
+                      ]
+                    }
+                  ]
+                }
+                , {
+                  "type":"text"
+                  , "text":"Maximum concurrent iterations: Capacity of loop"
+                  , "details":
+                  [
+                    {
+                      "type":"text"
+                      , "text":"Use the %L viewer to estimate capacity"
+                      , "links":
+                      [
+                        {
+                          "view":"Fmax II Report"
+                        }
+                      ]
+                    }
+                  ]
+                }
+                , {
+                  "type":"text"
+                  , "text":"See %L for more information"
+                  , "links":
+                  [
+                    {
+                      "guide":"Best Practices Guide : Loops in a Single Work-Item Kernel"
+                      , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#wfa1476380079940"
+                    }
+                  ]
+                }
+              ]
+              , "children":
+              [
+                {
+                  "name":"Fully unrolled loop"
+                  , "data":
+                  ["n/a", "n/a", "n/a"]
+                  , "debug":
+                  [
+                    [
+                      {
+                        "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/capsule/a.cl"
+                        , "line":483
+                      }
+                    ]
+                  ]
+                  , "details":
+                  [
+                    {
+                      "type":"brief"
+                      , "text":"Unrolled by #pragma unroll"
+                    }
+                    , {
+                      "type":"text"
+                      , "text":"Unrolled by #pragma unroll"
+                    }
+                  ]
+                  , "children":
+                  [
+                    {
+                      "name":"Fully unrolled loop"
+                      , "data":
+                      ["n/a", "n/a", "n/a"]
+                      , "debug":
+                      [
+                        [
+                          {
+                            "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/capsule/a.cl"
+                            , "line":486
+                          }
+                        ]
+                      ]
+                      , "details":
+                      [
+                        {
+                          "type":"brief"
+                          , "text":"Unrolled by #pragma unroll"
+                        }
+                        , {
+                          "type":"text"
+                          , "text":"Unrolled by #pragma unroll"
+                        }
+                      ]
+                      , "children":
+                      [
+                        {
+                          "name":"Fully unrolled loop"
+                          , "data":
+                          ["n/a", "n/a", "n/a"]
+                          , "debug":
+                          [
+                            [
+                              {
+                                "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/capsule/a.cl"
+                                , "line":491
+                              }
+                            ]
+                          ]
+                          , "details":
+                          [
+                            {
+                              "type":"brief"
+                              , "text":"Unrolled by #pragma unroll"
+                            }
+                            , {
+                              "type":"text"
+                              , "text":"Unrolled by #pragma unroll"
+                            }
+                          ]
+                          , "children":
+                          [
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+                , {
+                  "name":"Fully unrolled loop"
+                  , "data":
+                  ["n/a", "n/a", "n/a"]
+                  , "debug":
+                  [
+                    [
+                      {
+                        "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/capsule/a.cl"
+                        , "line":516
+                      }
+                    ]
+                  ]
+                  , "details":
+                  [
+                    {
+                      "type":"brief"
+                      , "text":"Unrolled by #pragma unroll"
+                    }
+                    , {
+                      "type":"text"
+                      , "text":"Unrolled by #pragma unroll"
+                    }
+                  ]
+                  , "children":
+                  [
+                    {
+                      "name":"Fully unrolled loop"
+                      , "data":
+                      ["n/a", "n/a", "n/a"]
+                      , "debug":
+                      [
+                        [
+                          {
+                            "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/capsule/a.cl"
+                            , "line":519
+                          }
+                        ]
+                      ]
+                      , "details":
+                      [
+                        {
+                          "type":"brief"
+                          , "text":"Unrolled by #pragma unroll"
+                        }
+                        , {
+                          "type":"text"
+                          , "text":"Unrolled by #pragma unroll"
+                        }
+                      ]
+                      , "children":
+                      [
+                        {
+                          "name":"Fully unrolled loop"
+                          , "data":
+                          ["n/a", "n/a", "n/a"]
+                          , "debug":
+                          [
+                            [
+                              {
+                                "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/capsule/a.cl"
+                                , "line":584
+                              }
+                            ]
+                          ]
+                          , "details":
+                          [
+                            {
+                              "type":"brief"
+                              , "text":"Unrolled by #pragma unroll"
+                            }
+                            , {
+                              "type":"text"
+                              , "text":"Unrolled by #pragma unroll"
+                            }
+                          ]
+                          , "children":
+                          [
+                          ]
+                        }
+                        , {
+                          "name":"Fully unrolled loop"
+                          , "data":
+                          ["n/a", "n/a", "n/a"]
+                          , "debug":
+                          [
+                            [
+                              {
+                                "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/capsule/a.cl"
+                                , "line":605
+                              }
+                            ]
+                          ]
+                          , "details":
+                          [
+                            {
+                              "type":"brief"
+                              , "text":"Unrolled by #pragma unroll"
+                            }
+                            , {
+                              "type":"text"
+                              , "text":"Unrolled by #pragma unroll"
+                            }
+                          ]
+                          , "children":
+                          [
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+                , {
+                  "name":"Fully unrolled loop"
+                  , "data":
+                  ["n/a", "n/a", "n/a"]
+                  , "debug":
+                  [
+                    [
+                      {
+                        "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/capsule/a.cl"
+                        , "line":668
+                      }
+                    ]
+                  ]
+                  , "details":
+                  [
+                    {
+                      "type":"brief"
+                      , "text":"Unrolled by #pragma unroll"
+                    }
+                    , {
+                      "type":"text"
+                      , "text":"Unrolled by #pragma unroll"
+                    }
+                  ]
+                  , "children":
+                  [
+                    {
+                      "name":"Fully unrolled loop"
+                      , "data":
+                      ["n/a", "n/a", "n/a"]
+                      , "debug":
+                      [
+                        [
+                          {
+                            "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/capsule/a.cl"
+                            , "line":673
+                          }
+                        ]
+                      ]
+                      , "details":
+                      [
+                        {
+                          "type":"brief"
+                          , "text":"Unrolled by #pragma unroll"
+                        }
+                        , {
+                          "type":"text"
+                          , "text":"Unrolled by #pragma unroll"
+                        }
+                      ]
+                      , "children":
+                      [
+                      ]
+                    }
+                  ]
+                }
+                , {
+                  "name":"Fully unrolled loop"
+                  , "data":
+                  ["n/a", "n/a", "n/a"]
+                  , "debug":
+                  [
+                    [
+                      {
+                        "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/capsule/a.cl"
+                        , "line":691
+                      }
+                    ]
+                  ]
+                  , "details":
+                  [
+                    {
+                      "type":"brief"
+                      , "text":"Unrolled by #pragma unroll"
+                    }
+                    , {
+                      "type":"text"
+                      , "text":"Unrolled by #pragma unroll"
+                    }
+                  ]
+                  , "children":
+                  [
+                    {
+                      "name":"Fully unrolled loop"
+                      , "data":
+                      ["n/a", "n/a", "n/a"]
+                      , "debug":
+                      [
+                        [
+                          {
+                            "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/capsule/a.cl"
+                            , "line":694
+                          }
+                        ]
+                      ]
+                      , "details":
+                      [
+                        {
+                          "type":"brief"
+                          , "text":"Unrolled by #pragma unroll"
+                        }
+                        , {
+                          "type":"text"
+                          , "text":"Unrolled by #pragma unroll"
+                        }
+                      ]
+                      , "children":
+                      [
+                        {
+                          "name":"Fully unrolled loop"
+                          , "data":
+                          ["n/a", "n/a", "n/a"]
+                          , "debug":
+                          [
+                            [
+                              {
+                                "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/capsule/a.cl"
+                                , "line":697
+                              }
+                            ]
+                          ]
+                          , "details":
+                          [
+                            {
+                              "type":"brief"
+                              , "text":"Unrolled by #pragma unroll"
+                            }
+                            , {
+                              "type":"text"
+                              , "text":"Unrolled by #pragma unroll"
+                            }
+                          ]
+                          , "children":
+                          [
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+    , {
+      "name":"Kernel: kernel_unloader"
+      , "data":
+      ["", "", ""]
+      , "debug":
+      [
+        [
+          {
+            "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/capsule/a.cl"
+            , "line":723
+          }
+        ]
+      ]
+      , "details":
+      [
+        {
+          "type":"brief"
+          , "text":"Single work-item execution"
+        }
+        , {
+          "type":"text"
+          , "text":"Single work-item execution"
+        }
+        , {
+          "type":"text"
+          , "text":"Fmax bottlenck block: kernel_unloader.B4"
+        }
+        , {
+          "type":"text"
+          , "text":"Use the %L report to view more details"
+          , "links":
+          [
+            {
+              "view":"Fmax II Report"
+            }
+          ]
+        }
+        , {
+          "type":"text"
+          , "text":"See %L for more information"
+          , "links":
+          [
+            {
+              "guide":"Best Practices Guide : Kernels"
+              , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#ipp1476408832230"
+            }
+          ]
+        }
+      ]
+      , "children":
+      [
+        {
+          "name":"kernel_unloader.B1"
+          , "data":
+          ["Yes", ">=1", "4"]
+          , "debug":
+          [
+            [
+              {
+                "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/capsule/a.cl"
+                , "line":730
+              }
+            ]
+          ]
+          , "details":
+          [
+            {
+              "type":"brief"
+              , "text":" "
+            }
+            , {
+              "type":"text"
+              , "text":"Hyper-Optimized loop structure: enabled."
+            }
+            , {
+              "type":"text"
+              , "text":"Stallable instruction: n/a"
+            }
+            , {
+              "type":"text"
+              , "text":"Maximum concurrent iterations: Capacity of loop"
+              , "details":
+              [
+                {
+                  "type":"text"
+                  , "text":"Use the %L viewer to estimate capacity"
+                  , "links":
+                  [
+                    {
+                      "view":"Fmax II Report"
+                    }
+                  ]
+                }
+              ]
+            }
+            , {
+              "type":"text"
+              , "text":"See %L for more information"
+              , "links":
+              [
+                {
+                  "guide":"Best Practices Guide : Nested Loops"
+                  , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#rfr1469543500580"
+                }
+              ]
+            }
+          ]
+          , "children":
+          [
+            {
+              "name":"kernel_unloader.B4"
+              , "data":
+              ["Yes", "~1", "0"]
+              , "debug":
+              [
+                [
+                  {
+                    "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/capsule/a.cl"
+                    , "line":732
+                  }
+                ]
+              ]
+              , "details":
+              [
+                {
+                  "type":"brief"
+                  , "text":" "
+                }
+                , {
+                  "type":"text"
+                  , "text":"Hyper-Optimized loop structure: disabled."
+                }
+                , {
+                  "type":"text"
+                  , "text":"II is an approximation due to the following stallable instructions:"
+                  , "details":
+                  [
+                    {
+                      "type":"text"
+                      , "text":"Channel Read Operation (%L)"
+                      , "links":
+                      [
+                        {
+                          "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/capsule/a.cl"
+                          , "line":"734"
+                        }
+                      ]
+                    }
+                    , {
+                      "type":"text"
+                      , "text":"Store Operation (%L > %L)"
+                      , "links":
+                      [
+                        {
+                          "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/capsule/a.cl"
+                          , "line":"737"
+                        }
+                        , {
+                          "filename":"/glob/development-tools/versions/fpgasupportstack/d5005/2.0.1/inteldevstack/hld/share/lib/acl/opencl_lib.h"
+                          , "line":"5705"
+                        }
+                      ]
+                    }
+                  ]
+                }
+                , {
+                  "type":"text"
+                  , "text":"Maximum concurrent iterations: Capacity of loop"
+                  , "details":
+                  [
+                    {
+                      "type":"text"
+                      , "text":"Use the %L viewer to estimate capacity"
+                      , "links":
+                      [
+                        {
+                          "view":"Fmax II Report"
+                        }
+                      ]
+                    }
+                  ]
+                }
+                , {
+                  "type":"text"
+                  , "text":"See %L for more information"
+                  , "links":
+                  [
+                    {
+                      "guide":"Best Practices Guide : Loops in a Single Work-Item Kernel"
+                      , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#wfa1476380079940"
+                    }
+                  ]
+                }
+              ]
+              , "children":
+              [
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,3072 @@
+{
+  "nodes":
+  [
+    {
+      "type":"kernel"
+      , "id":14
+      , "name":"kernel_PFeeder"
+      , "children":
+      [
+        {
+          "type":"inst"
+          , "id":19
+          , "name":"Store"
+          , "debug":
+          [
+            [
+              {
+                "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/capsule/a.cl"
+                , "line":206
+              }
+            ]
+          ]
+          , "details":
+          [
+            {
+              "type":"table"
+              , "Width":"1024 bits"
+              , "Type":"Local-pipelined never-stall"
+              , "Stall-free":"Yes"
+              , "Stores to":"_PFeeder_DB_0_ibuffer"
+              , "Start Cycle":"117"
+              , "Latency":"1"
+              , "Reference":
+              [
+                {
+                  "type":"text"
+                  , "text":"See %L for more information"
+                  , "links":
+                  [
+                    {
+                      "guide":"Best Practices Guide : Load-Store Units"
+                      , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+        , {
+          "type":"inst"
+          , "id":20
+          , "name":"Load"
+          , "debug":
+          [
+            [
+              {
+                "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/capsule/a.cl"
+                , "line":238
+              }
+            ]
+          ]
+          , "details":
+          [
+            {
+              "type":"table"
+              , "Width":"1024 bits"
+              , "Type":"Local-pipelined never-stall"
+              , "Stall-free":"Yes"
+              , "Loads from":"_PFeeder_DB_0_ibuffer"
+              , "Start Cycle":"118"
+              , "Latency":"4"
+              , "Reference":
+              [
+                {
+                  "type":"text"
+                  , "text":"See %L for more information"
+                  , "links":
+                  [
+                    {
+                      "guide":"Best Practices Guide : Load-Store Units"
+                      , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+        , {
+          "type":"inst"
+          , "id":21
+          , "name":"Store"
+          , "debug":
+          [
+            [
+              {
+                "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/capsule/a.cl"
+                , "line":206
+              }
+            ]
+          ]
+          , "details":
+          [
+            {
+              "type":"table"
+              , "Width":"1024 bits"
+              , "Type":"Local-pipelined never-stall"
+              , "Stall-free":"Yes"
+              , "Stores to":"_PFeeder_DB_0_ibuffer"
+              , "Start Cycle":"119"
+              , "Latency":"1"
+              , "Reference":
+              [
+                {
+                  "type":"text"
+                  , "text":"See %L for more information"
+                  , "links":
+                  [
+                    {
+                      "guide":"Best Practices Guide : Load-Store Units"
+                      , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+        , {
+          "type":"inst"
+          , "id":22
+          , "name":"Load"
+          , "debug":
+          [
+            [
+              {
+                "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/capsule/a.cl"
+                , "line":238
+              }
+            ]
+          ]
+          , "details":
+          [
+            {
+              "type":"table"
+              , "Width":"1024 bits"
+              , "Type":"Local-pipelined never-stall"
+              , "Stall-free":"Yes"
+              , "Loads from":"_PFeeder_DB_0_ibuffer"
+              , "Start Cycle":"120"
+              , "Latency":"4"
+              , "Reference":
+              [
+                {
+                  "type":"text"
+                  , "text":"See %L for more information"
+                  , "links":
+                  [
+                    {
+                      "guide":"Best Practices Guide : Load-Store Units"
+                      , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+        , {
+          "type":"inst"
+          , "id":23
+          , "name":"Store"
+          , "debug":
+          [
+            [
+              {
+                "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/capsule/a.cl"
+                , "line":206
+              }
+            ]
+          ]
+          , "details":
+          [
+            {
+              "type":"table"
+              , "Width":"1024 bits"
+              , "Type":"Local-pipelined never-stall"
+              , "Stall-free":"Yes"
+              , "Stores to":"_PFeeder_DB_0_ibuffer"
+              , "Start Cycle":"121"
+              , "Latency":"1"
+              , "Reference":
+              [
+                {
+                  "type":"text"
+                  , "text":"See %L for more information"
+                  , "links":
+                  [
+                    {
+                      "guide":"Best Practices Guide : Load-Store Units"
+                      , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+        , {
+          "type":"inst"
+          , "id":24
+          , "name":"Load"
+          , "debug":
+          [
+            [
+              {
+                "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/capsule/a.cl"
+                , "line":238
+              }
+            ]
+          ]
+          , "details":
+          [
+            {
+              "type":"table"
+              , "Width":"1024 bits"
+              , "Type":"Local-pipelined never-stall"
+              , "Stall-free":"Yes"
+              , "Loads from":"_PFeeder_DB_0_ibuffer"
+              , "Start Cycle":"122"
+              , "Latency":"4"
+              , "Reference":
+              [
+                {
+                  "type":"text"
+                  , "text":"See %L for more information"
+                  , "links":
+                  [
+                    {
+                      "guide":"Best Practices Guide : Load-Store Units"
+                      , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+        , {
+          "type":"inst"
+          , "id":25
+          , "name":"Store"
+          , "debug":
+          [
+            [
+              {
+                "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/capsule/a.cl"
+                , "line":206
+              }
+            ]
+          ]
+          , "details":
+          [
+            {
+              "type":"table"
+              , "Width":"1024 bits"
+              , "Type":"Local-pipelined never-stall"
+              , "Stall-free":"Yes"
+              , "Stores to":"_PFeeder_DB_0_ibuffer"
+              , "Start Cycle":"123"
+              , "Latency":"1"
+              , "Reference":
+              [
+                {
+                  "type":"text"
+                  , "text":"See %L for more information"
+                  , "links":
+                  [
+                    {
+                      "guide":"Best Practices Guide : Load-Store Units"
+                      , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+        , {
+          "type":"inst"
+          , "id":26
+          , "name":"Load"
+          , "debug":
+          [
+            [
+              {
+                "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/capsule/a.cl"
+                , "line":238
+              }
+            ]
+          ]
+          , "details":
+          [
+            {
+              "type":"table"
+              , "Width":"1024 bits"
+              , "Type":"Local-pipelined never-stall"
+              , "Stall-free":"Yes"
+              , "Loads from":"_PFeeder_DB_0_ibuffer"
+              , "Start Cycle":"124"
+              , "Latency":"4"
+              , "Reference":
+              [
+                {
+                  "type":"text"
+                  , "text":"See %L for more information"
+                  , "links":
+                  [
+                    {
+                      "guide":"Best Practices Guide : Load-Store Units"
+                      , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+        , {
+          "type":"inst"
+          , "id":27
+          , "name":"Store"
+          , "debug":
+          [
+            [
+              {
+                "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/capsule/a.cl"
+                , "line":206
+              }
+            ]
+          ]
+          , "details":
+          [
+            {
+              "type":"table"
+              , "Width":"1024 bits"
+              , "Type":"Local-pipelined never-stall"
+              , "Stall-free":"Yes"
+              , "Stores to":"_PFeeder_DB_0_ibuffer"
+              , "Start Cycle":"125"
+              , "Latency":"1"
+              , "Reference":
+              [
+                {
+                  "type":"text"
+                  , "text":"See %L for more information"
+                  , "links":
+                  [
+                    {
+                      "guide":"Best Practices Guide : Load-Store Units"
+                      , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+        , {
+          "type":"inst"
+          , "id":28
+          , "name":"Load"
+          , "debug":
+          [
+            [
+              {
+                "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/capsule/a.cl"
+                , "line":238
+              }
+            ]
+          ]
+          , "details":
+          [
+            {
+              "type":"table"
+              , "Width":"1024 bits"
+              , "Type":"Local-pipelined never-stall"
+              , "Stall-free":"Yes"
+              , "Loads from":"_PFeeder_DB_0_ibuffer"
+              , "Start Cycle":"126"
+              , "Latency":"4"
+              , "Reference":
+              [
+                {
+                  "type":"text"
+                  , "text":"See %L for more information"
+                  , "links":
+                  [
+                    {
+                      "guide":"Best Practices Guide : Load-Store Units"
+                      , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+        , {
+          "type":"inst"
+          , "id":29
+          , "name":"Store"
+          , "debug":
+          [
+            [
+              {
+                "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/capsule/a.cl"
+                , "line":206
+              }
+            ]
+          ]
+          , "details":
+          [
+            {
+              "type":"table"
+              , "Width":"1024 bits"
+              , "Type":"Local-pipelined never-stall"
+              , "Stall-free":"Yes"
+              , "Stores to":"_PFeeder_DB_0_ibuffer"
+              , "Start Cycle":"127"
+              , "Latency":"1"
+              , "Reference":
+              [
+                {
+                  "type":"text"
+                  , "text":"See %L for more information"
+                  , "links":
+                  [
+                    {
+                      "guide":"Best Practices Guide : Load-Store Units"
+                      , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+        , {
+          "type":"inst"
+          , "id":30
+          , "name":"Load"
+          , "debug":
+          [
+            [
+              {
+                "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/capsule/a.cl"
+                , "line":238
+              }
+            ]
+          ]
+          , "details":
+          [
+            {
+              "type":"table"
+              , "Width":"1024 bits"
+              , "Type":"Local-pipelined never-stall"
+              , "Stall-free":"Yes"
+              , "Loads from":"_PFeeder_DB_0_ibuffer"
+              , "Start Cycle":"128"
+              , "Latency":"4"
+              , "Reference":
+              [
+                {
+                  "type":"text"
+                  , "text":"See %L for more information"
+                  , "links":
+                  [
+                    {
+                      "guide":"Best Practices Guide : Load-Store Units"
+                      , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+        , {
+          "type":"inst"
+          , "id":31
+          , "name":"Store"
+          , "debug":
+          [
+            [
+              {
+                "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/capsule/a.cl"
+                , "line":206
+              }
+            ]
+          ]
+          , "details":
+          [
+            {
+              "type":"table"
+              , "Width":"1024 bits"
+              , "Type":"Local-pipelined never-stall"
+              , "Stall-free":"Yes"
+              , "Stores to":"_PFeeder_DB_0_ibuffer"
+              , "Start Cycle":"129"
+              , "Latency":"1"
+              , "Reference":
+              [
+                {
+                  "type":"text"
+                  , "text":"See %L for more information"
+                  , "links":
+                  [
+                    {
+                      "guide":"Best Practices Guide : Load-Store Units"
+                      , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+        , {
+          "type":"inst"
+          , "id":32
+          , "name":"Load"
+          , "debug":
+          [
+            [
+              {
+                "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/capsule/a.cl"
+                , "line":238
+              }
+            ]
+          ]
+          , "details":
+          [
+            {
+              "type":"table"
+              , "Width":"1024 bits"
+              , "Type":"Local-pipelined never-stall"
+              , "Stall-free":"Yes"
+              , "Loads from":"_PFeeder_DB_0_ibuffer"
+              , "Start Cycle":"130"
+              , "Latency":"4"
+              , "Reference":
+              [
+                {
+                  "type":"text"
+                  , "text":"See %L for more information"
+                  , "links":
+                  [
+                    {
+                      "guide":"Best Practices Guide : Load-Store Units"
+                      , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+        , {
+          "type":"inst"
+          , "id":33
+          , "name":"Store"
+          , "debug":
+          [
+            [
+              {
+                "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/capsule/a.cl"
+                , "line":206
+              }
+            ]
+          ]
+          , "details":
+          [
+            {
+              "type":"table"
+              , "Width":"1024 bits"
+              , "Type":"Local-pipelined never-stall"
+              , "Stall-free":"Yes"
+              , "Stores to":"_PFeeder_DB_0_ibuffer"
+              , "Start Cycle":"131"
+              , "Latency":"1"
+              , "Reference":
+              [
+                {
+                  "type":"text"
+                  , "text":"See %L for more information"
+                  , "links":
+                  [
+                    {
+                      "guide":"Best Practices Guide : Load-Store Units"
+                      , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+        , {
+          "type":"inst"
+          , "id":34
+          , "name":"Load"
+          , "debug":
+          [
+            [
+              {
+                "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/capsule/a.cl"
+                , "line":238
+              }
+            ]
+          ]
+          , "details":
+          [
+            {
+              "type":"table"
+              , "Width":"1024 bits"
+              , "Type":"Local-pipelined never-stall"
+              , "Stall-free":"Yes"
+              , "Loads from":"_PFeeder_DB_0_ibuffer"
+              , "Start Cycle":"132"
+              , "Latency":"4"
+              , "Reference":
+              [
+                {
+                  "type":"text"
+                  , "text":"See %L for more information"
+                  , "links":
+                  [
+                    {
+                      "guide":"Best Practices Guide : Load-Store Units"
+                      , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+        , {
+          "type":"inst"
+          , "id":35
+          , "name":"Store"
+          , "debug":
+          [
+            [
+              {
+                "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/capsule/a.cl"
+                , "line":206
+              }
+            ]
+          ]
+          , "details":
+          [
+            {
+              "type":"table"
+              , "Width":"1024 bits"
+              , "Type":"Local-pipelined never-stall"
+              , "Stall-free":"Yes"
+              , "Stores to":"_PFeeder_DB_0_ibuffer"
+              , "Start Cycle":"133"
+              , "Latency":"1"
+              , "Reference":
+              [
+                {
+                  "type":"text"
+                  , "text":"See %L for more information"
+                  , "links":
+                  [
+                    {
+                      "guide":"Best Practices Guide : Load-Store Units"
+                      , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+        , {
+          "type":"inst"
+          , "id":36
+          , "name":"Load"
+          , "debug":
+          [
+            [
+              {
+                "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/capsule/a.cl"
+                , "line":238
+              }
+            ]
+          ]
+          , "details":
+          [
+            {
+              "type":"table"
+              , "Width":"1024 bits"
+              , "Type":"Local-pipelined never-stall"
+              , "Stall-free":"Yes"
+              , "Loads from":"_PFeeder_DB_0_ibuffer"
+              , "Start Cycle":"134"
+              , "Latency":"4"
+              , "Reference":
+              [
+                {
+                  "type":"text"
+                  , "text":"See %L for more information"
+                  , "links":
+                  [
+                    {
+                      "guide":"Best Practices Guide : Load-Store Units"
+                      , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+        , {
+          "type":"inst"
+          , "id":37
+          , "name":"Store"
+          , "debug":
+          [
+            [
+              {
+                "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/capsule/a.cl"
+                , "line":206
+              }
+            ]
+          ]
+          , "details":
+          [
+            {
+              "type":"table"
+              , "Width":"1024 bits"
+              , "Type":"Local-pipelined never-stall"
+              , "Stall-free":"Yes"
+              , "Stores to":"_PFeeder_DB_0_ibuffer"
+              , "Start Cycle":"135"
+              , "Latency":"1"
+              , "Reference":
+              [
+                {
+                  "type":"text"
+                  , "text":"See %L for more information"
+                  , "links":
+                  [
+                    {
+                      "guide":"Best Practices Guide : Load-Store Units"
+                      , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+        , {
+          "type":"inst"
+          , "id":38
+          , "name":"Load"
+          , "debug":
+          [
+            [
+              {
+                "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/capsule/a.cl"
+                , "line":238
+              }
+            ]
+          ]
+          , "details":
+          [
+            {
+              "type":"table"
+              , "Width":"1024 bits"
+              , "Type":"Local-pipelined never-stall"
+              , "Stall-free":"Yes"
+              , "Loads from":"_PFeeder_DB_0_ibuffer"
+              , "Start Cycle":"136"
+              , "Latency":"4"
+              , "Reference":
+              [
+                {
+                  "type":"text"
+                  , "text":"See %L for more information"
+                  , "links":
+                  [
+                    {
+                      "guide":"Best Practices Guide : Load-Store Units"
+                      , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+        , {
+          "type":"inst"
+          , "id":39
+          , "name":"Store"
+          , "debug":
+          [
+            [
+              {
+                "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/capsule/a.cl"
+                , "line":206
+              }
+            ]
+          ]
+          , "details":
+          [
+            {
+              "type":"table"
+              , "Width":"1024 bits"
+              , "Type":"Local-pipelined never-stall"
+              , "Stall-free":"Yes"
+              , "Stores to":"_PFeeder_DB_0_ibuffer"
+              , "Start Cycle":"137"
+              , "Latency":"1"
+              , "Reference":
+              [
+                {
+                  "type":"text"
+                  , "text":"See %L for more information"
+                  , "links":
+                  [
+                    {
+                      "guide":"Best Practices Guide : Load-Store Units"
+                      , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+        , {
+          "type":"inst"
+          , "id":40
+          , "name":"Load"
+          , "debug":
+          [
+            [
+              {
+                "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/capsule/a.cl"
+                , "line":238
+              }
+            ]
+          ]
+          , "details":
+          [
+            {
+              "type":"table"
+              , "Width":"1024 bits"
+              , "Type":"Local-pipelined never-stall"
+              , "Stall-free":"Yes"
+              , "Loads from":"_PFeeder_DB_0_ibuffer"
+              , "Start Cycle":"138"
+              , "Latency":"4"
+              , "Reference":
+              [
+                {
+                  "type":"text"
+                  , "text":"See %L for more information"
+                  , "links":
+                  [
+                    {
+                      "guide":"Best Practices Guide : Load-Store Units"
+                      , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+        , {
+          "type":"inst"
+          , "id":41
+          , "name":"Store"
+          , "debug":
+          [
+            [
+              {
+                "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/capsule/a.cl"
+                , "line":206
+              }
+            ]
+          ]
+          , "details":
+          [
+            {
+              "type":"table"
+              , "Width":"1024 bits"
+              , "Type":"Local-pipelined never-stall"
+              , "Stall-free":"Yes"
+              , "Stores to":"_PFeeder_DB_0_ibuffer"
+              , "Start Cycle":"139"
+              , "Latency":"1"
+              , "Reference":
+              [
+                {
+                  "type":"text"
+                  , "text":"See %L for more information"
+                  , "links":
+                  [
+                    {
+                      "guide":"Best Practices Guide : Load-Store Units"
+                      , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+        , {
+          "type":"inst"
+          , "id":42
+          , "name":"Load"
+          , "debug":
+          [
+            [
+              {
+                "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/capsule/a.cl"
+                , "line":238
+              }
+            ]
+          ]
+          , "details":
+          [
+            {
+              "type":"table"
+              , "Width":"1024 bits"
+              , "Type":"Local-pipelined never-stall"
+              , "Stall-free":"Yes"
+              , "Loads from":"_PFeeder_DB_0_ibuffer"
+              , "Start Cycle":"140"
+              , "Latency":"4"
+              , "Reference":
+              [
+                {
+                  "type":"text"
+                  , "text":"See %L for more information"
+                  , "links":
+                  [
+                    {
+                      "guide":"Best Practices Guide : Load-Store Units"
+                      , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+        , {
+          "type":"inst"
+          , "id":43
+          , "name":"Store"
+          , "debug":
+          [
+            [
+              {
+                "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/capsule/a.cl"
+                , "line":206
+              }
+            ]
+          ]
+          , "details":
+          [
+            {
+              "type":"table"
+              , "Width":"1024 bits"
+              , "Type":"Local-pipelined never-stall"
+              , "Stall-free":"Yes"
+              , "Stores to":"_PFeeder_DB_0_ibuffer"
+              , "Start Cycle":"141"
+              , "Latency":"1"
+              , "Reference":
+              [
+                {
+                  "type":"text"
+                  , "text":"See %L for more information"
+                  , "links":
+                  [
+                    {
+                      "guide":"Best Practices Guide : Load-Store Units"
+                      , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+        , {
+          "type":"inst"
+          , "id":44
+          , "name":"Load"
+          , "debug":
+          [
+            [
+              {
+                "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/capsule/a.cl"
+                , "line":238
+              }
+            ]
+          ]
+          , "details":
+          [
+            {
+              "type":"table"
+              , "Width":"1024 bits"
+              , "Type":"Local-pipelined never-stall"
+              , "Stall-free":"Yes"
+              , "Loads from":"_PFeeder_DB_0_ibuffer"
+              , "Start Cycle":"142"
+              , "Latency":"4"
+              , "Reference":
+              [
+                {
+                  "type":"text"
+                  , "text":"See %L for more information"
+                  , "links":
+                  [
+                    {
+                      "guide":"Best Practices Guide : Load-Store Units"
+                      , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+        , {
+          "type":"inst"
+          , "id":45
+          , "name":"Store"
+          , "debug":
+          [
+            [
+              {
+                "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/capsule/a.cl"
+                , "line":206
+              }
+            ]
+          ]
+          , "details":
+          [
+            {
+              "type":"table"
+              , "Width":"1024 bits"
+              , "Type":"Local-pipelined never-stall"
+              , "Stall-free":"Yes"
+              , "Stores to":"_PFeeder_DB_0_ibuffer"
+              , "Start Cycle":"143"
+              , "Latency":"1"
+              , "Reference":
+              [
+                {
+                  "type":"text"
+                  , "text":"See %L for more information"
+                  , "links":
+                  [
+                    {
+                      "guide":"Best Practices Guide : Load-Store Units"
+                      , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+        , {
+          "type":"inst"
+          , "id":46
+          , "name":"Load"
+          , "debug":
+          [
+            [
+              {
+                "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/capsule/a.cl"
+                , "line":238
+              }
+            ]
+          ]
+          , "details":
+          [
+            {
+              "type":"table"
+              , "Width":"1024 bits"
+              , "Type":"Local-pipelined never-stall"
+              , "Stall-free":"Yes"
+              , "Loads from":"_PFeeder_DB_0_ibuffer"
+              , "Start Cycle":"144"
+              , "Latency":"4"
+              , "Reference":
+              [
+                {
+                  "type":"text"
+                  , "text":"See %L for more information"
+                  , "links":
+                  [
+                    {
+                      "guide":"Best Practices Guide : Load-Store Units"
+                      , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+        , {
+          "type":"memtype"
+          , "id":51
+          , "name":"Local Memory"
+          , "children":
+          [
+            {
+              "type":"memsys"
+              , "id":52
+              , "name":"_PFeeder_DB_0_ibuffer"
+              , "debug":
+              [
+                [
+                  {
+                    "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/capsule/a.cl"
+                    , "line":106
+                  }
+                ]
+              ]
+              , "children":
+              [
+                {
+                  "type":"bank"
+                  , "id":53
+                  , "name":"Bank 0"
+                  , "debug":
+                  [
+                    [
+                      {
+                        "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/capsule/a.cl"
+                        , "line":106
+                      }
+                    ]
+                  ]
+                  , "children":
+                  [
+                    {
+                      "type":"port"
+                      , "id":69
+                      , "name":"R"
+                    }
+                    , {
+                      "type":"port"
+                      , "id":83
+                      , "name":"W"
+                    }
+                  ]
+                  , "details":
+                  [
+                    {
+                      "type":"table"
+                      , "details":
+                      [
+                        {
+                          "type":"brief"
+                          , "text":"2 total ports/bank\n1 read ports/bank\n1 write ports/bank"
+                        }
+                      ]
+                      , "Total number of ports per bank":"2"
+                      , "Number of read ports per bank":"1"
+                      , "Number of write ports per bank":"1"
+                      , "Total replication":"1"
+                    }
+                  ]
+                }
+                , {
+                  "type":"bank"
+                  , "id":54
+                  , "name":"Bank 1"
+                  , "debug":
+                  [
+                    [
+                      {
+                        "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/capsule/a.cl"
+                        , "line":106
+                      }
+                    ]
+                  ]
+                  , "children":
+                  [
+                    {
+                      "type":"port"
+                      , "id":70
+                      , "name":"R"
+                    }
+                    , {
+                      "type":"port"
+                      , "id":84
+                      , "name":"W"
+                    }
+                  ]
+                  , "details":
+                  [
+                    {
+                      "type":"table"
+                      , "details":
+                      [
+                        {
+                          "type":"brief"
+                          , "text":"2 total ports/bank\n1 read ports/bank\n1 write ports/bank"
+                        }
+                      ]
+                      , "Total number of ports per bank":"2"
+                      , "Number of read ports per bank":"1"
+                      , "Number of write ports per bank":"1"
+                      , "Total replication":"1"
+                    }
+                  ]
+                }
+                , {
+                  "type":"bank"
+                  , "id":55
+                  , "name":"Bank 2"
+                  , "debug":
+                  [
+                    [
+                      {
+                        "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/capsule/a.cl"
+                        , "line":106
+                      }
+                    ]
+                  ]
+                  , "children":
+                  [
+                    {
+                      "type":"port"
+                      , "id":71
+                      , "name":"R"
+                    }
+                    , {
+                      "type":"port"
+                      , "id":85
+                      , "name":"W"
+                    }
+                  ]
+                  , "details":
+                  [
+                    {
+                      "type":"table"
+                      , "details":
+                      [
+                        {
+                          "type":"brief"
+                          , "text":"2 total ports/bank\n1 read ports/bank\n1 write ports/bank"
+                        }
+                      ]
+                      , "Total number of ports per bank":"2"
+                      , "Number of read ports per bank":"1"
+                      , "Number of write ports per bank":"1"
+                      , "Total replication":"1"
+                    }
+                  ]
+                }
+                , {
+                  "type":"bank"
+                  , "id":56
+                  , "name":"Bank 3"
+                  , "debug":
+                  [
+                    [
+                      {
+                        "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/capsule/a.cl"
+                        , "line":106
+                      }
+                    ]
+                  ]
+                  , "children":
+                  [
+                    {
+                      "type":"port"
+                      , "id":72
+                      , "name":"R"
+                    }
+                    , {
+                      "type":"port"
+                      , "id":86
+                      , "name":"W"
+                    }
+                  ]
+                  , "details":
+                  [
+                    {
+                      "type":"table"
+                      , "details":
+                      [
+                        {
+                          "type":"brief"
+                          , "text":"2 total ports/bank\n1 read ports/bank\n1 write ports/bank"
+                        }
+                      ]
+                      , "Total number of ports per bank":"2"
+                      , "Number of read ports per bank":"1"
+                      , "Number of write ports per bank":"1"
+                      , "Total replication":"1"
+                    }
+                  ]
+                }
+                , {
+                  "type":"bank"
+                  , "id":57
+                  , "name":"Bank 4"
+                  , "debug":
+                  [
+                    [
+                      {
+                        "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/capsule/a.cl"
+                        , "line":106
+                      }
+                    ]
+                  ]
+                  , "children":
+                  [
+                    {
+                      "type":"port"
+                      , "id":73
+                      , "name":"R"
+                    }
+                    , {
+                      "type":"port"
+                      , "id":87
+                      , "name":"W"
+                    }
+                  ]
+                  , "details":
+                  [
+                    {
+                      "type":"table"
+                      , "details":
+                      [
+                        {
+                          "type":"brief"
+                          , "text":"2 total ports/bank\n1 read ports/bank\n1 write ports/bank"
+                        }
+                      ]
+                      , "Total number of ports per bank":"2"
+                      , "Number of read ports per bank":"1"
+                      , "Number of write ports per bank":"1"
+                      , "Total replication":"1"
+                    }
+                  ]
+                }
+                , {
+                  "type":"bank"
+                  , "id":58
+                  , "name":"Bank 5"
+                  , "debug":
+                  [
+                    [
+                      {
+                        "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/capsule/a.cl"
+                        , "line":106
+                      }
+                    ]
+                  ]
+                  , "children":
+                  [
+                    {
+                      "type":"port"
+                      , "id":74
+                      , "name":"R"
+                    }
+                    , {
+                      "type":"port"
+                      , "id":88
+                      , "name":"W"
+                    }
+                  ]
+                  , "details":
+                  [
+                    {
+                      "type":"table"
+                      , "details":
+                      [
+                        {
+                          "type":"brief"
+                          , "text":"2 total ports/bank\n1 read ports/bank\n1 write ports/bank"
+                        }
+                      ]
+                      , "Total number of ports per bank":"2"
+                      , "Number of read ports per bank":"1"
+                      , "Number of write ports per bank":"1"
+                      , "Total replication":"1"
+                    }
+                  ]
+                }
+                , {
+                  "type":"bank"
+                  , "id":59
+                  , "name":"Bank 6"
+                  , "debug":
+                  [
+                    [
+                      {
+                        "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/capsule/a.cl"
+                        , "line":106
+                      }
+                    ]
+                  ]
+                  , "children":
+                  [
+                    {
+                      "type":"port"
+                      , "id":75
+                      , "name":"R"
+                    }
+                    , {
+                      "type":"port"
+                      , "id":89
+                      , "name":"W"
+                    }
+                  ]
+                  , "details":
+                  [
+                    {
+                      "type":"table"
+                      , "details":
+                      [
+                        {
+                          "type":"brief"
+                          , "text":"2 total ports/bank\n1 read ports/bank\n1 write ports/bank"
+                        }
+                      ]
+                      , "Total number of ports per bank":"2"
+                      , "Number of read ports per bank":"1"
+                      , "Number of write ports per bank":"1"
+                      , "Total replication":"1"
+                    }
+                  ]
+                }
+                , {
+                  "type":"bank"
+                  , "id":60
+                  , "name":"Bank 7"
+                  , "debug":
+                  [
+                    [
+                      {
+                        "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/capsule/a.cl"
+                        , "line":106
+                      }
+                    ]
+                  ]
+                  , "children":
+                  [
+                    {
+                      "type":"port"
+                      , "id":76
+                      , "name":"R"
+                    }
+                    , {
+                      "type":"port"
+                      , "id":90
+                      , "name":"W"
+                    }
+                  ]
+                  , "details":
+                  [
+                    {
+                      "type":"table"
+                      , "details":
+                      [
+                        {
+                          "type":"brief"
+                          , "text":"2 total ports/bank\n1 read ports/bank\n1 write ports/bank"
+                        }
+                      ]
+                      , "Total number of ports per bank":"2"
+                      , "Number of read ports per bank":"1"
+                      , "Number of write ports per bank":"1"
+                      , "Total replication":"1"
+                    }
+                  ]
+                }
+                , {
+                  "type":"bank"
+                  , "id":61
+                  , "name":"Bank 8"
+                  , "debug":
+                  [
+                    [
+                      {
+                        "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/capsule/a.cl"
+                        , "line":106
+                      }
+                    ]
+                  ]
+                  , "children":
+                  [
+                    {
+                      "type":"port"
+                      , "id":77
+                      , "name":"R"
+                    }
+                    , {
+                      "type":"port"
+                      , "id":91
+                      , "name":"W"
+                    }
+                  ]
+                  , "details":
+                  [
+                    {
+                      "type":"table"
+                      , "details":
+                      [
+                        {
+                          "type":"brief"
+                          , "text":"2 total ports/bank\n1 read ports/bank\n1 write ports/bank"
+                        }
+                      ]
+                      , "Total number of ports per bank":"2"
+                      , "Number of read ports per bank":"1"
+                      , "Number of write ports per bank":"1"
+                      , "Total replication":"1"
+                    }
+                  ]
+                }
+                , {
+                  "type":"bank"
+                  , "id":62
+                  , "name":"Bank 9"
+                  , "debug":
+                  [
+                    [
+                      {
+                        "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/capsule/a.cl"
+                        , "line":106
+                      }
+                    ]
+                  ]
+                  , "children":
+                  [
+                    {
+                      "type":"port"
+                      , "id":78
+                      , "name":"R"
+                    }
+                    , {
+                      "type":"port"
+                      , "id":92
+                      , "name":"W"
+                    }
+                  ]
+                  , "details":
+                  [
+                    {
+                      "type":"table"
+                      , "details":
+                      [
+                        {
+                          "type":"brief"
+                          , "text":"2 total ports/bank\n1 read ports/bank\n1 write ports/bank"
+                        }
+                      ]
+                      , "Total number of ports per bank":"2"
+                      , "Number of read ports per bank":"1"
+                      , "Number of write ports per bank":"1"
+                      , "Total replication":"1"
+                    }
+                  ]
+                }
+                , {
+                  "type":"bank"
+                  , "id":63
+                  , "name":"Bank 10"
+                  , "debug":
+                  [
+                    [
+                      {
+                        "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/capsule/a.cl"
+                        , "line":106
+                      }
+                    ]
+                  ]
+                  , "children":
+                  [
+                    {
+                      "type":"port"
+                      , "id":79
+                      , "name":"R"
+                    }
+                    , {
+                      "type":"port"
+                      , "id":93
+                      , "name":"W"
+                    }
+                  ]
+                  , "details":
+                  [
+                    {
+                      "type":"table"
+                      , "details":
+                      [
+                        {
+                          "type":"brief"
+                          , "text":"2 total ports/bank\n1 read ports/bank\n1 write ports/bank"
+                        }
+                      ]
+                      , "Total number of ports per bank":"2"
+                      , "Number of read ports per bank":"1"
+                      , "Number of write ports per bank":"1"
+                      , "Total replication":"1"
+                    }
+                  ]
+                }
+                , {
+                  "type":"bank"
+                  , "id":64
+                  , "name":"Bank 11"
+                  , "debug":
+                  [
+                    [
+                      {
+                        "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/capsule/a.cl"
+                        , "line":106
+                      }
+                    ]
+                  ]
+                  , "children":
+                  [
+                    {
+                      "type":"port"
+                      , "id":80
+                      , "name":"R"
+                    }
+                    , {
+                      "type":"port"
+                      , "id":94
+                      , "name":"W"
+                    }
+                  ]
+                  , "details":
+                  [
+                    {
+                      "type":"table"
+                      , "details":
+                      [
+                        {
+                          "type":"brief"
+                          , "text":"2 total ports/bank\n1 read ports/bank\n1 write ports/bank"
+                        }
+                      ]
+                      , "Total number of ports per bank":"2"
+                      , "Number of read ports per bank":"1"
+                      , "Number of write ports per bank":"1"
+                      , "Total replication":"1"
+                    }
+                  ]
+                }
+                , {
+                  "type":"bank"
+                  , "id":65
+                  , "name":"Bank 12"
+                  , "debug":
+                  [
+                    [
+                      {
+                        "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/capsule/a.cl"
+                        , "line":106
+                      }
+                    ]
+                  ]
+                  , "children":
+                  [
+                    {
+                      "type":"port"
+                      , "id":81
+                      , "name":"R"
+                    }
+                    , {
+                      "type":"port"
+                      , "id":95
+                      , "name":"W"
+                    }
+                  ]
+                  , "details":
+                  [
+                    {
+                      "type":"table"
+                      , "details":
+                      [
+                        {
+                          "type":"brief"
+                          , "text":"2 total ports/bank\n1 read ports/bank\n1 write ports/bank"
+                        }
+                      ]
+                      , "Total number of ports per bank":"2"
+                      , "Number of read ports per bank":"1"
+                      , "Number of write ports per bank":"1"
+                      , "Total replication":"1"
+                    }
+                  ]
+                }
+                , {
+                  "type":"bank"
+                  , "id":66
+                  , "name":"Bank 13"
+                  , "debug":
+                  [
+                    [
+                      {
+                        "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/capsule/a.cl"
+                        , "line":106
+                      }
+                    ]
+                  ]
+                  , "children":
+                  [
+                    {
+                      "type":"port"
+                      , "id":82
+                      , "name":"R"
+                    }
+                    , {
+                      "type":"port"
+                      , "id":96
+                      , "name":"W"
+                    }
+                  ]
+                  , "details":
+                  [
+                    {
+                      "type":"table"
+                      , "details":
+                      [
+                        {
+                          "type":"brief"
+                          , "text":"2 total ports/bank\n1 read ports/bank\n1 write ports/bank"
+                        }
+                      ]
+                      , "Total number of ports per bank":"2"
+                      , "Number of read ports per bank":"1"
+                      , "Number of write ports per bank":"1"
+                      , "Total replication":"1"
+                    }
+                  ]
+                }
+                , {
+                  "type":"bank"
+                  , "id":67
+                  , "name":"Bank 14"
+                  , "debug":
+                  [
+                    [
+                      {
+                        "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/capsule/a.cl"
+                        , "line":106
+                      }
+                    ]
+                  ]
+                }
+                , {
+                  "type":"bank"
+                  , "id":68
+                  , "name":"Bank 15"
+                  , "debug":
+                  [
+                    [
+                      {
+                        "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/capsule/a.cl"
+                        , "line":106
+                      }
+                    ]
+                  ]
+                }
+              ]
+              , "details":
+              [
+                {
+                  "type":"table"
+                  , "details":
+                  [
+                    {
+                      "type":"brief"
+                      , "text":"2359296B requested\n4194304B implemented"
+                    }
+                  ]
+                  , "Requested size":"2359296 bytes"
+                  , "Implemented size":"4194304 bytes"
+                  , "Number of banks":"16"
+                  , "Bank width":"1024 bits"
+                  , "Bank depth":"2048 words"
+                  , "Total replication":"1"
+                  , "Reference":
+                  [
+                    {
+                      "type":"text"
+                      , "text":"See %L for more information"
+                      , "links":
+                      [
+                        {
+                          "guide":"Best Practices Guide : Local Memory"
+                          , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#chn1469549457114"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+    , {
+      "type":"kernel"
+      , "id":108
+      , "name":"kernel_WFeeder"
+      , "children":
+      [
+        {
+          "type":"inst"
+          , "id":113
+          , "name":"Store"
+          , "debug":
+          [
+            [
+              {
+                "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/capsule/a.cl"
+                , "line":400
+              }
+            ]
+          ]
+          , "details":
+          [
+            {
+              "type":"table"
+              , "Width":"1024 bits"
+              , "Type":"Local-pipelined never-stall"
+              , "Stall-free":"Yes"
+              , "Stores to":"_WFeeder_DB_0_ibuffer"
+              , "Start Cycle":"109"
+              , "Latency":"1"
+              , "Reference":
+              [
+                {
+                  "type":"text"
+                  , "text":"See %L for more information"
+                  , "links":
+                  [
+                    {
+                      "guide":"Best Practices Guide : Load-Store Units"
+                      , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+        , {
+          "type":"inst"
+          , "id":114
+          , "name":"Load"
+          , "debug":
+          [
+            [
+              {
+                "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/capsule/a.cl"
+                , "line":431
+              }
+            ]
+          ]
+          , "details":
+          [
+            {
+              "type":"table"
+              , "Width":"1024 bits"
+              , "Type":"Local-pipelined never-stall"
+              , "Stall-free":"Yes"
+              , "Loads from":"_WFeeder_DB_0_ibuffer"
+              , "Start Cycle":"110"
+              , "Latency":"4"
+              , "Reference":
+              [
+                {
+                  "type":"text"
+                  , "text":"See %L for more information"
+                  , "links":
+                  [
+                    {
+                      "guide":"Best Practices Guide : Load-Store Units"
+                      , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+        , {
+          "type":"inst"
+          , "id":115
+          , "name":"Store"
+          , "debug":
+          [
+            [
+              {
+                "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/capsule/a.cl"
+                , "line":400
+              }
+            ]
+          ]
+          , "details":
+          [
+            {
+              "type":"table"
+              , "Width":"1024 bits"
+              , "Type":"Local-pipelined never-stall"
+              , "Stall-free":"Yes"
+              , "Stores to":"_WFeeder_DB_0_ibuffer"
+              , "Start Cycle":"111"
+              , "Latency":"1"
+              , "Reference":
+              [
+                {
+                  "type":"text"
+                  , "text":"See %L for more information"
+                  , "links":
+                  [
+                    {
+                      "guide":"Best Practices Guide : Load-Store Units"
+                      , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+        , {
+          "type":"inst"
+          , "id":116
+          , "name":"Load"
+          , "debug":
+          [
+            [
+              {
+                "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/capsule/a.cl"
+                , "line":431
+              }
+            ]
+          ]
+          , "details":
+          [
+            {
+              "type":"table"
+              , "Width":"1024 bits"
+              , "Type":"Local-pipelined never-stall"
+              , "Stall-free":"Yes"
+              , "Loads from":"_WFeeder_DB_0_ibuffer"
+              , "Start Cycle":"112"
+              , "Latency":"4"
+              , "Reference":
+              [
+                {
+                  "type":"text"
+                  , "text":"See %L for more information"
+                  , "links":
+                  [
+                    {
+                      "guide":"Best Practices Guide : Load-Store Units"
+                      , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+        , {
+          "type":"inst"
+          , "id":117
+          , "name":"Store"
+          , "debug":
+          [
+            [
+              {
+                "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/capsule/a.cl"
+                , "line":400
+              }
+            ]
+          ]
+          , "details":
+          [
+            {
+              "type":"table"
+              , "Width":"1024 bits"
+              , "Type":"Local-pipelined never-stall"
+              , "Stall-free":"Yes"
+              , "Stores to":"_WFeeder_DB_0_ibuffer"
+              , "Start Cycle":"113"
+              , "Latency":"1"
+              , "Reference":
+              [
+                {
+                  "type":"text"
+                  , "text":"See %L for more information"
+                  , "links":
+                  [
+                    {
+                      "guide":"Best Practices Guide : Load-Store Units"
+                      , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+        , {
+          "type":"inst"
+          , "id":118
+          , "name":"Load"
+          , "debug":
+          [
+            [
+              {
+                "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/capsule/a.cl"
+                , "line":431
+              }
+            ]
+          ]
+          , "details":
+          [
+            {
+              "type":"table"
+              , "Width":"1024 bits"
+              , "Type":"Local-pipelined never-stall"
+              , "Stall-free":"Yes"
+              , "Loads from":"_WFeeder_DB_0_ibuffer"
+              , "Start Cycle":"114"
+              , "Latency":"4"
+              , "Reference":
+              [
+                {
+                  "type":"text"
+                  , "text":"See %L for more information"
+                  , "links":
+                  [
+                    {
+                      "guide":"Best Practices Guide : Load-Store Units"
+                      , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+        , {
+          "type":"inst"
+          , "id":119
+          , "name":"Store"
+          , "debug":
+          [
+            [
+              {
+                "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/capsule/a.cl"
+                , "line":400
+              }
+            ]
+          ]
+          , "details":
+          [
+            {
+              "type":"table"
+              , "Width":"1024 bits"
+              , "Type":"Local-pipelined never-stall"
+              , "Stall-free":"Yes"
+              , "Stores to":"_WFeeder_DB_0_ibuffer"
+              , "Start Cycle":"115"
+              , "Latency":"1"
+              , "Reference":
+              [
+                {
+                  "type":"text"
+                  , "text":"See %L for more information"
+                  , "links":
+                  [
+                    {
+                      "guide":"Best Practices Guide : Load-Store Units"
+                      , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+        , {
+          "type":"inst"
+          , "id":120
+          , "name":"Load"
+          , "debug":
+          [
+            [
+              {
+                "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/capsule/a.cl"
+                , "line":431
+              }
+            ]
+          ]
+          , "details":
+          [
+            {
+              "type":"table"
+              , "Width":"1024 bits"
+              , "Type":"Local-pipelined never-stall"
+              , "Stall-free":"Yes"
+              , "Loads from":"_WFeeder_DB_0_ibuffer"
+              , "Start Cycle":"116"
+              , "Latency":"4"
+              , "Reference":
+              [
+                {
+                  "type":"text"
+                  , "text":"See %L for more information"
+                  , "links":
+                  [
+                    {
+                      "guide":"Best Practices Guide : Load-Store Units"
+                      , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+        , {
+          "type":"inst"
+          , "id":121
+          , "name":"Store"
+          , "debug":
+          [
+            [
+              {
+                "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/capsule/a.cl"
+                , "line":400
+              }
+            ]
+          ]
+          , "details":
+          [
+            {
+              "type":"table"
+              , "Width":"1024 bits"
+              , "Type":"Local-pipelined never-stall"
+              , "Stall-free":"Yes"
+              , "Stores to":"_WFeeder_DB_0_ibuffer"
+              , "Start Cycle":"117"
+              , "Latency":"1"
+              , "Reference":
+              [
+                {
+                  "type":"text"
+                  , "text":"See %L for more information"
+                  , "links":
+                  [
+                    {
+                      "guide":"Best Practices Guide : Load-Store Units"
+                      , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+        , {
+          "type":"inst"
+          , "id":122
+          , "name":"Load"
+          , "debug":
+          [
+            [
+              {
+                "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/capsule/a.cl"
+                , "line":431
+              }
+            ]
+          ]
+          , "details":
+          [
+            {
+              "type":"table"
+              , "Width":"1024 bits"
+              , "Type":"Local-pipelined never-stall"
+              , "Stall-free":"Yes"
+              , "Loads from":"_WFeeder_DB_0_ibuffer"
+              , "Start Cycle":"118"
+              , "Latency":"4"
+              , "Reference":
+              [
+                {
+                  "type":"text"
+                  , "text":"See %L for more information"
+                  , "links":
+                  [
+                    {
+                      "guide":"Best Practices Guide : Load-Store Units"
+                      , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+        , {
+          "type":"inst"
+          , "id":123
+          , "name":"Store"
+          , "debug":
+          [
+            [
+              {
+                "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/capsule/a.cl"
+                , "line":400
+              }
+            ]
+          ]
+          , "details":
+          [
+            {
+              "type":"table"
+              , "Width":"1024 bits"
+              , "Type":"Local-pipelined never-stall"
+              , "Stall-free":"Yes"
+              , "Stores to":"_WFeeder_DB_0_ibuffer"
+              , "Start Cycle":"119"
+              , "Latency":"1"
+              , "Reference":
+              [
+                {
+                  "type":"text"
+                  , "text":"See %L for more information"
+                  , "links":
+                  [
+                    {
+                      "guide":"Best Practices Guide : Load-Store Units"
+                      , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+        , {
+          "type":"inst"
+          , "id":124
+          , "name":"Load"
+          , "debug":
+          [
+            [
+              {
+                "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/capsule/a.cl"
+                , "line":431
+              }
+            ]
+          ]
+          , "details":
+          [
+            {
+              "type":"table"
+              , "Width":"1024 bits"
+              , "Type":"Local-pipelined never-stall"
+              , "Stall-free":"Yes"
+              , "Loads from":"_WFeeder_DB_0_ibuffer"
+              , "Start Cycle":"120"
+              , "Latency":"4"
+              , "Reference":
+              [
+                {
+                  "type":"text"
+                  , "text":"See %L for more information"
+                  , "links":
+                  [
+                    {
+                      "guide":"Best Practices Guide : Load-Store Units"
+                      , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+        , {
+          "type":"inst"
+          , "id":125
+          , "name":"Store"
+          , "debug":
+          [
+            [
+              {
+                "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/capsule/a.cl"
+                , "line":400
+              }
+            ]
+          ]
+          , "details":
+          [
+            {
+              "type":"table"
+              , "Width":"1024 bits"
+              , "Type":"Local-pipelined never-stall"
+              , "Stall-free":"Yes"
+              , "Stores to":"_WFeeder_DB_0_ibuffer"
+              , "Start Cycle":"121"
+              , "Latency":"1"
+              , "Reference":
+              [
+                {
+                  "type":"text"
+                  , "text":"See %L for more information"
+                  , "links":
+                  [
+                    {
+                      "guide":"Best Practices Guide : Load-Store Units"
+                      , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+        , {
+          "type":"inst"
+          , "id":126
+          , "name":"Load"
+          , "debug":
+          [
+            [
+              {
+                "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/capsule/a.cl"
+                , "line":431
+              }
+            ]
+          ]
+          , "details":
+          [
+            {
+              "type":"table"
+              , "Width":"1024 bits"
+              , "Type":"Local-pipelined never-stall"
+              , "Stall-free":"Yes"
+              , "Loads from":"_WFeeder_DB_0_ibuffer"
+              , "Start Cycle":"122"
+              , "Latency":"4"
+              , "Reference":
+              [
+                {
+                  "type":"text"
+                  , "text":"See %L for more information"
+                  , "links":
+                  [
+                    {
+                      "guide":"Best Practices Guide : Load-Store Units"
+                      , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+        , {
+          "type":"inst"
+          , "id":127
+          , "name":"Store"
+          , "debug":
+          [
+            [
+              {
+                "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/capsule/a.cl"
+                , "line":400
+              }
+            ]
+          ]
+          , "details":
+          [
+            {
+              "type":"table"
+              , "Width":"1024 bits"
+              , "Type":"Local-pipelined never-stall"
+              , "Stall-free":"Yes"
+              , "Stores to":"_WFeeder_DB_0_ibuffer"
+              , "Start Cycle":"123"
+              , "Latency":"1"
+              , "Reference":
+              [
+                {
+                  "type":"text"
+                  , "text":"See %L for more information"
+                  , "links":
+                  [
+                    {
+                      "guide":"Best Practices Guide : Load-Store Units"
+                      , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+        , {
+          "type":"inst"
+          , "id":128
+          , "name":"Load"
+          , "debug":
+          [
+            [
+              {
+                "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/capsule/a.cl"
+                , "line":431
+              }
+            ]
+          ]
+          , "details":
+          [
+            {
+              "type":"table"
+              , "Width":"1024 bits"
+              , "Type":"Local-pipelined never-stall"
+              , "Stall-free":"Yes"
+              , "Loads from":"_WFeeder_DB_0_ibuffer"
+              , "Start Cycle":"124"
+              , "Latency":"4"
+              , "Reference":
+              [
+                {
+                  "type":"text"
+                  , "text":"See %L for more information"
+                  , "links":
+                  [
+                    {
+                      "guide":"Best Practices Guide : Load-Store Units"
+                      , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+        , {
+          "type":"memtype"
+          , "id":133
+          , "name":"Local Memory"
+          , "children":
+          [
+            {
+              "type":"memsys"
+              , "id":134
+              , "name":"_WFeeder_DB_0_ibuffer"
+              , "debug":
+              [
+                [
+                  {
+                    "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/capsule/a.cl"
+                    , "line":302
+                  }
+                ]
+              ]
+              , "children":
+              [
+                {
+                  "type":"bank"
+                  , "id":135
+                  , "name":"Bank 0"
+                  , "debug":
+                  [
+                    [
+                      {
+                        "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/capsule/a.cl"
+                        , "line":302
+                      }
+                    ]
+                  ]
+                  , "children":
+                  [
+                    {
+                      "type":"port"
+                      , "id":143
+                      , "name":"R"
+                    }
+                    , {
+                      "type":"port"
+                      , "id":151
+                      , "name":"W"
+                    }
+                  ]
+                  , "details":
+                  [
+                    {
+                      "type":"table"
+                      , "details":
+                      [
+                        {
+                          "type":"brief"
+                          , "text":"2 total ports/bank\n1 read ports/bank\n1 write ports/bank"
+                        }
+                      ]
+                      , "Total number of ports per bank":"2"
+                      , "Number of read ports per bank":"1"
+                      , "Number of write ports per bank":"1"
+                      , "Total replication":"1"
+                    }
+                  ]
+                }
+                , {
+                  "type":"bank"
+                  , "id":136
+                  , "name":"Bank 1"
+                  , "debug":
+                  [
+                    [
+                      {
+                        "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/capsule/a.cl"
+                        , "line":302
+                      }
+                    ]
+                  ]
+                  , "children":
+                  [
+                    {
+                      "type":"port"
+                      , "id":144
+                      , "name":"R"
+                    }
+                    , {
+                      "type":"port"
+                      , "id":152
+                      , "name":"W"
+                    }
+                  ]
+                  , "details":
+                  [
+                    {
+                      "type":"table"
+                      , "details":
+                      [
+                        {
+                          "type":"brief"
+                          , "text":"2 total ports/bank\n1 read ports/bank\n1 write ports/bank"
+                        }
+                      ]
+                      , "Total number of ports per bank":"2"
+                      , "Number of read ports per bank":"1"
+                      , "Number of write ports per bank":"1"
+                      , "Total replication":"1"
+                    }
+                  ]
+                }
+                , {
+                  "type":"bank"
+                  , "id":137
+                  , "name":"Bank 2"
+                  , "debug":
+                  [
+                    [
+                      {
+                        "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/capsule/a.cl"
+                        , "line":302
+                      }
+                    ]
+                  ]
+                  , "children":
+                  [
+                    {
+                      "type":"port"
+                      , "id":145
+                      , "name":"R"
+                    }
+                    , {
+                      "type":"port"
+                      , "id":153
+                      , "name":"W"
+                    }
+                  ]
+                  , "details":
+                  [
+                    {
+                      "type":"table"
+                      , "details":
+                      [
+                        {
+                          "type":"brief"
+                          , "text":"2 total ports/bank\n1 read ports/bank\n1 write ports/bank"
+                        }
+                      ]
+                      , "Total number of ports per bank":"2"
+                      , "Number of read ports per bank":"1"
+                      , "Number of write ports per bank":"1"
+                      , "Total replication":"1"
+                    }
+                  ]
+                }
+                , {
+                  "type":"bank"
+                  , "id":138
+                  , "name":"Bank 3"
+                  , "debug":
+                  [
+                    [
+                      {
+                        "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/capsule/a.cl"
+                        , "line":302
+                      }
+                    ]
+                  ]
+                  , "children":
+                  [
+                    {
+                      "type":"port"
+                      , "id":146
+                      , "name":"R"
+                    }
+                    , {
+                      "type":"port"
+                      , "id":154
+                      , "name":"W"
+                    }
+                  ]
+                  , "details":
+                  [
+                    {
+                      "type":"table"
+                      , "details":
+                      [
+                        {
+                          "type":"brief"
+                          , "text":"2 total ports/bank\n1 read ports/bank\n1 write ports/bank"
+                        }
+                      ]
+                      , "Total number of ports per bank":"2"
+                      , "Number of read ports per bank":"1"
+                      , "Number of write ports per bank":"1"
+                      , "Total replication":"1"
+                    }
+                  ]
+                }
+                , {
+                  "type":"bank"
+                  , "id":139
+                  , "name":"Bank 4"
+                  , "debug":
+                  [
+                    [
+                      {
+                        "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/capsule/a.cl"
+                        , "line":302
+                      }
+                    ]
+                  ]
+                  , "children":
+                  [
+                    {
+                      "type":"port"
+                      , "id":147
+                      , "name":"R"
+                    }
+                    , {
+                      "type":"port"
+                      , "id":155
+                      , "name":"W"
+                    }
+                  ]
+                  , "details":
+                  [
+                    {
+                      "type":"table"
+                      , "details":
+                      [
+                        {
+                          "type":"brief"
+                          , "text":"2 total ports/bank\n1 read ports/bank\n1 write ports/bank"
+                        }
+                      ]
+                      , "Total number of ports per bank":"2"
+                      , "Number of read ports per bank":"1"
+                      , "Number of write ports per bank":"1"
+                      , "Total replication":"1"
+                    }
+                  ]
+                }
+                , {
+                  "type":"bank"
+                  , "id":140
+                  , "name":"Bank 5"
+                  , "debug":
+                  [
+                    [
+                      {
+                        "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/capsule/a.cl"
+                        , "line":302
+                      }
+                    ]
+                  ]
+                  , "children":
+                  [
+                    {
+                      "type":"port"
+                      , "id":148
+                      , "name":"R"
+                    }
+                    , {
+                      "type":"port"
+                      , "id":156
+                      , "name":"W"
+                    }
+                  ]
+                  , "details":
+                  [
+                    {
+                      "type":"table"
+                      , "details":
+                      [
+                        {
+                          "type":"brief"
+                          , "text":"2 total ports/bank\n1 read ports/bank\n1 write ports/bank"
+                        }
+                      ]
+                      , "Total number of ports per bank":"2"
+                      , "Number of read ports per bank":"1"
+                      , "Number of write ports per bank":"1"
+                      , "Total replication":"1"
+                    }
+                  ]
+                }
+                , {
+                  "type":"bank"
+                  , "id":141
+                  , "name":"Bank 6"
+                  , "debug":
+                  [
+                    [
+                      {
+                        "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/capsule/a.cl"
+                        , "line":302
+                      }
+                    ]
+                  ]
+                  , "children":
+                  [
+                    {
+                      "type":"port"
+                      , "id":149
+                      , "name":"R"
+                    }
+                    , {
+                      "type":"port"
+                      , "id":157
+                      , "name":"W"
+                    }
+                  ]
+                  , "details":
+                  [
+                    {
+                      "type":"table"
+                      , "details":
+                      [
+                        {
+                          "type":"brief"
+                          , "text":"2 total ports/bank\n1 read ports/bank\n1 write ports/bank"
+                        }
+                      ]
+                      , "Total number of ports per bank":"2"
+                      , "Number of read ports per bank":"1"
+                      , "Number of write ports per bank":"1"
+                      , "Total replication":"1"
+                    }
+                  ]
+                }
+                , {
+                  "type":"bank"
+                  , "id":142
+                  , "name":"Bank 7"
+                  , "debug":
+                  [
+                    [
+                      {
+                        "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/capsule/a.cl"
+                        , "line":302
+                      }
+                    ]
+                  ]
+                  , "children":
+                  [
+                    {
+                      "type":"port"
+                      , "id":150
+                      , "name":"R"
+                    }
+                    , {
+                      "type":"port"
+                      , "id":158
+                      , "name":"W"
+                    }
+                  ]
+                  , "details":
+                  [
+                    {
+                      "type":"table"
+                      , "details":
+                      [
+                        {
+                          "type":"brief"
+                          , "text":"2 total ports/bank\n1 read ports/bank\n1 write ports/bank"
+                        }
+                      ]
+                      , "Total number of ports per bank":"2"
+                      , "Number of read ports per bank":"1"
+                      , "Number of write ports per bank":"1"
+                      , "Total replication":"1"
+                    }
+                  ]
+                }
+              ]
+              , "details":
+              [
+                {
+                  "type":"table"
+                  , "details":
+                  [
+                    {
+                      "type":"brief"
+                      , "text":"294912B requested\n524288B implemented"
+                    }
+                  ]
+                  , "Requested size":"294912 bytes"
+                  , "Implemented size":"524288 bytes"
+                  , "Number of banks":"8"
+                  , "Bank width":"1024 bits"
+                  , "Bank depth":"512 words"
+                  , "Total replication":"1"
+                  , "Reference":
+                  [
+                    {
+                      "type":"text"
+                      , "text":"See %L for more information"
+                      , "links":
+                      [
+                        {
+                          "guide":"Best Practices Guide : Local Memory"
+                          , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#chn1469549457114"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+  , "links":
+  [
+    {
+      "from":69
+      , "to":20
+    }
+    , {
+      "from":70
+      , "to":22
+    }
+    , {
+      "from":71
+      , "to":24
+    }
+    , {
+      "from":72
+      , "to":26
+    }
+    , {
+      "from":73
+      , "to":28
+    }
+    , {
+      "from":74
+      , "to":30
+    }
+    , {
+      "from":75
+      , "to":32
+    }
+    , {
+      "from":76
+      , "to":34
+    }
+    , {
+      "from":77
+      , "to":36
+    }
+    , {
+      "from":78
+      , "to":38
+    }
+    , {
+      "from":79
+      , "to":40
+    }
+    , {
+      "from":80
+      , "to":42
+    }
+    , {
+      "from":81
+      , "to":44
+    }
+    , {
+      "from":82
+      , "to":46
+    }
+    , {
+      "from":19
+      , "to":83
+    }
+    , {
+      "from":21
+      , "to":84
+    }
+    , {
+      "from":23
+      , "to":85
+    }
+    , {
+      "from":25
+      , "to":86
+    }
+    , {
+      "from":27
+      , "to":87
+    }
+    , {
+      "from":29
+      , "to":88
+    }
+    , {
+      "from":31
+      , "to":89
+    }
+    , {
+      "from":33
+      , "to":90
+    }
+    , {
+      "from":35
+      , "to":91
+    }
+    , {
+      "from":37
+      , "to":92
+    }
+    , {
+      "from":39
+      , "to":93
+    }
+    , {
+      "from":41
+      , "to":94
+    }
+    , {
+      "from":43
+      , "to":95
+    }
+    , {
+      "from":45
+      , "to":96
+    }
+    , {
+      "from":143
+      , "to":114
+    }
+    , {
+      "from":144
+      , "to":116
+    }
+    , {
+      "from":145
+      , "to":118
+    }
+    , {
+      "from":146
+      , "to":120
+    }
+    , {
+      "from":147
+      , "to":122
+    }
+    , {
+      "from":148
+      , "to":124
+    }
+    , {
+      "from":149
+      , "to":126
+    }
+    , {
+      "from":150
+      , "to":128
+    }
+    , {
+      "from":113
+      , "to":151
+    }
+    , {
+      "from":115
+      , "to":152
+    }
+    , {
+      "from":117
+      , "to":153
+    }
+    , {
+      "from":119
+      , "to":154
+    }
+    , {
+      "from":121
+      , "to":155
+    }
+    , {
+      "from":123
+      , "to":156
+    }
+    , {
+      "from":125
+      , "to":157
+    }
+    , {
+      "from":127
+      , "to":158
+    }
+  ]
+}

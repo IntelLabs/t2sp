@@ -2,9 +2,9 @@
 
 function show_usage {
     echo "DevCloud usage:"
-    echo "  source setenv.sh devcloud (fpga | gpu)"
+    echo "  source setenv.sh devcloud (fpga | gpu) (gen9 | gen12)"
     echo "Local usage:"
-    echo "  source setenv.sh local    (fpga | gpu)"
+    echo "  source setenv.sh local    (fpga | gpu) (gen9 | gen12)"
 }       
 
 function setup_dpcpp_devcloud {
@@ -142,15 +142,13 @@ if [ "$2" = "fpga" ]; then
 fi
 
 if [ "$2" = "gpu" ]; then
-    export CM_ROOT=$T2S_PATH/install/Linux_C_for_Metal_Development_Package_20200119
-    export LIBVA_DRIVERS_PATH=$CM_ROOT/drivers/media_driver/release/extract/usr/lib/x86_64-linux-gnu/dri
-    export PATH=$CM_ROOT/compiler/bin:$PATH
-    export LD_LIBRARY_PATH=$CM_ROOT/drivers/IGC/extract/usr/local/lib:$CM_ROOT/drivers/media_driver/release/extract/usr/lib/x86_64-linux-gnu:$LD_LIBRARY_PATH
-    if [ "$1" = "local" ]; then
-        export HW_LIBHALIDE_TO_LINK="-lHalide"
-    else
-        export HW_LIBHALIDE_TO_LINK="$T2S_PATH/Halide/lib/libHalide.a"
+    if [ "$3" = "gen9" ]; then
+        export CM_ROOT=$T2S_PATH/install/Linux_C_for_Metal_Development_Package_20200119
+        export LIBVA_DRIVERS_PATH=$CM_ROOT/drivers/media_driver/release/extract/usr/lib/x86_64-linux-gnu/dri
+        export PATH=$CM_ROOT/compiler/bin:$PATH
+        export LD_LIBRARY_PATH=$CM_ROOT/drivers/IGC/extract/usr/local/lib:$CM_ROOT/drivers/media_driver/release/extract/usr/lib/x86_64-linux-gnu:$LD_LIBRARY_PATH
     fi
+    export HW_LIBHALIDE_TO_LINK="-lHalide"
 fi
 
 #A place to store generated Intel OpenCL files
@@ -161,8 +159,10 @@ export PATH=$TOOLS_PATH/bin:$PATH
 export LD_LIBRARY_PATH=$TOOLS_PATH/lib64:$TOOLS_PATH/lib:$LD_LIBRARY_PATH
 
 # Add gcc
-export PATH=$GCC_PATH/bin:$PATH
-export LD_LIBRARY_PATH=$GCC_PATH/bin:$GCC_PATH/lib64:$LD_LIBRARY_PATH   
+if [ "$1" != "devcloud" -o "$2" != "gpu" ]; then
+    export PATH=$GCC_PATH/bin:$PATH
+    export LD_LIBRARY_PATH=$GCC_PATH/bin:$GCC_PATH/lib64:$LD_LIBRARY_PATH
+fi
 
 # Add Halide
 export PATH=$T2S_PATH/Halide/bin:$PATH

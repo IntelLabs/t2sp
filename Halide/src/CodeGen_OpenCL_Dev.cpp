@@ -621,7 +621,8 @@ void CodeGen_OpenCL_Dev::CodeGen_OpenCL_C::visit(const Call *op) {
         std::string arr_name = op->args[0].as<StringImm>()->value;
         // read the entire array as a whole
         if (op->args.size() == 1) {
-            id = print_name(arr_name);
+            std::string string_index = op->type.is_handle() ? "" : ".s";
+            id = print_name(arr_name) + string_index;
         } else {
             std::string string_index = ".s";
             for (size_t i = 1; i < op->args.size(); i++)
@@ -635,7 +636,8 @@ void CodeGen_OpenCL_Dev::CodeGen_OpenCL_C::visit(const Call *op) {
         // write the entire array as a whole
         if (op->args.size() == 2) {
             std::string write_data = print_expr(op->args[1]);
-            stream << get_indent() << print_name(arr_name) << " = " << write_data << ";\n";
+            std::string string_index = op->type.is_handle() ? "" : ".s";
+            stream << get_indent() << print_name(arr_name) << string_index << " = " << write_data << ";\n";
         } else {
             std::string write_data = print_expr(op->args[1]);
             std::string string_index = ".s";
@@ -911,10 +913,28 @@ void CodeGen_OpenCL_Dev::CodeGen_OpenCL_C::visit(const Call *op) {
         stream << get_indent() << print_expr(op->args[0]) << ";\n";
         stream << get_indent() << addr_temp << " = " << addr_temp << " + " << offset << ";\n";
     } else if (op->is_intrinsic(Call::fpga_reg)) {
+        int times = 2;
+        if (op->args.size() > 1) {
+            auto val = op->args[1].as<IntImm>();
+            internal_assert(val);
+            times = val->value;
+        }
         ostringstream rhs;
-        rhs << "__fpga_reg(__fpga_reg(" << print_expr(op->args[0]) << "))";
+        for (int i = 0; i < times; i++) {
+            rhs << "__fpga_reg(";
+        }
+        rhs << print_expr(op->args[0]);
+        for (int i = 0; i < times; i++) {
+            rhs << ")";
+        }
         print_assignment(op->type, rhs.str());
-
+    } else if (op->is_intrinsic(Call::annotate)) {
+        if (op->args[0].as<StringImm>()->value == "Pragma") {
+            stream << get_indent() << "#pragma " << op->args[1].as<StringImm>()->value;
+            if (op->args.size() == 3) {
+                stream << " safelen(" << op->args[2].as<IntImm>()->value << ")\n";
+            }
+        }
     } else if (op->is_intrinsic(Call::overlay_switch)) {
         internal_assert(op->args.size() > 0);
 

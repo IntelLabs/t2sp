@@ -908,7 +908,7 @@ vector<string> find_consumers_on_a_place(const vector<string> &all_consumers,  c
             consumers.push_back(c);
         }
     }
-    return std::move(consumers);
+    return consumers;
 }
 
 Stmt move_around_host_dev_buffer_copies(Stmt s, const Target &t, const std::map<string, Function> &env) {

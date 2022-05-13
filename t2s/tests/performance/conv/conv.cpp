@@ -40,27 +40,19 @@ int main(void)
     #define total_ix        (xxx + XXX*xx + XXX*XX*x + kx)
     #define total_oy        (yyy + YYY*yy + YYY*YY*y)
     #define total_ox        (xxx + XXX*xx + XXX*XX*x)
-    #define total_co        (cooo + COOO*coo + COOO*COO*co)
     #define total_ci        (cii + CII*ci)
+    #define total_co        (cooo + COOO*coo + COOO*COO*co)
 
     // Type of the data to process in C and T2S
     #define CTYPE float
     #define TTYPE Float(32)
 
     // Inputs
-#ifdef GPU
     ImageParam I("I", TTYPE, 2), K("K", TTYPE, 2);
     #define P_I     total_ci + (TOTAL_CI) * n,  total_iy + (TOTAL_IY) * total_ix
     #define P_K     total_co + (TOTAL_CO) * kx, total_ci + (TOTAL_CI) * ky
     #define P_O     total_co + (TOTAL_CO) * n,  total_oy + (TOTAL_OY) * total_ox
     #define UN      (I.dim(0).extent() / TOTAL_CI)
-#else
-    ImageParam I("I", TTYPE, 4), K("K", TTYPE, 4);
-    #define P_I     total_iy, total_ix, total_ci, n
-    #define P_K     ky, kx, total_ci, total_co
-    #define P_O     P_Out
-    #define UN      (I.dim(3).extent())
-#endif
 
     // UREs
     Var cii("cii"), ci("ci"), cooo("cooo"), coo("coo"), co("co"), ky("ky"), kx("kx"), yyy("yyy"), xxx("xxx"), yy("yy"), xx("xx"), y("y"), x("x"), n("n");
@@ -94,14 +86,13 @@ int main(void)
 
     // I/O network
     Stensor DI("iLoader", DRAM), SI("iFeeder", SRAM), DK("kLoader", DRAM), SK("kFeeder", SRAM);
-    Stensor RO2("drainer", REG), RO1("collector", REG), DO("unloader", DRAM), O("deserializer");
-    I >> DI.out(cii) >> FIFO(128)
-      >> SI.scope(kx).out(cii, yyy) >> FIFO(128);
-    K >> DK.out(cii) >> FIFO(128)
-      >> SK.scope(kx).out(cii, cooo) >> FIFO(128);
-    Out >> FIFO(1024) >> RO2.scope(xxx).out(cooo, yyy)
-        >> FIFO(128)  >> RO1.scope(yyy).out(cooo)
-        >> FIFO(128)  >> DO >> O(P_O);
+    Stensor RO("collector", REG), DO("unloader", DRAM), O("deserializer");
+    I >> DI.out(cii)                 >> FIFO(256)
+      >> SI.scope(kx).out(cii, yyy)  >> FIFO(256);
+    K >> DK.out(cii)                 >> FIFO(256)
+      >> SK.scope(kx).out(cii, cooo) >> FIFO(256);
+    Out >> RO.scope(yyy).out(cooo)   >> FIFO(256)
+        >> DO >> O(P_O);
 
     // Compile the kernel to an FPGA bitstream, and expose a C interface for the host to invoke
 #ifdef GPU

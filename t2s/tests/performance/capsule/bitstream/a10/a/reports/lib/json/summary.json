@@ -1,0 +1,366 @@
+{
+  "performanceSummary":
+  {
+    "name":"Kernel Summary"
+    , "columns":
+    ["Kernel Name", "Kernel Type", "Autorun", "Workgroup Size", "# Compute Units"]
+    , "children":
+    [
+      {
+        "name":"kernel_Out"
+        , "data":
+        [
+          "Single work-item"
+          , "No"
+          , [1, 1, 1]
+          , 1
+        ]
+        , "details":
+        [
+          {
+            "type":"text"
+            , "text":"Kernel type: Single work-item"
+          }
+          , {
+            "type":"text"
+            , "text":"Required workgroup size: (1, 1, 1)"
+          }
+          , {
+            "type":"text"
+            , "text":"Maximum workgroup size: 1"
+          }
+        ]
+        , "debug":
+        [
+          [
+            {
+              "filename":"a.cl"
+              , "line":450
+            }
+          ]
+        ]
+      }
+      , {
+        "name":"kernel_PFeeder"
+        , "data":
+        [
+          "Single work-item"
+          , "No"
+          , [1, 1, 1]
+          , 1
+        ]
+        , "details":
+        [
+          {
+            "type":"text"
+            , "text":"Kernel type: Single work-item"
+          }
+          , {
+            "type":"text"
+            , "text":"Required workgroup size: (1, 1, 1)"
+          }
+          , {
+            "type":"text"
+            , "text":"Maximum workgroup size: 1"
+          }
+        ]
+        , "debug":
+        [
+          [
+            {
+              "filename":"a.cl"
+              , "line":90
+            }
+          ]
+        ]
+      }
+      , {
+        "name":"kernel_PLoader"
+        , "data":
+        [
+          "Single work-item"
+          , "No"
+          , [1, 1, 1]
+          , 1
+        ]
+        , "details":
+        [
+          {
+            "type":"text"
+            , "text":"Kernel type: Single work-item"
+          }
+          , {
+            "type":"text"
+            , "text":"Required workgroup size: (1, 1, 1)"
+          }
+          , {
+            "type":"text"
+            , "text":"Maximum workgroup size: 1"
+          }
+        ]
+        , "debug":
+        [
+          [
+            {
+              "filename":"a.cl"
+              , "line":67
+            }
+          ]
+        ]
+      }
+      , {
+        "name":"kernel_WFeeder"
+        , "data":
+        [
+          "Single work-item"
+          , "No"
+          , [1, 1, 1]
+          , 1
+        ]
+        , "details":
+        [
+          {
+            "type":"text"
+            , "text":"Kernel type: Single work-item"
+          }
+          , {
+            "type":"text"
+            , "text":"Required workgroup size: (1, 1, 1)"
+          }
+          , {
+            "type":"text"
+            , "text":"Maximum workgroup size: 1"
+          }
+        ]
+        , "debug":
+        [
+          [
+            {
+              "filename":"a.cl"
+              , "line":286
+            }
+          ]
+        ]
+      }
+      , {
+        "name":"kernel_WLoader"
+        , "data":
+        [
+          "Single work-item"
+          , "No"
+          , [1, 1, 1]
+          , 1
+        ]
+        , "details":
+        [
+          {
+            "type":"text"
+            , "text":"Kernel type: Single work-item"
+          }
+          , {
+            "type":"text"
+            , "text":"Required workgroup size: (1, 1, 1)"
+          }
+          , {
+            "type":"text"
+            , "text":"Maximum workgroup size: 1"
+          }
+        ]
+        , "debug":
+        [
+          [
+            {
+              "filename":"a.cl"
+              , "line":262
+            }
+          ]
+        ]
+      }
+      , {
+        "name":"kernel_unloader"
+        , "data":
+        [
+          "Single work-item"
+          , "No"
+          , [1, 1, 1]
+          , 1
+        ]
+        , "details":
+        [
+          {
+            "type":"text"
+            , "text":"Kernel type: Single work-item"
+          }
+          , {
+            "type":"text"
+            , "text":"Required workgroup size: (1, 1, 1)"
+          }
+          , {
+            "type":"text"
+            , "text":"Maximum workgroup size: 1"
+          }
+        ]
+        , "debug":
+        [
+          [
+            {
+              "filename":"a.cl"
+              , "line":723
+            }
+          ]
+        ]
+      }
+    ]
+  }
+  , "estimatedResources":
+  {
+    "name":"Estimated Resource Usage"
+    , "columns":
+    ["Kernel Name", "ALUTs ", "FFs  ", "RAMs ", "DSPs ", "MLABs"]
+    , "children":
+    [
+      {
+        "name":"kernel_Out"
+        , "data":
+        [42450.9, 70469.9, 650, 1280, 481]
+        , "debug":
+        [
+          [
+            {
+              "filename":"a.cl"
+              , "line":450
+            }
+          ]
+        ]
+      }
+      , {
+        "name":"kernel_PFeeder"
+        , "data":
+        [88831, 70219, 650, 21, 414]
+        , "debug":
+        [
+          [
+            {
+              "filename":"a.cl"
+              , "line":90
+            }
+          ]
+        ]
+      }
+      , {
+        "name":"kernel_PLoader"
+        , "data":
+        [3391, 5690, 17, 0, 17]
+        , "debug":
+        [
+          [
+            {
+              "filename":"a.cl"
+              , "line":67
+            }
+          ]
+        ]
+      }
+      , {
+        "name":"kernel_WFeeder"
+        , "data":
+        [37551, 39074, 208, 13.5, 303]
+        , "debug":
+        [
+          [
+            {
+              "filename":"a.cl"
+              , "line":286
+            }
+          ]
+        ]
+      }
+      , {
+        "name":"kernel_WLoader"
+        , "data":
+        [7733, 8328, 19, 0, 16]
+        , "debug":
+        [
+          [
+            {
+              "filename":"a.cl"
+              , "line":262
+            }
+          ]
+        ]
+      }
+      , {
+        "name":"kernel_unloader"
+        , "data":
+        [2984, 5587, 0, 0, 50]
+        , "debug":
+        [
+          [
+            {
+              "filename":"a.cl"
+              , "line":723
+            }
+          ]
+        ]
+      }
+      , {
+        "name":"Kernel Subtotal"
+        , "classes":
+        ["summary-highlight", "nohover"]
+        , "data":
+        [182940, 199367, 1544, 1314, 1281]
+      }
+      , {
+        "name":"Global Interconnect"
+        , "classes":
+        ["summary-highlight", "nohover"]
+        , "data":
+        [8779, 12545, 78, 0, 0]
+      }
+      , {
+        "name":"Board Interface"
+        , "classes":
+        ["summary-highlight", "nohover"]
+        , "data":
+        [134500, 172452, 397, 0, 0]
+      }
+      , {
+        "name":"System description ROM"
+        , "classes":
+        ["summary-highlight", "nohover"]
+        , "data":
+        [0, 67, 2, 0, 0]
+      }
+      , {
+        "name":"Pipe and channel resources"
+        , "classes":
+        ["summary-highlight", "nohover"]
+        , "data":
+        [55, 31518, 264, 0, 0]
+      }
+      , {
+        "name":"Total"
+        , "classes":
+        ["summary-highlight", "nohover"]
+        , "data":
+        [326274, 415949, 2285, 1314, 1281]
+        , "data_percent":
+        [38.1876, 24.3416, 84.2241, 86.6271]
+      }
+      , {
+        "name":"Available"
+        , "classes":
+        ["summary-highlight", "nohover"]
+        , "data":
+        [854400, 1708800, 2713, 1518, 0]
+      }
+    ]
+  }
+  , "compileWarnings":
+  {
+    "name":"Compile Warnings"
+    , "children":
+    [
+    ]
+  }
+}
