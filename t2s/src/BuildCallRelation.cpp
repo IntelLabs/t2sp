@@ -71,7 +71,7 @@ map<string, string> map_func_to_representative(const map<string, Function> &env)
         debug(4) << "\t " << entry.first << " --> " << entry.second << "\n";
     }
 
-    return std::move(func_to_representative);
+    return func_to_representative;
 }
 
 void print_call_graph(const map<string, vector<string>> &call_graph, const string &head) {
@@ -120,7 +120,7 @@ map<string, vector<string>> modify_call_graph_to_use_representatives(const map<s
     }
     print_call_graph(merged_call_graph, "Call graph after merged UREs are treated as a single func (mapping from a func -> funcs that produce input data for it):");
 
-    return std::move(merged_call_graph);
+    return merged_call_graph;
 }
 
 map<string, vector<string>> remove_self_calls_from_call_graph(const map<string, vector<string>> &call_graph) {
@@ -138,7 +138,7 @@ map<string, vector<string>> remove_self_calls_from_call_graph(const map<string, 
     }
     print_call_graph(new_call_graph, "Call graph after removing self calls:");
 
-    return std::move(new_call_graph);
+    return new_call_graph;
 }
 
 map<string, vector<string>> build_call_graph(const map<string, Function> &env, bool use_representative_for_merged_ures, bool ignore_self_calls) {
@@ -160,7 +160,7 @@ map<string, vector<string>> build_call_graph(const map<string, Function> &env, b
         call_graph = remove_self_calls_from_call_graph(call_graph);
     }
 
-    return std::move(call_graph);
+    return call_graph;
 }
 
 map<string, vector<string>> build_reverse_call_graph(const map<string, vector<string>> &call_graph) {

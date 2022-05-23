@@ -58,6 +58,8 @@ struct Stensor
     void compile_jit(Starget t);
     void compile_to_host(string file_name, const vector<Argument> &args,
                          const std::string fn_name, Starget t);
+    void compile_to_oneapi(const vector<Argument> &args,
+                         const std::string fn_name, Starget t);
     Stensor &scope(Var v);
     Stensor &banks(const std::vector<Var> &banks);
     Stensor &out(const std::vector<Var> &bankwidth_and_banks);
@@ -84,6 +86,7 @@ struct Stensor
 
     Stensor &operator>>(Stensor &s);
     friend Stensor &operator>>(const ImageParam &im, Stensor &s);
+    friend Stensor &operator>>(const vector<ImageParam> &im, Stensor &s);
     friend Stensor &operator>>(Func &f, Stensor &s);
 };
 

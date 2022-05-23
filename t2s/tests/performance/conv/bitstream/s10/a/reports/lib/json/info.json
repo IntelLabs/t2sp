@@ -1,0 +1,8 @@
+{"name":"Info","rows":[
+{"classes":["info-table"],"data":["a"],"name":"Project Name"},
+{"data":["Stratix 10, 1SX280HN2F43E2VG, dcp_bsp:pac_s10_dc"],"name":"Target Family, Device, Board"},
+{"data":["19.2.0 Build 57"],"name":"AOC Version"},
+{"data":["19.2.0 Build 57 Pro"],"name":"Quartus Version"},
+{"data":["aoc -v -profile -fpc -fp-relaxed -high-effort -board=pac_s10_dc -g a.cl -o a.aocx"],"name":"Command"},
+{"data":["Sun May  8 10:33:09 2022"],"name":"Reports Generated At"}
+]}

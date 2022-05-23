@@ -1,0 +1,48 @@
+/* Ace Editor */
+.ace_editor
+{
+    background: white;
+}
+
+.input-group-btn
+{
+    width:100%;
+    display:block;
+}
+
+#close-source
+{
+    width:40px;
+    color: black;
+    border: 1px solid rgb(150, 150, 150);
+    margin-left:5px;
+}
+
+#editor-nav-button, #close-source
+{
+    height: 40px;
+    margin-right:0px !important;
+    border-radius:4px !important;
+    margin-bottom:5px;
+}
+
+.firefox.dropdown-toggle::after {
+  text-align: right;
+  float: right;
+  /*Firefox fix*/
+  margin-top: -12px;
+}
+.chrome.dropdown-toggle::after {
+  /* text-align: right; */
+  float: right;
+  /*Chrome IE fix*/
+  margin-top: 8px;
+}
+.selected {
+    padding-right:10px;
+}
+
+/* File name with debug loc from report */
+.has_active_debug_locs>a {
+  font-weight:bold !important;
+}

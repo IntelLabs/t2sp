@@ -87,14 +87,18 @@ int main()
 #else
     // Report performance. DSPs, FMax and ExecTime are automatically figured out from the static analysis
     // during FPGA synthesis and and the dynamic profile during the FGPA execution.
-    double mem_bandwidth = 34; // pac_a10 on DevCloud has 34GB/s memory bandwidth
+#ifdef S10
+    double mem_bandwidth = 75;
+#else
+    double mem_bandwidth = 33;
+#endif
     double compute_roof = 2 * DSPs() * FMax();
     double number_ops = 2 * (double)(III * II * I) * (double)(JJJ * JJ * J) * (double)(KKK * KK * K); // Total operations (GFLOP for GEMM), independent of designs
     double number_bytes = (double)(KKK * III) * (double)(KK * II) * (double)(K * J * I) * 4 +
                           (double)(KKK * JJJ) * (double)(KK * JJ) * (double)(K * J * I) * 4 +
                           (double)(III * II * I) * (double)(JJJ * JJ * J) * 4;
-    double exec_time= ExecTime();
-    roofline(mem_bandwidth, compute_roof, number_ops, number_bytes,exec_time);
+    double exec_time = ExecTime("kernel_unloader");
+    roofline(mem_bandwidth, compute_roof, number_ops, number_bytes, exec_time);
     if (fopen("roofline.png", "r") == NULL) {
         cout << "Failed to draw roofline!\n";
         return 1;

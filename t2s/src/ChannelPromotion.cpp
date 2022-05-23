@@ -16,6 +16,7 @@
 *
 * SPDX-License-Identifier: BSD-2-Clause-Patent
 *******************************************************************************/
+#include "CSE.h"
 #include "IR.h"
 #include "IRMutator.h"
 #include "IROperator.h"
@@ -31,10 +32,11 @@ namespace Internal {
 
 struct PromotedChannel {
     bool is_write_chn;          // True if it is a write_channel intrinsic
-    bool is_simple_cond;        // True if it is guarded by a simple condition that allows promotion
+    bool safe_promotion;        // True if it is guarded by promotable conditions
     string name;                // Channel name after eliminating unnecessary suffix
     string promotion_loop;      // The loop that the channel should be promoted above
     vector<Expr> args;          // The read/write_channel arguments
+    Expr guarding_cond;         // The condition used to guard the operation after promotion
 };
 
 std::string get_channel_name(Expr e) {
@@ -53,8 +55,9 @@ std::string get_channel_name(Expr e) {
             if (size < (int)(channel_name.size())-1) {
                 suffix = (channel_name).substr(size + 1, (int)channel_name.size() - size - 1);
             } else break;
-            if (suffix != "channel")
+            if (suffix != "channel") {
                 channel_name = v->value;
+            }
         }
     }
     debug(4) << "modified channel name: " << channel_name << "\n";
@@ -70,10 +73,94 @@ auto get_promoted_channel(vector<PromotedChannel> &channels, string name, bool i
     return it;
 }
 
+class VarsFinder : public IRVisitor
+{
+    string l = "__outermost";
+    struct Container {
+        vector<string> vars;
+        vector<string> reads;
+        vector<string> writes;
+    };
+    std::map<string, Container> loop_container;
+
+public:
+    using IRVisitor::visit;
+    VarsFinder() {
+        loop_container[l] = {};
+    }
+
+    void visit(const Variable* op) override {
+        loop_container[l].vars.push_back(op->name);
+    }
+
+    void visit(const Call *op) override {
+        for (auto a : op->args) {
+            a.accept(this);
+        }
+        if (op->is_intrinsic(Call::read_shift_reg)) {
+            auto name = op->args[0].as<StringImm>();
+            internal_assert(name);
+            loop_container[l].reads.push_back(name->value);
+        } else if (op->is_intrinsic(Call::write_shift_reg)) {
+            auto name = op->args[0].as<StringImm>();
+            internal_assert(name);
+            loop_container[l].writes.push_back(name->value);
+        } else if (ends_with(op->name, ".temp")) {
+            loop_container[l].reads.push_back(op->name);
+        }
+    }
+
+    void visit(const Provide *op) override {
+        if (ends_with(op->name, ".temp")) {
+            loop_container[l].writes.push_back(op->name);
+        }
+    }
+
+    void visit(const For *op) override {
+        string bak_l = l;
+        l = op->name;
+        loop_container[l] = {};
+
+        op->body.accept(this);
+        l = bak_l;
+    }
+
+    bool find_var(const vector<Expr> &args, const string &l = "__outermost") {
+        auto &vars = loop_container[l].vars;
+        for (auto &r : args) {
+            auto v = r.as<Variable>();
+            if (v) {
+                auto p = std::find(vars.begin(), vars.end(), v->name);
+                if (p != vars.end()) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    vector<string>& get_reads(const string &l = "__outermost") {
+        return loop_container[l].reads;
+    }
+
+    bool find_writes(const vector<string> &names, const string &l = "__outermost") {
+        auto &writes = loop_container[l].writes;
+        for (auto &r : names) {
+            auto p = std::find(writes.begin(), writes.end(), r);
+            if (p != writes.end()) {
+                return true;
+            }
+        }
+        return false;
+    }
+};
+
 class ChannelVisitor : public IRVisitor {
   public:
-    ChannelVisitor() {}
+    ChannelVisitor(VarsFinder &vf)
+        : loop_vf(vf) {}
 
+    VarsFinder &loop_vf;
     vector<PromotedChannel> channels;
     vector<string> unrolled_loops;
     vector<string> loop_vars;
@@ -138,94 +225,90 @@ class ChannelVisitor : public IRVisitor {
         return false;
     }
 
-    bool check_cond(Expr condition, vector<Expr> args, string &promotion_loop) {
-        // Collect occured loop variables in the condition
+    bool check_cond(Expr condition, vector<Expr> args, string &promotion_loop, Expr &guarding_cond) {
         vector<Expr> conjunction = break_logic_into_conjunction(condition);
-        std::set<string> occured_loops;
-        bool is_simple_cond = true;
+        std::map<string, Expr> removable_conds;
+        bool safe_promotion = true;
+        // Three cases for condition:
+        // 1. The condition is safe to be removed after promotion
+        // 2. The condition cannot be removed but can be promoted
+        // 3. The condition cannot be promoted or is unknown type
+        VarsFinder cond_vf;
         for (auto &c : conjunction) {
             auto eq = c.as<EQ>();
             if (!eq) {
-                if (!is_one(c)) {
-                    is_simple_cond = false;
+                c.accept(&cond_vf);
+                if (cond_vf.find_var(args)) {
+                    // For non-equality conjunction, if it contains channel arguments, the promotion is unsafe
+                    safe_promotion = false;
+                } else {
+                    // Otherwise it is added as a part of guarding condition
+                    guarding_cond = simplify(guarding_cond && c);
                 }
+                debug(4) << "\t" << (safe_promotion ? "promotable " : "unpromotable ")
+                         << "conjunction: " << c << "\n";
                 continue;
             }
-            // Two cases of simple condition:
+            // Two cases of removable conditions:
             // 1. var_0 == var_1
             //    for (gather_iii, 0, III)
             //      unrolled for (iii, 0, III)
             //        if (gather_iii == iii)
             //          read/write_channel(name, iii)
-            //    The channel operation can be promoted out of gather_iii (occured_loop)
+            //    The channel operation can be promoted out of gather_iii (safe_loop)
             //    since its loop body accesses only a part of the channel array
             // 2. var_0 == 0 (const)
             //    unrolled for (iii, 0, III)
-            //      read/write_channel(name, 0)
-            //    The channel operation can be promoted out of iii (occured_loop)
+            //      if (iii == 0)
+            //        read/write_channel(name, 0)
+            //    The channel operation can be promoted out of iii (safe_loop)
             auto lhs = eq->a.as<Variable>();
             auto rhs = eq->b.as<Variable>();
             if ((lhs && rhs)
                 || (lhs && is_const(eq->b))
                 || (rhs && is_const(eq->a))) {
                 if (lhs && !find_loop_in_args(args, lhs->name)) {
-                    occured_loops.insert(lhs->name);
+                    internal_assert(!removable_conds.count(lhs->name));
+                    removable_conds[lhs->name] = c;
                 }
                 if (rhs && !find_loop_in_args(args, rhs->name)) {
-                    occured_loops.insert(rhs->name);
+                    internal_assert(!removable_conds.count(rhs->name));
+                    removable_conds[rhs->name] = c;
                 }
             } else {
-                is_simple_cond = false;
+                // Other cases are considered as unsafe
+                safe_promotion = false;
             }
+            debug(4) << "\t" << (safe_promotion ? "removable " : "unremovable ")
+                     << "conjunction: " << c << "\n";
         }
         // Find the promotion loop outward
         for (auto it = loop_vars.rbegin(); it != loop_vars.rend(); ++it) {
-            promotion_loop = *it;
-            // Promote channels outside the argument loops (always)
-            // or the occured loops (if simple condition)
-            if (!find_loop_in_args(args, *it)) {
-                auto o = occured_loops.find(*it);
-                if (o != occured_loops.end()) {
-                    occured_loops.erase(o);
-                } else {
-                    break;
+            // If the loop body modifies one of the values used in condition, the promotion is unsafe
+            if (loop_vf.find_writes(cond_vf.get_reads(), *it)) {
+                if (ends_with(*it, "buf")) {
+                    // Trick: This loop is generated with double buffering, we are sure the promotion is safe
+                    promotion_loop = *it;
                 }
+                break;
+            }
+            // Promote channels outside the argument loops (always)
+            // or the safe loops (for removable condition)
+            if (find_loop_in_args(args, *it)) {
+                promotion_loop = *it;
+            } else {
+                auto o = removable_conds.find(*it);
+                if (o == removable_conds.end())
+                    break;
+                promotion_loop = *it;
+                removable_conds.erase(o);
             }
         }
-        // If occured_loop is not empty, there exists condition like this:
-        // for (gather_iii, 0, III)
-        //   for (dummy, 0, D)
-        //     for (iii, 0, III)
-        //       if (gather_iii == iii) ...
-        // In such case, we cannot guarantee the correctness of channel promotion
-        return is_simple_cond && occured_loops.empty();
+        for (auto &kv : removable_conds) {
+            guarding_cond = guarding_cond && kv.second;
+        }
+        return safe_promotion;
     }
-
-    class VarsFinder : public IRVisitor
-    {
-        vector<Expr> &vars;
-    public:
-        VarsFinder(vector<Expr> &_v): vars(_v) {}
-        using IRVisitor::visit;
-
-        // Return true if a variable in vars is encountered.
-        bool found = false;
-
-        void visit(const Variable* op) override {
-            for (auto e : vars) {
-                auto v = e.as<Variable>();
-                if (v && op->name == v->name)
-                    found = true;
-            }
-        }
-
-        void visit(const Call *op) override {
-            // Do not check call arguments
-            if (op->is_intrinsic(Call::read_shift_reg))
-                return;
-            IRVisitor::visit(op);
-        }
-    };
 
     void visit(const Call* op) override {
         if (op->is_intrinsic(Call::write_channel) || op->is_intrinsic(Call::read_channel)) {
@@ -234,12 +317,17 @@ class ChannelVisitor : public IRVisitor {
             string chn_name = get_channel_name(args[0]);
 
             bool need_promotion = false;
-            string promotion_loop = loop_vars.back();
-            bool is_simple_cond = check_cond(condition, args, promotion_loop);
-            if (promotion_loop != loop_vars.back()) {
+            string promotion_loop = loop_vars.back() + "__innermost";
+            debug(4) << (is_write_chn ? "Write" : "Read")
+                     << " channel " << chn_name
+                     << " with condition: " << condition << "\n";
+            Expr guarding_cond = UIntImm::make(Bool(1), 1);
+            bool safe_promotion = check_cond(condition, args, promotion_loop, guarding_cond);
+            // Note the write operation can be promoted even if not safe,
+            // and the safe promotion can be disabled in some cases
+            if (!ends_with(promotion_loop, "__innermost")) {
                 need_promotion = true;
             }
-
             if (!is_write_chn) {
                 // Check the producer-consumer relation to determine if the promotion is valid
                 auto it = get_promoted_channel(channels, chn_name, true);
@@ -247,7 +335,7 @@ class ChannelVisitor : public IRVisitor {
                     // The producer is not promoted, so the consumer cannot be promoted
                     need_promotion = false;
                 } else {
-                    if (is_simple_cond) {
+                    if (safe_promotion) {
                         // The producer is promoted, and the consumer has simple condition
                         need_promotion = true;
                     } else {
@@ -259,21 +347,24 @@ class ChannelVisitor : public IRVisitor {
             } else {
                 // For write channels, if channel arguments occurs in the condition, we cannot ensure the entire array
                 // is write at once (example is CNN-Kung-Song). So we disable promotion for safe.
-                VarsFinder vf(args);
+                VarsFinder vf;
                 condition.accept(&vf);
-                if (vf.found) {
+                if (vf.find_var(args)) {
                     need_promotion = false;
                 }
             }
             if (need_promotion) {
                 auto it = get_promoted_channel(channels, chn_name, is_write_chn);
                 if (it != channels.end()) {
-                    // We allow multiple read/write to one channel
-                    // But they must be promoted at the same loop
+                    // We allow multiple read/write to one channel, but they must be promoted at the same loop
                     internal_assert(promotion_loop == it->promotion_loop);
                 } else {
                     // Record the promoted channel
-                    PromotedChannel c = { is_write_chn, is_simple_cond, chn_name, promotion_loop, args };
+                    debug(4) << (safe_promotion ? "Safely" : "Unsafely") << " promote "
+                             << (is_write_chn ? "write" : "read") << " channel " << chn_name
+                             << " out of the loop " << promotion_loop
+                             << " with the guarding cond " << guarding_cond << "\n";
+                    PromotedChannel c = { is_write_chn, safe_promotion, chn_name, promotion_loop, args, guarding_cond };
                     channels.push_back(std::move(c));
                 }
             }
@@ -305,44 +396,97 @@ class ChannelPromotor : public IRMutator {
         return Realize::make(name, op->types, op->memory_type, op->bounds, op->condition, body);
     }
 
+    Stmt make_channel_access(PromotedChannel &c, Stmt body) {
+        if (c.is_write_chn) {
+            /* Transform the IR like this:
+             * realize c.name.temp[0,1] of type bool
+             * c.name.temp = 0
+             * for (name, min, extent) {...}
+             * if (c.name.temp == 1)
+             *   write_channel(c.name, read_array(chn_array))
+             */
+            string chn_array = c.name + ".array";
+            Expr read_array = Call::make(Handle(), "read_array", { chn_array }, Call::PureIntrinsic);
+            Expr write = Call::make(Handle(), "write_channel", { c.name, read_array }, Call::PureIntrinsic);
+            Stmt write_stmt = Evaluate::make(write);
+            if (!c.safe_promotion) {
+                Expr get_flag = Call::make(Bool(), c.name+".temp", {}, Call::Intrinsic);
+                write_stmt = IfThenElse::make(get_flag == 1, write_stmt);
+            } else if (!is_one(c.guarding_cond)) {
+                write_stmt = IfThenElse::make(c.guarding_cond, write_stmt);
+            }
+            body = Block::make(body, write_stmt);
+            if (!c.safe_promotion) {
+                Stmt init_flag = Provide::make(c.name+".temp", {0}, {});
+                body = Block::make(init_flag, body);
+                body = Realize::make(c.name+".temp", { Bool() }, MemoryType::Auto, {}, const_true(), body);
+            }
+        } else {
+            /* Transform the IR like this:
+             * if (guarding_cond)
+             *   write_array(chn_array, read_channel(c.name))
+             * for (name, min, extent) {...}
+             */
+            string chn_array = c.name + ".array";
+            Expr read = Call::make(Handle(), "read_channel", { c.name }, Call::PureIntrinsic);
+            Expr write_array = Call::make(Handle(), "write_array", { chn_array, read }, Call::PureIntrinsic);
+            Stmt read_stmt = Evaluate::make(write_array);
+            if (!is_one(c.guarding_cond)) {
+                read_stmt = IfThenElse::make(c.guarding_cond, read_stmt);
+            }
+            body = Block::make(read_stmt, body);
+        }
+        return body;
+    }
+
     Stmt visit(const For* op) override {
         Stmt body = mutate(op->body);
+        Stmt loop = For::make(op->name, op->min, op->extent, op->for_type, op->device_api, body);
         for (auto &c : channels) {
-            if (op->name == c.promotion_loop) {
-                string chn_array = c.name + ".array";
-                if (c.is_write_chn) {
-                    // Read/write the entire array as a whole
-                    // realize bool c.name.temp
-                    // c.name.temp = 0
-                    // for (name, min, extent) {...}
-                    // if (c.name.temp == 1)
-                    //  write_channel(c.name, read_array(chn_array))
-                    Expr read_array = Call::make(Handle(), "read_array", { chn_array }, Call::PureIntrinsic);
-                    Expr write = Call::make(Handle(), "write_channel", { c.name, read_array }, Call::PureIntrinsic);
-                    Stmt write_stmt = Evaluate::make(write);
-                    if (!c.is_simple_cond) {
-                        Expr get_flag = Call::make(Bool(), c.name+".temp", {}, Call::Intrinsic);
-                        write_stmt = IfThenElse::make(get_flag == 1, write_stmt);
-                    }
-                    body = Block::make(body, write_stmt);
-                    if (!c.is_simple_cond) {
-                        Stmt init_flag = Provide::make(c.name+".temp", {0}, {});
-                        body = Block::make(init_flag, body);
-                        body = Realize::make(c.name+".temp", { Bool() }, MemoryType::Auto, {}, const_true(), body);
-                    }
-                } else {
-                    // Read the entire array as a whole
-                    // write_array(chn_array, read_channel(c.name))
-                    // for (name, min, extent) {...}
-                    Expr read = Call::make(Handle(), "read_channel", { c.name }, Call::PureIntrinsic);
-                    Expr write_array = Call::make(Handle(), "write_array", { chn_array, read }, Call::PureIntrinsic);
-                    Stmt read_stmt = Evaluate::make(write_array);
-                    body = Block::make(read_stmt, body);
+            if (c.promotion_loop == op->name) {
+                loop = make_channel_access(c, loop);
+            }
+            if (ends_with(c.promotion_loop, "__innermost")) {
+                string loop_name = remove_postfix(c.promotion_loop, "__innermost");
+                if (loop_name == op->name) {
+                    body = make_channel_access(c, body);
+                    loop = For::make(op->name, op->min, op->extent, op->for_type, op->device_api, body);
                 }
             }
         }
-        body = For::make(op->name, op->min, op->extent, op->for_type, op->device_api, body);
-        return body;
+        return loop;
+    }
+
+    Expr visit(const Select* op) override {
+        auto call = op->true_value.as<Call>();
+        if (call && (call->is_intrinsic(Call::write_channel) || call->is_intrinsic(Call::read_channel))) {
+            bool is_write_chn = call->is_intrinsic(Call::write_channel) ? true : false;
+            string chn_name = get_channel_name(call->args[0]);
+            auto it = get_promoted_channel(channels, chn_name, is_write_chn);
+            if (it != channels.end() && can_prove(op->condition == it->guarding_cond)) {
+                // Remove redundant condition on read/write array as the condition is moved on read/write channel
+                return mutate(op->true_value);
+            }
+        }
+        return IRMutator::visit(op);
+    }
+
+    Stmt visit(const IfThenElse* op) override {
+        auto eval = op->then_case.as<Evaluate>();
+        if (!eval) {
+            return IRMutator::visit(op);
+        }
+        auto call = eval->value.as<Call>();
+        if (call && (call->is_intrinsic(Call::write_channel) || call->is_intrinsic(Call::read_channel))) {
+            bool is_write_chn = call->is_intrinsic(Call::write_channel) ? true : false;
+            string chn_name = get_channel_name(call->args[0]);
+            auto it = get_promoted_channel(channels, chn_name, is_write_chn);
+            if (it != channels.end() && can_prove(op->condition == it->guarding_cond)) {
+                // Remove redundant condition on read/write array as the condition is moved on read/write channel
+                return mutate(op->then_case);
+            }
+        }
+        return IRMutator::visit(op);
     }
 
     Expr visit(const Call* op) override {
@@ -364,6 +508,21 @@ class ChannelPromotor : public IRMutator {
             }
             return Call::make(op->type, op->name, args, op->call_type);
         }
+        if (op->is_intrinsic(Call::write_array) || op->is_intrinsic(Call::read_array)) {
+            string chn_name = get_channel_name(op->args[0]);
+            if (ends_with(chn_name, "channel")) {
+                // Trick: A read/write_array call whose name is the channel name may be inserted beforehand,
+                // so we update the name here. We know it only happens at write_channel of data relaying.
+                auto it = get_promoted_channel(channels, chn_name, true);
+                internal_assert(it != channels.end());
+                vector<Expr> args;
+                for (size_t i = 0; i < op->args.size(); i++) {
+                    args.push_back(mutate(op->args[i]));
+                }
+                args[0] = StringImm::make(chn_name + ".array");
+                return Call::make(op->type, op->name, args, Call::PureIntrinsic);
+            }
+        }
         return IRMutator::visit(op);
     }
 
@@ -376,7 +535,7 @@ class ChannelPromotor : public IRMutator {
             string chn_name = get_channel_name(call->args[0].as<StringImm>()->value);
             auto it = get_promoted_channel(channels, chn_name, true);
 
-            if (!it->is_simple_cond) {
+            if (!it->safe_promotion) {
                 string name = chn_name + ".temp";
                 Stmt set_flag = Provide::make(name, {1}, {});
                 ret = Block::make(ret, set_flag);
@@ -387,8 +546,11 @@ class ChannelPromotor : public IRMutator {
 };
 
 Stmt channel_promotion(Stmt s) {
-    ChannelVisitor cv;
+    VarsFinder vf;
+    ChannelVisitor cv(vf);
     ChannelPromotor cp(cv);
+    s = remove_lets(s, true, false, false, false, {});
+    s.accept(&vf);
     s.accept(&cv);
     s = cp.mutate(s);
     return s;

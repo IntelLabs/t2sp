@@ -628,21 +628,25 @@ class ScatterInserter: public IRMutator{
         Type data_type = iter->second.read_node.type();
         if(ends_with(op->name,".run_on_device")){
             Stmt new_body = IRMutator::mutate(op->body);
-            new_body = For::make(
-                shreg_name.substr(0,shreg_name.size() - string(".shreg").size()) +".run_on_device", 0, 1,
-                ForType::Parallel, DeviceAPI::OpenCL, new_body
-            );
+            if (iter->second.scatter_strategy != ScatterStrategy::FPGAReg) {
+                new_body = For::make(
+                    shreg_name.substr(0,shreg_name.size() - string(".shreg").size()) +".run_on_device", 0, 1,
+                    ForType::Parallel, DeviceAPI::OpenCL, new_body
+                );
+            }
             new_body = For::make(
                 op->name,op->min,op->extent,op->for_type,op->device_api,new_body
             );
-            Region range_args;
-            for(auto index : unroll_loop_indexes){
-                range_args.push_back(Range(loop_mins[index], loop_extents[index]));
+            if (iter->second.scatter_strategy != ScatterStrategy::FPGAReg) {
+                Region range_args;
+                for(auto index : unroll_loop_indexes){
+                    range_args.push_back(Range(loop_mins[index], loop_extents[index]));
+                }
+                new_body = Realize::make(shreg_name,
+                        {data_type},
+                        MemoryType::Auto, range_args,
+                        const_true(), new_body);
             }
-            new_body = Realize::make(shreg_name,
-                    {data_type},
-                    MemoryType::Auto, range_args,
-                    const_true(), new_body);
             return new_body;
         }
         loop_level++;
@@ -694,18 +698,14 @@ class ScatterInserter: public IRMutator{
                 shreg_args.push_back(Variable::make(Int(32), unroll_loop));
             }
 
-            bool strategy_up = iter->second.scatter_strategy == ScatterStrategy::Up;
+            bool strategy_up = iter->second.scatter_strategy == ScatterStrategy::Up || iter->second.scatter_strategy == ScatterStrategy::FPGAReg;
 
             // if (ii == 0)/(ii == I - 1)
             Expr cond_read = EQ::make(origin_loop_var, strategy_up ? scatter_loop_min : (scatter_loop_min + scatter_loop_extent - 1));
 
-            // if(cond_A)
-            //      if (ii == 0)/(ii == I - 1)
-            //          feederA[ii] = read inputA(ii->t)
-            //      else
-            //          feederA[ii] = feederA[ii-1]/feederA[ii+1]
             // if (ii == t)
-            //      consume feederA[ii] (typically, send it to the core systolic array via a channel.)
+            //      consume feederA.temp (typically, send it to the core systolic array via a channel.)
+            // feederA.temp = __fpga_reg(feederA.temp)
             // Basic Exprs
             Expr origin_call_node = iter->second.read_node;
             
@@ -764,7 +764,7 @@ class ScatterInserter: public IRMutator{
             write_shreg_args.insert(write_shreg_args.begin(), shreg_name);
             write_shreg_args.push_back(read_from_channel);
             Stmt write_shreg_from_channel = Evaluate::make(
-                                                Call::make(Handle(iter->second.read_node.type().lanes()),
+                                                Call::make(iter->second.read_node.type(),
                                                         Call::write_shift_reg,
                                                         write_shreg_args,
                                                         Call::Intrinsic));
@@ -790,13 +790,22 @@ class ScatterInserter: public IRMutator{
             // rw_block = rw_block.defined() ? Block::make(rw_block, rw_stmt) : Block::make({rw_stmt});
 
             // replace call_node in op->body
-            new_body = substitute(origin_call_node, read_from_shreg_now, new_body);
+            if (iter->second.scatter_strategy == ScatterStrategy::FPGAReg) {
+                new_body = substitute(origin_call_node, read_from_channel, new_body);
+            } else {
+                new_body = substitute(origin_call_node, read_from_shreg_now, new_body);
+            }            
 
             // update body: if (condition) RWStmt; if t == i updated_body
             if(!scatter_along_removed)
                 new_body = IfThenElse::make(EQ::make(scatter_var, origin_loop_var), new_body);
             
-            new_body = Block::make(write_shreg, new_body);
+            if (iter->second.scatter_strategy == ScatterStrategy::FPGAReg) {
+                Stmt pipeline_reg = Provide::make(producer + ".scatter.temp", {Call::make(data_type, Call::fpga_reg, {read_from_channel}, Call::Intrinsic)}, tmp_data_args);
+                new_body = Block::make(new_body, pipeline_reg);
+            } else {
+                new_body = Block::make(write_shreg, new_body);
+            }
 
             new_body = For::make(origin_loop_name,scatter_loop_min,scatter_loop_extent,ForType::Unrolled,op->device_api,new_body);
             
@@ -1029,7 +1038,7 @@ private:
     string producer_loop_name(const string &loop_name) {
         const Function &func = envs.find(producer)->second;
         string ploop = func.name() + ".s0." + extract_after_tokens(loop_name, 2);
-        return std::move(ploop);
+        return ploop;
     }
 
     // The loop is removed?
@@ -1179,7 +1188,8 @@ private:
                 debug(4) << "Found a reuse loop: " << loop_name << ". Not adding it to buffer dims.\n";
                 continue;
             }
-            if (loop_var_is_constant_in_condition(loop_name, original_read_condition)) {
+            Expr value;
+            if (loop_var_is_constant_in_condition(loop_name, original_read_condition, value)) {
                 debug(4) << "Found a loop that has only 1 iteration: " << loop_name << ". Not adding it to buffer dims\n";
                 continue;
             }
@@ -1197,7 +1207,8 @@ private:
 
         for (size_t i = 0; i < nonscatter_unroll_loops.size(); i++) {
             const string &loop_name = nonscatter_unroll_loop_vars[i].as<Variable>()->name;
-            if (loop_var_is_constant_in_condition(loop_name, original_read_condition)) {
+            Expr value;
+            if (loop_var_is_constant_in_condition(loop_name, original_read_condition, value)) {
                 debug(4) << "Unrolled loop " << loop_name << " has only 1 iteration. Not adding it to buffer dims\n";
                 continue;
             }
@@ -1315,8 +1326,10 @@ public:
         }
         new_body = Realize::make(var_name(cycle), {UInt(32)}, MemoryType::Auto, nonscatter_unroll_loop_dims, const_true(), new_body);
         new_body = Realize::make(var_name(in_v), {TYPE}, MemoryType::Auto, nonscatter_unroll_loop_dims, const_true(), new_body);
-        new_body = For::make(replace_postfix(var_name(time_stamp), ".shreg", ".run_on_device"), 0, 1, ForType::Parallel, DeviceAPI::OpenCL, new_body);
-        new_body = For::make(replace_postfix(var_name(value), ".shreg", ".run_on_device"), 0, 1, ForType::Parallel, DeviceAPI::OpenCL, new_body);
+        // new_body = For::make(replace_postfix(var_name(time_stamp), ".shreg", ".run_on_device"), 0, 1, ForType::Parallel, DeviceAPI::OpenCL, new_body);
+        new_body = For::make(replace_postfix(var_name(time_stamp), ".shreg", ".run_on_device"), 0, 1, ForType::Parallel, op->device_api, new_body); 
+        // new_body = For::make(replace_postfix(var_name(value), ".shreg", ".run_on_device"), 0, 1, ForType::Parallel, DeviceAPI::OpenCL, new_body);  
+        new_body = For::make(replace_postfix(var_name(value), ".shreg", ".run_on_device"), 0, 1, ForType::Parallel, op->device_api, new_body);
         new_body = For::make(op->name, op->min, op->extent, op->for_type, op->device_api, new_body);
         new_body = Realize::make(var_name(time_stamp), {UInt(32)}, MemoryType::Auto, unroll_loop_dims, const_true(), new_body);
         new_body = Realize::make(var_name(value), {TYPE}, MemoryType::Auto, unroll_loop_dims, const_true(), new_body);
@@ -1361,7 +1374,16 @@ public:
         // Read input value before the scatterring
         get_input(new_body);
 
+        Expr single_PE_cond;
+        vector<string> unrolled_loops_without_terms;
+        vector<string> unrolled_loops_name;
+        for (auto &v : nonscatter_unroll_loop_vars) {
+            unrolled_loops_name.push_back(v.as<Variable>()->name);
+        }
         Stmt inc_cycle = Provide::make(var_name(cycle), {Call::make(UInt(32), var_name(cycle), nonscatter_unroll_loop_vars, Call::PureIntrinsic) + 1}, nonscatter_unroll_loop_vars);
+        if (check_is_single_PE(true, original_read_condition, unrolled_loops_name, {}, single_PE_cond, unrolled_loops_without_terms)) {
+            inc_cycle = IfThenElse::make(single_PE_cond, inc_cycle);
+        }
         new_body = Block::make(new_body, inc_cycle);
 
         add_nonscatter_unroll_loops(op->device_api, new_body);
@@ -1382,7 +1404,19 @@ public:
             init_args.push_back(Variable::make(Int(32), var_name(v) + "_init"));
         }
 
+        Expr single_PE_cond, original_cond = original_read_condition;
+        vector<string> unrolled_loops_without_terms;
+        vector<string> unrolled_loops_name;
+        for (auto &v : nonscatter_unroll_loop_vars) {
+            string name = v.as<Variable>()->name;
+            unrolled_loops_name.push_back(name + "_init");
+            original_cond = substitute(name, Variable::make(Int(32), name + "_init"), original_cond);
+        }
         Stmt init_cycle = Provide::make(var_name(cycle), {Expr(INIT)}, init_args);
+        if (check_is_single_PE(true, original_cond, unrolled_loops_name, {}, single_PE_cond, unrolled_loops_without_terms)) {
+            init_cycle = IfThenElse::make(single_PE_cond, init_cycle);
+        }
+
         for (int i = nonscatter_unroll_loops.size() - 1; i >= 0; i--) {
             auto &l = loops[nonscatter_unroll_loops[i]];
             string name = std::get<0>(l);
@@ -1461,7 +1495,7 @@ public:
      * }
      */
     void broadcast_input_by_scattering(Stmt &new_body) {
-        bool strategy_up = (scatter_strategy == ScatterStrategy::Up);
+        bool strategy_up = (scatter_strategy == ScatterStrategy::Up || scatter_strategy == ScatterStrategy::FPGAReg);
 
         // If branch
         vector<Expr> write_value0_args(unroll_loop_vars);
@@ -1551,7 +1585,7 @@ public:
             Expr _tmp = Variable::make(TYPE, "_tmp");
             vector<Stmt> writes(buffers_info.size());
             for (size_t i = 0; i < buffers_info.size(); i++) {
-                Expr field = Call::make(buffers_info[i].type, Call::read_field, {_tmp, Expr(i)}, Call::PureIntrinsic);
+                Expr field = Call::make(buffers_info[i].type, Call::read_field, {_tmp, IntImm::make(Int(32), i)}, Call::PureIntrinsic);
                 writes[i] = Provide::make(buffers_info[i].name, {field}, buffers_info[i].write_args);
             }
             write_buffer = Block::make(writes);

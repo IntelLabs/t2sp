@@ -418,10 +418,10 @@ public:
     void set_bounds(const std::vector<std::string> &vars, const std::vector<Expr> &mins, const std::vector<Expr> &extents);
 
     /* Set the minimum depth of the output channel. Meaningful only if this function writes its output to a channel. */
-   void min_depth(int min_depth);
+    void min_depth(int min_depth);
 
-   /* Get the minimum depth of the output channel. Meaningful only if this function writes its output to a channel. */
-   int min_depth() const;
+    /* Get the minimum depth of the output channel. Meaningful only if this function writes its output to a channel. */
+    int min_depth() const;
 
 };
 

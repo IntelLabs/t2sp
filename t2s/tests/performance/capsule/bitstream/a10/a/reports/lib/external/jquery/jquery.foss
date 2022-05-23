@@ -1,0 +1,12 @@
+[foss]
+name = jquery
+version = 3.3.1.min
+description = jquery
+case = 1409650434
+source = true
+binary = false
+modified = false
+usage = redistributed
+license_type = MIT
+license_url = https://github.com/jquery/jquery/blob/master/LICENSE.txt
+download_url = https://github.com/jquery/jquery

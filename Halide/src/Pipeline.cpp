@@ -255,7 +255,7 @@ std::map<string, Func> Pipeline::compute_environment() const {
             }
         }
     }
-    return std::move(env);
+    return env;
 }
 
 Func Pipeline::get_func(size_t index) {
@@ -330,7 +330,7 @@ void Pipeline::compile_to_cm(const string &fn_name,
                              const vector<Argument> &args,
                              const Target &target) {
     Module m = compile_to_module(args, fn_name, target);
-    m.compile(single_output(fn_name, m, Output::cm_devsrc));
+    m.compile(single_output(fn_name, m, Output::dev_src));
 }
 
 void Pipeline::compile_to_c(const string &filename,
@@ -339,6 +339,19 @@ void Pipeline::compile_to_c(const string &filename,
                             const Target &target) {
     Module m = compile_to_module(args, fn_name, target);
     m.compile(single_output(filename, m, Output::c_source));
+}
+
+void Pipeline::compile_to_oneapi(const vector<Argument> &args,
+                            const string &fn_name,
+                            const Target &target) {
+    // check that target has IntelFPGA and OneAPI targets set. Else throw an error
+    user_assert( target.has_feature(Target::IntelFPGA) || target.has_feature(Target::IntelGPU) ) << " IntelFPGA or IntelGPU Target not found.\n";
+    user_assert( target.has_feature((Target::OneAPI)) ) << " OneAPI Target not found.\n";
+    
+    debug(2) << "OneAPI-compiling for: " << target << "\n";
+    Module m = compile_to_module(args, fn_name, target);
+    auto ext = get_output_info(target);
+    m.compile(single_output( fn_name + ext.at(Output::oneapi).extension, m, Output::oneapi));
 }
 
 void Pipeline::print_loop_nest() {
@@ -376,7 +389,7 @@ void Pipeline::compile_to_host(const string &filename_prefix,
                                const vector<Argument> &args,
                                const std::string &fn_name,
                                const Target &target) {
-    compile_jit(target);
+    // compile_jit(target);
 
     for (Function f : contents->outputs) {
         std::map<string, Function> more_funcs = find_transitive_calls(f);
@@ -396,6 +409,7 @@ void Pipeline::compile_to_host(const string &filename_prefix,
     Module m = compile_to_module(args, fn_name, target);
     auto ext = get_output_info(target);
     std::map<Output, std::string> outputs = {
+        {Output::dev_src, fn_name},
         {Output::host_header, filename_prefix + ext.at(Output::host_header).extension},
         {Output::host_src, filename_prefix + ext.at(Output::host_src).extension},
     };

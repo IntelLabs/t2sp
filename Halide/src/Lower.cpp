@@ -89,9 +89,12 @@
 #include "../../t2s/src/Overlay.h"
 #include "../../t2s/src/PatternMatcher.h"
 #include "../../t2s/src/Place.h"
+#include "../../t2s/src/Relay.h"
+#include "../../t2s/src/RemoveDeadDimensions.h"
 #include "../../t2s/src/ScatterAndBuffer.h"
 #include "../../t2s/src/SpaceTimeTransform.h"
 #include "../../t2s/src/ScatterAndBuffer.h"
+#include "../../t2s/src/TriangularLoopOptimize.h"
 
 namespace Halide {
 namespace Internal {
@@ -266,8 +269,13 @@ Module lower(const vector<Function> &output_funcs,
 
     if (t.has_feature(Target::IntelFPGA)) {
         debug(1) << "Minimizing shift registers...\n";
-        s = minimize_shift_registers(s, env);
+        map<string, ShiftRegAlloc> func_to_regalloc;
+        s = minimize_shift_registers(s, env, func_to_regalloc);
         debug(2) << "Lowering after minimizing shift registers:\n" << s << "\n\n";
+
+        debug(1) << "Relaying...\n";
+        s = relay_data(s, env, func_to_regalloc);
+        debug(2) << "Lowering after relaying:\n" << s << "\n\n";
     }
 
     debug(1) << "Performing storage folding optimization...\n";
@@ -315,11 +323,6 @@ Module lower(const vector<Function> &output_funcs,
                  << s << '\n';
     }
 
-    debug(1) << "Late fuse...\n";
-    s = do_late_fuse(s, env);
-    debug(2) << "Lowering after late fuse:\n"
-             << s << "\n\n";
-
     debug(1) << "Performing storage flattening...\n";
     s = storage_flattening(s, outputs, env, t);
     debug(2) << "Lowering after storage flattening:\n"
@@ -350,38 +353,11 @@ Module lower(const vector<Function> &output_funcs,
         debug(1) << "Skipping rewriting memoized allocations...\n";
     }
 
-    if (t.has_gpu_feature() ||
-        t.has_feature(Target::OpenGLCompute) ||
-        t.has_feature(Target::OpenGL) ||
-        t.has_feature(Target::HexagonDma) ||
-        (t.arch != Target::Hexagon && (t.features_any_of({Target::HVX_64, Target::HVX_128})))) {
-        debug(1) << "Selecting a GPU API for GPU loops...\n";
-        s = select_gpu_api(s, t);
-        debug(2) << "Lowering after selecting a GPU API:\n"
-                 << s << "\n\n";
-
-        debug(1) << "Injecting host <-> dev buffer copies...\n";
-        s = inject_host_dev_buffer_copies(s, t, env);
-        debug(2) << "Lowering after injecting host <-> dev buffer copies:\n"
-                 << s << "\n\n";
-
-        debug(1) << "Selecting a GPU API for extern stages...\n";
-        s = select_gpu_api(s, t);
-        debug(2) << "Lowering after selecting a GPU API for extern stages:\n"
-                 << s << "\n\n";
-    } else {
-        // Always mark buffers host dirty. Buffers will otherwise not be correctly copied for
-        // other pipelines with device feature enabled.
-        debug(1) << "Injecting host <-> dev buffer copies...\n";
-        s = inject_host_dev_buffer_copies(s, t, env);
-        debug(2) << "Lowering after injecting host <-> dev buffer copies:\n"
-                    << s << "\n\n";
-    }
-
     map<string, Place> funcs_using_mem_channels;
+    vector<std::pair<string, Expr>> letstmts_backup;
     if (t.has_feature(Target::IntelFPGA)) {
         debug(1) << "Replacing references with mem channels...\n";
-        s = replace_references_with_mem_channels(s, env, funcs_using_mem_channels);
+        s = replace_references_with_mem_channels(s, env, funcs_using_mem_channels, letstmts_backup);
         debug(2) << "Lowering after replacing references with mem channels:\n" << s << "\n\n";
     }
 
@@ -504,6 +480,39 @@ Module lower(const vector<Function> &output_funcs,
     debug(2) << "Lowering after simplifying correlated differences:\n"
              << s << '\n';
 
+    debug(1) << "Replace memory channel with references...\n";
+    s = replace_mem_channels(s, env, letstmts_backup);
+    debug(2) << "Lowering after replacing memory channels:\n"
+             << s << "\n\n";
+
+    if (t.has_gpu_feature() ||
+        t.has_feature(Target::OpenGLCompute) ||
+        t.has_feature(Target::OpenGL) ||
+        t.has_feature(Target::HexagonDma) ||
+        (t.arch != Target::Hexagon && (t.features_any_of({Target::HVX_64, Target::HVX_128})))) {
+        debug(1) << "Selecting a GPU API for GPU loops...\n";
+        s = select_gpu_api(s, t);
+        debug(2) << "Lowering after selecting a GPU API:\n"
+                 << s << "\n\n";
+
+        debug(1) << "Injecting host <-> dev buffer copies...\n";
+        s = inject_host_dev_buffer_copies(s, t, env);
+        debug(2) << "Lowering after injecting host <-> dev buffer copies:\n"
+                 << s << "\n\n";
+
+        debug(1) << "Selecting a GPU API for extern stages...\n";
+        s = select_gpu_api(s, t);
+        debug(2) << "Lowering after selecting a GPU API for extern stages:\n"
+                 << s << "\n\n";
+    } else {
+        // Always mark buffers host dirty. Buffers will otherwise not be correctly copied for
+        // other pipelines with device feature enabled.
+        debug(1) << "Injecting host <-> dev buffer copies...\n";
+        s = inject_host_dev_buffer_copies(s, t, env);
+        debug(2) << "Lowering after injecting host <-> dev buffer copies:\n"
+                    << s << "\n\n";
+    }
+
     debug(1) << "Bounding small allocations...\n";
     s = bound_small_allocations(s);
     debug(2) << "Lowering after bounding small allocations:\n"
@@ -556,16 +565,13 @@ Module lower(const vector<Function> &output_funcs,
     debug(2) << "Lowering after lowering unsafe promises:\n"
              << s << "\n\n";
 
+    debug(1) << "Removing dead allocationss and dimensions...\n";
     s = remove_dead_allocations(s);
+    s = remove_dead_dimensions(s);
     s = simplify(s);
     // we don't need this for code generation
     //s = loop_invariant_code_motion(s);
     debug(1) << "Lowering after final simplification:\n"
-             << s << "\n\n";
-
-    debug(1) << "Replace memory channel with references...\n";
-    s = replace_mem_channels(s, env, funcs_using_mem_channels);
-    debug(2) << "Lowering after replacing memory channels:\n"
              << s << "\n\n";
 
     debug(1) << "Promoting channels...\n";
@@ -580,6 +586,15 @@ Module lower(const vector<Function> &output_funcs,
         s = simplify(flatten_loops(s, env));
         debug(2) << "Lowering after loop flattening:\n" << s << "\n\n";
     }
+
+    debug(1) << "Flatten triangular loop...\n";
+    s = flatten_tirangualr_loop_nest(s, env);
+    debug(2) << "Lowering after triangular loop optimizing:\n" << s << "\n\n";
+
+    debug(1) << "Late fuse...\n";
+    s = do_late_fuse(s, env);
+    debug(2) << "Lowering after late fuse:\n"
+             << s << "\n\n";
 
     if (getenv("DISABLE_AUTORUN") == NULL) {
         if (t.has_feature(Target::IntelFPGA)) {
@@ -602,6 +617,10 @@ Module lower(const vector<Function> &output_funcs,
         debug(1) << "Skipping Hexagon offload...\n";
     }
 
+    debug(1) << "Remove lets...\n";
+    s = remove_lets(s, true, false, false, false, {});
+    debug(2) << "Lowering after removing lets:\n"
+            << s << '\n';
 
     if (!custom_passes.empty()) {
         for (size_t i = 0; i < custom_passes.size(); i++) {

@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<!-- Prevent IE from issuing "blocked content" warning which prevents report from loading -->
+<!-- saved from url=(0016)http://localhost -->
+<html lang="en">
+<head>
+    <title id="titleText"></title>
+    <!-- Fix compatibility with certain IE 11.x versions -->
+    <meta http-equiv="X-UA-Compatible" content="IE=edge;"/>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" type="text/css" href="./lib/external/bootstrap-4.1.3/css/bootstrap.min.css" media="screen">
+    <link rel="stylesheet" type="text/css" href="./lib/external/jquery-ui/jquery-ui-1.12.1.min.css">
+    <link rel="stylesheet" type="text/css" href="./lib/external/fancytree/skin-win8/ui.fancytree.css">
+
+    <link rel="icon" type="image/vnd.microsoft.icon" href="./lib/media/favicon.ico"/>
+
+    <!-- Custom styles for this template -->
+    <link rel="stylesheet" type="text/css" href="./lib/css/scheduler_viewer_style.css">
+    <link rel="stylesheet" type="text/css" href="./lib/css/editor.css">
+    <link rel="stylesheet" type="text/css" href="./lib/css/schedule.css">
+    <link rel="stylesheet" type="text/css" href="./lib/css/table.css">
+    <link rel="stylesheet" type="text/css" href="./lib/css/tree.css">
+    <link rel="stylesheet" type="text/css" href="./lib/css/main.css">
+
+    <!-- LIBRARY INCLUDES -->
+    <script type="text/javascript" charset="utf-8" src="./lib/external/d3/d3.min.js"></script>
+    <script type="text/javascript" charset="utf-8" src="./lib/external/ace/src/ace.js"></script>
+    <script type="text/javascript" charset="utf-8" src="./lib/external/jquery/jquery-3.3.1.min.js"></script>
+    <script type="text/javascript" charset="utf-8" src="./lib/external/jquery-ui/jquery-ui-1.12.1.min.js"></script>
+    <script type="text/javascript" charset="utf-8" src="./lib/external/popper.js-1.14.3/popper.min.js"></script>
+    <script type="text/javascript" charset="utf-8" src="./lib/external/bootstrap-4.1.3/js/bootstrap.min.js"></script>
+    <script type="text/javascript" charset="utf-8" src="./lib/external/fancytree/jquery.fancytree-all.min.js"></script>
+
+    <!-- JSON INCLUDES -->
+    <script src="./lib/report_data.js"></script>
+    <script src="./lib/verification_data.js"></script>
+    <script src="./lib/viewer_data.js"></script>
+
+    <!-- UTITILES -->
+    <script type="text/javascript" src="./lib/js/util.js"></script>
+    <!-- EDITOR -->
+    <script type="text/javascript" src="./lib/js/editor.js"></script>
+    <!-- DETAILS -->
+    <script type="text/javascript" src="./lib/js/details.js"></script>
+    <!-- TREE -->
+    <script type="text/javascript" src="./lib/js/tree.js"></script>
+    <!-- GRAPH -->
+    <script src="./lib/external/d3/dagre-d3.js"></script>
+    <script type="text/javascript" src="./lib/js/graph.js"></script>
+    <script type="text/javascript" src="./lib/js/dot_graph.js"></script>
+    <!-- SCHEDULE VIEWER -->
+    <script type="text/javascript" src="./lib/js/schedule.js"></script>
+    <script type="text/javascript" src="./lib/js/schedule_table.js"></script>
+    <!-- TABLE -->
+    <script type="text/javascript" src="./lib/js/table.js"></script>
+    <!-- FMAX II VIEWER -->
+    <script type="text/javascript" src="./lib/js/fmax_ii_table.js"></script>
+    <!-- GLOSSARY -->
+    <script type="text/javascript" src="./lib/js/glossary.js"></script>
+    <!-- MAIN -->
+    <script type="text/javascript" src="./lib/js/main.js"></script>
+</head>
+<body>
+  <!-- NAVBAR -->
+  <div class="container-fluid">
+    <nav class="navbar navbar-expand-lg  navbar-light" id="header-bar">
+      <!-- Brand and toggle get grouped for better mobile display -->
+      <a class="navbar-brand">Reports</a>
+      <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarNavDropdown" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarSupportedContent">
+        <div class="navbar-nav" id="main-menu">
+          <!-- Added dynamically -->
+        </div>
+      </div><!-- /.navbar-collapse -->
+      <div class="navbar-nav flex-row ml-md-auto d-none d-md-flex">
+        <!-- Control menu -->
+        <div class="btn-group">
+          <div class="dropdown">
+            <button type="button" class="btn btn-secondary-outline" style="background-color: white" data-toggle="dropdown">
+              <span class="body glyphicon">&#8942;</span><!-- Hamburger icon button -->
+            </button>
+            <div class="dropdown-menu dropdown-menu-right" id="collapse-ctrl" aria-labelledby="dropdownMenuButton">
+              <!-- Added report dynamically -->
+            </div>
+          </div>
+        </div>
+      </div>
+    </nav>
+  </div>
+  <!-- LAYOUT -->
+  <div class="container-fluid">
+    <div class="row no-gutter">
+      <!-- COLUMN 1 -->
+      <div class="col col-sm-7" id="report-pane">
+        <!-- Added report dynamically -->
+      </div>
+      <!-- COLUMN 2 -->
+      <div class="col col-sm-5" id="editor-pane">
+        <div class="btn-group" id="editor-nav-btn-group" role="group" aria-label="Button group with nested dropdown">
+          <select class="form-control" id="editor-nav-button">
+            <!-- Added file names dynamically -->
+          </select>
+          <button type="button" class="close btn"  aria-label="Close" id="close-source">
+            <span aria-hidden="true">&times;</span><!-- Close icon button -->
+          </button>
+        </div>
+        <div class="tab-content" id="editor-pane-content">
+          <!-- Added files dynamically -->
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="container-fluid">
+    <div class="row no-gutter">
+      <div class="col col-sm" id="detail-pane">
+        <div class="card">
+          <div class="card-header">
+            Details
+            <button type="button" class="btn close" id="close-details">&times;</button>
+          </div>
+          <div class="card-body">
+            <p class="card-text" id="details"></p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

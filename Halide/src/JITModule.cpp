@@ -602,6 +602,7 @@ std::mutex shared_runtimes_mutex;
 enum RuntimeKind {
     MainShared,
     OpenCL,
+    OneAPI,
     Metal,
     CUDA,
     OpenGL,
@@ -645,6 +646,7 @@ JITModule &make_module(llvm::Module *for_module, Target target,
         Target one_gpu(target);
         one_gpu.set_feature(Target::Debug, false);
         one_gpu.set_feature(Target::OpenCL, false);
+        one_gpu.set_feature(Target::OneAPI, false);
         one_gpu.set_feature(Target::Metal, false);
         one_gpu.set_feature(Target::CUDA, false);
         one_gpu.set_feature(Target::HVX_64, false);
@@ -663,6 +665,10 @@ JITModule &make_module(llvm::Module *for_module, Target target,
             one_gpu.set_feature(Target::OpenCL);
             module_name += "opencl";
             break;
+        case OneAPI:
+            one_gpu.set_feature(Target::OneAPI);
+            module_name += "oneapi";
+            break;            
         case MetalDebug:
             one_gpu.set_feature(Target::Debug);
             one_gpu.set_feature(Target::Metal);
@@ -836,6 +842,13 @@ std::vector<JITModule> JITSharedRuntime::get(llvm::Module *for_module, const Tar
     std::vector<JITModule> gpu_modules;
     if (target.has_feature(Target::OpenCL)) {
         auto kind = target.has_feature(Target::Debug) ? OpenCLDebug : OpenCL;
+        JITModule m = make_module(for_module, target, kind, result, create);
+        if (m.compiled()) {
+            result.push_back(m);
+        }
+    }
+    if (target.has_feature(Target::OneAPI)) {
+        auto kind = target.has_feature(Target::Debug) ? OpenCLDebug : OneAPI; // (TODO) Replace with OneAPI Implementation 
         JITModule m = make_module(for_module, target, kind, result, create);
         if (m.compiled()) {
             result.push_back(m);

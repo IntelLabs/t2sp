@@ -1,0 +1,59 @@
+/* These divs have their height set based on their
+ * content.
+ */
+ #table-header thead {
+  overflow-x: hidden;
+}
+
+#table-header {
+  background-color: white;
+  z-index:2;
+}
+
+#table-header th {
+  background-color: white;
+  padding-left: 8px;
+  padding-right: 0px;
+  border-top: 1px solid #dddddd;
+}
+
+.table th,td
+{
+  font-size: 11px;
+  overflow: hidden;
+  white-space: pre;
+  text-overflow: ellipsis;
+  vertical-align: middle !important;
+}
+
+.glyphicon-chevron-down:before,  .glyphicon-chevron-down:after,
+.glyphicon-chevron-right:before, .glyphicon-chevron-right:after
+{
+  z-index: 1;
+}
+
+/* expand collipse button*/
+.exp-col-btn
+{
+  width: 116px;
+}
+
+tbody .name-col
+{
+  max-width: 300px;
+}
+
+tbody .value-col
+{
+  max-width: 100px;
+}
+
+.ar-toggle, .ar-toggle:active, .ar-toggle:focus, .ar-toggle:hover {
+  text-decoration: none;
+}
+
+/* Row coloring and formatting */
+.res-heading-row:hover td
+{
+  background-color: white !important;
+}

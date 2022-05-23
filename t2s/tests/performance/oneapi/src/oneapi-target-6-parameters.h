@@ -1,0 +1,67 @@
+/*******************************************************************************
+* Copyright 2021 Intel Corporation
+*
+* Licensed under the BSD-2-Clause Plus Patent License (the "License");
+* you may not use this file except in compliance with the License.
+* You may obtain a copy of the License at
+*
+* https://opensource.org/licenses/BSDplusPatent
+*
+* Unless required by applicable law or agreed to in writing,
+* software distributed under the License is distributed on an "AS IS" BASIS,
+* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+* See the License for the specific language governing permissions
+* and limitations under the License.
+*
+*
+* SPDX-License-Identifier: BSD-2-Clause-Patent
+*******************************************************************************/
+#ifndef ONEAPI_TAREGET_6_PARAMETERS_H
+#define ONEAPI_TAREGET_6_PARAMETERS_H
+
+#define OX              7
+#define OY              7
+#define KY              3
+#define KX              3
+#define MY              4
+#define MX              4
+#define MK              4
+
+// Inner loop bounds, which are static constant parameters of the design
+#ifdef GPU
+    #define CII         4
+    #define CI          8
+    #define COOO        8
+    #define COO         1
+    #define CO          4
+    #define YYY_XXX     7
+    #define YY_XX       7
+    #define Y_X         1
+#else // FPGA
+    #ifdef TINY // For verifying correctness only
+        #define CII         4
+        #define CI          4
+        #define COOO        4
+        #define COO         4
+        #define CO          1
+        #define YYY_XXX     7
+        #define YY_XX       1
+        #define Y_X         7
+    #else
+        #define CII         16
+        #define CI          2
+        #define COOO        8
+        #define COO         4
+        #define CO          1
+        #define YYY_XXX     8
+        #define YY_XX       1
+        #define Y_X         5
+    #endif
+#endif
+
+#define TOTAL_IX        (OX * 2 + KX - 2)
+#define TOTAL_IY        (OY * 2 + KY - 2)
+#define TOTAL_CO        (COOO * COO * CO)
+#define TOTAL_CI        (CII * CI)
+
+#endif

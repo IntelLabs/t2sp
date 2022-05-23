@@ -1001,6 +1001,13 @@ public:
                       const std::string &fn_name = "",
                       const Target &target = get_target_from_environment());
 
+    /** Statically compile this function to DPCPP source code.
+     * This relies on the original OpenCL device code wrapped in DPCPP/SYCL calls/
+     * To compile this code, one will need to install Intel's OneAPI with DPCPP. */
+    void compile_to_oneapi(const std::vector<Argument> &,
+                      const std::string &fn_name = "",
+                      const Target &target = get_target_from_environment());
+
     /** Write out an internal representation of lowered code. Useful
      * for analyzing and debugging scheduling. Can emit html or plain
      * text. */
@@ -2211,7 +2218,9 @@ public:
      * g.
      */
     Func &compute_at(Func f, Var var);
-    Func &late_fuse(Func f, Var var);
+  
+    Func &late_fuse(Func f, int v_outs = 1);
+    Func &late_fuse(Func f, Var var, int v_outs = 1);
 
     /** Schedule a function to be computed within the iteration over
      * some dimension of an update domain. Produces equivalent code
@@ -2539,6 +2548,7 @@ public:
      */
     Func &merge_ures(std::vector<Func> &ures, bool isolate=false);
     Func &merge_ures(std::vector<Func> ures, std::vector<Func> output_ures, bool isolate=false);
+    Func &merge_ures(std::vector<VarOrRVar> loop_level, std::vector<Func> ures, std::vector<Func> output_ures, bool isolate=false);
 
     template <typename... Args>
     HALIDE_NO_USER_CODE_INLINE typename std::enable_if<Internal::all_are_convertible<Func, Args...>::value, Func &>::type
@@ -2735,6 +2745,8 @@ public:
 
     Func &gather(Func f, VarOrRVar loop, GatherStrategy strategy = GatherStrategy::Up);
 
+    Func &relay(Func f, VarOrRVar loop);
+
     Func &command(int index, std::vector<Argument> inputs, std::vector<Argument> outputs, std::vector<Argument> inouts);
 
     Func &depend(Func &f, std::vector<Expr> &vars);
@@ -2801,6 +2813,11 @@ public:
                      Var w, Expr w_min, Expr w_extent) {
         return set_bounds({x, y, z, w}, {x_min, y_min, z_min, w_min}, {x_extent, y_extent, z_extent, w_extent});
     }
+    // @}
+
+    /** Triangular loop nest will merge into a a single loop annotated with ivdep pragma. */
+    // @{
+    Func &triangular_loop_optimize(Var outer_loop, Var inner_loop, int safelen);
     // @}
 
     /** With the given space loop variables, build a systolic array in the unscheduled approach.

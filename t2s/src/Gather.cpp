@@ -180,7 +180,7 @@ class TestGathering : public IRVisitor{
     void visit(const Shuffle *op) override{
         if (in_gather_func && !op->vectors.empty()){
             const Call* arg0 = op->vectors[0].as<Call>();
-            if(arg0 && arg0->is_intrinsic(Call::read_channel)){
+            if(arg0->is_intrinsic(Call::read_channel)){
                 const StringImm* channel_name = arg0->args[0].as<StringImm>();
                 assert(channel_name);
                 if(ends_with(channel_name->value, func_name + ".channel.0")){
@@ -285,7 +285,7 @@ class DataGathering : public IRMutator{
             for(auto t : iter->second.unroll_names){
                 channel_args.push_back(Variable::make(Int(32), t));
             }
-            bool strategy_up = iter->second.strategy == GatherStrategy::Up;
+            bool strategy_up = iter->second.strategy == GatherStrategy::Up || iter->second.strategy == GatherStrategy::FPGAReg;
             int origin_loop_extent = if_gathering_vec_loop ?
                                      iter->second.call_node.type().lanes() :
                                      iter->second.gather_loop->extent.as<IntImm>()->value;
@@ -318,7 +318,7 @@ class DataGathering : public IRMutator{
             Expr cond_read = strategy_up ? GT::make(origin_loop_var, 0) : LT::make(origin_loop_var, origin_loop_extent - 1);
             vector<Expr> write_channel_args(channel_args);
             write_channel_args.push_back(read_shreg_modify);
-            Stmt write_channel = Evaluate::make(Call::make(Handle(iter->second.call_node.type().lanes()),
+            Stmt write_channel = Evaluate::make(Call::make(iter->second.call_node.type(),
                                                 Call::write_shift_reg,
                                                 write_channel_args,
                                                 Call::Intrinsic));
@@ -329,9 +329,17 @@ class DataGathering : public IRMutator{
             // else
             //  if(ii > t)/(ii < t) for GatherStrategy::Down
             //     A[ii] = read_shreg(FIFO_A, ii - 1, ...)/(read_shreg(FIFO_A, ii + 1, ...)
-            read_from_fifo = IfThenElse::make(EQ::make(gather_var, origin_loop_var),
-                                                substitute(read_shreg_modify, origin_read_shreg, write_channel),
-                                                read_from_fifo);
+            if (iter->second.strategy == GatherStrategy::FPGAReg) {
+                Stmt pipeline_reg = Provide::make(iter->second.func_name + ".gather.temp", {Call::make(iter->second.call_node.type(), Call::fpga_reg, {Call::make(iter->second.call_node.type(),iter->second.func_name+".gather.temp",{},Call::PureIntrinsic)}, Call::Intrinsic)}, {});
+                read_from_fifo = IfThenElse::make(EQ::make(gather_var, origin_loop_var),
+                                                  Provide::make(iter->second.func_name + ".gather.temp",{iter->second.call_node},{}),
+                                                  pipeline_reg);
+            } else {
+                read_from_fifo = IfThenElse::make(EQ::make(gather_var, origin_loop_var),
+                                                  substitute(read_shreg_modify, origin_read_shreg, write_channel),
+                                                  read_from_fifo);
+            }
+
 
             // if (ii == II-1)/(ii == 0) for GatherStrategy::Down
             //      write A[ii] to output[t]
@@ -346,7 +354,11 @@ class DataGathering : public IRMutator{
             if(iter->second.unroll_names.back() == iter->second.gather_loop->name){
                 // write_to_consumer = substitute(write_node, const_true(), updated_body);
                 write_node = substitute(origin_loop_var,gather_var,write_node);
-                write_node = substitute(origin_read_shreg_t,read_shreg,write_node);
+                if (iter->second.strategy == GatherStrategy::FPGAReg) {
+                    write_node = substitute(origin_read_shreg_t,Call::make(iter->second.call_node.type(),iter->second.func_name+".gather.temp",{},Call::PureIntrinsic),write_node);
+                } else {
+                    write_node = substitute(origin_read_shreg_t,read_shreg,write_node);
+                }
                 if(strategy_up)
                     write_node = substitute(origin_loop_var,op->min + op->extent - 1,write_node);
                 else
@@ -368,6 +380,11 @@ class DataGathering : public IRMutator{
             // updated_body = Block::make(read_from_fifo, write_to_consumer);
         }
 
+        if (ends_with(op->name, ".run_on_device") && iter->second.strategy == GatherStrategy::FPGAReg) {
+            Region ranges;
+            updated_body = Realize::make(iter->second.func_name + ".gather.temp",{iter->second.call_node.type()},MemoryType::Auto,ranges,const_true(),updated_body);
+        }
+
         updated_body = For::make(op->name, op->min, op->extent, op->for_type, op->device_api, updated_body);
 
         // find gather loop
@@ -379,7 +396,8 @@ class DataGathering : public IRMutator{
             updated_body =  For::make(op->name + ".gather", op->min, op->extent, ForType::Serial, op->device_api, updated_body);
         // insert buffer
         } else if (ends_with(op->name, ".run_on_device") && wait_insert_device_loop != ""){
-            updated_body = For::make(wait_insert_device_loop, 0, 1, ForType::Parallel, DeviceAPI::OpenCL, updated_body);
+            // updated_body = For::make(wait_insert_device_loop, 0, 1, ForType::Parallel, DeviceAPI::OpenCL, updated_body);
+            updated_body = For::make(wait_insert_device_loop, 0, 1, ForType::Parallel, op->device_api, updated_body);
             wait_insert_device_loop = "";
         }
         return updated_body;
@@ -403,7 +421,8 @@ class DataGathering : public IRMutator{
                         range_args.push_back(Range(0, item.second.call_node.type().lanes()));
                     }
                     wait_insert_device_loop = channel_name + ".run_on_device";
-                    updated_body = Realize::make(channel_name + ".shreg",
+                    if (item.second.strategy != GatherStrategy::FPGAReg) {
+                        updated_body = Realize::make(channel_name + ".shreg",
                                                     {item.second.vec_loop_name != "" ?
                                                         item.second.call_node.type().element_of() :
                                                         item.second.call_node.type()},
@@ -411,6 +430,7 @@ class DataGathering : public IRMutator{
                                                     range_args,
                                                     const_true(),
                                                     updated_body);
+                    }
                 }
             }
             updated_body = mutate(updated_body);
@@ -755,7 +775,7 @@ Stmt gather_data(Stmt s, const std::map<std::string, Function> &env){
         if (!gather_params.empty()){
             auto t = gather_params[0];
             debug(3) << " test for GatherItem " << t.func_name << " "
-                     << t.loop_name << " " << (t.strategy == GatherStrategy::Up ? "Up" : "Down") << "\n";
+                     << t.loop_name << " " << ((t.strategy == GatherStrategy::Up || t.strategy == GatherStrategy::FPGAReg) ? "Up" : "Down") << "\n";
             TestGathering ts(caller_name, t.loop_name, t.func_name, t.strategy, env);
             s.accept(&ts);
             user_assert(ts.found_loop != nullptr || ts.vec_loop_name != "")

@@ -1,9 +1,9 @@
 #include <sstream>
 #include <string>
 
-#include "Simplify.h"
-#include "IROperator.h"
 #include "CodeGen_CM_Dev.h"
+#include "IROperator.h"
+#include "Simplify.h"
 #include "Substitute.h"
 
 namespace Halide {
@@ -278,7 +278,7 @@ void CodeGen_CM_Dev::CodeGen_CM_C::visit(const Div *op) {
 }
 
 void CodeGen_CM_Dev::CodeGen_CM_C::visit(const FloatImm *op) {
-    id = to_string(op->value);
+    id = to_string(op->value) + "f";
 }
 
 void CodeGen_CM_Dev::CodeGen_CM_C::visit_binop(Type t, Expr a, Expr b, const char *op) {
@@ -470,7 +470,6 @@ void CodeGen_CM_Dev::CodeGen_CM_C::visit(const Load *op) {
     } else {
         if (alloc.memory_type == MemoryType::Heap) {
             size_t bytes = op->type.bits() / 8;
-            internal_assert(bytes == 4);
             Type t = op->type.with_lanes(16 / bytes);
             string index = print_expr(simplify(op->index * 4));
             string tmpl = get_vector_read_tmpl(t, op->name, index, true);
@@ -541,17 +540,17 @@ void CodeGen_CM_Dev::CodeGen_CM_C::visit(const Select *op) {
     string cond = print_expr(op->condition);
     string true_val = print_expr(op->true_value);
     string false_val = print_expr(op->false_value);
-    // trick: replace logical operation with bitwise operation
-    cond = replace_all(cond, "&&", "&");
-    cond = replace_all(cond, "||", "|");
 
     if (!op->condition.type().is_scalar()) {
+        // trick: replace logical operation with bitwise operation
+        cond = replace_all(cond, "&&", "&");
+        cond = replace_all(cond, "||", "|");
         id = unique_name('_');
         stream << get_vector_declaration(op->type, id);
 
         stream << get_indent() << "SIMD_IF_BEGIN(" << cond << ") {\n";
         indent += 2;
-        stream << get_indent() << id << " = " << op->true_value << ";\n";
+        stream << get_indent() << id << " = " << true_val << ";\n";
         indent -= 2;
         stream << get_indent() << "} SIMD_ELSE {\n";
         indent += 2;
@@ -693,7 +692,8 @@ void CodeGen_CM_Dev::CodeGen_CM_C::add_kernel(Stmt s,
     stream << "extern \"C\" _GENX_MAIN_ void " << name << "(\n";
     for (size_t i = 0; i < args.size(); i++) {
         if (args[i].is_buffer) {
-            stream << "SurfaceIndex " << print_name(args[i].name);
+            stream << "SurfaceIndex " << print_name(args[i].name)
+                   << " [[type(\"image2d_t " << print_type(args[i].type) << "\")]]";
             Allocation alloc;
             alloc.type = args[i].type;
             alloc.memory_type = MemoryType::Heap;

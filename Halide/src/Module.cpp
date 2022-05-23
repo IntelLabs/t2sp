@@ -6,6 +6,8 @@
 
 #include "CodeGen_GPU_Host.h"
 #include "CodeGen_X86.h"
+#include "CodeGen_OpenCL_Dev.h"
+#include "../../t2s/src/CodeGen_OneAPI_Dev.h"
 
 #include "CodeGen_C.h"
 #include "CodeGen_Internal.h"
@@ -50,6 +52,7 @@ std::map<Output, OutputInfo> get_output_info(const Target &target) {
         {Output::featurization, {"featurization", ".featurization"}},
         {Output::llvm_assembly, {"llvm_assembly", ".ll"}},
         {Output::object, {"object", is_windows_coff ? ".obj" : ".o"}},
+        {Output::oneapi, {"c_header", ".generated_oneapi_header.h"}},
         {Output::python_extension, {"python_extension", ".py.cpp"}},
         {Output::pytorch_wrapper, {"pytorch_wrapper", ".pytorch.h"}},
         {Output::registration, {"registration", ".registration.cpp"}},
@@ -57,7 +60,7 @@ std::map<Output, OutputInfo> get_output_info(const Target &target) {
         {Output::static_library, {"static_library", is_windows_coff ? ".lib" : ".a"}},
         {Output::stmt, {"stmt", ".stmt"}},
         {Output::stmt_html, {"stmt_html", ".stmt.html"}},
-        {Output::cm_devsrc, {"cm_devsrc", "_genx.cpp"}},
+        {Output::dev_src, {"dev_src", "_genx.cpp"}},
         {Output::host_header, {"host_header", ".h"}},
         {Output::host_src, {"host_src", ".cpp"}}
     };
@@ -581,8 +584,8 @@ void Module::compile(const std::map<Output, std::string> &output_files) const {
         resolve_submodules().compile(output_files_copy);
         return;
     }
-    if (contains(output_files, Output::cm_devsrc)) {
-        debug(1) << "Module.compile(): cm_devsrc " << output_files.at(Output::cm_devsrc) << "\n";
+    if (contains(output_files, Output::dev_src)) {
+        debug(1) << "Module.compile(): dev_src " << output_files.at(Output::dev_src) << "\n";
         llvm::LLVMContext context;
         CodeGen_LLVM *ret = new CodeGen_GPU_Host<CodeGen_X86>(this->target());
         ret->set_context(context);
@@ -651,6 +654,24 @@ void Module::compile(const std::map<Output, std::string> &output_files) const {
                                target(),
                                target().has_feature(Target::CPlusPlusMangling) ? Internal::CodeGen_C::CPlusPlusImplementation : Internal::CodeGen_C::CImplementation);
         cg.compile(*this);
+    }
+    if (contains(output_files, Output::oneapi)) {
+        debug(1) << "Module.compile(): oneapi_dev " << output_files.at(Output::oneapi) << "\n";
+        auto t = target();
+        t.set_feature(Target::OpenCL, false);
+
+        // CodeGen_OneAPI expects to be compiled with DPC++ i.e. C++17
+        // So we hard set the featrues here
+        t.set_feature(Target::CPlusPlusMangling, true);
+
+        // We invoke compile() like method using the OneAPI CodeGenerator much like CodeGen_C 
+        // Unlike outputing the devsrc only as done in Output::cm_devsrc with CodeGen_GPU_Host<CodeGen_X86>(t)
+        // Since the CodeGen_OneAPI_C is protected class of CodeGen_OneAPI_Dev, 
+        // we use a public CodeGen_OneAPI_C method to do this
+        std::ofstream file(output_files.at(Output::oneapi));
+        Internal::CodeGen_OneAPI_Dev cg(t);
+        std::string out_str = cg.compile_oneapi(*this);
+        file << out_str;
     }
     if (contains(output_files, Output::host_header)) {
         debug(1) << "Module.compile(): host_header " << output_files.at(Output::host_header) << "\n";

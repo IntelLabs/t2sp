@@ -1,0 +1,5290 @@
+{
+  "nodes":
+  [
+    {
+      "type":"kernel"
+      , "id":2
+      , "name":"kernel_aLoader"
+      , "children":
+      [
+        {
+          "type":"bb"
+          , "id":3
+          , "name":"kernel_aLoader.B0"
+          , "details":
+          [
+            {
+              "type":"table"
+              , "Latency":"18"
+            }
+          ]
+        }
+        , {
+          "type":"bb"
+          , "id":4
+          , "name":"kernel_aLoader.B1"
+          , "details":
+          [
+            {
+              "type":"table"
+              , "Latency":"0"
+            }
+          ]
+        }
+        , {
+          "type":"bb"
+          , "id":5
+          , "name":"kernel_aLoader.B2"
+          , "details":
+          [
+            {
+              "type":"table"
+              , "Latency":"10"
+              , "II":"1"
+              , "Subloops":"Yes"
+              , "Pipelined":"Yes"
+              , "Fmax Bottlenecks":"No"
+              , "Loop Info":"Entry to loop. "
+              , "Loops To":"6"
+            }
+          ]
+        }
+        , {
+          "type":"bb"
+          , "id":6
+          , "name":"kernel_aLoader.B3"
+          , "details":
+          [
+            {
+              "type":"table"
+              , "Latency":"0"
+              , "II":"1"
+              , "Subloops":"Yes"
+              , "Pipelined":"Yes"
+              , "Fmax Bottlenecks":"No"
+              , "Loop Info":"Exit which branches back to loop. "
+            }
+          ]
+        }
+        , {
+          "type":"bb"
+          , "id":7
+          , "name":"kernel_aLoader.B4"
+          , "details":
+          [
+            {
+              "type":"table"
+              , "Latency":"10"
+              , "II":"1"
+              , "Subloops":"Yes"
+              , "Pipelined":"Yes"
+              , "Fmax Bottlenecks":"No"
+              , "Loop Info":"Entry to loop. "
+              , "Loops To":"9"
+            }
+          ]
+        }
+        , {
+          "type":"bb"
+          , "id":8
+          , "name":"kernel_aLoader.B5"
+          , "details":
+          [
+            {
+              "type":"table"
+              , "Latency":"10"
+              , "II":"1"
+              , "Subloops":"Yes"
+              , "Pipelined":"Yes"
+              , "Fmax Bottlenecks":"No"
+              , "Loop Info":"Entry to loop. "
+              , "Loops To":"10"
+            }
+          ]
+        }
+        , {
+          "type":"bb"
+          , "id":9
+          , "name":"kernel_aLoader.B6"
+          , "details":
+          [
+            {
+              "type":"table"
+              , "Latency":"0"
+              , "II":"1"
+              , "Subloops":"Yes"
+              , "Pipelined":"Yes"
+              , "Fmax Bottlenecks":"No"
+              , "Loop Info":"Exit which branches back to loop. "
+            }
+          ]
+        }
+        , {
+          "type":"bb"
+          , "id":10
+          , "name":"kernel_aLoader.B7"
+          , "details":
+          [
+            {
+              "type":"table"
+              , "Latency":"0"
+              , "II":"1"
+              , "Subloops":"Yes"
+              , "Pipelined":"Yes"
+              , "Fmax Bottlenecks":"No"
+              , "Loop Info":"Exit which branches back to loop. "
+            }
+          ]
+        }
+        , {
+          "type":"bb"
+          , "id":11
+          , "name":"kernel_aLoader.B8"
+          , "children":
+          [
+            {
+              "type":"inst"
+              , "id":12
+              , "name":"Load"
+              , "debug":
+              [
+                [
+                  {
+                    "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/gemm/a.cl"
+                    , "line":94
+                  }
+                ]
+              ]
+              , "details":
+              [
+                {
+                  "type":"table"
+                  , "Width":"512 bits"
+                  , "Type":"Burst-coalesced cached"
+                  , "Stall-free":"No"
+                  , "Start Cycle":"112"
+                  , "Latency":"185"
+                  , "Reference":
+                  [
+                    {
+                      "type":"text"
+                      , "text":"See %L for more information"
+                      , "links":
+                      [
+                        {
+                          "guide":"Best Practices Guide : Load-Store Units"
+                          , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+            , {
+              "type":"inst"
+              , "id":13
+              , "name":"Channel Write"
+              , "debug":
+              [
+                [
+                  {
+                    "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/gemm/a.cl"
+                    , "line":95
+                  }
+                ]
+              ]
+              , "details":
+              [
+                {
+                  "type":"table"
+                  , "Width":"512 bits"
+                  , "Depth":"256"
+                  , "Stall-free":"No"
+                  , "Start Cycle":"298"
+                  , "Latency":"0"
+                  , "Reference":
+                  [
+                    {
+                      "type":"text"
+                      , "text":"See %L for more information"
+                      , "links":
+                      [
+                        {
+                          "guide":"Best Practices Guide : Channels"
+                          , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#qah1476410829821"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+            , {
+              "type":"inst"
+              , "id":15
+              , "name":"Loop Input"
+              , "debug":
+              [
+                [
+                  {
+                    "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/gemm/a.cl"
+                    , "line":80
+                  }
+                ]
+              ]
+              , "details":
+              [
+                {
+                  "type":"table"
+                  , "Start Cycle":"0"
+                  , "Latency":"1"
+                  , "Loops To":"16"
+                }
+              ]
+            }
+            , {
+              "type":"inst"
+              , "id":16
+              , "name":"Loop End"
+              , "details":
+              [
+                {
+                  "type":"table"
+                  , "Start Cycle":"298"
+                  , "Latency":"1"
+                }
+              ]
+            }
+          ]
+          , "details":
+          [
+            {
+              "type":"table"
+              , "Latency":"298"
+              , "II":"1"
+              , "Subloops":"No"
+              , "Pipelined":"Yes"
+              , "Fmax Bottlenecks":"No"
+              , "Loop Info":""
+            }
+          ]
+        }
+      ]
+    }
+    , {
+      "type":"kernel"
+      , "id":18
+      , "name":"kernel_aFeeder"
+      , "children":
+      [
+        {
+          "type":"bb"
+          , "id":19
+          , "name":"kernel_aFeeder.B0"
+          , "details":
+          [
+            {
+              "type":"table"
+              , "Latency":"34"
+            }
+          ]
+        }
+        , {
+          "type":"bb"
+          , "id":20
+          , "name":"kernel_aFeeder.B1"
+          , "details":
+          [
+            {
+              "type":"table"
+              , "Latency":"0"
+            }
+          ]
+        }
+        , {
+          "type":"bb"
+          , "id":21
+          , "name":"kernel_aFeeder.B2"
+          , "children":
+          [
+            {
+              "type":"inst"
+              , "id":22
+              , "name":"Channel Read"
+              , "debug":
+              [
+                [
+                  {
+                    "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/gemm/a.cl"
+                    , "line":153
+                  }
+                ]
+              ]
+              , "details":
+              [
+                {
+                  "type":"table"
+                  , "Width":"512 bits"
+                  , "Depth":"256"
+                  , "Stall-free":"No"
+                  , "Start Cycle":"11"
+                  , "Latency":"0"
+                  , "Reference":
+                  [
+                    {
+                      "type":"text"
+                      , "text":"See %L for more information"
+                      , "links":
+                      [
+                        {
+                          "guide":"Best Practices Guide : Channels"
+                          , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#qah1476410829821"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+            , {
+              "type":"inst"
+              , "id":23
+              , "name":"Store"
+              , "debug":
+              [
+                [
+                  {
+                    "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/gemm/a.cl"
+                    , "line":219
+                  }
+                ]
+              ]
+              , "details":
+              [
+                {
+                  "type":"table"
+                  , "Width":"512 bits"
+                  , "Type":"Local-pipelined never-stall"
+                  , "Stall-free":"Yes"
+                  , "Stores to":"_aFeeder_DB_0_ibuffer"
+                  , "Start Cycle":"19"
+                  , "Latency":"1"
+                  , "Reference":
+                  [
+                    {
+                      "type":"text"
+                      , "text":"See %L for more information"
+                      , "links":
+                      [
+                        {
+                          "guide":"Best Practices Guide : Load-Store Units"
+                          , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+            , {
+              "type":"inst"
+              , "id":24
+              , "name":"Load"
+              , "debug":
+              [
+                [
+                  {
+                    "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/gemm/a.cl"
+                    , "line":250
+                  }
+                ]
+              ]
+              , "details":
+              [
+                {
+                  "type":"table"
+                  , "Width":"512 bits"
+                  , "Type":"Local-pipelined never-stall"
+                  , "Stall-free":"Yes"
+                  , "Loads from":"_aFeeder_DB_0_ibuffer"
+                  , "Start Cycle":"20"
+                  , "Latency":"4"
+                  , "Reference":
+                  [
+                    {
+                      "type":"text"
+                      , "text":"See %L for more information"
+                      , "links":
+                      [
+                        {
+                          "guide":"Best Practices Guide : Load-Store Units"
+                          , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+            , {
+              "type":"inst"
+              , "id":25
+              , "name":"Store"
+              , "debug":
+              [
+                [
+                  {
+                    "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/gemm/a.cl"
+                    , "line":219
+                  }
+                ]
+              ]
+              , "details":
+              [
+                {
+                  "type":"table"
+                  , "Width":"512 bits"
+                  , "Type":"Local-pipelined never-stall"
+                  , "Stall-free":"Yes"
+                  , "Stores to":"_aFeeder_DB_0_ibuffer"
+                  , "Start Cycle":"21"
+                  , "Latency":"1"
+                  , "Reference":
+                  [
+                    {
+                      "type":"text"
+                      , "text":"See %L for more information"
+                      , "links":
+                      [
+                        {
+                          "guide":"Best Practices Guide : Load-Store Units"
+                          , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+            , {
+              "type":"inst"
+              , "id":26
+              , "name":"Load"
+              , "debug":
+              [
+                [
+                  {
+                    "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/gemm/a.cl"
+                    , "line":250
+                  }
+                ]
+              ]
+              , "details":
+              [
+                {
+                  "type":"table"
+                  , "Width":"512 bits"
+                  , "Type":"Local-pipelined never-stall"
+                  , "Stall-free":"Yes"
+                  , "Loads from":"_aFeeder_DB_0_ibuffer"
+                  , "Start Cycle":"22"
+                  , "Latency":"4"
+                  , "Reference":
+                  [
+                    {
+                      "type":"text"
+                      , "text":"See %L for more information"
+                      , "links":
+                      [
+                        {
+                          "guide":"Best Practices Guide : Load-Store Units"
+                          , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+            , {
+              "type":"inst"
+              , "id":27
+              , "name":"Store"
+              , "debug":
+              [
+                [
+                  {
+                    "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/gemm/a.cl"
+                    , "line":219
+                  }
+                ]
+              ]
+              , "details":
+              [
+                {
+                  "type":"table"
+                  , "Width":"512 bits"
+                  , "Type":"Local-pipelined never-stall"
+                  , "Stall-free":"Yes"
+                  , "Stores to":"_aFeeder_DB_0_ibuffer"
+                  , "Start Cycle":"23"
+                  , "Latency":"1"
+                  , "Reference":
+                  [
+                    {
+                      "type":"text"
+                      , "text":"See %L for more information"
+                      , "links":
+                      [
+                        {
+                          "guide":"Best Practices Guide : Load-Store Units"
+                          , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+            , {
+              "type":"inst"
+              , "id":28
+              , "name":"Load"
+              , "debug":
+              [
+                [
+                  {
+                    "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/gemm/a.cl"
+                    , "line":250
+                  }
+                ]
+              ]
+              , "details":
+              [
+                {
+                  "type":"table"
+                  , "Width":"512 bits"
+                  , "Type":"Local-pipelined never-stall"
+                  , "Stall-free":"Yes"
+                  , "Loads from":"_aFeeder_DB_0_ibuffer"
+                  , "Start Cycle":"24"
+                  , "Latency":"4"
+                  , "Reference":
+                  [
+                    {
+                      "type":"text"
+                      , "text":"See %L for more information"
+                      , "links":
+                      [
+                        {
+                          "guide":"Best Practices Guide : Load-Store Units"
+                          , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+            , {
+              "type":"inst"
+              , "id":29
+              , "name":"Store"
+              , "debug":
+              [
+                [
+                  {
+                    "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/gemm/a.cl"
+                    , "line":219
+                  }
+                ]
+              ]
+              , "details":
+              [
+                {
+                  "type":"table"
+                  , "Width":"512 bits"
+                  , "Type":"Local-pipelined never-stall"
+                  , "Stall-free":"Yes"
+                  , "Stores to":"_aFeeder_DB_0_ibuffer"
+                  , "Start Cycle":"25"
+                  , "Latency":"1"
+                  , "Reference":
+                  [
+                    {
+                      "type":"text"
+                      , "text":"See %L for more information"
+                      , "links":
+                      [
+                        {
+                          "guide":"Best Practices Guide : Load-Store Units"
+                          , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+            , {
+              "type":"inst"
+              , "id":30
+              , "name":"Load"
+              , "debug":
+              [
+                [
+                  {
+                    "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/gemm/a.cl"
+                    , "line":250
+                  }
+                ]
+              ]
+              , "details":
+              [
+                {
+                  "type":"table"
+                  , "Width":"512 bits"
+                  , "Type":"Local-pipelined never-stall"
+                  , "Stall-free":"Yes"
+                  , "Loads from":"_aFeeder_DB_0_ibuffer"
+                  , "Start Cycle":"26"
+                  , "Latency":"4"
+                  , "Reference":
+                  [
+                    {
+                      "type":"text"
+                      , "text":"See %L for more information"
+                      , "links":
+                      [
+                        {
+                          "guide":"Best Practices Guide : Load-Store Units"
+                          , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+            , {
+              "type":"inst"
+              , "id":31
+              , "name":"Store"
+              , "debug":
+              [
+                [
+                  {
+                    "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/gemm/a.cl"
+                    , "line":219
+                  }
+                ]
+              ]
+              , "details":
+              [
+                {
+                  "type":"table"
+                  , "Width":"512 bits"
+                  , "Type":"Local-pipelined never-stall"
+                  , "Stall-free":"Yes"
+                  , "Stores to":"_aFeeder_DB_0_ibuffer"
+                  , "Start Cycle":"27"
+                  , "Latency":"1"
+                  , "Reference":
+                  [
+                    {
+                      "type":"text"
+                      , "text":"See %L for more information"
+                      , "links":
+                      [
+                        {
+                          "guide":"Best Practices Guide : Load-Store Units"
+                          , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+            , {
+              "type":"inst"
+              , "id":32
+              , "name":"Load"
+              , "debug":
+              [
+                [
+                  {
+                    "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/gemm/a.cl"
+                    , "line":250
+                  }
+                ]
+              ]
+              , "details":
+              [
+                {
+                  "type":"table"
+                  , "Width":"512 bits"
+                  , "Type":"Local-pipelined never-stall"
+                  , "Stall-free":"Yes"
+                  , "Loads from":"_aFeeder_DB_0_ibuffer"
+                  , "Start Cycle":"28"
+                  , "Latency":"4"
+                  , "Reference":
+                  [
+                    {
+                      "type":"text"
+                      , "text":"See %L for more information"
+                      , "links":
+                      [
+                        {
+                          "guide":"Best Practices Guide : Load-Store Units"
+                          , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+            , {
+              "type":"inst"
+              , "id":33
+              , "name":"Store"
+              , "debug":
+              [
+                [
+                  {
+                    "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/gemm/a.cl"
+                    , "line":219
+                  }
+                ]
+              ]
+              , "details":
+              [
+                {
+                  "type":"table"
+                  , "Width":"512 bits"
+                  , "Type":"Local-pipelined never-stall"
+                  , "Stall-free":"Yes"
+                  , "Stores to":"_aFeeder_DB_0_ibuffer"
+                  , "Start Cycle":"29"
+                  , "Latency":"1"
+                  , "Reference":
+                  [
+                    {
+                      "type":"text"
+                      , "text":"See %L for more information"
+                      , "links":
+                      [
+                        {
+                          "guide":"Best Practices Guide : Load-Store Units"
+                          , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+            , {
+              "type":"inst"
+              , "id":34
+              , "name":"Load"
+              , "debug":
+              [
+                [
+                  {
+                    "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/gemm/a.cl"
+                    , "line":250
+                  }
+                ]
+              ]
+              , "details":
+              [
+                {
+                  "type":"table"
+                  , "Width":"512 bits"
+                  , "Type":"Local-pipelined never-stall"
+                  , "Stall-free":"Yes"
+                  , "Loads from":"_aFeeder_DB_0_ibuffer"
+                  , "Start Cycle":"30"
+                  , "Latency":"4"
+                  , "Reference":
+                  [
+                    {
+                      "type":"text"
+                      , "text":"See %L for more information"
+                      , "links":
+                      [
+                        {
+                          "guide":"Best Practices Guide : Load-Store Units"
+                          , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+            , {
+              "type":"inst"
+              , "id":35
+              , "name":"Store"
+              , "debug":
+              [
+                [
+                  {
+                    "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/gemm/a.cl"
+                    , "line":219
+                  }
+                ]
+              ]
+              , "details":
+              [
+                {
+                  "type":"table"
+                  , "Width":"512 bits"
+                  , "Type":"Local-pipelined never-stall"
+                  , "Stall-free":"Yes"
+                  , "Stores to":"_aFeeder_DB_0_ibuffer"
+                  , "Start Cycle":"31"
+                  , "Latency":"1"
+                  , "Reference":
+                  [
+                    {
+                      "type":"text"
+                      , "text":"See %L for more information"
+                      , "links":
+                      [
+                        {
+                          "guide":"Best Practices Guide : Load-Store Units"
+                          , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+            , {
+              "type":"inst"
+              , "id":36
+              , "name":"Load"
+              , "debug":
+              [
+                [
+                  {
+                    "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/gemm/a.cl"
+                    , "line":250
+                  }
+                ]
+              ]
+              , "details":
+              [
+                {
+                  "type":"table"
+                  , "Width":"512 bits"
+                  , "Type":"Local-pipelined never-stall"
+                  , "Stall-free":"Yes"
+                  , "Loads from":"_aFeeder_DB_0_ibuffer"
+                  , "Start Cycle":"32"
+                  , "Latency":"4"
+                  , "Reference":
+                  [
+                    {
+                      "type":"text"
+                      , "text":"See %L for more information"
+                      , "links":
+                      [
+                        {
+                          "guide":"Best Practices Guide : Load-Store Units"
+                          , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+            , {
+              "type":"inst"
+              , "id":37
+              , "name":"Store"
+              , "debug":
+              [
+                [
+                  {
+                    "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/gemm/a.cl"
+                    , "line":219
+                  }
+                ]
+              ]
+              , "details":
+              [
+                {
+                  "type":"table"
+                  , "Width":"512 bits"
+                  , "Type":"Local-pipelined never-stall"
+                  , "Stall-free":"Yes"
+                  , "Stores to":"_aFeeder_DB_0_ibuffer"
+                  , "Start Cycle":"33"
+                  , "Latency":"1"
+                  , "Reference":
+                  [
+                    {
+                      "type":"text"
+                      , "text":"See %L for more information"
+                      , "links":
+                      [
+                        {
+                          "guide":"Best Practices Guide : Load-Store Units"
+                          , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+            , {
+              "type":"inst"
+              , "id":38
+              , "name":"Load"
+              , "debug":
+              [
+                [
+                  {
+                    "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/gemm/a.cl"
+                    , "line":250
+                  }
+                ]
+              ]
+              , "details":
+              [
+                {
+                  "type":"table"
+                  , "Width":"512 bits"
+                  , "Type":"Local-pipelined never-stall"
+                  , "Stall-free":"Yes"
+                  , "Loads from":"_aFeeder_DB_0_ibuffer"
+                  , "Start Cycle":"34"
+                  , "Latency":"4"
+                  , "Reference":
+                  [
+                    {
+                      "type":"text"
+                      , "text":"See %L for more information"
+                      , "links":
+                      [
+                        {
+                          "guide":"Best Practices Guide : Load-Store Units"
+                          , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+            , {
+              "type":"inst"
+              , "id":39
+              , "name":"Store"
+              , "debug":
+              [
+                [
+                  {
+                    "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/gemm/a.cl"
+                    , "line":219
+                  }
+                ]
+              ]
+              , "details":
+              [
+                {
+                  "type":"table"
+                  , "Width":"512 bits"
+                  , "Type":"Local-pipelined never-stall"
+                  , "Stall-free":"Yes"
+                  , "Stores to":"_aFeeder_DB_0_ibuffer"
+                  , "Start Cycle":"35"
+                  , "Latency":"1"
+                  , "Reference":
+                  [
+                    {
+                      "type":"text"
+                      , "text":"See %L for more information"
+                      , "links":
+                      [
+                        {
+                          "guide":"Best Practices Guide : Load-Store Units"
+                          , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+            , {
+              "type":"inst"
+              , "id":40
+              , "name":"Load"
+              , "debug":
+              [
+                [
+                  {
+                    "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/gemm/a.cl"
+                    , "line":250
+                  }
+                ]
+              ]
+              , "details":
+              [
+                {
+                  "type":"table"
+                  , "Width":"512 bits"
+                  , "Type":"Local-pipelined never-stall"
+                  , "Stall-free":"Yes"
+                  , "Loads from":"_aFeeder_DB_0_ibuffer"
+                  , "Start Cycle":"36"
+                  , "Latency":"4"
+                  , "Reference":
+                  [
+                    {
+                      "type":"text"
+                      , "text":"See %L for more information"
+                      , "links":
+                      [
+                        {
+                          "guide":"Best Practices Guide : Load-Store Units"
+                          , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+            , {
+              "type":"inst"
+              , "id":41
+              , "name":"Store"
+              , "debug":
+              [
+                [
+                  {
+                    "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/gemm/a.cl"
+                    , "line":219
+                  }
+                ]
+              ]
+              , "details":
+              [
+                {
+                  "type":"table"
+                  , "Width":"512 bits"
+                  , "Type":"Local-pipelined never-stall"
+                  , "Stall-free":"Yes"
+                  , "Stores to":"_aFeeder_DB_0_ibuffer"
+                  , "Start Cycle":"37"
+                  , "Latency":"1"
+                  , "Reference":
+                  [
+                    {
+                      "type":"text"
+                      , "text":"See %L for more information"
+                      , "links":
+                      [
+                        {
+                          "guide":"Best Practices Guide : Load-Store Units"
+                          , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+            , {
+              "type":"inst"
+              , "id":42
+              , "name":"Load"
+              , "debug":
+              [
+                [
+                  {
+                    "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/gemm/a.cl"
+                    , "line":250
+                  }
+                ]
+              ]
+              , "details":
+              [
+                {
+                  "type":"table"
+                  , "Width":"512 bits"
+                  , "Type":"Local-pipelined never-stall"
+                  , "Stall-free":"Yes"
+                  , "Loads from":"_aFeeder_DB_0_ibuffer"
+                  , "Start Cycle":"38"
+                  , "Latency":"4"
+                  , "Reference":
+                  [
+                    {
+                      "type":"text"
+                      , "text":"See %L for more information"
+                      , "links":
+                      [
+                        {
+                          "guide":"Best Practices Guide : Load-Store Units"
+                          , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+            , {
+              "type":"inst"
+              , "id":43
+              , "name":"Store"
+              , "debug":
+              [
+                [
+                  {
+                    "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/gemm/a.cl"
+                    , "line":219
+                  }
+                ]
+              ]
+              , "details":
+              [
+                {
+                  "type":"table"
+                  , "Width":"512 bits"
+                  , "Type":"Local-pipelined never-stall"
+                  , "Stall-free":"Yes"
+                  , "Stores to":"_aFeeder_DB_0_ibuffer"
+                  , "Start Cycle":"39"
+                  , "Latency":"1"
+                  , "Reference":
+                  [
+                    {
+                      "type":"text"
+                      , "text":"See %L for more information"
+                      , "links":
+                      [
+                        {
+                          "guide":"Best Practices Guide : Load-Store Units"
+                          , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+            , {
+              "type":"inst"
+              , "id":44
+              , "name":"Load"
+              , "debug":
+              [
+                [
+                  {
+                    "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/gemm/a.cl"
+                    , "line":250
+                  }
+                ]
+              ]
+              , "details":
+              [
+                {
+                  "type":"table"
+                  , "Width":"512 bits"
+                  , "Type":"Local-pipelined never-stall"
+                  , "Stall-free":"Yes"
+                  , "Loads from":"_aFeeder_DB_0_ibuffer"
+                  , "Start Cycle":"40"
+                  , "Latency":"4"
+                  , "Reference":
+                  [
+                    {
+                      "type":"text"
+                      , "text":"See %L for more information"
+                      , "links":
+                      [
+                        {
+                          "guide":"Best Practices Guide : Load-Store Units"
+                          , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+            , {
+              "type":"inst"
+              , "id":45
+              , "name":"Store"
+              , "debug":
+              [
+                [
+                  {
+                    "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/gemm/a.cl"
+                    , "line":219
+                  }
+                ]
+              ]
+              , "details":
+              [
+                {
+                  "type":"table"
+                  , "Width":"512 bits"
+                  , "Type":"Local-pipelined never-stall"
+                  , "Stall-free":"Yes"
+                  , "Stores to":"_aFeeder_DB_0_ibuffer"
+                  , "Start Cycle":"41"
+                  , "Latency":"1"
+                  , "Reference":
+                  [
+                    {
+                      "type":"text"
+                      , "text":"See %L for more information"
+                      , "links":
+                      [
+                        {
+                          "guide":"Best Practices Guide : Load-Store Units"
+                          , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+            , {
+              "type":"inst"
+              , "id":46
+              , "name":"Load"
+              , "debug":
+              [
+                [
+                  {
+                    "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/gemm/a.cl"
+                    , "line":250
+                  }
+                ]
+              ]
+              , "details":
+              [
+                {
+                  "type":"table"
+                  , "Width":"512 bits"
+                  , "Type":"Local-pipelined never-stall"
+                  , "Stall-free":"Yes"
+                  , "Loads from":"_aFeeder_DB_0_ibuffer"
+                  , "Start Cycle":"42"
+                  , "Latency":"4"
+                  , "Reference":
+                  [
+                    {
+                      "type":"text"
+                      , "text":"See %L for more information"
+                      , "links":
+                      [
+                        {
+                          "guide":"Best Practices Guide : Load-Store Units"
+                          , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+            , {
+              "type":"inst"
+              , "id":47
+              , "name":"Store"
+              , "debug":
+              [
+                [
+                  {
+                    "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/gemm/a.cl"
+                    , "line":219
+                  }
+                ]
+              ]
+              , "details":
+              [
+                {
+                  "type":"table"
+                  , "Width":"512 bits"
+                  , "Type":"Local-pipelined never-stall"
+                  , "Stall-free":"Yes"
+                  , "Stores to":"_aFeeder_DB_0_ibuffer"
+                  , "Start Cycle":"43"
+                  , "Latency":"1"
+                  , "Reference":
+                  [
+                    {
+                      "type":"text"
+                      , "text":"See %L for more information"
+                      , "links":
+                      [
+                        {
+                          "guide":"Best Practices Guide : Load-Store Units"
+                          , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+            , {
+              "type":"inst"
+              , "id":48
+              , "name":"Load"
+              , "debug":
+              [
+                [
+                  {
+                    "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/gemm/a.cl"
+                    , "line":250
+                  }
+                ]
+              ]
+              , "details":
+              [
+                {
+                  "type":"table"
+                  , "Width":"512 bits"
+                  , "Type":"Local-pipelined never-stall"
+                  , "Stall-free":"Yes"
+                  , "Loads from":"_aFeeder_DB_0_ibuffer"
+                  , "Start Cycle":"44"
+                  , "Latency":"4"
+                  , "Reference":
+                  [
+                    {
+                      "type":"text"
+                      , "text":"See %L for more information"
+                      , "links":
+                      [
+                        {
+                          "guide":"Best Practices Guide : Load-Store Units"
+                          , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+            , {
+              "type":"inst"
+              , "id":49
+              , "name":"Store"
+              , "debug":
+              [
+                [
+                  {
+                    "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/gemm/a.cl"
+                    , "line":219
+                  }
+                ]
+              ]
+              , "details":
+              [
+                {
+                  "type":"table"
+                  , "Width":"512 bits"
+                  , "Type":"Local-pipelined never-stall"
+                  , "Stall-free":"Yes"
+                  , "Stores to":"_aFeeder_DB_0_ibuffer"
+                  , "Start Cycle":"45"
+                  , "Latency":"1"
+                  , "Reference":
+                  [
+                    {
+                      "type":"text"
+                      , "text":"See %L for more information"
+                      , "links":
+                      [
+                        {
+                          "guide":"Best Practices Guide : Load-Store Units"
+                          , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+            , {
+              "type":"inst"
+              , "id":50
+              , "name":"Load"
+              , "debug":
+              [
+                [
+                  {
+                    "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/gemm/a.cl"
+                    , "line":250
+                  }
+                ]
+              ]
+              , "details":
+              [
+                {
+                  "type":"table"
+                  , "Width":"512 bits"
+                  , "Type":"Local-pipelined never-stall"
+                  , "Stall-free":"Yes"
+                  , "Loads from":"_aFeeder_DB_0_ibuffer"
+                  , "Start Cycle":"46"
+                  , "Latency":"4"
+                  , "Reference":
+                  [
+                    {
+                      "type":"text"
+                      , "text":"See %L for more information"
+                      , "links":
+                      [
+                        {
+                          "guide":"Best Practices Guide : Load-Store Units"
+                          , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+            , {
+              "type":"inst"
+              , "id":51
+              , "name":"Channel Write"
+              , "debug":
+              [
+                [
+                  {
+                    "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/gemm/a.cl"
+                    , "line":270
+                  }
+                ]
+              ]
+              , "details":
+              [
+                {
+                  "type":"table"
+                  , "Width":"7168 bits"
+                  , "Depth":"256"
+                  , "Stall-free":"No"
+                  , "Start Cycle":"57"
+                  , "Latency":"0"
+                  , "Reference":
+                  [
+                    {
+                      "type":"text"
+                      , "text":"See %L for more information"
+                      , "links":
+                      [
+                        {
+                          "guide":"Best Practices Guide : Channels"
+                          , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#qah1476410829821"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+            , {
+              "type":"inst"
+              , "id":53
+              , "name":"Loop Input"
+              , "debug":
+              [
+                [
+                  {
+                    "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/gemm/a.cl"
+                    , "line":134
+                  }
+                ]
+              ]
+              , "details":
+              [
+                {
+                  "type":"table"
+                  , "Start Cycle":"0"
+                  , "Latency":"1"
+                  , "Loops To":"54"
+                }
+              ]
+            }
+            , {
+              "type":"inst"
+              , "id":54
+              , "name":"Loop End"
+              , "details":
+              [
+                {
+                  "type":"table"
+                  , "Start Cycle":"57"
+                  , "Latency":"1"
+                }
+              ]
+            }
+          ]
+          , "details":
+          [
+            {
+              "type":"table"
+              , "Latency":"57"
+              , "II":"1"
+              , "Subloops":"No"
+              , "Pipelined":"Yes"
+              , "Fmax Bottlenecks":"No"
+              , "Loop Info":""
+            }
+          ]
+        }
+        , {
+          "type":"memtype"
+          , "id":55
+          , "name":"Local Memory"
+          , "children":
+          [
+            {
+              "type":"memsys"
+              , "id":56
+              , "name":"_aFeeder_DB_0_ibuffer"
+              , "debug":
+              [
+                [
+                  {
+                    "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/gemm/a.cl"
+                    , "line":116
+                  }
+                ]
+              ]
+              , "details":
+              [
+                {
+                  "type":"table"
+                  , "details":
+                  [
+                    {
+                      "type":"brief"
+                      , "text":"2097152B requested\n2097152B implemented"
+                    }
+                  ]
+                  , "Requested size":"2097152 bytes"
+                  , "Implemented size":"2097152 bytes"
+                  , "Number of banks":"16"
+                  , "Bank width":"512 bits"
+                  , "Bank depth":"2048 words"
+                  , "Total replication":"1"
+                  , "Reference":
+                  [
+                    {
+                      "type":"text"
+                      , "text":"See %L for more information"
+                      , "links":
+                      [
+                        {
+                          "guide":"Best Practices Guide : Local Memory"
+                          , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#chn1469549457114"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+    , {
+      "type":"kernel"
+      , "id":101
+      , "name":"kernel_bLoader"
+      , "children":
+      [
+        {
+          "type":"bb"
+          , "id":102
+          , "name":"kernel_bLoader.B0"
+          , "details":
+          [
+            {
+              "type":"table"
+              , "Latency":"18"
+            }
+          ]
+        }
+        , {
+          "type":"bb"
+          , "id":103
+          , "name":"kernel_bLoader.B1"
+          , "details":
+          [
+            {
+              "type":"table"
+              , "Latency":"0"
+            }
+          ]
+        }
+        , {
+          "type":"bb"
+          , "id":104
+          , "name":"kernel_bLoader.B2"
+          , "details":
+          [
+            {
+              "type":"table"
+              , "Latency":"10"
+              , "II":"1"
+              , "Subloops":"Yes"
+              , "Pipelined":"Yes"
+              , "Fmax Bottlenecks":"No"
+              , "Loop Info":"Entry to loop. "
+              , "Loops To":"105"
+            }
+          ]
+        }
+        , {
+          "type":"bb"
+          , "id":105
+          , "name":"kernel_bLoader.B3"
+          , "details":
+          [
+            {
+              "type":"table"
+              , "Latency":"0"
+              , "II":"1"
+              , "Subloops":"Yes"
+              , "Pipelined":"Yes"
+              , "Fmax Bottlenecks":"No"
+              , "Loop Info":"Exit which branches back to loop. "
+            }
+          ]
+        }
+        , {
+          "type":"bb"
+          , "id":106
+          , "name":"kernel_bLoader.B4"
+          , "details":
+          [
+            {
+              "type":"table"
+              , "Latency":"10"
+              , "II":"1"
+              , "Subloops":"Yes"
+              , "Pipelined":"Yes"
+              , "Fmax Bottlenecks":"No"
+              , "Loop Info":"Entry to loop. "
+              , "Loops To":"108"
+            }
+          ]
+        }
+        , {
+          "type":"bb"
+          , "id":107
+          , "name":"kernel_bLoader.B5"
+          , "details":
+          [
+            {
+              "type":"table"
+              , "Latency":"10"
+              , "II":"1"
+              , "Subloops":"Yes"
+              , "Pipelined":"Yes"
+              , "Fmax Bottlenecks":"No"
+              , "Loop Info":"Entry to loop. "
+              , "Loops To":"109"
+            }
+          ]
+        }
+        , {
+          "type":"bb"
+          , "id":108
+          , "name":"kernel_bLoader.B6"
+          , "details":
+          [
+            {
+              "type":"table"
+              , "Latency":"0"
+              , "II":"1"
+              , "Subloops":"Yes"
+              , "Pipelined":"Yes"
+              , "Fmax Bottlenecks":"No"
+              , "Loop Info":"Exit which branches back to loop. "
+            }
+          ]
+        }
+        , {
+          "type":"bb"
+          , "id":109
+          , "name":"kernel_bLoader.B7"
+          , "details":
+          [
+            {
+              "type":"table"
+              , "Latency":"0"
+              , "II":"1"
+              , "Subloops":"Yes"
+              , "Pipelined":"Yes"
+              , "Fmax Bottlenecks":"No"
+              , "Loop Info":"Exit which branches back to loop. "
+            }
+          ]
+        }
+        , {
+          "type":"bb"
+          , "id":110
+          , "name":"kernel_bLoader.B8"
+          , "children":
+          [
+            {
+              "type":"inst"
+              , "id":111
+              , "name":"Load"
+              , "debug":
+              [
+                [
+                  {
+                    "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/gemm/a.cl"
+                    , "line":307
+                  }
+                ]
+              ]
+              , "details":
+              [
+                {
+                  "type":"table"
+                  , "Width":"512 bits"
+                  , "Type":"Burst-coalesced cached"
+                  , "Stall-free":"No"
+                  , "Start Cycle":"111"
+                  , "Latency":"185"
+                  , "Reference":
+                  [
+                    {
+                      "type":"text"
+                      , "text":"See %L for more information"
+                      , "links":
+                      [
+                        {
+                          "guide":"Best Practices Guide : Load-Store Units"
+                          , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+            , {
+              "type":"inst"
+              , "id":112
+              , "name":"Channel Write"
+              , "debug":
+              [
+                [
+                  {
+                    "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/gemm/a.cl"
+                    , "line":308
+                  }
+                ]
+              ]
+              , "details":
+              [
+                {
+                  "type":"table"
+                  , "Width":"512 bits"
+                  , "Depth":"256"
+                  , "Stall-free":"No"
+                  , "Start Cycle":"297"
+                  , "Latency":"0"
+                  , "Reference":
+                  [
+                    {
+                      "type":"text"
+                      , "text":"See %L for more information"
+                      , "links":
+                      [
+                        {
+                          "guide":"Best Practices Guide : Channels"
+                          , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#qah1476410829821"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+            , {
+              "type":"inst"
+              , "id":114
+              , "name":"Loop Input"
+              , "debug":
+              [
+                [
+                  {
+                    "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/gemm/a.cl"
+                    , "line":298
+                  }
+                ]
+              ]
+              , "details":
+              [
+                {
+                  "type":"table"
+                  , "Start Cycle":"0"
+                  , "Latency":"1"
+                  , "Loops To":"115"
+                }
+              ]
+            }
+            , {
+              "type":"inst"
+              , "id":115
+              , "name":"Loop End"
+              , "details":
+              [
+                {
+                  "type":"table"
+                  , "Start Cycle":"297"
+                  , "Latency":"1"
+                }
+              ]
+            }
+          ]
+          , "details":
+          [
+            {
+              "type":"table"
+              , "Latency":"297"
+              , "II":"1"
+              , "Subloops":"No"
+              , "Pipelined":"Yes"
+              , "Fmax Bottlenecks":"No"
+              , "Loop Info":""
+            }
+          ]
+        }
+      ]
+    }
+    , {
+      "type":"kernel"
+      , "id":116
+      , "name":"kernel_bFeeder"
+      , "children":
+      [
+        {
+          "type":"bb"
+          , "id":117
+          , "name":"kernel_bFeeder.B0"
+          , "details":
+          [
+            {
+              "type":"table"
+              , "Latency":"34"
+            }
+          ]
+        }
+        , {
+          "type":"bb"
+          , "id":118
+          , "name":"kernel_bFeeder.B1"
+          , "details":
+          [
+            {
+              "type":"table"
+              , "Latency":"0"
+            }
+          ]
+        }
+        , {
+          "type":"bb"
+          , "id":119
+          , "name":"kernel_bFeeder.B2"
+          , "children":
+          [
+            {
+              "type":"inst"
+              , "id":120
+              , "name":"Channel Read"
+              , "debug":
+              [
+                [
+                  {
+                    "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/gemm/a.cl"
+                    , "line":366
+                  }
+                ]
+              ]
+              , "details":
+              [
+                {
+                  "type":"table"
+                  , "Width":"512 bits"
+                  , "Depth":"256"
+                  , "Stall-free":"No"
+                  , "Start Cycle":"11"
+                  , "Latency":"0"
+                  , "Reference":
+                  [
+                    {
+                      "type":"text"
+                      , "text":"See %L for more information"
+                      , "links":
+                      [
+                        {
+                          "guide":"Best Practices Guide : Channels"
+                          , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#qah1476410829821"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+            , {
+              "type":"inst"
+              , "id":121
+              , "name":"Store"
+              , "debug":
+              [
+                [
+                  {
+                    "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/gemm/a.cl"
+                    , "line":432
+                  }
+                ]
+              ]
+              , "details":
+              [
+                {
+                  "type":"table"
+                  , "Width":"512 bits"
+                  , "Type":"Local-pipelined never-stall"
+                  , "Stall-free":"Yes"
+                  , "Stores to":"_bFeeder_DB_0_ibuffer"
+                  , "Start Cycle":"17"
+                  , "Latency":"1"
+                  , "Reference":
+                  [
+                    {
+                      "type":"text"
+                      , "text":"See %L for more information"
+                      , "links":
+                      [
+                        {
+                          "guide":"Best Practices Guide : Load-Store Units"
+                          , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+            , {
+              "type":"inst"
+              , "id":122
+              , "name":"Load"
+              , "debug":
+              [
+                [
+                  {
+                    "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/gemm/a.cl"
+                    , "line":462
+                  }
+                ]
+              ]
+              , "details":
+              [
+                {
+                  "type":"table"
+                  , "Width":"512 bits"
+                  , "Type":"Local-pipelined never-stall"
+                  , "Stall-free":"Yes"
+                  , "Loads from":"_bFeeder_DB_0_ibuffer"
+                  , "Start Cycle":"18"
+                  , "Latency":"4"
+                  , "Reference":
+                  [
+                    {
+                      "type":"text"
+                      , "text":"See %L for more information"
+                      , "links":
+                      [
+                        {
+                          "guide":"Best Practices Guide : Load-Store Units"
+                          , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+            , {
+              "type":"inst"
+              , "id":123
+              , "name":"Store"
+              , "debug":
+              [
+                [
+                  {
+                    "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/gemm/a.cl"
+                    , "line":432
+                  }
+                ]
+              ]
+              , "details":
+              [
+                {
+                  "type":"table"
+                  , "Width":"512 bits"
+                  , "Type":"Local-pipelined never-stall"
+                  , "Stall-free":"Yes"
+                  , "Stores to":"_bFeeder_DB_0_ibuffer"
+                  , "Start Cycle":"19"
+                  , "Latency":"1"
+                  , "Reference":
+                  [
+                    {
+                      "type":"text"
+                      , "text":"See %L for more information"
+                      , "links":
+                      [
+                        {
+                          "guide":"Best Practices Guide : Load-Store Units"
+                          , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+            , {
+              "type":"inst"
+              , "id":124
+              , "name":"Load"
+              , "debug":
+              [
+                [
+                  {
+                    "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/gemm/a.cl"
+                    , "line":462
+                  }
+                ]
+              ]
+              , "details":
+              [
+                {
+                  "type":"table"
+                  , "Width":"512 bits"
+                  , "Type":"Local-pipelined never-stall"
+                  , "Stall-free":"Yes"
+                  , "Loads from":"_bFeeder_DB_0_ibuffer"
+                  , "Start Cycle":"20"
+                  , "Latency":"4"
+                  , "Reference":
+                  [
+                    {
+                      "type":"text"
+                      , "text":"See %L for more information"
+                      , "links":
+                      [
+                        {
+                          "guide":"Best Practices Guide : Load-Store Units"
+                          , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+            , {
+              "type":"inst"
+              , "id":125
+              , "name":"Store"
+              , "debug":
+              [
+                [
+                  {
+                    "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/gemm/a.cl"
+                    , "line":432
+                  }
+                ]
+              ]
+              , "details":
+              [
+                {
+                  "type":"table"
+                  , "Width":"512 bits"
+                  , "Type":"Local-pipelined never-stall"
+                  , "Stall-free":"Yes"
+                  , "Stores to":"_bFeeder_DB_0_ibuffer"
+                  , "Start Cycle":"21"
+                  , "Latency":"1"
+                  , "Reference":
+                  [
+                    {
+                      "type":"text"
+                      , "text":"See %L for more information"
+                      , "links":
+                      [
+                        {
+                          "guide":"Best Practices Guide : Load-Store Units"
+                          , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+            , {
+              "type":"inst"
+              , "id":126
+              , "name":"Load"
+              , "debug":
+              [
+                [
+                  {
+                    "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/gemm/a.cl"
+                    , "line":462
+                  }
+                ]
+              ]
+              , "details":
+              [
+                {
+                  "type":"table"
+                  , "Width":"512 bits"
+                  , "Type":"Local-pipelined never-stall"
+                  , "Stall-free":"Yes"
+                  , "Loads from":"_bFeeder_DB_0_ibuffer"
+                  , "Start Cycle":"22"
+                  , "Latency":"4"
+                  , "Reference":
+                  [
+                    {
+                      "type":"text"
+                      , "text":"See %L for more information"
+                      , "links":
+                      [
+                        {
+                          "guide":"Best Practices Guide : Load-Store Units"
+                          , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+            , {
+              "type":"inst"
+              , "id":127
+              , "name":"Store"
+              , "debug":
+              [
+                [
+                  {
+                    "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/gemm/a.cl"
+                    , "line":432
+                  }
+                ]
+              ]
+              , "details":
+              [
+                {
+                  "type":"table"
+                  , "Width":"512 bits"
+                  , "Type":"Local-pipelined never-stall"
+                  , "Stall-free":"Yes"
+                  , "Stores to":"_bFeeder_DB_0_ibuffer"
+                  , "Start Cycle":"23"
+                  , "Latency":"1"
+                  , "Reference":
+                  [
+                    {
+                      "type":"text"
+                      , "text":"See %L for more information"
+                      , "links":
+                      [
+                        {
+                          "guide":"Best Practices Guide : Load-Store Units"
+                          , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+            , {
+              "type":"inst"
+              , "id":128
+              , "name":"Load"
+              , "debug":
+              [
+                [
+                  {
+                    "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/gemm/a.cl"
+                    , "line":462
+                  }
+                ]
+              ]
+              , "details":
+              [
+                {
+                  "type":"table"
+                  , "Width":"512 bits"
+                  , "Type":"Local-pipelined never-stall"
+                  , "Stall-free":"Yes"
+                  , "Loads from":"_bFeeder_DB_0_ibuffer"
+                  , "Start Cycle":"24"
+                  , "Latency":"4"
+                  , "Reference":
+                  [
+                    {
+                      "type":"text"
+                      , "text":"See %L for more information"
+                      , "links":
+                      [
+                        {
+                          "guide":"Best Practices Guide : Load-Store Units"
+                          , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+            , {
+              "type":"inst"
+              , "id":129
+              , "name":"Store"
+              , "debug":
+              [
+                [
+                  {
+                    "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/gemm/a.cl"
+                    , "line":432
+                  }
+                ]
+              ]
+              , "details":
+              [
+                {
+                  "type":"table"
+                  , "Width":"512 bits"
+                  , "Type":"Local-pipelined never-stall"
+                  , "Stall-free":"Yes"
+                  , "Stores to":"_bFeeder_DB_0_ibuffer"
+                  , "Start Cycle":"25"
+                  , "Latency":"1"
+                  , "Reference":
+                  [
+                    {
+                      "type":"text"
+                      , "text":"See %L for more information"
+                      , "links":
+                      [
+                        {
+                          "guide":"Best Practices Guide : Load-Store Units"
+                          , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+            , {
+              "type":"inst"
+              , "id":130
+              , "name":"Load"
+              , "debug":
+              [
+                [
+                  {
+                    "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/gemm/a.cl"
+                    , "line":462
+                  }
+                ]
+              ]
+              , "details":
+              [
+                {
+                  "type":"table"
+                  , "Width":"512 bits"
+                  , "Type":"Local-pipelined never-stall"
+                  , "Stall-free":"Yes"
+                  , "Loads from":"_bFeeder_DB_0_ibuffer"
+                  , "Start Cycle":"26"
+                  , "Latency":"4"
+                  , "Reference":
+                  [
+                    {
+                      "type":"text"
+                      , "text":"See %L for more information"
+                      , "links":
+                      [
+                        {
+                          "guide":"Best Practices Guide : Load-Store Units"
+                          , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+            , {
+              "type":"inst"
+              , "id":131
+              , "name":"Store"
+              , "debug":
+              [
+                [
+                  {
+                    "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/gemm/a.cl"
+                    , "line":432
+                  }
+                ]
+              ]
+              , "details":
+              [
+                {
+                  "type":"table"
+                  , "Width":"512 bits"
+                  , "Type":"Local-pipelined never-stall"
+                  , "Stall-free":"Yes"
+                  , "Stores to":"_bFeeder_DB_0_ibuffer"
+                  , "Start Cycle":"27"
+                  , "Latency":"1"
+                  , "Reference":
+                  [
+                    {
+                      "type":"text"
+                      , "text":"See %L for more information"
+                      , "links":
+                      [
+                        {
+                          "guide":"Best Practices Guide : Load-Store Units"
+                          , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+            , {
+              "type":"inst"
+              , "id":132
+              , "name":"Load"
+              , "debug":
+              [
+                [
+                  {
+                    "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/gemm/a.cl"
+                    , "line":462
+                  }
+                ]
+              ]
+              , "details":
+              [
+                {
+                  "type":"table"
+                  , "Width":"512 bits"
+                  , "Type":"Local-pipelined never-stall"
+                  , "Stall-free":"Yes"
+                  , "Loads from":"_bFeeder_DB_0_ibuffer"
+                  , "Start Cycle":"28"
+                  , "Latency":"4"
+                  , "Reference":
+                  [
+                    {
+                      "type":"text"
+                      , "text":"See %L for more information"
+                      , "links":
+                      [
+                        {
+                          "guide":"Best Practices Guide : Load-Store Units"
+                          , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+            , {
+              "type":"inst"
+              , "id":133
+              , "name":"Store"
+              , "debug":
+              [
+                [
+                  {
+                    "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/gemm/a.cl"
+                    , "line":432
+                  }
+                ]
+              ]
+              , "details":
+              [
+                {
+                  "type":"table"
+                  , "Width":"512 bits"
+                  , "Type":"Local-pipelined never-stall"
+                  , "Stall-free":"Yes"
+                  , "Stores to":"_bFeeder_DB_0_ibuffer"
+                  , "Start Cycle":"29"
+                  , "Latency":"1"
+                  , "Reference":
+                  [
+                    {
+                      "type":"text"
+                      , "text":"See %L for more information"
+                      , "links":
+                      [
+                        {
+                          "guide":"Best Practices Guide : Load-Store Units"
+                          , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+            , {
+              "type":"inst"
+              , "id":134
+              , "name":"Load"
+              , "debug":
+              [
+                [
+                  {
+                    "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/gemm/a.cl"
+                    , "line":462
+                  }
+                ]
+              ]
+              , "details":
+              [
+                {
+                  "type":"table"
+                  , "Width":"512 bits"
+                  , "Type":"Local-pipelined never-stall"
+                  , "Stall-free":"Yes"
+                  , "Loads from":"_bFeeder_DB_0_ibuffer"
+                  , "Start Cycle":"30"
+                  , "Latency":"4"
+                  , "Reference":
+                  [
+                    {
+                      "type":"text"
+                      , "text":"See %L for more information"
+                      , "links":
+                      [
+                        {
+                          "guide":"Best Practices Guide : Load-Store Units"
+                          , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+            , {
+              "type":"inst"
+              , "id":135
+              , "name":"Store"
+              , "debug":
+              [
+                [
+                  {
+                    "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/gemm/a.cl"
+                    , "line":432
+                  }
+                ]
+              ]
+              , "details":
+              [
+                {
+                  "type":"table"
+                  , "Width":"512 bits"
+                  , "Type":"Local-pipelined never-stall"
+                  , "Stall-free":"Yes"
+                  , "Stores to":"_bFeeder_DB_0_ibuffer"
+                  , "Start Cycle":"31"
+                  , "Latency":"1"
+                  , "Reference":
+                  [
+                    {
+                      "type":"text"
+                      , "text":"See %L for more information"
+                      , "links":
+                      [
+                        {
+                          "guide":"Best Practices Guide : Load-Store Units"
+                          , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+            , {
+              "type":"inst"
+              , "id":136
+              , "name":"Load"
+              , "debug":
+              [
+                [
+                  {
+                    "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/gemm/a.cl"
+                    , "line":462
+                  }
+                ]
+              ]
+              , "details":
+              [
+                {
+                  "type":"table"
+                  , "Width":"512 bits"
+                  , "Type":"Local-pipelined never-stall"
+                  , "Stall-free":"Yes"
+                  , "Loads from":"_bFeeder_DB_0_ibuffer"
+                  , "Start Cycle":"32"
+                  , "Latency":"4"
+                  , "Reference":
+                  [
+                    {
+                      "type":"text"
+                      , "text":"See %L for more information"
+                      , "links":
+                      [
+                        {
+                          "guide":"Best Practices Guide : Load-Store Units"
+                          , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+            , {
+              "type":"inst"
+              , "id":137
+              , "name":"Store"
+              , "debug":
+              [
+                [
+                  {
+                    "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/gemm/a.cl"
+                    , "line":432
+                  }
+                ]
+              ]
+              , "details":
+              [
+                {
+                  "type":"table"
+                  , "Width":"512 bits"
+                  , "Type":"Local-pipelined never-stall"
+                  , "Stall-free":"Yes"
+                  , "Stores to":"_bFeeder_DB_0_ibuffer"
+                  , "Start Cycle":"33"
+                  , "Latency":"1"
+                  , "Reference":
+                  [
+                    {
+                      "type":"text"
+                      , "text":"See %L for more information"
+                      , "links":
+                      [
+                        {
+                          "guide":"Best Practices Guide : Load-Store Units"
+                          , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+            , {
+              "type":"inst"
+              , "id":138
+              , "name":"Load"
+              , "debug":
+              [
+                [
+                  {
+                    "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/gemm/a.cl"
+                    , "line":462
+                  }
+                ]
+              ]
+              , "details":
+              [
+                {
+                  "type":"table"
+                  , "Width":"512 bits"
+                  , "Type":"Local-pipelined never-stall"
+                  , "Stall-free":"Yes"
+                  , "Loads from":"_bFeeder_DB_0_ibuffer"
+                  , "Start Cycle":"34"
+                  , "Latency":"4"
+                  , "Reference":
+                  [
+                    {
+                      "type":"text"
+                      , "text":"See %L for more information"
+                      , "links":
+                      [
+                        {
+                          "guide":"Best Practices Guide : Load-Store Units"
+                          , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+            , {
+              "type":"inst"
+              , "id":139
+              , "name":"Store"
+              , "debug":
+              [
+                [
+                  {
+                    "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/gemm/a.cl"
+                    , "line":432
+                  }
+                ]
+              ]
+              , "details":
+              [
+                {
+                  "type":"table"
+                  , "Width":"512 bits"
+                  , "Type":"Local-pipelined never-stall"
+                  , "Stall-free":"Yes"
+                  , "Stores to":"_bFeeder_DB_0_ibuffer"
+                  , "Start Cycle":"35"
+                  , "Latency":"1"
+                  , "Reference":
+                  [
+                    {
+                      "type":"text"
+                      , "text":"See %L for more information"
+                      , "links":
+                      [
+                        {
+                          "guide":"Best Practices Guide : Load-Store Units"
+                          , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+            , {
+              "type":"inst"
+              , "id":140
+              , "name":"Load"
+              , "debug":
+              [
+                [
+                  {
+                    "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/gemm/a.cl"
+                    , "line":462
+                  }
+                ]
+              ]
+              , "details":
+              [
+                {
+                  "type":"table"
+                  , "Width":"512 bits"
+                  , "Type":"Local-pipelined never-stall"
+                  , "Stall-free":"Yes"
+                  , "Loads from":"_bFeeder_DB_0_ibuffer"
+                  , "Start Cycle":"36"
+                  , "Latency":"4"
+                  , "Reference":
+                  [
+                    {
+                      "type":"text"
+                      , "text":"See %L for more information"
+                      , "links":
+                      [
+                        {
+                          "guide":"Best Practices Guide : Load-Store Units"
+                          , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+            , {
+              "type":"inst"
+              , "id":141
+              , "name":"Store"
+              , "debug":
+              [
+                [
+                  {
+                    "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/gemm/a.cl"
+                    , "line":432
+                  }
+                ]
+              ]
+              , "details":
+              [
+                {
+                  "type":"table"
+                  , "Width":"512 bits"
+                  , "Type":"Local-pipelined never-stall"
+                  , "Stall-free":"Yes"
+                  , "Stores to":"_bFeeder_DB_0_ibuffer"
+                  , "Start Cycle":"37"
+                  , "Latency":"1"
+                  , "Reference":
+                  [
+                    {
+                      "type":"text"
+                      , "text":"See %L for more information"
+                      , "links":
+                      [
+                        {
+                          "guide":"Best Practices Guide : Load-Store Units"
+                          , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+            , {
+              "type":"inst"
+              , "id":142
+              , "name":"Load"
+              , "debug":
+              [
+                [
+                  {
+                    "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/gemm/a.cl"
+                    , "line":462
+                  }
+                ]
+              ]
+              , "details":
+              [
+                {
+                  "type":"table"
+                  , "Width":"512 bits"
+                  , "Type":"Local-pipelined never-stall"
+                  , "Stall-free":"Yes"
+                  , "Loads from":"_bFeeder_DB_0_ibuffer"
+                  , "Start Cycle":"38"
+                  , "Latency":"4"
+                  , "Reference":
+                  [
+                    {
+                      "type":"text"
+                      , "text":"See %L for more information"
+                      , "links":
+                      [
+                        {
+                          "guide":"Best Practices Guide : Load-Store Units"
+                          , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+            , {
+              "type":"inst"
+              , "id":143
+              , "name":"Store"
+              , "debug":
+              [
+                [
+                  {
+                    "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/gemm/a.cl"
+                    , "line":432
+                  }
+                ]
+              ]
+              , "details":
+              [
+                {
+                  "type":"table"
+                  , "Width":"512 bits"
+                  , "Type":"Local-pipelined never-stall"
+                  , "Stall-free":"Yes"
+                  , "Stores to":"_bFeeder_DB_0_ibuffer"
+                  , "Start Cycle":"39"
+                  , "Latency":"1"
+                  , "Reference":
+                  [
+                    {
+                      "type":"text"
+                      , "text":"See %L for more information"
+                      , "links":
+                      [
+                        {
+                          "guide":"Best Practices Guide : Load-Store Units"
+                          , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+            , {
+              "type":"inst"
+              , "id":144
+              , "name":"Load"
+              , "debug":
+              [
+                [
+                  {
+                    "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/gemm/a.cl"
+                    , "line":462
+                  }
+                ]
+              ]
+              , "details":
+              [
+                {
+                  "type":"table"
+                  , "Width":"512 bits"
+                  , "Type":"Local-pipelined never-stall"
+                  , "Stall-free":"Yes"
+                  , "Loads from":"_bFeeder_DB_0_ibuffer"
+                  , "Start Cycle":"40"
+                  , "Latency":"4"
+                  , "Reference":
+                  [
+                    {
+                      "type":"text"
+                      , "text":"See %L for more information"
+                      , "links":
+                      [
+                        {
+                          "guide":"Best Practices Guide : Load-Store Units"
+                          , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+            , {
+              "type":"inst"
+              , "id":145
+              , "name":"Store"
+              , "debug":
+              [
+                [
+                  {
+                    "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/gemm/a.cl"
+                    , "line":432
+                  }
+                ]
+              ]
+              , "details":
+              [
+                {
+                  "type":"table"
+                  , "Width":"512 bits"
+                  , "Type":"Local-pipelined never-stall"
+                  , "Stall-free":"Yes"
+                  , "Stores to":"_bFeeder_DB_0_ibuffer"
+                  , "Start Cycle":"41"
+                  , "Latency":"1"
+                  , "Reference":
+                  [
+                    {
+                      "type":"text"
+                      , "text":"See %L for more information"
+                      , "links":
+                      [
+                        {
+                          "guide":"Best Practices Guide : Load-Store Units"
+                          , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+            , {
+              "type":"inst"
+              , "id":146
+              , "name":"Load"
+              , "debug":
+              [
+                [
+                  {
+                    "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/gemm/a.cl"
+                    , "line":462
+                  }
+                ]
+              ]
+              , "details":
+              [
+                {
+                  "type":"table"
+                  , "Width":"512 bits"
+                  , "Type":"Local-pipelined never-stall"
+                  , "Stall-free":"Yes"
+                  , "Loads from":"_bFeeder_DB_0_ibuffer"
+                  , "Start Cycle":"42"
+                  , "Latency":"4"
+                  , "Reference":
+                  [
+                    {
+                      "type":"text"
+                      , "text":"See %L for more information"
+                      , "links":
+                      [
+                        {
+                          "guide":"Best Practices Guide : Load-Store Units"
+                          , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+            , {
+              "type":"inst"
+              , "id":147
+              , "name":"Store"
+              , "debug":
+              [
+                [
+                  {
+                    "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/gemm/a.cl"
+                    , "line":432
+                  }
+                ]
+              ]
+              , "details":
+              [
+                {
+                  "type":"table"
+                  , "Width":"512 bits"
+                  , "Type":"Local-pipelined never-stall"
+                  , "Stall-free":"Yes"
+                  , "Stores to":"_bFeeder_DB_0_ibuffer"
+                  , "Start Cycle":"43"
+                  , "Latency":"1"
+                  , "Reference":
+                  [
+                    {
+                      "type":"text"
+                      , "text":"See %L for more information"
+                      , "links":
+                      [
+                        {
+                          "guide":"Best Practices Guide : Load-Store Units"
+                          , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+            , {
+              "type":"inst"
+              , "id":148
+              , "name":"Load"
+              , "debug":
+              [
+                [
+                  {
+                    "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/gemm/a.cl"
+                    , "line":462
+                  }
+                ]
+              ]
+              , "details":
+              [
+                {
+                  "type":"table"
+                  , "Width":"512 bits"
+                  , "Type":"Local-pipelined never-stall"
+                  , "Stall-free":"Yes"
+                  , "Loads from":"_bFeeder_DB_0_ibuffer"
+                  , "Start Cycle":"44"
+                  , "Latency":"4"
+                  , "Reference":
+                  [
+                    {
+                      "type":"text"
+                      , "text":"See %L for more information"
+                      , "links":
+                      [
+                        {
+                          "guide":"Best Practices Guide : Load-Store Units"
+                          , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+            , {
+              "type":"inst"
+              , "id":149
+              , "name":"Store"
+              , "debug":
+              [
+                [
+                  {
+                    "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/gemm/a.cl"
+                    , "line":432
+                  }
+                ]
+              ]
+              , "details":
+              [
+                {
+                  "type":"table"
+                  , "Width":"512 bits"
+                  , "Type":"Local-pipelined never-stall"
+                  , "Stall-free":"Yes"
+                  , "Stores to":"_bFeeder_DB_0_ibuffer"
+                  , "Start Cycle":"45"
+                  , "Latency":"1"
+                  , "Reference":
+                  [
+                    {
+                      "type":"text"
+                      , "text":"See %L for more information"
+                      , "links":
+                      [
+                        {
+                          "guide":"Best Practices Guide : Load-Store Units"
+                          , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+            , {
+              "type":"inst"
+              , "id":150
+              , "name":"Load"
+              , "debug":
+              [
+                [
+                  {
+                    "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/gemm/a.cl"
+                    , "line":462
+                  }
+                ]
+              ]
+              , "details":
+              [
+                {
+                  "type":"table"
+                  , "Width":"512 bits"
+                  , "Type":"Local-pipelined never-stall"
+                  , "Stall-free":"Yes"
+                  , "Loads from":"_bFeeder_DB_0_ibuffer"
+                  , "Start Cycle":"46"
+                  , "Latency":"4"
+                  , "Reference":
+                  [
+                    {
+                      "type":"text"
+                      , "text":"See %L for more information"
+                      , "links":
+                      [
+                        {
+                          "guide":"Best Practices Guide : Load-Store Units"
+                          , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+            , {
+              "type":"inst"
+              , "id":151
+              , "name":"Store"
+              , "debug":
+              [
+                [
+                  {
+                    "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/gemm/a.cl"
+                    , "line":432
+                  }
+                ]
+              ]
+              , "details":
+              [
+                {
+                  "type":"table"
+                  , "Width":"512 bits"
+                  , "Type":"Local-pipelined never-stall"
+                  , "Stall-free":"Yes"
+                  , "Stores to":"_bFeeder_DB_0_ibuffer"
+                  , "Start Cycle":"47"
+                  , "Latency":"1"
+                  , "Reference":
+                  [
+                    {
+                      "type":"text"
+                      , "text":"See %L for more information"
+                      , "links":
+                      [
+                        {
+                          "guide":"Best Practices Guide : Load-Store Units"
+                          , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+            , {
+              "type":"inst"
+              , "id":152
+              , "name":"Load"
+              , "debug":
+              [
+                [
+                  {
+                    "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/gemm/a.cl"
+                    , "line":462
+                  }
+                ]
+              ]
+              , "details":
+              [
+                {
+                  "type":"table"
+                  , "Width":"512 bits"
+                  , "Type":"Local-pipelined never-stall"
+                  , "Stall-free":"Yes"
+                  , "Loads from":"_bFeeder_DB_0_ibuffer"
+                  , "Start Cycle":"48"
+                  , "Latency":"4"
+                  , "Reference":
+                  [
+                    {
+                      "type":"text"
+                      , "text":"See %L for more information"
+                      , "links":
+                      [
+                        {
+                          "guide":"Best Practices Guide : Load-Store Units"
+                          , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+            , {
+              "type":"inst"
+              , "id":153
+              , "name":"Channel Write"
+              , "debug":
+              [
+                [
+                  {
+                    "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/gemm/a.cl"
+                    , "line":482
+                  }
+                ]
+              ]
+              , "details":
+              [
+                {
+                  "type":"table"
+                  , "Width":"8192 bits"
+                  , "Depth":"256"
+                  , "Stall-free":"No"
+                  , "Start Cycle":"59"
+                  , "Latency":"0"
+                  , "Reference":
+                  [
+                    {
+                      "type":"text"
+                      , "text":"See %L for more information"
+                      , "links":
+                      [
+                        {
+                          "guide":"Best Practices Guide : Channels"
+                          , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#qah1476410829821"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+            , {
+              "type":"inst"
+              , "id":155
+              , "name":"Loop Input"
+              , "debug":
+              [
+                [
+                  {
+                    "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/gemm/a.cl"
+                    , "line":347
+                  }
+                ]
+              ]
+              , "details":
+              [
+                {
+                  "type":"table"
+                  , "Start Cycle":"0"
+                  , "Latency":"1"
+                  , "Loops To":"156"
+                }
+              ]
+            }
+            , {
+              "type":"inst"
+              , "id":156
+              , "name":"Loop End"
+              , "details":
+              [
+                {
+                  "type":"table"
+                  , "Start Cycle":"59"
+                  , "Latency":"1"
+                }
+              ]
+            }
+          ]
+          , "details":
+          [
+            {
+              "type":"table"
+              , "Latency":"59"
+              , "II":"1"
+              , "Subloops":"No"
+              , "Pipelined":"Yes"
+              , "Fmax Bottlenecks":"No"
+              , "Loop Info":""
+            }
+          ]
+        }
+        , {
+          "type":"memtype"
+          , "id":157
+          , "name":"Local Memory"
+          , "children":
+          [
+            {
+              "type":"memsys"
+              , "id":158
+              , "name":"_bFeeder_DB_0_ibuffer"
+              , "debug":
+              [
+                [
+                  {
+                    "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/gemm/a.cl"
+                    , "line":329
+                  }
+                ]
+              ]
+              , "details":
+              [
+                {
+                  "type":"table"
+                  , "details":
+                  [
+                    {
+                      "type":"brief"
+                      , "text":"2097152B requested\n2097152B implemented"
+                    }
+                  ]
+                  , "Requested size":"2097152 bytes"
+                  , "Implemented size":"2097152 bytes"
+                  , "Number of banks":"16"
+                  , "Bank width":"512 bits"
+                  , "Bank depth":"2048 words"
+                  , "Total replication":"1"
+                  , "Reference":
+                  [
+                    {
+                      "type":"text"
+                      , "text":"See %L for more information"
+                      , "links":
+                      [
+                        {
+                          "guide":"Best Practices Guide : Local Memory"
+                          , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#chn1469549457114"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+    , {
+      "type":"kernel"
+      , "id":207
+      , "name":"kernel_Out"
+      , "children":
+      [
+        {
+          "type":"bb"
+          , "id":208
+          , "name":"kernel_Out.B0"
+          , "details":
+          [
+            {
+              "type":"table"
+              , "Latency":"32"
+            }
+          ]
+        }
+        , {
+          "type":"bb"
+          , "id":209
+          , "name":"kernel_Out.B1"
+          , "details":
+          [
+            {
+              "type":"table"
+              , "Latency":"110"
+              , "II":"1"
+              , "Subloops":"Yes"
+              , "Pipelined":"Yes"
+              , "Fmax Bottlenecks":"No"
+              , "Loop Info":"Entry to loop. "
+              , "Loops To":"212"
+            }
+          ]
+        }
+        , {
+          "type":"bb"
+          , "id":210
+          , "name":"kernel_Out.B2"
+          , "details":
+          [
+            {
+              "type":"table"
+              , "Latency":"0"
+            }
+          ]
+        }
+        , {
+          "type":"bb"
+          , "id":211
+          , "name":"kernel_Out.B3"
+          , "children":
+          [
+            {
+              "type":"inst"
+              , "id":213
+              , "name":"Channel Read"
+              , "debug":
+              [
+                [
+                  {
+                    "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/gemm/a.cl"
+                    , "line":552
+                  }
+                ]
+              ]
+              , "details":
+              [
+                {
+                  "type":"table"
+                  , "Width":"8192 bits"
+                  , "Depth":"256"
+                  , "Stall-free":"No"
+                  , "Start Cycle":"10"
+                  , "Latency":"0"
+                  , "Reference":
+                  [
+                    {
+                      "type":"text"
+                      , "text":"See %L for more information"
+                      , "links":
+                      [
+                        {
+                          "guide":"Best Practices Guide : Channels"
+                          , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#qah1476410829821"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+            , {
+              "type":"inst"
+              , "id":214
+              , "name":"Channel Read"
+              , "debug":
+              [
+                [
+                  {
+                    "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/gemm/a.cl"
+                    , "line":555
+                  }
+                ]
+              ]
+              , "details":
+              [
+                {
+                  "type":"table"
+                  , "Width":"7168 bits"
+                  , "Depth":"256"
+                  , "Stall-free":"No"
+                  , "Start Cycle":"10"
+                  , "Latency":"0"
+                  , "Reference":
+                  [
+                    {
+                      "type":"text"
+                      , "text":"See %L for more information"
+                      , "links":
+                      [
+                        {
+                          "guide":"Best Practices Guide : Channels"
+                          , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#qah1476410829821"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+            , {
+              "type":"inst"
+              , "id":215
+              , "name":"Channel Write"
+              , "debug":
+              [
+                [
+                  {
+                    "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/gemm/a.cl"
+                    , "line":706
+                  }
+                ]
+              ]
+              , "details":
+              [
+                {
+                  "type":"table"
+                  , "Width":"512 bits"
+                  , "Depth":"256"
+                  , "Stall-free":"No"
+                  , "Start Cycle":"92"
+                  , "Latency":"0"
+                  , "Reference":
+                  [
+                    {
+                      "type":"text"
+                      , "text":"See %L for more information"
+                      , "links":
+                      [
+                        {
+                          "guide":"Best Practices Guide : Channels"
+                          , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#qah1476410829821"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+            , {
+              "type":"inst"
+              , "id":217
+              , "name":"Loop Input"
+              , "debug":
+              [
+                [
+                  {
+                    "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/gemm/a.cl"
+                    , "line":520
+                  }
+                ]
+              ]
+              , "details":
+              [
+                {
+                  "type":"table"
+                  , "Start Cycle":"0"
+                  , "Latency":"1"
+                  , "Loops To":"218"
+                }
+              ]
+            }
+            , {
+              "type":"inst"
+              , "id":218
+              , "name":"Loop End"
+              , "details":
+              [
+                {
+                  "type":"table"
+                  , "Start Cycle":"92"
+                  , "Latency":"1"
+                }
+              ]
+            }
+          ]
+          , "details":
+          [
+            {
+              "type":"table"
+              , "Latency":"92"
+              , "II":"1"
+              , "Subloops":"No"
+              , "Pipelined":"Yes"
+              , "Fmax Bottlenecks":"No"
+              , "Loop Info":""
+            }
+          ]
+        }
+        , {
+          "type":"bb"
+          , "id":212
+          , "name":"kernel_Out.B4"
+          , "details":
+          [
+            {
+              "type":"table"
+              , "Latency":"0"
+              , "II":"1"
+              , "Subloops":"Yes"
+              , "Pipelined":"Yes"
+              , "Fmax Bottlenecks":"No"
+              , "Loop Info":"Exit which branches back to loop. "
+            }
+          ]
+        }
+      ]
+    }
+    , {
+      "type":"kernel"
+      , "id":219
+      , "name":"kernel_unloader"
+      , "children":
+      [
+        {
+          "type":"bb"
+          , "id":220
+          , "name":"kernel_unloader.B0"
+          , "details":
+          [
+            {
+              "type":"table"
+              , "Latency":"18"
+            }
+          ]
+        }
+        , {
+          "type":"bb"
+          , "id":221
+          , "name":"kernel_unloader.B1"
+          , "details":
+          [
+            {
+              "type":"table"
+              , "Latency":"0"
+            }
+          ]
+        }
+        , {
+          "type":"bb"
+          , "id":222
+          , "name":"kernel_unloader.B2"
+          , "details":
+          [
+            {
+              "type":"table"
+              , "Latency":"10"
+              , "II":"1"
+              , "Subloops":"Yes"
+              , "Pipelined":"Yes"
+              , "Fmax Bottlenecks":"No"
+              , "Loop Info":"Entry to loop. "
+              , "Loops To":"224"
+            }
+          ]
+        }
+        , {
+          "type":"bb"
+          , "id":223
+          , "name":"kernel_unloader.B3"
+          , "details":
+          [
+            {
+              "type":"table"
+              , "Latency":"10"
+              , "II":"1"
+              , "Subloops":"Yes"
+              , "Pipelined":"Yes"
+              , "Fmax Bottlenecks":"No"
+              , "Loop Info":"Entry to loop. "
+              , "Loops To":"225"
+            }
+          ]
+        }
+        , {
+          "type":"bb"
+          , "id":224
+          , "name":"kernel_unloader.B4"
+          , "details":
+          [
+            {
+              "type":"table"
+              , "Latency":"0"
+              , "II":"1"
+              , "Subloops":"Yes"
+              , "Pipelined":"Yes"
+              , "Fmax Bottlenecks":"No"
+              , "Loop Info":"Exit which branches back to loop. "
+            }
+          ]
+        }
+        , {
+          "type":"bb"
+          , "id":225
+          , "name":"kernel_unloader.B5"
+          , "details":
+          [
+            {
+              "type":"table"
+              , "Latency":"0"
+              , "II":"1"
+              , "Subloops":"Yes"
+              , "Pipelined":"Yes"
+              , "Fmax Bottlenecks":"No"
+              , "Loop Info":"Exit which branches back to loop. "
+            }
+          ]
+        }
+        , {
+          "type":"bb"
+          , "id":226
+          , "name":"kernel_unloader.B6"
+          , "children":
+          [
+            {
+              "type":"inst"
+              , "id":227
+              , "name":"Channel Read"
+              , "debug":
+              [
+                [
+                  {
+                    "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/gemm/a.cl"
+                    , "line":757
+                  }
+                ]
+              ]
+              , "details":
+              [
+                {
+                  "type":"table"
+                  , "Width":"512 bits"
+                  , "Depth":"256"
+                  , "Stall-free":"No"
+                  , "Start Cycle":"11"
+                  , "Latency":"0"
+                  , "Reference":
+                  [
+                    {
+                      "type":"text"
+                      , "text":"See %L for more information"
+                      , "links":
+                      [
+                        {
+                          "guide":"Best Practices Guide : Channels"
+                          , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#qah1476410829821"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+            , {
+              "type":"inst"
+              , "id":228
+              , "name":"Store"
+              , "debug":
+              [
+                [
+                  {
+                    "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/gemm/a.cl"
+                    , "line":760
+                  }
+                ]
+              ]
+              , "details":
+              [
+                {
+                  "type":"table"
+                  , "Width":"512 bits"
+                  , "Type":"Burst-coalesced"
+                  , "Stall-free":"No"
+                  , "Start Cycle":"17"
+                  , "Latency":"2"
+                  , "Reference":
+                  [
+                    {
+                      "type":"text"
+                      , "text":"See %L for more information"
+                      , "links":
+                      [
+                        {
+                          "guide":"Best Practices Guide : Load-Store Units"
+                          , "link":"https://www.intel.com/content/www/us/en/programmable/documentation/mwh1391807516407.html#yeo1491314105959"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+            , {
+              "type":"inst"
+              , "id":229
+              , "name":"Loop Input"
+              , "debug":
+              [
+                [
+                  {
+                    "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/gemm/a.cl"
+                    , "line":755
+                  }
+                ]
+              ]
+              , "details":
+              [
+                {
+                  "type":"table"
+                  , "Start Cycle":"0"
+                  , "Latency":"1"
+                  , "Loops To":"230"
+                }
+              ]
+            }
+            , {
+              "type":"inst"
+              , "id":230
+              , "name":"Loop End"
+              , "details":
+              [
+                {
+                  "type":"table"
+                  , "Start Cycle":"19"
+                  , "Latency":"1"
+                }
+              ]
+            }
+          ]
+          , "details":
+          [
+            {
+              "type":"table"
+              , "Latency":"19"
+              , "II":"1"
+              , "Subloops":"No"
+              , "Pipelined":"Yes"
+              , "Fmax Bottlenecks":"No"
+              , "Loop Info":""
+            }
+          ]
+        }
+      ]
+    }
+    , {
+      "type":"memtype"
+      , "id":1
+      , "name":"Global Memory"
+      , "children":
+      [
+        {
+          "type":"memsys"
+          , "id":17
+          , "name":"DDR"
+          , "details":
+          [
+            {
+              "type":"table"
+              , "Number of banks":"4"
+            }
+          ]
+        }
+      ]
+    }
+    , {
+      "type":"channel"
+      , "id":216
+      , "name":"_Out_channel"
+      , "debug":
+      [
+        [
+          {
+            "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/gemm/a.cl"
+            , "line":492
+          }
+        ]
+      ]
+      , "details":
+      [
+        {
+          "type":"table"
+          , "Width":"512 bits"
+          , "Depth":"256"
+        }
+      ]
+    }
+    , {
+      "type":"channel"
+      , "id":52
+      , "name":"_aFeeder_channel"
+      , "debug":
+      [
+        [
+          {
+            "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/gemm/a.cl"
+            , "line":106
+          }
+        ]
+      ]
+      , "details":
+      [
+        {
+          "type":"table"
+          , "Width":"7168 bits"
+          , "Depth":"256"
+        }
+      ]
+    }
+    , {
+      "type":"channel"
+      , "id":14
+      , "name":"_aLoader_channel"
+      , "debug":
+      [
+        [
+          {
+            "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/gemm/a.cl"
+            , "line":63
+          }
+        ]
+      ]
+      , "details":
+      [
+        {
+          "type":"table"
+          , "Width":"512 bits"
+          , "Depth":"256"
+        }
+      ]
+    }
+    , {
+      "type":"channel"
+      , "id":154
+      , "name":"_bFeeder_channel"
+      , "debug":
+      [
+        [
+          {
+            "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/gemm/a.cl"
+            , "line":319
+          }
+        ]
+      ]
+      , "details":
+      [
+        {
+          "type":"table"
+          , "Width":"8192 bits"
+          , "Depth":"256"
+        }
+      ]
+    }
+    , {
+      "type":"channel"
+      , "id":113
+      , "name":"_bLoader_channel"
+      , "debug":
+      [
+        [
+          {
+            "filename":"/home/u146242/t2sp-s10/t2s/tests/performance/gemm/a.cl"
+            , "line":281
+          }
+        ]
+      ]
+      , "details":
+      [
+        {
+          "type":"table"
+          , "Width":"512 bits"
+          , "Depth":"256"
+        }
+      ]
+    }
+  ]
+  , "links":
+  [
+    {
+      "from":13
+      , "to":14
+    }
+    , {
+      "from":6
+      , "to":4
+    }
+    , {
+      "from":6
+      , "to":5
+    }
+    , {
+      "from":3
+      , "to":5
+    }
+    , {
+      "from":9
+      , "to":6
+    }
+    , {
+      "from":9
+      , "to":7
+    }
+    , {
+      "from":5
+      , "to":7
+    }
+    , {
+      "from":10
+      , "to":8
+    }
+    , {
+      "from":7
+      , "to":8
+    }
+    , {
+      "from":10
+      , "to":9
+    }
+    , {
+      "from":16
+      , "to":10
+    }
+    , {
+      "from":16
+      , "to":15
+    }
+    , {
+      "from":8
+      , "to":15
+    }
+    , {
+      "from":12
+      , "to":16
+    }
+    , {
+      "from":13
+      , "to":16
+    }
+    , {
+      "from":15
+      , "to":12
+    }
+    , {
+      "from":12
+      , "to":13
+    }
+    , {
+      "from":17
+      , "to":12
+    }
+    , {
+      "from":14
+      , "to":22
+    }
+    , {
+      "from":51
+      , "to":52
+    }
+    , {
+      "from":56
+      , "to":24
+    }
+    , {
+      "from":56
+      , "to":26
+    }
+    , {
+      "from":56
+      , "to":28
+    }
+    , {
+      "from":56
+      , "to":30
+    }
+    , {
+      "from":56
+      , "to":32
+    }
+    , {
+      "from":56
+      , "to":34
+    }
+    , {
+      "from":56
+      , "to":36
+    }
+    , {
+      "from":56
+      , "to":38
+    }
+    , {
+      "from":56
+      , "to":40
+    }
+    , {
+      "from":56
+      , "to":42
+    }
+    , {
+      "from":56
+      , "to":44
+    }
+    , {
+      "from":56
+      , "to":46
+    }
+    , {
+      "from":56
+      , "to":48
+    }
+    , {
+      "from":56
+      , "to":50
+    }
+    , {
+      "from":23
+      , "to":56
+    }
+    , {
+      "from":25
+      , "to":56
+    }
+    , {
+      "from":27
+      , "to":56
+    }
+    , {
+      "from":29
+      , "to":56
+    }
+    , {
+      "from":31
+      , "to":56
+    }
+    , {
+      "from":33
+      , "to":56
+    }
+    , {
+      "from":35
+      , "to":56
+    }
+    , {
+      "from":37
+      , "to":56
+    }
+    , {
+      "from":39
+      , "to":56
+    }
+    , {
+      "from":41
+      , "to":56
+    }
+    , {
+      "from":43
+      , "to":56
+    }
+    , {
+      "from":45
+      , "to":56
+    }
+    , {
+      "from":47
+      , "to":56
+    }
+    , {
+      "from":49
+      , "to":56
+    }
+    , {
+      "from":54
+      , "to":20
+    }
+    , {
+      "from":54
+      , "to":53
+    }
+    , {
+      "from":19
+      , "to":53
+    }
+    , {
+      "from":22
+      , "to":54
+    }
+    , {
+      "from":23
+      , "to":54
+    }
+    , {
+      "from":24
+      , "to":54
+    }
+    , {
+      "from":25
+      , "to":54
+    }
+    , {
+      "from":26
+      , "to":54
+    }
+    , {
+      "from":27
+      , "to":54
+    }
+    , {
+      "from":28
+      , "to":54
+    }
+    , {
+      "from":29
+      , "to":54
+    }
+    , {
+      "from":30
+      , "to":54
+    }
+    , {
+      "from":31
+      , "to":54
+    }
+    , {
+      "from":32
+      , "to":54
+    }
+    , {
+      "from":33
+      , "to":54
+    }
+    , {
+      "from":34
+      , "to":54
+    }
+    , {
+      "from":35
+      , "to":54
+    }
+    , {
+      "from":36
+      , "to":54
+    }
+    , {
+      "from":37
+      , "to":54
+    }
+    , {
+      "from":38
+      , "to":54
+    }
+    , {
+      "from":39
+      , "to":54
+    }
+    , {
+      "from":40
+      , "to":54
+    }
+    , {
+      "from":41
+      , "to":54
+    }
+    , {
+      "from":42
+      , "to":54
+    }
+    , {
+      "from":43
+      , "to":54
+    }
+    , {
+      "from":44
+      , "to":54
+    }
+    , {
+      "from":45
+      , "to":54
+    }
+    , {
+      "from":46
+      , "to":54
+    }
+    , {
+      "from":47
+      , "to":54
+    }
+    , {
+      "from":48
+      , "to":54
+    }
+    , {
+      "from":49
+      , "to":54
+    }
+    , {
+      "from":50
+      , "to":54
+    }
+    , {
+      "from":51
+      , "to":54
+    }
+    , {
+      "from":53
+      , "to":22
+    }
+    , {
+      "from":22
+      , "to":23
+    }
+    , {
+      "from":22
+      , "to":24
+    }
+    , {
+      "from":22
+      , "to":25
+    }
+    , {
+      "from":22
+      , "to":26
+    }
+    , {
+      "from":22
+      , "to":27
+    }
+    , {
+      "from":22
+      , "to":28
+    }
+    , {
+      "from":22
+      , "to":29
+    }
+    , {
+      "from":22
+      , "to":30
+    }
+    , {
+      "from":22
+      , "to":31
+    }
+    , {
+      "from":22
+      , "to":32
+    }
+    , {
+      "from":22
+      , "to":33
+    }
+    , {
+      "from":22
+      , "to":34
+    }
+    , {
+      "from":22
+      , "to":35
+    }
+    , {
+      "from":22
+      , "to":36
+    }
+    , {
+      "from":22
+      , "to":37
+    }
+    , {
+      "from":22
+      , "to":38
+    }
+    , {
+      "from":22
+      , "to":39
+    }
+    , {
+      "from":22
+      , "to":40
+    }
+    , {
+      "from":22
+      , "to":41
+    }
+    , {
+      "from":22
+      , "to":42
+    }
+    , {
+      "from":22
+      , "to":43
+    }
+    , {
+      "from":22
+      , "to":44
+    }
+    , {
+      "from":22
+      , "to":45
+    }
+    , {
+      "from":22
+      , "to":46
+    }
+    , {
+      "from":22
+      , "to":47
+    }
+    , {
+      "from":22
+      , "to":48
+    }
+    , {
+      "from":22
+      , "to":49
+    }
+    , {
+      "from":22
+      , "to":50
+    }
+    , {
+      "from":23
+      , "to":51
+    }
+    , {
+      "from":24
+      , "to":51
+    }
+    , {
+      "from":25
+      , "to":51
+    }
+    , {
+      "from":26
+      , "to":51
+    }
+    , {
+      "from":27
+      , "to":51
+    }
+    , {
+      "from":28
+      , "to":51
+    }
+    , {
+      "from":29
+      , "to":51
+    }
+    , {
+      "from":30
+      , "to":51
+    }
+    , {
+      "from":31
+      , "to":51
+    }
+    , {
+      "from":32
+      , "to":51
+    }
+    , {
+      "from":33
+      , "to":51
+    }
+    , {
+      "from":34
+      , "to":51
+    }
+    , {
+      "from":35
+      , "to":51
+    }
+    , {
+      "from":36
+      , "to":51
+    }
+    , {
+      "from":37
+      , "to":51
+    }
+    , {
+      "from":38
+      , "to":51
+    }
+    , {
+      "from":39
+      , "to":51
+    }
+    , {
+      "from":40
+      , "to":51
+    }
+    , {
+      "from":41
+      , "to":51
+    }
+    , {
+      "from":42
+      , "to":51
+    }
+    , {
+      "from":43
+      , "to":51
+    }
+    , {
+      "from":44
+      , "to":51
+    }
+    , {
+      "from":45
+      , "to":51
+    }
+    , {
+      "from":46
+      , "to":51
+    }
+    , {
+      "from":47
+      , "to":51
+    }
+    , {
+      "from":48
+      , "to":51
+    }
+    , {
+      "from":49
+      , "to":51
+    }
+    , {
+      "from":50
+      , "to":51
+    }
+    , {
+      "from":112
+      , "to":113
+    }
+    , {
+      "from":105
+      , "to":103
+    }
+    , {
+      "from":105
+      , "to":104
+    }
+    , {
+      "from":102
+      , "to":104
+    }
+    , {
+      "from":108
+      , "to":105
+    }
+    , {
+      "from":108
+      , "to":106
+    }
+    , {
+      "from":104
+      , "to":106
+    }
+    , {
+      "from":109
+      , "to":107
+    }
+    , {
+      "from":106
+      , "to":107
+    }
+    , {
+      "from":109
+      , "to":108
+    }
+    , {
+      "from":115
+      , "to":109
+    }
+    , {
+      "from":115
+      , "to":114
+    }
+    , {
+      "from":107
+      , "to":114
+    }
+    , {
+      "from":111
+      , "to":115
+    }
+    , {
+      "from":112
+      , "to":115
+    }
+    , {
+      "from":114
+      , "to":111
+    }
+    , {
+      "from":111
+      , "to":112
+    }
+    , {
+      "from":17
+      , "to":111
+    }
+    , {
+      "from":113
+      , "to":120
+    }
+    , {
+      "from":153
+      , "to":154
+    }
+    , {
+      "from":158
+      , "to":122
+    }
+    , {
+      "from":158
+      , "to":124
+    }
+    , {
+      "from":158
+      , "to":126
+    }
+    , {
+      "from":158
+      , "to":128
+    }
+    , {
+      "from":158
+      , "to":130
+    }
+    , {
+      "from":158
+      , "to":132
+    }
+    , {
+      "from":158
+      , "to":134
+    }
+    , {
+      "from":158
+      , "to":136
+    }
+    , {
+      "from":158
+      , "to":138
+    }
+    , {
+      "from":158
+      , "to":140
+    }
+    , {
+      "from":158
+      , "to":142
+    }
+    , {
+      "from":158
+      , "to":144
+    }
+    , {
+      "from":158
+      , "to":146
+    }
+    , {
+      "from":158
+      , "to":148
+    }
+    , {
+      "from":158
+      , "to":150
+    }
+    , {
+      "from":158
+      , "to":152
+    }
+    , {
+      "from":121
+      , "to":158
+    }
+    , {
+      "from":123
+      , "to":158
+    }
+    , {
+      "from":125
+      , "to":158
+    }
+    , {
+      "from":127
+      , "to":158
+    }
+    , {
+      "from":129
+      , "to":158
+    }
+    , {
+      "from":131
+      , "to":158
+    }
+    , {
+      "from":133
+      , "to":158
+    }
+    , {
+      "from":135
+      , "to":158
+    }
+    , {
+      "from":137
+      , "to":158
+    }
+    , {
+      "from":139
+      , "to":158
+    }
+    , {
+      "from":141
+      , "to":158
+    }
+    , {
+      "from":143
+      , "to":158
+    }
+    , {
+      "from":145
+      , "to":158
+    }
+    , {
+      "from":147
+      , "to":158
+    }
+    , {
+      "from":149
+      , "to":158
+    }
+    , {
+      "from":151
+      , "to":158
+    }
+    , {
+      "from":156
+      , "to":118
+    }
+    , {
+      "from":156
+      , "to":155
+    }
+    , {
+      "from":117
+      , "to":155
+    }
+    , {
+      "from":120
+      , "to":156
+    }
+    , {
+      "from":121
+      , "to":156
+    }
+    , {
+      "from":122
+      , "to":156
+    }
+    , {
+      "from":123
+      , "to":156
+    }
+    , {
+      "from":124
+      , "to":156
+    }
+    , {
+      "from":125
+      , "to":156
+    }
+    , {
+      "from":126
+      , "to":156
+    }
+    , {
+      "from":127
+      , "to":156
+    }
+    , {
+      "from":128
+      , "to":156
+    }
+    , {
+      "from":129
+      , "to":156
+    }
+    , {
+      "from":130
+      , "to":156
+    }
+    , {
+      "from":131
+      , "to":156
+    }
+    , {
+      "from":132
+      , "to":156
+    }
+    , {
+      "from":133
+      , "to":156
+    }
+    , {
+      "from":134
+      , "to":156
+    }
+    , {
+      "from":135
+      , "to":156
+    }
+    , {
+      "from":136
+      , "to":156
+    }
+    , {
+      "from":137
+      , "to":156
+    }
+    , {
+      "from":138
+      , "to":156
+    }
+    , {
+      "from":139
+      , "to":156
+    }
+    , {
+      "from":140
+      , "to":156
+    }
+    , {
+      "from":141
+      , "to":156
+    }
+    , {
+      "from":142
+      , "to":156
+    }
+    , {
+      "from":143
+      , "to":156
+    }
+    , {
+      "from":144
+      , "to":156
+    }
+    , {
+      "from":145
+      , "to":156
+    }
+    , {
+      "from":146
+      , "to":156
+    }
+    , {
+      "from":147
+      , "to":156
+    }
+    , {
+      "from":148
+      , "to":156
+    }
+    , {
+      "from":149
+      , "to":156
+    }
+    , {
+      "from":150
+      , "to":156
+    }
+    , {
+      "from":151
+      , "to":156
+    }
+    , {
+      "from":152
+      , "to":156
+    }
+    , {
+      "from":153
+      , "to":156
+    }
+    , {
+      "from":155
+      , "to":120
+    }
+    , {
+      "from":120
+      , "to":121
+    }
+    , {
+      "from":120
+      , "to":122
+    }
+    , {
+      "from":120
+      , "to":123
+    }
+    , {
+      "from":120
+      , "to":124
+    }
+    , {
+      "from":120
+      , "to":125
+    }
+    , {
+      "from":120
+      , "to":126
+    }
+    , {
+      "from":120
+      , "to":127
+    }
+    , {
+      "from":120
+      , "to":128
+    }
+    , {
+      "from":120
+      , "to":129
+    }
+    , {
+      "from":120
+      , "to":130
+    }
+    , {
+      "from":120
+      , "to":131
+    }
+    , {
+      "from":120
+      , "to":132
+    }
+    , {
+      "from":120
+      , "to":133
+    }
+    , {
+      "from":120
+      , "to":134
+    }
+    , {
+      "from":120
+      , "to":135
+    }
+    , {
+      "from":120
+      , "to":136
+    }
+    , {
+      "from":120
+      , "to":137
+    }
+    , {
+      "from":120
+      , "to":138
+    }
+    , {
+      "from":120
+      , "to":139
+    }
+    , {
+      "from":120
+      , "to":140
+    }
+    , {
+      "from":120
+      , "to":141
+    }
+    , {
+      "from":120
+      , "to":142
+    }
+    , {
+      "from":120
+      , "to":143
+    }
+    , {
+      "from":120
+      , "to":144
+    }
+    , {
+      "from":120
+      , "to":145
+    }
+    , {
+      "from":120
+      , "to":146
+    }
+    , {
+      "from":120
+      , "to":147
+    }
+    , {
+      "from":120
+      , "to":148
+    }
+    , {
+      "from":120
+      , "to":149
+    }
+    , {
+      "from":120
+      , "to":150
+    }
+    , {
+      "from":120
+      , "to":151
+    }
+    , {
+      "from":120
+      , "to":152
+    }
+    , {
+      "from":121
+      , "to":153
+    }
+    , {
+      "from":122
+      , "to":153
+    }
+    , {
+      "from":123
+      , "to":153
+    }
+    , {
+      "from":124
+      , "to":153
+    }
+    , {
+      "from":125
+      , "to":153
+    }
+    , {
+      "from":126
+      , "to":153
+    }
+    , {
+      "from":127
+      , "to":153
+    }
+    , {
+      "from":128
+      , "to":153
+    }
+    , {
+      "from":129
+      , "to":153
+    }
+    , {
+      "from":130
+      , "to":153
+    }
+    , {
+      "from":131
+      , "to":153
+    }
+    , {
+      "from":132
+      , "to":153
+    }
+    , {
+      "from":133
+      , "to":153
+    }
+    , {
+      "from":134
+      , "to":153
+    }
+    , {
+      "from":135
+      , "to":153
+    }
+    , {
+      "from":136
+      , "to":153
+    }
+    , {
+      "from":137
+      , "to":153
+    }
+    , {
+      "from":138
+      , "to":153
+    }
+    , {
+      "from":139
+      , "to":153
+    }
+    , {
+      "from":140
+      , "to":153
+    }
+    , {
+      "from":141
+      , "to":153
+    }
+    , {
+      "from":142
+      , "to":153
+    }
+    , {
+      "from":143
+      , "to":153
+    }
+    , {
+      "from":144
+      , "to":153
+    }
+    , {
+      "from":145
+      , "to":153
+    }
+    , {
+      "from":146
+      , "to":153
+    }
+    , {
+      "from":147
+      , "to":153
+    }
+    , {
+      "from":148
+      , "to":153
+    }
+    , {
+      "from":149
+      , "to":153
+    }
+    , {
+      "from":150
+      , "to":153
+    }
+    , {
+      "from":151
+      , "to":153
+    }
+    , {
+      "from":152
+      , "to":153
+    }
+    , {
+      "from":154
+      , "to":213
+    }
+    , {
+      "from":52
+      , "to":214
+    }
+    , {
+      "from":215
+      , "to":216
+    }
+    , {
+      "from":212
+      , "to":209
+    }
+    , {
+      "from":208
+      , "to":209
+    }
+    , {
+      "from":212
+      , "to":210
+    }
+    , {
+      "from":218
+      , "to":217
+    }
+    , {
+      "from":209
+      , "to":217
+    }
+    , {
+      "from":213
+      , "to":218
+    }
+    , {
+      "from":214
+      , "to":218
+    }
+    , {
+      "from":215
+      , "to":218
+    }
+    , {
+      "from":218
+      , "to":212
+    }
+    , {
+      "from":217
+      , "to":213
+    }
+    , {
+      "from":217
+      , "to":214
+    }
+    , {
+      "from":213
+      , "to":215
+    }
+    , {
+      "from":214
+      , "to":215
+    }
+    , {
+      "from":216
+      , "to":227
+    }
+    , {
+      "from":224
+      , "to":221
+    }
+    , {
+      "from":224
+      , "to":222
+    }
+    , {
+      "from":220
+      , "to":222
+    }
+    , {
+      "from":225
+      , "to":223
+    }
+    , {
+      "from":222
+      , "to":223
+    }
+    , {
+      "from":225
+      , "to":224
+    }
+    , {
+      "from":230
+      , "to":225
+    }
+    , {
+      "from":230
+      , "to":229
+    }
+    , {
+      "from":223
+      , "to":229
+    }
+    , {
+      "from":227
+      , "to":230
+    }
+    , {
+      "from":228
+      , "to":230
+    }
+    , {
+      "from":229
+      , "to":227
+    }
+    , {
+      "from":227
+      , "to":228
+    }
+    , {
+      "from":228
+      , "to":17
+    }
+  ]
+}

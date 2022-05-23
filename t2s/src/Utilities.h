@@ -76,7 +76,7 @@ bool check_is_single_PE(bool on_device, const Expr &cond, const std::vector<std:
                         Expr &single_PE_cond, std::vector<std::string> &unrolled_loops_without_terms);
 
 // Check if a loop variable is a constant in the condition in the form of "loop var == a static constant".
-bool loop_var_is_constant_in_condition(const std::string &loop_name, const Expr &cond);
+bool loop_var_is_constant_in_condition(const std::string &loop_name, const Expr &cond, Expr &value);
 
 // Check if a variable is used.
 class CheckVarUsage : public IRVisitor {

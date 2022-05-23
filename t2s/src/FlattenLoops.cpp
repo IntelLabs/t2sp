@@ -240,7 +240,7 @@ class FlattenConstLoops : public IRMutator {
                     mod_part *= flattened_loops[j].extent;
                 }
                 int div_part = mod_part/flattened_loops[i].extent;
-                debug(4) << "mod part = " << mod_part << ", div part = " << div_part << "\n"; 
+                debug(4) << "mod part = " << mod_part << ", div part = " << div_part << "\n";
                 // value = Sub::make(IntImm::make(Int(32), (i != 0) ? (final_extent/extents_prod_top_to_bot[i-1]) : final_extent), IntImm::make(Int(32),1));
                 // value = Call::make(Int(32), Call::bitwise_and, {Variable::make(Int(32), name), value}, Call::Intrinsic);
                 value = Mod::make(value, mod_part);
@@ -259,7 +259,7 @@ class FlattenConstLoops : public IRMutator {
             return IRMutator::visit(op);
         }
     }
-    
+
 public:
     std::vector<std::string> temps;
     FlattenConstLoops() { temps.clear(); }
@@ -277,7 +277,8 @@ class ConstLoopFlattening : public IRMutator {
     }
 
     Stmt visit(const For* op) override {
-        if ((op->for_type != ForType::Serial || !is_open_cl) && op->device_api == DeviceAPI::OpenCL) {
+        if ((op->for_type != ForType::Serial || !is_open_cl) && 
+            (op->device_api == DeviceAPI::OpenCL || op->device_api == DeviceAPI::OneAPI)) {
             is_open_cl = true;
             return IRMutator::visit(op);
         } else {
@@ -295,6 +296,62 @@ typedef struct DynamicForLoopContainer {
     std::string name;
     Expr extent;
 } DynamicForLoopContainer_t;
+
+class FlattenOuterLoops : public IRMutator {
+    string &loop_level;
+    bool up_loop_level = true;
+
+    std::vector<DynamicForLoopContainer_t> flattened_loops;
+
+public:
+    using IRMutator::visit;
+
+    FlattenOuterLoops(string &_l)
+        : loop_level(_l) {}
+
+    Stmt visit(const For* op) override {
+        if (ends_with(op->name, ".infinite") || ends_with(op->name, ".run_on_device")) {
+            return IRMutator::visit(op);
+        }
+        if (extract_last_token(op->name) == loop_level && is_const(op->min)) {
+            internal_assert(op->for_type == ForType::Serial && is_const(op->min));
+            up_loop_level = false;
+            DynamicForLoopContainer_t f = {op->name, op->extent};
+            flattened_loops.push_back(f);
+
+            Stmt body = mutate(op->body);
+            string name = extract_before_tokens(op->name, 2);
+            Expr final_extent = 1;
+            for (auto &l : flattened_loops) {
+                name += "." + extract_after_tokens(l.name, 2);
+                final_extent *= l.extent;
+            }
+            final_extent = simplify(final_extent);
+            loop_level = name;
+
+            size_t num_loops = flattened_loops.size();
+            Expr mod_part = 1;
+            for (int i = num_loops-1; i >= 0; i--) {
+                Expr value = Variable::make(Int(32), name);
+                Expr div_part = mod_part;
+                mod_part *= flattened_loops[i].extent;
+                debug(4) << "mod part = " << mod_part << ", div part = " << div_part << "\n";
+                value = Mod::make(value, mod_part);
+                value = Div::make(value, div_part);
+                value = simplify(value);
+                body = LetStmt::make(flattened_loops[i].name, value, body);
+            }
+            return For::make(name, op->min, final_extent, op->for_type, op->device_api, body);
+        }
+        if (up_loop_level && op->for_type == ForType::Serial) {
+            internal_assert(op->body.as<For>());
+            DynamicForLoopContainer_t f = {op->name, op->extent};
+            flattened_loops.push_back(f);
+            return mutate(op->body);
+        }
+        return IRMutator::visit(op);
+    }
+};
 
 class FlattenDynamicLoops : public IRMutator {
     using IRMutator::visit;
@@ -356,7 +413,7 @@ class FlattenDynamicLoops : public IRMutator {
             return IRMutator::visit(op);
         }
     }
-    
+
 public:
     std::vector<std::string> temps;
     FlattenDynamicLoops() { temps.clear(); }
@@ -375,7 +432,7 @@ class DynamicLoopFlattening : public IRMutator {
     }
     Stmt visit(const For* op) override {
         if (op->for_type != ForType::Serial || !is_open_cl) {
-            if (op->device_api == DeviceAPI::OpenCL)
+            if (op->device_api == DeviceAPI::OpenCL || op->device_api == DeviceAPI::OneAPI)
                 is_open_cl = true;
             return IRMutator::visit(op);
         } else {
@@ -393,7 +450,7 @@ class DynamicLoopFlattening : public IRMutator {
     }
 };
 /* For a loop like this
- * 
+ *
  * for i = 0..I
  *   s0
  *   s1
@@ -407,9 +464,9 @@ class DynamicLoopFlattening : public IRMutator {
  *   for z = 0...Z
  *      C
  *   s5
- *   
+ *
  * We want to generate a code like this:
- * 
+ *
  * for i = 0...I
  *   for xyz = 0...X+Y+Z
  *      x = xyz;
@@ -439,10 +496,10 @@ class DynamicLoopFlattening : public IRMutator {
  *           z++;
  *           if (z == Z) {
  *             s5;
- *           } 
+ *           }
  *        }
  *      }
- *        
+ *
  */
 class MergeLoops : public IRMutator {
     using IRMutator::visit;
@@ -673,7 +730,7 @@ class LoopMerging : public IRMutator {
     }
     Stmt visit(const For* op) override {
         if (op->for_type != ForType::Serial || !is_open_cl) {
-            if (op->device_api == DeviceAPI::OpenCL)
+            if (op->device_api == DeviceAPI::OpenCL || op->device_api == DeviceAPI::OneAPI)
                 is_open_cl = true;
             return IRMutator::visit(op);
         } else {
@@ -723,13 +780,13 @@ public:
 //            for i = 0; i < I; i++
 //              for j = 0; j < J; j++  // A reuse loop
 //                for k = 0; k < K; k++
-//                  Load ch[addr%K + (addr/(J*K))*K]
+//                  Load ch[addr%K + (temp/(J*K))*K]
 //                  addr++;
 // Here we explain how the index for Load is calculated.
 // The algorithm is to compare the loops of the producer and consumer of the memory channel,
 // and remove the reuse loops from the consumer to get the reading address.
 // The index (address expression) of the load is calculated by throwing away the part of reuse loop j
-// from addr. In general, let index be the addression expression of the load. Index can
+// from addr. In general, let index be the address expression of the load. Index can
 // be caculated this way: (1) let index = addr, (2) scan loops of the consumer from the
 // innermost loop toward the outermost loop, (3) at a reuse loop level j, index is composed of
 // three parts: outer loops part, reuse loop j part, inner loops part. In the inner loops part, any
@@ -737,7 +794,7 @@ public:
 // the index composed of two parts only: outer loops part, inner loops part. This can be done by
 // letting K = product of the extents of all non-reuse inner loops of loop j
 //         J = extent of loop j
-// and     index = (index/(J*K))*K  // the outer loops part
+// and     index = (temp/(J*K))*K   // the outer loops part
 //                 + index%K.       // plus the inner loops part.
 // Note that (index/(J*K))*K is not equal to index/J in general, as / here is integer division.
 // Also note that as an optimization, we can treat several contiguous reuse loops as 1 reuse loop, and
@@ -798,14 +855,14 @@ private:
             vector<Expr> args = op->args;
             internal_assert(args[0].as<StringImm>());
             string name = args[0].as<StringImm>()->value;
+
             internal_assert(producer_loops.find(name) != producer_loops.end());
             auto prod_loops = producer_loops[name];
-            debug(2) << name << "\n";
             // internal_assert(current_loops.size() >= prod_loops.size());
 
             Expr temp;
             temp = Call::make(Int(32), "addr.temp", {}, Call::PureIntrinsic);
-            const Function &func = env.at(name);
+            const Function &func = env.at(extract_first_token(name));
             Expr inner_loops_extents_prod = Expr(1); // product of the extents of the non-reuse inner loops of the current loop level
             Expr reuse_loops_extents_prod = Expr(1); // product of the extents of contiguous reuse loops immediately enclosed by the current loop level
             Expr index = temp;
@@ -834,7 +891,7 @@ private:
                 } else {
                     if (!equal(reuse_loops_extents_prod, 1)) {
                         // Remove the part of the index for the contiguous reuse loops under this non-reuse loop together
-                        index = (index/(reuse_loops_extents_prod*inner_loops_extents_prod)) * inner_loops_extents_prod
+                        index = (temp/(reuse_loops_extents_prod*inner_loops_extents_prod)) * inner_loops_extents_prod
                                 + index % inner_loops_extents_prod;
                         reuse_loops_extents_prod = Expr(1);
                     }
@@ -847,9 +904,8 @@ private:
                 // Remove the part of the index for the contiguous reuse loops starting from the outermost level 
                 index = index % inner_loops_extents_prod;
             }
-            index = simplify(index);
-            debug(2) << index << "\n";
-            mem_addr[name] = index;
+            mem_addr[name] = simplify(index);
+            debug(2) << "Address expression for " << name << " is " << mem_addr[name] << "\n";
         } else if (op->is_intrinsic(Call::write_mem_channel)) {
             vector<Expr> args = op->args;
             internal_assert(args[0].as<StringImm>());
@@ -864,13 +920,17 @@ class ReplaceMemChannel : public IRMutator {
     using IRMutator::visit;
 
 public:
-    ReplaceMemChannel(const map<string, Expr> &_mem_addr)
-        : mem_addr(_mem_addr) { in_function = false; }
+    ReplaceMemChannel(const map<string, Expr> &_mem_addr,
+                      vector<std::pair<string, Expr>> &_lets)
+        : mem_addr(_mem_addr), letstmts_backup(_lets) {
+            in_function = false;
+            on_device = false;
+        }
 
 private:
     const map<string, Expr> &mem_addr;                       // Memory channal name -> index of Load
     bool in_function;                                        // The current IR is in a function definition.
-    bool on_device;                                          // THe current IR is on device.
+    bool on_device;                                          // The current IR is on device.
     vector<string> serial_loops;                             // Current serial loop names
     vector<string> unrolled_loops;                           // Current unrolled loops
     string current_loop;                                     // Current serial or unroll loop
@@ -881,6 +941,109 @@ private:
     Expr single_PE_condition;                                // The part of the path condition that checks for a single PE.
                                                              // E.g. given path condition "some cond && u0=0 && u1=0", where u0 and u1
                                                              // are unrolled loops, the single_PE_condition = "u0=0 && u1=0".
+    string in_mem_channel;                                   // The visiting channel name
+    struct CGSEntry {
+        int type_id;
+        int size;
+    };
+    map<string, CGSEntry> cgs_for_mem_channels;              // Combined memory channels are stored as a compiler_generated_struct (CGS, defined in StructType.h) type
+    map<string, Expr> temp_val;                              // The variable with suffix ".temp" generated after combinning memory channels
+    vector<std::pair<string, Expr>> &letstmts_backup;
+
+    // Some buffer-realted values are lost, and thus we need to re-generate them
+    Stmt rebuild_buffer_stmt(string name, Type buf_t, int dims, Stmt body) {
+        vector<string> min_name(dims), extent_name(dims), stride_name(dims);
+        for (int i = 0; i < dims; i++) {
+            string d = std::to_string(i);
+            min_name[i] = name + ".min." + d;
+            stride_name[i] = name + ".stride." + d;
+            extent_name[i] = name + ".extent." + d;
+        }
+        vector<Expr> min_var(dims), extent_var(dims), stride_var(dims);
+        for (int i = 0; i < dims; i++) {
+            min_var[i] = Variable::make(Int(32), min_name[i]);
+            extent_var[i] = Variable::make(Int(32), extent_name[i]);
+            stride_var[i] = Variable::make(Int(32), stride_name[i]);
+        }
+
+        // Create a buffer_t object for this allocation.
+        BufferBuilder builder;
+        builder.host = Variable::make(Handle(), name);
+        builder.type = buf_t;
+        builder.dimensions = dims;
+        for (int i = 0; i < dims; i++) {
+            builder.mins.push_back(min_var[i]);
+            builder.extents.push_back(extent_var[i]);
+            builder.strides.push_back(stride_var[i]);
+        }
+        return LetStmt::make(name + ".buffer", builder.build(), body);
+    }
+
+    // Some values are lost after replacing memory references with mem_channels,
+    // to restore memory references, we need to insert these values again
+    Stmt rebuild_letstmt(string channel, Type buf_t, int dims, Stmt body) {
+        for (auto &p : letstmts_backup) {
+            if (extract_before_tokens(p.first, 2) != channel)
+                continue;
+
+            string type = extract_token(p.first, 3);
+            internal_assert(type=="buffer" || type=="min" || type=="extent" || type=="stride")
+                << "Unexpected let statement \n";
+            if (type == "buffer") {
+                body = rebuild_buffer_stmt(channel, buf_t, dims, body);
+                continue;
+            }
+            if (cgs_for_mem_channels.find(channel) == cgs_for_mem_channels.end()) {
+                body = LetStmt::make(p.first, p.second, body);
+                continue;
+            }
+
+            int idx = atoi(extract_token(p.first, 4).c_str());
+            string prefix = extract_before_tokens(p.first, 3);
+            string name = prefix + "." + to_string(idx + 1);
+            Expr value = p.second;
+            if (type == "stride") {
+                string last_dim = prefix + "." + to_string(idx - 1);
+                Expr cur_dim = Variable::make(Int(32), p.first);
+                value = (idx == 0) ? cur_dim * cgs_for_mem_channels[channel].size
+                            : substitute(last_dim, cur_dim, value);
+            }
+            body = LetStmt::make(name, value, body);
+            if (idx == 0) {
+                if (type == "extent")
+                    value = cgs_for_mem_channels[channel].size;
+                if (type == "min")
+                    value = 0;
+                if (type == "stride")
+                    value = 1;
+                body = LetStmt::make(p.first, value, body);
+            }
+        }
+        return body;
+    }
+
+    // Get the offsets of each field and the size of the whole variable
+    // Note that the fields are aligned with the longest one
+    vector<int> get_cgs_offsets(int type_id) {
+        const vector<Type> &entry = GeneratedStructType::structs[type_id].second;
+        vector<int> offsets;
+        int offset = 0, alignment = 0;
+        for (size_t i = 0; i < entry.size(); i++) {
+            int byte = entry[i].bits() /8;
+            offset = (offset +byte -1) /byte *byte;
+            offsets.push_back(offset);
+            offset += byte;
+            alignment = (byte > alignment) ? byte : alignment;
+        }
+        offsets.push_back((offset + alignment-1) / alignment * alignment);
+        return offsets;
+    }
+
+    // Get the size with a given element in a given CGS variable
+    int get_cgs_element_size(int type_id, int elem_id) {
+        const vector<Type> &entry = GeneratedStructType::structs[type_id].second;
+        return entry[elem_id].bits() /8;
+    }
 
 public:
     Stmt visit(const ProducerConsumer *op) override {
@@ -897,6 +1060,17 @@ public:
             single_PE_condition = const_true();
         } else {
             in_function = false;
+        }
+        return IRMutator::visit(op);
+    }
+
+    Stmt visit(const Provide *op) override {
+        // These temp variables are generated after combining channels,
+        // and no longer needed for memory references
+        if (!on_device && ends_with(op->name, ".temp")) {
+            internal_assert(op->values[0].as<Load>());
+            temp_val[op->name] = op->values[0];
+            return Evaluate::make(0);
         }
         return IRMutator::visit(op);
     }
@@ -968,7 +1142,6 @@ public:
             (op->for_type == ForType::PragmaUnrolled) || (op->for_type == ForType::DelayUnroll)) {
             // Allocate and initialize addr before any the serial and unrolled loops
             if (prev_loop.empty()) {
-                string func = split_string(current_loop, ".")[0];
                 if (!loop_enclosing_mem_channel_access.empty()) {
                     s = Block::make(Provide::make("addr.temp", {0}, {}), s);
                     if (on_device) {
@@ -995,6 +1168,47 @@ public:
         return s;
     }
 
+    Stmt visit(const LetStmt *op) override {
+        auto it = std::find_if(letstmts_backup.begin(), letstmts_backup.end(),
+                               [&](std::pair<string, Expr> &p){ return p.first == op->name; });
+        if (it != letstmts_backup.end()) {
+            // To avoid duplication, we remove existing values
+            letstmts_backup.erase(it);
+        }
+        return IRMutator::visit(op);
+    }
+
+    Stmt visit(const Allocate *op) override {
+        Stmt body = mutate(op->body);
+        if (ends_with(op->name, ".mem_channel")) {
+            if (!op->type.is_generated_struct()) {
+                body = rebuild_letstmt(op->name, op->type, op->extents.size(), body);
+                return Allocate::make(op->name, op->type, op->memory_type, op->extents,
+                                    op->condition, body, op->new_expr, op->free_function);
+            }
+            internal_assert(cgs_for_mem_channels.find(op->name) != cgs_for_mem_channels.end());
+            vector<Expr> extents = op->extents;
+            extents.push_back(cgs_for_mem_channels[op->name].size);
+            body = rebuild_letstmt(op->name, UInt(8), extents.size(), body);
+            return Allocate::make(op->name, UInt(8), op->memory_type, extents,
+                                op->condition, body, op->new_expr, op->free_function);
+        } else {
+            for (auto p : letstmts_backup) {
+                if (extract_first_token(p.first) == op->name) {
+                    body = LetStmt::make(p.first, p.second, body);
+                }
+            }
+            return Allocate::make(op->name, op->type, op->memory_type, op->extents,
+                                op->condition, body, op->new_expr, op->free_function);
+        }
+    }
+
+    Stmt visit(const Realize *op) override {
+        if (!on_device && ends_with(op->name, ".temp"))
+            return mutate(op->body);
+        return IRMutator::visit(op);
+    }
+
     Stmt visit(const Evaluate *op) override {
         if (!in_function) {
             return IRMutator::visit(op);
@@ -1007,12 +1221,33 @@ public:
                 vector<Expr> args = call->args;
                 internal_assert(args[0].as<StringImm>());
                 string name = args[0].as<StringImm>()->value;
+                in_mem_channel = name;
                 Expr value = mutate(args[1]);
-                int lanes = value.type().lanes();
-                Stmt s;
+
                 Expr i = mutate(Call::make(Int(32), "addr.temp", {}, Call::Intrinsic));
-                s = Store::make(name, value, lanes <= 1 ? i : Ramp::make(i*lanes, 1, lanes), call->param, const_true(value.type().lanes()), ModulusRemainder()*lanes);
+                auto make_cgs = value.as<Call>();
+                Stmt s;
+                if (!make_cgs || !make_cgs->is_intrinsic(Call::make_struct)) {
+                    int lanes = value.type().lanes();
+                    Expr idx = lanes <= 1 ? i : Ramp::make(i*lanes, 1, lanes);
+                    s = Store::make(name, value, idx, call->param,
+                                    const_true(value.type().lanes()), ModulusRemainder()*lanes);
+                } else {
+                    auto offsets = get_cgs_offsets(make_cgs->type.bits());
+                    auto cgs_sz = offsets.back();
+
+                    // Replace each field in the CGS with a store statement
+                    for (size_t j = 0; j < make_cgs->args.size(); j++) {
+                        auto elem = make_cgs->args[j].as<Call>();
+                        auto elem_sz = get_cgs_element_size(make_cgs->type.bits(), j);
+                        internal_assert(elem && temp_val.find(elem->name) != temp_val.end());
+                        Stmt store = Store::make(name, temp_val[elem->name], (i * cgs_sz + offsets[j]) / elem_sz,
+                                                 call->param, const_true(), ModulusRemainder());
+                        s = !s.defined() ? store : Block::make(s, store);
+                    }
+                }
                 num_mem_channel_accesses++;
+                in_mem_channel.clear();
                 return s;
             }
         }
@@ -1035,7 +1270,13 @@ public:
             Expr e = Load::make(op->type, name, lanes <= 1 ? i : Ramp::make(i*lanes, 1, lanes), op->image, op->param, const_true(op->type.lanes()), ModulusRemainder()*lanes);
             num_mem_channel_accesses++;
             return e;
-        }  else if (op->name == "addr.temp") {
+        } else if (op->is_intrinsic(Call::make_struct) && !in_mem_channel.empty()) {
+            if (cgs_for_mem_channels.find(in_mem_channel) == cgs_for_mem_channels.end()) {
+                cgs_for_mem_channels[in_mem_channel].type_id = op->type.bits();
+                cgs_for_mem_channels[in_mem_channel].size = get_cgs_offsets(op->type.bits()).back();
+            }
+            return op;
+        } else if (op->name == "addr.temp") {
             // Both read/write_mem_channel will get here as they will call addr.temp to get the current address.
             // Add num_mem_channel_accesses as the offset to the address.
             return simplify(Call::make(Int(32), op->name, {}, Call::Intrinsic) + num_mem_channel_accesses);
@@ -1044,11 +1285,11 @@ public:
     }
 };
 
-Stmt replace_mem_channels(Stmt s, const std::map<std::string, Function> &env, const std::map<string, Place> &funcs_using_mem_channels) {
+Stmt replace_mem_channels(Stmt s, const std::map<std::string, Function> &env, vector<std::pair<string, Expr>> &letstmts_backup) {
     map<string, Expr> mem_addr;
     FindAddressesOfMemChannels finder(mem_addr, env);
     s.accept(&finder);
-    ReplaceMemChannel replacer(mem_addr);
+    ReplaceMemChannel replacer(mem_addr, letstmts_backup);
     s = replacer.mutate(s);
 
     std::set<string> funcs;
@@ -1063,18 +1304,26 @@ Stmt replace_mem_channels(Stmt s, const std::map<std::string, Function> &env, co
 }
 
 Stmt flatten_loops(Stmt s, const std::map<std::string, Function> &env) {
-    ConstLoopFlattening clf;
-    s = clf.mutate(s);
-    debug(2) << "IR after const loop flattening ...\n\n" << s << "\n";
-
-    std::set<string> funcs;
-    for(auto entry : env){
-        if (entry.second.place() == Place::Device) {
-            funcs.insert(entry.first);
+    bool has_tri_opt = false;
+    for (auto &iter : env) {
+        if (iter.second.definition().schedule().triangular_loop_params().size() > 0) {
+            has_tri_opt = true;
         }
     }
-    s = remove_lets(s, false, true, true, true, funcs);
-    debug(2) << "IR after removing LetStmts in device kernels ...\n\n" << s << "\n";
+    if (!has_tri_opt) {
+        ConstLoopFlattening clf;
+        s = clf.mutate(s);
+        debug(2) << "IR after const loop flattening ...\n\n" << s << "\n";
+
+        std::set<string> funcs;
+        for(auto entry : env){
+            if (entry.second.place() == Place::Device) {
+                funcs.insert(entry.first);
+            }
+        }
+        s = remove_lets(s, false, true, true, true, funcs);
+        debug(2) << "IR after removing LetStmts in device kernels ...\n\n" << s << "\n";
+    }
 
     // DynamicLoopFlattening dlf;
     // Stmt stmt3 = dlf.mutate(stmt2);
@@ -1084,5 +1333,21 @@ Stmt flatten_loops(Stmt s, const std::map<std::string, Function> &env) {
     return s;
 }
 
+Stmt flatten_outer_loops(Stmt s, string &loop_lvl, const std::map<std::string, Function> &env) {
+    FlattenOuterLoops fol(loop_lvl);
+    s = fol.mutate(s);
+
+    std::set<string> funcs;
+    for(auto entry : env){
+        if (entry.second.place() == Place::Device) {
+            funcs.insert(entry.first);
+        }
+    }
+    s = remove_lets(s, false, true, true, true, funcs);
+    debug(2) << "IR after outer loop flattening ...\n\n" << s << "\n";
+
+    return s;
 }
-}
+
+} // namespace Internal
+} // namespace Halide

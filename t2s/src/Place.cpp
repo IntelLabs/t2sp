@@ -22,6 +22,7 @@
 #include "./DebugPrint.h"
 #include "./SpaceTimeTransform.h"
 #include "./Utilities.h"
+#include "Substitute.h"
 #include "IRMutator.h"
 #include <algorithm>
 
@@ -47,12 +48,24 @@ private:
             internal_assert(func.definition().defined() && func.updates().size() == 0)
                 << "Device Func " << op->name << " is expected to have one and only one definition\n";
             Stmt body = mutate(op->body);
-            Stmt new_body = For::make(op->name + ".s0.run_on_device",
-                                      0,
-                                      1,
-                                      ForType::Parallel, // The loop type is arbitrarily chosen here: it does not really matter.
-                                      DeviceAPI::OpenCL, // TODO: allow other device APIs
-                                      body);
+            Stmt new_body;
+            if( target.has_feature(Target::OneAPI) ){
+                new_body = For::make(op->name + ".s0.run_on_device",
+                                        0,
+                                        1,
+                                        ForType::Parallel, // The loop type is arbitrarily chosen here: it does not really matter.
+                                        DeviceAPI::OneAPI, 
+                                        body);
+
+            } else {
+                new_body = For::make(op->name + ".s0.run_on_device",
+                                        0,
+                                        1,
+                                        ForType::Parallel, // The loop type is arbitrarily chosen here: it does not really matter.
+                                        DeviceAPI::OpenCL, // TODO: allow other device APIs
+                                        body);
+            }
+
             Stmt stmt = ProducerConsumer::make(op->name, op->is_producer, new_body);
             return stmt;
         } else {
@@ -85,7 +98,7 @@ private:
             if(op->types.size() == 1){
                 Stmt stmt = Realize::make(op->name + ".channel", op->types, op->memory_type, channel2bounds.at(op->name), mutate(op->condition), mutate(op->body));
                 return stmt;
-			} else {
+            } else {
                 multiple_values[op->name] = op->types.size();
                 Stmt stmt = mutate(op->body);
                 for (size_t i = 0; i < op->types.size(); i++) {
@@ -93,8 +106,8 @@ private:
                     types.push_back(op->types[i]);
                     stmt = Realize::make(op->name + "." + std::to_string(i) + ".channel", types, op->memory_type, channel2bounds.at(op->name), mutate(op->condition), stmt);
                 }
-				return stmt;
-			}
+                return stmt;
+            }
         } else {
             Stmt stmt = Realize::make(op->name, op->types, op->memory_type, op->bounds, mutate(op->condition), mutate(op->body));
             return stmt;
@@ -103,7 +116,7 @@ private:
 
     Stmt visit(const Provide *op) override {
         if (channel2write_args.find(op->name) != channel2write_args.end()) {
-        	if(op->values.size() == 1){
+            if(op->values.size() == 1){
                 // internal_assert(op->values.size() == 1) << "Values of a Provide is expected to have been combined into a tuple before writing to a channel\n";
                 Expr value = mutate(op->values[0]);
                 vector<Expr> args(channel2write_args.at(op->name));
@@ -125,8 +138,8 @@ private:
                         write_call = Evaluate::make(Call::make(value.type(), Call::write_channel, args, Call::Intrinsic));
                     }
                 }
-				return write_call;
-			}
+                return write_call;
+            }
         } else {
             return IRMutator::visit(op);
         }
@@ -152,49 +165,100 @@ class ReplaceReferencesWithMemChannels : public IRMutator {
     using IRMutator::visit;
 public:
     ReplaceReferencesWithMemChannels(const set<string> &_mem_channels,
-                                    const map<string, Function> &_env) :
-        mem_channels(_mem_channels), env(_env) { 
-            user_assert(env.size() > 0);
-            is_set_bounds = true;
-        }
+                                    const map<string, Function> &_env,
+                                    vector<std::pair<string, Expr>> &_lets) :
+        mem_channels(_mem_channels), env(_env), letstmts_backup(_lets) {}
 
 private:
     const set<string> &mem_channels;
     const map<string, Function> &env;
     vector<string> enclosing_unrolled_loops;
     set<string> channels;
-    bool is_set_bounds;
+    vector<std::pair<string, Expr>> &letstmts_backup;
+
+    string get_channel_name(string name) {
+        string func_name = extract_first_token(name);
+        for (auto &m : mem_channels) {
+            // Multiple inputs can be isolated into the same function. For example,
+            // inputs A and B are isolated into function A_serializer:
+            // realize A_serializer_B_im
+            //   realize A_serializer
+            //     for (A_serializer.s0.i, 0, N)
+            //       A_serializer(A_serializer.s0.i) = A(A_serializer.s0.i)
+            //       A_serializer_B_im(A_serializer.s0.i) = B(A_serializer.s0.i)
+            // However, only A_serializer is identified as mem_channel.
+            // To help perform SoA to AoS optimization, we also replace B with mem_channel,
+            // and in the combine_channels stage, two mem_channels are combined together.
+            if (func_name == m || (starts_with(func_name, m) && ends_with(func_name, "_im"))) {
+                debug(4) << "Find references " << name << " associated with channel " << m << "\n";
+                return m;
+            }
+        }
+        return "";
+    }
 
     Stmt visit(const For *op) override {
-        bool tmp = is_set_bounds;
         vector<string> names = split_string(op->name, ".");
         if ((op->for_type == ForType::Vectorized) && names.size() > 2) {
             enclosing_unrolled_loops.push_back(op->name);
         }
-        if (op->device_api != DeviceAPI::OpenCL && (op->min.as<Variable>() || op->extent.as<Variable>())) {
+        if (op->device_api != DeviceAPI::OpenCL && op->device_api != DeviceAPI::OneAPI && (op->min.as<Variable>() || op->extent.as<Variable>())) {
             is_set_bounds = false;
         }
         Stmt stmt = IRMutator::visit(op);
-        is_set_bounds = tmp;
         if ((op->for_type == ForType::Vectorized) && names.size() > 2) {
             enclosing_unrolled_loops.pop_back();
         }
         return stmt;
     }
 
+    // Mark the memory channel with a special name
+    Stmt visit(const Allocate *op) override {
+        Stmt body = mutate(op->body);
+        if (!get_channel_name(op->name).empty()) {
+            string name = op->name + ".mem_channel";
+            return Allocate::make(name, op->type, op->memory_type , op->extents,
+                                op->condition, body, op->new_expr, op->free_function);
+        }
+        return Allocate::make(op->name, op->type, op->memory_type, op->extents,
+                            op->condition, body, op->new_expr, op->free_function);
+    }
+
+    Stmt visit(const LetStmt *op) override {
+        Stmt body = mutate(op->body);
+        string name = op->name;
+        Expr value = op->value;
+        if (!get_channel_name(op->name).empty()) {
+            string func_name = extract_first_token(op->name);
+            string new_func_name = func_name + ".mem_channel";
+            name = name.replace(name.find(func_name), func_name.length(), new_func_name);
+            if (extract_token(op->name, 2) == "stride") {
+                int idx = atoi(extract_token(op->name, 3).c_str());
+                string last_dim = func_name + ".stride." + to_string(idx -1);
+                string new_last_dim = new_func_name + ".stride." + to_string(idx -1);
+                value = substitute(last_dim, Variable::make(Int(32), new_last_dim), value);
+            }
+            letstmts_backup.push_back({ name, value });
+        } else {
+            letstmts_backup.push_back({ name, value });
+        }
+        return LetStmt::make(name, value, body);
+    }
+
     Stmt visit(const Store *op) override {
-        if (mem_channels.find(op->name) != mem_channels.end() && is_set_bounds) {
+        if (!get_channel_name(op->name).empty()) {
             vector<Expr> args;
             vector<string> loops;
-            args.push_back(Expr(op->name));
+            args.push_back(Expr(op->name + ".mem_channel"));
             Expr value = mutate(op->value);
             args.push_back(value);
             for (auto &l : enclosing_unrolled_loops) {
                 Expr var = Variable::make(Int(32), l);
                 args.push_back(var);
             }
-            internal_assert(channels.find(op->name) == channels.end());
-            channels.insert(op->name);
+            if (channels.find(op->name) == channels.end()) {
+                channels.insert(op->name);
+            }
             Stmt write_call = Evaluate::make(Call::make(value.type(), Call::write_mem_channel, args, Call::Intrinsic, FunctionPtr(), 0, Buffer<> (), op->param));
             return write_call;
         } else {
@@ -203,10 +267,10 @@ private:
     }
 
     Expr visit(const Load *op) override {
-        if (mem_channels.find(op->name) != mem_channels.end() && is_set_bounds) {
+        if (!get_channel_name(op->name).empty()) {
             internal_assert(channels.find(op->name) != channels.end());
             vector<Expr> args;
-            args.push_back(Expr(op->name));
+            args.push_back(Expr(op->name + ".mem_channel"));
             for (auto &l : enclosing_unrolled_loops) {
                 Expr var = Variable::make(Int(32), l);
                 args.push_back(var);
@@ -367,19 +431,19 @@ private:
                 }
             }
 
-			if(op->types.size() == 1) {
+            if(op->types.size() == 1) {
                 Stmt stmt = Realize::make(op->name + ".shreg", op->types, op->memory_type, bounds, mutate(op->condition), mutate(op->body));
                 return stmt;
-			} else {
+            } else {
                 multiple_values[op->name] = op->types.size();
-				Stmt stmt = mutate(op->body);
+                Stmt stmt = mutate(op->body);
                 for (size_t i = 0; i < op->types.size(); i++) {
                     std::vector<Type> types;
                     types.push_back(op->types[i]);
                     stmt = Realize::make(op->name + "." + std::to_string(i) + ".shreg", types, op->memory_type, bounds, mutate(op->condition), stmt);
                 }
-				return stmt;
-			}
+                return stmt;
+            }
         }
         return IRMutator::visit(op);
     }
@@ -431,8 +495,8 @@ private:
                         write_call = Evaluate::make(Call::make(value.type(), Call::write_shift_reg, args, Call::Intrinsic));
                     }
                 }
-				return write_call;
-			}
+                return write_call;
+            }
         }
         return IRMutator::visit(op);
     }
@@ -549,7 +613,6 @@ void identify_funcs_outputting_to_channels(Stmt s, const map<string, Function>  
                     if (consumer_func.place() == Place::Device) {
                         funcs_outputting_to_channels.push_back(func_name);
                     }
-                    
                 } else {
                     // So far, we restrict a channel can have only one write and only one read site.
                     // When there is more than one read site, the producer and consumer function can communicate only through memory.
@@ -771,7 +834,6 @@ set<string> identify_funcs_outputting_to_mem_channels(Stmt s, const map<string, 
                 }
             }
         }
-        
     }
     // std::map<std::string, bool> used_in_producer;
     // std::map<std::string, bool> used_in_consumer;
@@ -791,74 +853,140 @@ set<string> identify_funcs_outputting_to_mem_channels(Stmt s, const map<string, 
     return funcs_outputting_to_mem_channels;
 }
 
-// The __fpga_reg function is useful to "Break the critical paths between spatially distant portions of a data path,
-// such as between processing elements of a large systolic array." We check the arguments' differences in the nested
-// write/read_shift_regs calls, which hints the data path across PEs:
-// write_shift_regs("X.shreg", iii, jjj, read_shift_regs("X.shreg", iii-1, jjj)), iii and jjj are space loops
-// The value of X is propogated along the iii dimension. After transformation, a fpga_reg call is inserted:
-// write_shift_regs("X.shreg", iii, jjj, fpga_reg( read_shift_regs("X.shreg", iii-1, jjj) ))
+/* The __fpga_reg function is useful to "break the critical paths between spatially distant portions of a data path,
+ * such as between processing elements of a large systolic array." We check the arguments' differences in the nested
+ * write/read_shift_regs calls, which hints the data path across PEs:
+ * write_shift_regs("X.shreg", i, j, read_shift_regs("X.shreg", i-1, j)), i and j are space loops
+ * The value of X is propogated along the i dimension. After transformation, the i dimension is removed:
+ * write_shift_regs("X.shreg", 0, j, fpga_reg( read_shift_regs("X.shreg", 0, j) ))
+ */
 class RegCallInserter : public IRMutator {
     using IRMutator::visit;
-    vector<Expr> write_args;
     vector<string> space_loops;
+    map<string, int> shift_dims;
+    vector<Stmt> reg_calls;
+    bool inside_if;
 
-    class FindSpaceVar : public IRVisitor {
-        using IRVisitor::visit;
-        string var;
-
-    public:
-        bool found = false;
-        FindSpaceVar(string &_s)
-            : var(_s) {}
-
-        void visit(const Variable *v) override {
-            if (extract_last_token(v->name) == var) {
-                found = true;
+    Expr get_read_node(string write_name, Expr arg) {
+        // To be safe, only three patterns are found:
+        // 1.  write_shift_regs("X.shreg", i, j, read_shift_regs("X.shreg", i-1, j))
+        // 2.  write_shift_regs("X.shreg", i, j, select(?, read_shift_regs("X.shreg", i-1, j), ?))
+        // 3.  write_shift_regs("X.shreg", i, j, select(?, ?, read_shift_regs("X.shreg", i-1, j)))
+        auto call_node = arg.as<Call>();
+        if (call_node && call_node->is_intrinsic(Call::read_shift_reg)) {
+            auto name = call_node->args[0].as<StringImm>();
+            if (name && name->value == write_name) {
+                return call_node;
             }
         }
-    };
+        auto sel_node = arg.as<Select>();
+        if (sel_node) {
+            auto true_as_call = sel_node->true_value.as<Call>();
+            if (true_as_call && true_as_call->is_intrinsic(Call::read_shift_reg)) {
+                auto name = true_as_call->args[0].as<StringImm>();
+                if (name && name->value == write_name) {
+                    return true_as_call;
+                }
+            }
+            auto false_as_call = sel_node->false_value.as<Call>();
+            if (false_as_call && false_as_call->is_intrinsic(Call::read_shift_reg)) {
+                auto name = false_as_call->args[0].as<StringImm>();
+                if (name && name->value == write_name) {
+                    return false_as_call;
+                }
+            }
+        }
+        return Expr();
+    }
+
 public:
     RegCallInserter(vector<string> &_s)
         : space_loops(_s) {}
 
+    Stmt visit(const Evaluate *op) override {
+        Expr value = mutate(op->value);
+        auto call = value.as<Call>();
+        if (call && call->is_intrinsic(Call::write_shift_reg)) {
+            auto write_name = call->args[0].as<StringImm>();
+            internal_assert(write_name);
+            if (shift_dims.find(write_name->value) != shift_dims.end()) {
+                vector<Expr> args;
+                for (size_t i = 0; i < call->args.size()-1; i++) {
+                    args.push_back(call->args[i]);
+                }
+                Expr read = Call::make(call->type, "read_shift_reg", args, Call::PureIntrinsic);
+                read = Call::make(call->type, "fpga_reg", { read }, Call::PureIntrinsic);
+                args.push_back(read);
+                Stmt write = Evaluate::make(Call::make(call->type, "write_shift_reg", args, Call::PureIntrinsic));
+                if (!inside_if) {
+                    // The shreg read values at the border and propagate values across PEs
+                    // Hence, it must have two branches, either in Select or IfThenElse
+                    // We must insert fpga_reg calls out of the two branches
+                    internal_assert(call->args.back().as<Select>());
+                    return Block::make(Evaluate::make(value), write);
+                }
+                reg_calls.push_back(write);
+            }
+        }
+        return Evaluate::make(value);
+    }
+
+    Stmt visit(const IfThenElse *op) override {
+        inside_if = true;
+        Expr condition = mutate(op->condition);
+        Stmt then_case = mutate(op->then_case);
+        Stmt else_case = mutate(op->else_case);
+        Stmt node = IfThenElse::make(condition, then_case, else_case);
+        inside_if = false;
+
+        if (!reg_calls.empty()) {
+            for (auto &c : reg_calls) {
+                node = Block::make(node, c);
+            }
+            reg_calls.clear();
+        }
+        return node;
+    }
+
     Expr visit(const Call *op) override {
         if (op->is_intrinsic(Call::write_shift_reg)) {
-            write_args = op->args;
-            vector<Expr> new_args;
-            for (size_t i = 0; i < op->args.size(); i++) {
-                new_args.push_back(mutate(op->args[i]));
+            auto write_name = op->args[0].as<StringImm>();
+            internal_assert(write_name);
+            auto read_node = get_read_node(write_name->value, op->args.back()).as<Call>();
+            if (!read_node) {
+                return IRMutator::visit(op);
             }
-            write_args.clear();
-            return Call::make(op->type, op->name, new_args, op->call_type);
+            vector<Expr> write_args = op->args;
+            for (size_t i = 1; i < op->args.size()-1; i++) {
+                auto v = op->args[i].as<Variable>();
+                if (v) {
+                    auto it = std::find(space_loops.begin(), space_loops.end(), extract_last_token(v->name));
+                    if (it != space_loops.end()) {
+                        Expr diff = simplify(read_node->args[i] - op->args[i]);
+                        if (is_const(diff) && !is_zero(diff)) {
+                            // Find a dimension where the value is propogated
+                            write_args[i] = 0;
+                            internal_assert(shift_dims.find(write_name->value) == shift_dims.end());
+                            shift_dims[write_name->value] = i;
+                        }
+                    }
+                }
+            }
+            write_args.back() = mutate(op->args.back());
+            return Call::make(op->type, op->name, write_args, op->call_type);
         }
-        if (op->is_intrinsic(Call::read_shift_reg) && write_args.size() > 0) {
-            for (auto &v : space_loops) {
-                FindSpaceVar spv(v);
-                size_t iw = 1, end_w = write_args.size()-1;
-                size_t ir = 1, end_r = op->args.size();
-                spv.found = false;
-                for (; iw < end_w; iw++) {
-                    write_args[iw].accept(&spv);
-                    if (spv.found) {
-                        break;
-                    }
-                }
-                spv.found = false;
-                for (; ir < end_r; ir++) {
-                    op->args[ir].accept(&spv);
-                    if (spv.found) {
-                        break;
-                    }
-                }
-                if (iw < end_w && ir < end_r) {
-                    // Both iw (write) and ir (read) refer to one of the space loop
-                    // So we compare them and insert a fpga_reg if different
-                    Expr diff = simplify(write_args[iw] - op->args[ir]);
-                    if (!is_zero(diff)) {
-                        return Call::make(op->type, "fpga_reg", { op }, Call::PureIntrinsic);
-                    }
-                }
+        if (op->is_intrinsic(Call::read_shift_reg)) {
+            auto read_name = op->args[0].as<StringImm>();
+            internal_assert(read_name);
+            vector<Expr> read_args = op->args;
+            if (shift_dims.find(read_name->value) != shift_dims.end()) {
+                read_args[shift_dims.at(read_name->value)] = 0;
             }
+            Expr call_node = Call::make(op->type, op->name, read_args, op->call_type);
+            // if (insert_reg_call) {
+            //     call_node = Call::make(op->type, "fpga_reg", { call_node }, Call::PureIntrinsic);
+            // }
+            return call_node;
         }
         return IRMutator::visit(op);
     }
@@ -883,7 +1011,9 @@ Stmt replace_references_with_channels(Stmt s, const std::map<std::string, Functi
     return s;
 }
 
-Stmt replace_references_with_mem_channels(Stmt s, const std::map<std::string, Function> &env, map<string, Place> &funcs_using_mem_channels) {
+Stmt replace_references_with_mem_channels(Stmt s, const std::map<std::string, Function> &env,
+                                        map<string, Place> &funcs_using_mem_channels,
+                                        vector<std::pair<string, Expr>> &letstmts_backup) {
     map<string, vector<string>> call_graph = build_call_graph(env); // a function to all the functions it calls.
     map<string, vector<string>> reverse_call_graph = build_reverse_call_graph(call_graph); // a function to the all the functions calling it.
     vector<string> loops_to_serialize;
@@ -891,7 +1021,7 @@ Stmt replace_references_with_mem_channels(Stmt s, const std::map<std::string, Fu
     find_loops_to_serialize_by_gathering(env, loops_to_serialize);
     set<string> mem_channels = identify_funcs_outputting_to_mem_channels(s, env, reverse_call_graph,
                                                                          funcs_using_mem_channels, loops_to_serialize);
-    ReplaceReferencesWithMemChannels replacer(mem_channels, env);
+    ReplaceReferencesWithMemChannels replacer(mem_channels, env, letstmts_backup);
     s = replacer.mutate(s);
     return s;
 }

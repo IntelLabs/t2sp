@@ -376,7 +376,15 @@ class SpaceTimeTransformer : public IRMutator {
         Expr time_expr = IntImm::make(Int(32), 0);
         for (size_t j = 0; j < size; j++) {
             size_t k = src_var_pos[j];
-            time_expr += (loop_vars[k] - new_args[k]) * param.sch_vector[j];
+            Expr diff = simplify(loop_vars[k] - new_args[k]);
+            if (can_prove(diff >= loop_extents[k])) {
+                // The dependence distance on a dimension must be smaller than its extent.
+                // For example, the dependence jj+JJ-1, j-1 where J = 1 is illegal,
+                // and thus we skip to calculate distance in such cases
+                time_expr = 0;
+                break;
+            }
+            time_expr += diff * param.sch_vector[j];
             debug(3) << "time expr: " << time_expr;
             time_expr = simplify(time_expr);
         }
@@ -442,7 +450,7 @@ class SpaceTimeTransformer : public IRMutator {
                 min_substitute = substitute(global_min, loop_min);
                 loop_min = Min::make(max_substitute, min_substitute);
             }
-            global_max[op->name] = simplify(extent);
+            global_max[op->name] = simplify(loop_min+extent-1);
             global_min[op->name] = simplify(loop_min);
 
             current_loops.push_back(op->name);
@@ -561,9 +569,17 @@ class SpaceTimeTransformer : public IRMutator {
                     } else {
                         // Let the register bounds the same as the corresponding loop bounds (In unscheduled stt,
                         // at this moment, we do not change loops at all). We will minimize the bounds in a later phase.
-                        for (size_t j = 0; j < num_args; j++) {
-                            reg_size_map[merged_func_name].mins.push_back(loop_mins[j]);
-                            reg_size_map[merged_func_name].maxs.push_back(simplify(loop_extents[j] - 1));
+                        for (size_t j = 0; j < merged_func.args().size(); j++) {
+                            for (size_t k = 0; k < num_args; k++) {
+                                const Variable *loop_var = loop_vars[k].as<Variable>();
+                                if (extract_last_token(loop_var->name) == merged_func.args()[j]) {
+                                    Expr min_expr = Min::make(substitute(global_max, loop_mins[k]), substitute(global_min, loop_mins[k]));
+                                    Expr ext_expr = Max::make(substitute(global_max, loop_extents[k]), substitute(global_min, loop_extents[k]));
+                                    reg_size_map[merged_func_name].mins.push_back(min_expr);
+                                    reg_size_map[merged_func_name].maxs.push_back(simplify(ext_expr - 1));
+                                    break;
+                                }
+                            }
                         }
                         if (!in_input_or_output) {
                             if (space_is_dynamic) {
@@ -692,8 +708,8 @@ class SpaceTimeTransformer : public IRMutator {
                 if (!in_input_or_output) {
                     kv.second.mins[k] = min;
                     kv.second.maxs[k] = extent-1;
-                    if (!is_const(min) || !is_const(extent))
-                        reg_annotation_map[kv.first] = {};
+                    // if (!is_const(min) || !is_const(extent))
+                    //     reg_annotation_map[kv.first] = {};
                 }
             }
         }
@@ -897,7 +913,7 @@ class SpaceTimeTransformer : public IRMutator {
                 // loop as Unrolled.
                 ForType for_type = target.has_feature(Target::IntelFPGA) ? ForType::Unrolled : ForType::Serial;
                 if (k == 0) {
-                    if (target.has_feature(Target::IntelFPGA) && vectorized_loop_name != "") {\
+                    if ((target.has_feature(Target::IntelFPGA) || target.has_feature(Target::OneAPI)) && vectorized_loop_name != "") {\
                         debug(4) << "Vectorize loop: " << vectorized_loop_name << "\n";
                         internal_assert(extract_last_token(vectorized_loop_name) == param.dst_vars[k])
                         << "After space time transformation, the vectorized loop "
@@ -915,7 +931,7 @@ A.space_time_transform({k, j},
                     }
                     if (target.has_feature(Target::IntelGPU)) {
                         // automatically vectorize the innermost space loop even if not specified
-                        for_type = ForType::Vectorized;
+                        // for_type = ForType::Vectorized;
                     }
                 }
                 body = For::make(name, new_loop_mins[k], new_loop_extents[k],

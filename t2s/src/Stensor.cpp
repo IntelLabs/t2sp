@@ -31,7 +31,7 @@ using std::string;
 struct Schain {
     bool is_output;                 // Output chain needs different primitives
     Func outf;                      // The output chain starts from a function
-    ImageParam imp;                 // The input chain starts from external input
+    vector<ImageParam> imp;         // The input chain starts from external input
     vector<Stensor> stensors;
 };
 vector<Schain> schains;
@@ -76,7 +76,7 @@ Stensor &Stensor::operator>>(Stensor &s) {
     return schains[c].stensors.back();
 }
 
-Stensor &operator>>(const ImageParam &im, Stensor &s) {
+Stensor &operator>>(const vector<ImageParam> &im, Stensor &s) {
     Schain tmp;
     s.schain_idx = schains.size();
     tmp.is_output = false;
@@ -84,6 +84,10 @@ Stensor &operator>>(const ImageParam &im, Stensor &s) {
     tmp.stensors.push_back(s);
     schains.push_back(std::move(tmp));
     return schains.back().stensors.back();
+}
+
+Stensor &operator>>(const ImageParam &im, Stensor &s) {
+    return vector<ImageParam>{im} >> s;
 }
 
 Stensor &operator>>(Func &f, Stensor &s) {
@@ -135,11 +139,11 @@ struct FindVars
                 reuse_vars.push_back(Var(v));
             }
         }
-        return std::move(reuse_vars);
+        return reuse_vars;
     }
 
     // Find the first var below/above the given var v whose extent is not 1
-    Var find_non_trivial_var(Var v, bool above = true) {
+    Var find_non_unit_var(Var v, bool above = true) {
         size_t j = var_index(v);
         while (j > 0 && j < free_vars.size()) {
             auto bound = ure.function().get_bounds(free_vars[j].name());
@@ -191,16 +195,41 @@ struct FindVars
     }
 };
 
+// We assume an output function always follows such a pattern:
+// Out(...) = select(cond, Z(...)),
+// in this case, we find and set func_name as Z
+class FindProducerForOutput : public IRVisitor {
+    const map<string, Func> env;
+public:
+    using IRVisitor::visit;
+    Func producer;
+
+    void visit(const Select *op) override {
+        if (!op->false_value.defined()) {
+            auto call = op->true_value.as<Call>();
+            internal_assert(call);
+            if (call->call_type == Call::CallType::Halide) {
+                producer = env.at(call->name);
+            }
+        }
+    }
+
+    FindProducerForOutput(const map<string, Func> &_e)
+        : env(_e) {}
+};
+
+
 class RealizeOnFPGA
 {
     vector<Var> output_array_dims;
     FindVars &fv;
+    FindProducerForOutput &fpo;
 
     vector<Func> isolate_producer(Schain &c) {
         if (c.stensors[0].position != HOST) {
             // The device stensors needs serialized inputs
             // If the host stensor is not specified, we automatically generate it
-            string host_name = c.imp.name() + "_serializer";
+            string host_name = c.imp[0].name() + "_serializer";
             Stensor s_host(host_name);
             s_host.schain_idx = c.stensors[0].schain_idx;
             c.stensors.insert(c.stensors.begin(), s_host);
@@ -211,10 +240,12 @@ class RealizeOnFPGA
             Func isolated_func(s.name, place);
             producers.push_back(std::move(isolated_func));
         }
-        fv.ure.isolate_producer_chain({c.imp}, producers);
+        vector<FuncOrExpr> imp;
+        std::copy(c.imp.begin(), c.imp.end(), std::back_inserter(imp));
+        fv.ure.isolate_producer_chain(imp, producers);
         debug(1) << fv.ure.name() << ".isolate_producer_chain({"
-                 << c.imp.name() << "}, " << names_to_string(producers) << ");\n";
-        return std::move(producers);
+                 << names_to_string(c.imp) << "}, " << names_to_string(producers) << ");\n";
+        return producers;
     }
 
 #if 0
@@ -238,12 +269,6 @@ class RealizeOnFPGA
 
     vector<Func> isolate_consumer(Schain &c) {
         vector<Func> consumers;
-        // Isolate subsequent consumers
-        for (auto &s : c.stensors) {
-            Place place = s.position == SMemType::HOST ? Place::Host : Place::Device;
-            Func f_dev(s.name, place);
-            consumers.push_back(std::move(f_dev));
-        }
         if (c.stensors.back().position != HOST) {
             // If the host stensor is not specified, we automatically generate it
             string host_name = c.outf.name() + "_deserializer";
@@ -252,28 +277,58 @@ class RealizeOnFPGA
             c.stensors.push_back(s_host);
         }
 
-        if (c.stensors[0].position == REG && !c.stensors[0].v_banks.empty()) {
+        // Isolate subsequent consumers
+        for (auto &s : c.stensors) {
+            Place place = s.position == SMemType::HOST ? Place::Host : Place::Device;
+            Func new_func(s.name, place);
+            consumers.push_back(std::move(new_func));
+        }
+        if (c.stensors[0].v_banks.size() == 1) {
+            // This is a special case where the single dimension banks are inside systolic array
+            user_assert(c.stensors[1].position == SMemType::DRAM);
+            Var bank = c.stensors[0].v_banks[0];
+            c.outf.value().accept(&fpo);
+            c.outf.relay(fpo.producer, bank);
+            debug(1) << c.outf.name() << ".relay("
+                     << fpo.producer.name() << ", " << bank.name() << ");\n";
+            // The channel is inside the systolic array
+            if (c.stensors[0].fifo_depth != 0) {
+                c.outf.min_depth(c.stensors[0].fifo_depth);
+            }
+            // Remove the first stensor as it is inside systolic array
+            c.stensors.erase(c.stensors.begin());
+            consumers.erase(consumers.begin());
+            // Vectorize all the subsequent stensors
+            c.outf.isolate_consumer_chain(consumers);
+            debug(1) << c.outf.name() << ".isolate_consumer_chain("
+                     << names_to_string(consumers) << ");\n";
+            for (auto &f : consumers) {
+                f.vectorize(bank);
+                debug(1) << f.name() << ".vectorize("
+                         << bank.name() << ");\n";
+            }
+        } else if (c.stensors[0].v_banks.size() == 2) {
             // The output stensor inherits loops of the output URE, generally less than that of systolic array
             // So we isolate the first consumer alone and apply space-time transform to regenerate loop structure,
             // then the subsequent stensors could be isolated based on that
-            Func regf = consumers[0];
-            c.outf.isolate_consumer(regf);
+            Func first_func = consumers[0];
+            c.outf.isolate_consumer(first_func);
             debug(1) << c.outf.name() << ".isolate_consumer("
-                     << regf.name() << ");\n";
+                     << first_func.name() << ");\n";
             // generate_output_array(outf, f_dev);
-            regf.space_time_transform(c.stensors[0].v_banks);
-            debug(1) << regf.name() << ".space_time_transform("
+            first_func.space_time_transform(c.stensors[0].v_banks);
+            debug(1) << first_func.name() << ".space_time_transform("
                      << names_to_string(c.stensors[0].v_banks) << ");\n";
             vector<Func> other_cons(consumers.begin()+1, consumers.end());
-            regf.isolate_consumer_chain(other_cons);
-            debug(1) << regf.name() << ".isolate_consumer_chain("
-                     << names_to_string(other_cons);
+            first_func.isolate_consumer_chain(other_cons);
+            debug(1) << first_func.name() << ".isolate_consumer_chain("
+                     << names_to_string(other_cons) << ");\n";
         } else {
             c.outf.isolate_consumer_chain(consumers);
             debug(1) << c.outf.name() << ".isolate_consumer_chain("
                      << names_to_string(consumers) << ");\n";
         }
-        return std::move(consumers);
+        return consumers;
     }
 
     // Remove reuse variables from stensors as per their scope
@@ -282,7 +337,7 @@ class RealizeOnFPGA
         Var scope = c.stensors.back().v_scope;
 
         for (int i = producers.size()-2; i >= 0; i--) {
-            loops = fv.find_reuse_vars(c.imp.name(), scope);
+            loops = fv.find_reuse_vars(c.imp[0].name(), scope);
             producers[i].remove(loops);
             debug(1) << producers[i].name() << ".remove("
                      << names_to_string(loops) << ");\n";
@@ -422,7 +477,7 @@ class RealizeOnFPGA
                 user_assert(j > 0 && j <= i)
                     << "The scope of " << s.name << " is beyond its predecessor\n";
                 // Find a loop whose extent is not 1, otherwise this loop would be removed in lowering
-                s.v_scope = fv.find_non_trivial_var(s.v_scope);
+                s.v_scope = fv.find_non_unit_var(s.v_scope);
                 i = j;
             }
         }
@@ -447,7 +502,8 @@ class RealizeOnFPGA
     }
 
 public:
-    RealizeOnFPGA(FindVars &_f) : fv(_f) {}
+    RealizeOnFPGA(FindVars &_v, FindProducerForOutput &_p)
+        : fv(_v), fpo(_p) {}
 
     Func realize() {
         Func out;
@@ -479,15 +535,43 @@ public:
 class RealizeOnGPU
 {
     FindVars &fv;
+    int num_gpu_vars;
+
+    // Check if the stensors are inclusive cache
+    // Namely, for input chain the scope of consumer cannot be beyond its predecessor,
+    // for output chain the scope of consumer cannot below its predecessor
+    // If not specified, the scope is inherited
+    void check_inclusiveness(Schain &c) {
+        if (!c.is_output) {
+            // start from the outermost loop
+            int i = fv.free_vars.size()-1;
+            for (auto &s: c.stensors) {
+                if (!fv.exists(s.v_scope)) {
+                    s.v_scope = fv.free_vars[i];
+                    continue;
+                }
+                int j = fv.var_index(s.v_scope);
+                user_assert(j > 0 && j <= i)
+                    << "The scope of " << s.name << " is beyond its predecessor\n";
+                // Find a loop whose extent is not 1, otherwise this loop would be removed in lowering
+                s.v_scope = fv.find_non_unit_var(s.v_scope);
+                i = j;
+            }
+        }
+    }
 
     void gpu_fetch(Schain &c) {
         for (auto &s : c.stensors) {
-            // Currently, we realize SRAM with combined registers across threads
-            // The SRAM stensor determines the allocated registers
+            // Currently, we separately allocate registers in each thread, and view registers
+            // throughout threads as an unified SRAM storage, to realize stensors on GPUs.
             if (s.position == SRAM) {
-                c.imp.gpu_fetch(s.v_scope, MemoryType::Register, s.v_outs);
-                debug(1) << c.imp.name() << ".gpu_fetch("
-                         << s.v_scope.name() << ", {" << names_to_string(s.v_outs) << "});\n";
+                for (auto &p : c.imp) {
+                    int gpu_var_index = fv.free_vars.size() - num_gpu_vars -1;
+                    Var loop = fv.var_index(s.v_scope) < gpu_var_index ? s.v_scope : fv.free_vars[gpu_var_index];
+                    p.gpu_fetch(loop, MemoryType::Register, s.v_outs);
+                    debug(1) << p.name() << ".gpu_fetch("
+                             << loop.name() << ", {" << names_to_string(s.v_outs) << "});\n";
+                }
             }
         }
     }
@@ -503,12 +587,13 @@ class RealizeOnGPU
     }
 
 public:
-    RealizeOnGPU(FindVars &_f) : fv(_f) {}
+    RealizeOnGPU(FindVars &_f, int _n)
+        : fv(_f), num_gpu_vars(_n) {}
 
     Func realize() {
         Func out;
         for (auto &c : schains) {
-            // check_correctness(c);
+            check_inclusiveness(c);
             if (!c.is_output) {
                 gpu_fetch(c);
             } else {
@@ -546,20 +631,22 @@ Func Stensor::stensor_realize_wrapper(Starget t) {
     Func f;
     if (t == Starget::IntelFPGA) {
         FindVars fv(env);
-        RealizeOnFPGA fpga(fv);
+        FindProducerForOutput fpo(env);
+        RealizeOnFPGA fpga(fv, fpo);
         f = fpga.realize();
         internal_assert(f.function().place() == Place::Host);
     }
     if (t == Starget::IntelGPU) {
+        int num_gpu_vars = 0;
         for (auto &p : env) {
             if (p.second.function().place() == Place::Device) {
                 // Placing on device is only valid for FPGAs
                 p.second.function().place(Place::Host);
             }
-            reorder_gpu_loops(p.second);
+            reorder_gpu_loops(p.second, num_gpu_vars);
         }
         FindVars fv(env);
-        RealizeOnGPU gpu(fv);
+        RealizeOnGPU gpu(fv, num_gpu_vars);
         f = gpu.realize();
     }
     return f;
@@ -605,5 +692,19 @@ void Stensor::compile_to_host(string file_name, const vector<Argument> &args,
         f.compile_to_cm(fn_name, std::move(args), acc);
     }
 }
+
+
+void Stensor::compile_to_oneapi(const vector<Argument> &args,
+                              const std::string fn_name, Starget t) {
+    Func f = stensor_realize_wrapper(t);
+    Target acc = get_host_target();
+    acc.set_feature(Target::OneAPI);
+    if (t == Starget::IntelFPGA) {
+        acc.set_feature(Target::IntelFPGA);
+        acc.set_feature(Target::EnableSynthesis);
+        f.compile_to_oneapi(args, fn_name, acc);
+    }
+}
+
 
 }

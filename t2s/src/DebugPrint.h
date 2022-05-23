@@ -26,6 +26,7 @@
 #include "../../Halide/src/Bounds.h"
 #include "../../Halide/src/Func.h"
 #include "../../Halide/src/Function.h"
+#include "../../Halide/src/ImageParam.h"
 #include "../../Halide/src/IREquality.h"
 #include "../../Halide/src/IROperator.h"
 #include "../../Halide/src/IRPrinter.h"
@@ -86,6 +87,7 @@ string to_string(const set<T> &v, bool separate = true) {
 string names_to_string(const vector<Func> &v);
 string names_to_string(const vector<VarOrRVar> &v);
 string names_to_string(const vector<Var> &v);
+string names_to_string(const vector<ImageParam> &im);
 string to_string(const map<string, Box> &boxes);
 }
 }

@@ -1,0 +1,49 @@
+.schedule_table th{
+    background-color: #D4D0C8;
+    border: 1px solid #808080;
+    border-width: 0px 1px 1px 0px;
+    font-weight: normal;
+}
+
+.schedule_table td{
+    border: 0px;
+    background-color: white;
+    padding: 0px 4px 0px 2px;
+    border: 1px solid #C0C0C0;
+    border-width: 0px 1px 1px 0px;
+}
+
+.schedule_table table {
+    border: 1px solid #404040;
+    border-width: 1px 0px 0px 1px;
+    font-size: 10pt;
+    font-family: arial;
+    border-spacing: 0px;
+    border-collapse: collapse;
+}
+
+#floating_div {
+    position: fixed;
+    top: 10px;
+    left: 10px;
+    z-index: 10;
+}
+
+.node_name_col {
+    width: 500px;
+    background-color: #ffffff;
+}
+
+.control_col {
+    width: 20px;
+    background-color: #ffffff;   
+}
+
+.schedule_table .scheduled_cell {
+    width: 20px;
+    background-color: #66e0ff;   
+}
+
+.schedule_table .unscheduled_cell {
+    background-color: #ffffff;   
+}

@@ -1995,9 +1995,10 @@ void CodeGen_C::visit(const Mul *op) {
 
 void CodeGen_C::visit(const Div *op) {
     int bits;
+    char* ediv = getenv("EUCLIDEAN_DIVISION");
     if (is_const_power_of_two_integer(op->b, &bits)) {
         visit_binop(op->type, op->a, make_const(op->a.type(), bits), ">>");
-    } else if (op->type.is_int()) {
+    } else if (ediv && op->type.is_int()) {
         print_expr(lower_euclidean_div(op->a, op->b));
     } else {
         visit_binop(op->type, op->a, op->b, "/");
@@ -2006,9 +2007,10 @@ void CodeGen_C::visit(const Div *op) {
 
 void CodeGen_C::visit(const Mod *op) {
     int bits;
+    char* ediv = getenv("EUCLIDEAN_DIVISION");
     if (is_const_power_of_two_integer(op->b, &bits)) {
         visit_binop(op->type, op->a, make_const(op->a.type(), (1 << bits) - 1), "&");
-    } else if (op->type.is_int()) {
+    } else if (ediv && op->type.is_int()) {
         print_expr(lower_euclidean_mod(op->a, op->b));
     } else if (op->type.is_float()) {
         string arg0 = print_expr(op->a);
@@ -2349,7 +2351,7 @@ void CodeGen_C::visit(const Call *op) {
             rhs << "(&" << struct_name << ")";
         }
     } else if (op->is_intrinsic(Call::read_field)) {
-        rhs << print_expr(op->args[0]) << ".f" << std::to_string((op->args[1]).as<UIntImm>()->value);
+        rhs << print_expr(op->args[0]) << ".f" << std::to_string((op->args[1]).as<IntImm>()->value);
     } else if (op->is_intrinsic(Call::stringify)) {
         // Rewrite to an snprintf
         vector<string> printf_args;
@@ -2787,10 +2789,12 @@ void CodeGen_C::visit(const For *op) {
         // which passes the scalar args as a struct.
         std::sort(closure_args.begin(), closure_args.end(),
                   [](const DeviceArgument &a, const DeviceArgument &b) {
-                      if (a.is_buffer == b.is_buffer) {
+                      if (a.is_buffer != b.is_buffer) {
+                          return a.is_buffer < b.is_buffer;
+                      } else if (a.type == b.type) {
                           return a.type.bits() > b.type.bits();
                       } else {
-                          return a.is_buffer < b.is_buffer;
+                          return a.type.is_float() < b.type.is_float();
                       }
                   });
 
@@ -2804,7 +2808,7 @@ void CodeGen_C::visit(const For *op) {
                        << "(void *)&((device_handle *)_halide_buffer_get_device(" << print_name(arg.name + ".buffer") << "))->mem";
             } else {
                 stream << "sizeof(" << print_type(arg.type) << "), "
-                       << "(void *)&" << arg.name;
+                       << "(void *)&" << print_name(arg.name);
             }
             stream << ");\n"
                    << get_indent() << "CHECK(status);\n";
@@ -3012,14 +3016,14 @@ void CodeGen_C::visit(const IfThenElse *op) {
 
 void CodeGen_C::visit(const Evaluate *op) {
     if (is_const(op->value)) return;
-    // Skip the evaluation of overlay intrinsics
-    bool has_overlay = false;
+    // Skip the evaluation of some intrinsics
+    bool skip_eval = false;
     if (auto call = op->value.as<Call>()) {
-        if (call->is_intrinsic(Call::overlay) || call->is_intrinsic(Call::overlay_switch))
-            has_overlay = true;
+        if (call->is_intrinsic(Call::overlay) || call->is_intrinsic(Call::overlay_switch) || call->is_intrinsic(Call::annotate))
+            skip_eval = true;
     }
     string id = print_expr(op->value);
-    if (!has_overlay) {
+    if (!skip_eval) {
         stream << get_indent() << "(void)" << id << ";\n";
     }
 }
