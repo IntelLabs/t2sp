@@ -243,7 +243,7 @@ class RealizeOnFPGA
         vector<FuncOrExpr> imp;
         std::copy(c.imp.begin(), c.imp.end(), std::back_inserter(imp));
         fv.ure.isolate_producer_chain(imp, producers);
-        debug(1) << fv.ure.name() << ".isolate_producer_chain({"
+        debug(1) << "T2X emits: " << fv.ure.name() << ".isolate_producer_chain({"
                  << names_to_string(c.imp) << "}, " << names_to_string(producers) << ");\n";
         return producers;
     }
@@ -262,7 +262,7 @@ class RealizeOnFPGA
             }
         }
         drainer.space_time_transform(output_array_dims);
-        debug(1) << drainer.name() << ".space_time_transform("
+        debug(1) << "T2X emits: " << drainer.name() << ".space_time_transform("
                  << names_to_string(output_array_dims) << ");\n";
     }
 #endif
@@ -289,7 +289,7 @@ class RealizeOnFPGA
             Var bank = c.stensors[0].v_banks[0];
             c.outf.value().accept(&fpo);
             c.outf.relay(fpo.producer, bank);
-            debug(1) << c.outf.name() << ".relay("
+            debug(1) << "T2X emits: " << c.outf.name() << ".relay("
                      << fpo.producer.name() << ", " << bank.name() << ");\n";
             // The channel is inside the systolic array
             if (c.stensors[0].fifo_depth != 0) {
@@ -300,11 +300,11 @@ class RealizeOnFPGA
             consumers.erase(consumers.begin());
             // Vectorize all the subsequent stensors
             c.outf.isolate_consumer_chain(consumers);
-            debug(1) << c.outf.name() << ".isolate_consumer_chain("
+            debug(1) << "T2X emits: " << c.outf.name() << ".isolate_consumer_chain("
                      << names_to_string(consumers) << ");\n";
             for (auto &f : consumers) {
                 f.vectorize(bank);
-                debug(1) << f.name() << ".vectorize("
+                debug(1) << "T2X emits: " << f.name() << ".vectorize("
                          << bank.name() << ");\n";
             }
         } else if (c.stensors[0].v_banks.size() == 2) {
@@ -313,19 +313,19 @@ class RealizeOnFPGA
             // then the subsequent stensors could be isolated based on that
             Func first_func = consumers[0];
             c.outf.isolate_consumer(first_func);
-            debug(1) << c.outf.name() << ".isolate_consumer("
+            debug(1) << "T2X emits: " << c.outf.name() << ".isolate_consumer("
                      << first_func.name() << ");\n";
             // generate_output_array(outf, f_dev);
             first_func.space_time_transform(c.stensors[0].v_banks);
-            debug(1) << first_func.name() << ".space_time_transform("
+            debug(1) << "T2X emits: " << first_func.name() << ".space_time_transform("
                      << names_to_string(c.stensors[0].v_banks) << ");\n";
             vector<Func> other_cons(consumers.begin()+1, consumers.end());
             first_func.isolate_consumer_chain(other_cons);
-            debug(1) << first_func.name() << ".isolate_consumer_chain("
+            debug(1) << "T2X emits: " << first_func.name() << ".isolate_consumer_chain("
                      << names_to_string(other_cons) << ");\n";
         } else {
             c.outf.isolate_consumer_chain(consumers);
-            debug(1) << c.outf.name() << ".isolate_consumer_chain("
+            debug(1) << "T2X emits: " << c.outf.name() << ".isolate_consumer_chain("
                      << names_to_string(consumers) << ");\n";
         }
         return consumers;
@@ -339,7 +339,7 @@ class RealizeOnFPGA
         for (int i = producers.size()-2; i >= 0; i--) {
             loops = fv.find_reuse_vars(c.imp[0].name(), scope);
             producers[i].remove(loops);
-            debug(1) << producers[i].name() << ".remove("
+            debug(1) << "T2X emits: " << producers[i].name() << ".remove("
                      << names_to_string(loops) << ");\n";
             scope = (i > 0) ? c.stensors[i].v_scope : scope;
         }
@@ -366,7 +366,7 @@ class RealizeOnFPGA
                 Func prev = producers[i-1];
                 Var v_scatter = find_differences(v_banks, prev_dims);
                 producers[i].scatter(prev, v_scatter);
-                debug(1) << producers[i].name() << ".scatter("
+                debug(1) << "T2X emits: " << producers[i].name() << ".scatter("
                         << prev.name() << ", " << v_scatter << ");\n";
             }
             prev_dims = v_banks;
@@ -385,7 +385,7 @@ class RealizeOnFPGA
                 Func prev_2 = (i == 1) ? c.outf : consumers[i-2];
                 Var v_gather = find_differences(prev_dims, v_banks);
                 prev_1.gather(prev_2, v_gather);
-                debug(1) << prev_1.name() << ".gather("
+                debug(1) << "T2X emits: " << prev_1.name() << ".gather("
                          << prev_2.name() << ", " << v_gather << ");\n";
                 // Trick: The behavior of gather depends on bank dimensions
                 // 2->1: Values transferred one by one via shift registers
@@ -394,11 +394,11 @@ class RealizeOnFPGA
                 if (v_banks.size() == 0) {
                     // producer
                     prev_1.vectorize(v_gather);
-                    debug(1) << prev_1.name() << ".vectorize("
+                    debug(1) << "T2X emits: " << prev_1.name() << ".vectorize("
                              << v_gather << ");\n";
                     // consumer
                     consumers[i].vectorize(v_gather);
-                    debug(1) << consumers[i].name() << ".vectorize("
+                    debug(1) << "T2X emits: " << consumers[i].name() << ".vectorize("
                              << v_gather << ");\n";
                 }
             }
@@ -413,7 +413,7 @@ class RealizeOnFPGA
             if (fv.exists(v_scope) && c.stensors[i].position == SRAM) {
                 Func prev = producers[i-1];
                 producers[i].buffer(prev, v_scope);
-                debug(1) << producers[i].name() << ".buffer("
+                debug(1) << "T2X emits: " << producers[i].name() << ".buffer("
                          << prev.name() << ", " << v_scope << ");\n";
             }
         }
@@ -433,7 +433,7 @@ class RealizeOnFPGA
             Var v_width = c.stensors[i].v_width[0];
             if (fv.exists(v_width)) {
                 funcs[i].vectorize(v_width);
-                debug(1) << funcs[i].name() << ".vectorize("
+                debug(1) << "T2X emits: " << funcs[i].name() << ".vectorize("
                          << v_width << ");\n";
             }
         }
@@ -443,7 +443,7 @@ class RealizeOnFPGA
         if (!c.is_output && last_stensor.v_width.size() > 0) {
             Var last_width = last_stensor.v_width[0];
             fv.ure.vectorize(last_width);
-            debug(1) << fv.ure.name() << ".vectorize("
+            debug(1) << "T2X emits: " << fv.ure.name() << ".vectorize("
                      << last_width << ");\n";
         }
     }
@@ -454,7 +454,7 @@ class RealizeOnFPGA
             size_t d = c.stensors[i].fifo_depth;
             if (d > 0) {
                 funcs[i].min_depth(d);
-                debug(1) << funcs[i].name() << ".min_depth("
+                debug(1) << "T2X emits: " << funcs[i].name() << ".min_depth("
                          << d << ");\n";
             }
         }
@@ -569,7 +569,7 @@ class RealizeOnGPU
                     int gpu_var_index = fv.free_vars.size() - num_gpu_vars -1;
                     Var loop = fv.var_index(s.v_scope) < gpu_var_index ? s.v_scope : fv.free_vars[gpu_var_index];
                     p.gpu_fetch(loop, MemoryType::Register, s.v_outs);
-                    debug(1) << p.name() << ".gpu_fetch("
+                    debug(1) << "T2X emits: " << p.name() << ".gpu_fetch("
                              << loop.name() << ", {" << names_to_string(s.v_outs) << "});\n";
                 }
             }
@@ -580,7 +580,7 @@ class RealizeOnGPU
         for (auto &s : c.stensors) {
             if (s.dims.size() > 0) {
                 c.outf.gpu_store(s.dims);
-                debug(1) << c.outf.name() << ".gpu_store("
+                debug(1) << "T2X emits: " << c.outf.name() << ".gpu_store("
                          << to_string(s.dims) << ");\n";
             }
         }
@@ -607,7 +607,7 @@ public:
 
 Func &operator>>(Func &func, const FIFO &fifo) {
     func.min_depth(fifo.depth);
-    debug(1) << func.name() << ".min_depth("
+    debug(1) << "T2X emits: " << func.name() << ".min_depth("
              << fifo.depth << ");\n";
     return func;
 }

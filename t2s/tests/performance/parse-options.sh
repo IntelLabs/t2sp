@@ -1,7 +1,7 @@
 #!/bin/bash
 
 function show_usage {
-    echo "Options: (devcloud|local) (gemm|conv|capsule|pairhmm|qrd) (a10|s10|gen9|gen12) (tiny|large) (hw|emulator) [bitstream]"
+    echo "Options: (devcloud|local) (gemm|conv|capsule|pairhmm|qrd|trmm) (a10|s10|gen9|gen12) (tiny|large) (hw|emulator) [bitstream]"
 }
 
 if [ $0 == $BASH_SOURCE ]; then
@@ -18,7 +18,7 @@ else
     location="$1"
 fi
 
-if [ "$2" != "gemm" -a "$2" != "conv"  -a  "$2" != "capsule" -a "$2" != "pairhmm" ]; then
+if [ "$2" != "gemm" -a "$2" != "conv"  -a  "$2" != "capsule" -a "$2" != "pairhmm" -a "$2" != "trmm" ]; then
     show_usage
     return
 else

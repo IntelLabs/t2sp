@@ -335,6 +335,7 @@ void clone_func(Func &clone, const string &name, Place place, const Func &origin
     clone.function().place(place);
 
     clone.function().definition().schedule().merged_ures().clear();
+    clone.function().definition().schedule().is_merged() = false;
     clone.function().definition().schedule().fuse_level() = FuseLoopLevel();
 }
 
