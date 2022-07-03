@@ -18,7 +18,6 @@
 *******************************************************************************/
 #include "Halide.h"
 #include "util.h"
-
 // Constant parameters (inner loop bounds) of the design
 #include "const-parameters.h"
 
@@ -90,7 +89,9 @@ int main()
 
     // Compile the kernel to an FPGA bitstream, and expose a C interface for the host to invoke
 #ifdef GPU
-    C.compile_to_host("gemm-interface", { A, B }, "gemm", IntelGPU);
+    C.compile_to_oneapi( { A, B }, "gemm", IntelGPU);
+    //C.compile_to_host("gemm-interface", { A, B }, "gemm", IntelGPU);
+    //C.compile_to_oneapi( { A, B }, "gemm", IntelFPGA);
 #else
     C.compile_to_host("gemm-interface", { A, B }, "gemm", IntelFPGA);
 #endif

@@ -62,7 +62,8 @@ std::map<Output, OutputInfo> get_output_info(const Target &target) {
         {Output::stmt_html, {"stmt_html", ".stmt.html"}},
         {Output::dev_src, {"dev_src", "_genx.cpp"}},
         {Output::host_header, {"host_header", ".h"}},
-        {Output::host_src, {"host_src", ".cpp"}}
+        {Output::host_src, {"host_src", ".cpp"}},
+        {Output::oneapi_gpu, {"oneapi_gpu", "_genx.cpp"}},
     };
     return ext;
 }
@@ -592,7 +593,14 @@ void Module::compile(const std::map<Output, std::string> &output_files) const {
         ret->compile_to_devsrc(*this);
         delete ret;
     }
-
+    if (contains(output_files, Output::oneapi_gpu)) {
+        debug(1) << "Module.compile(): oneapi_src " << output_files.at(Output::oneapi_gpu) << "\n";
+        llvm::LLVMContext context;
+        CodeGen_LLVM *ret = new CodeGen_GPU_Host<CodeGen_X86>(this->target());
+        ret->set_context(context);
+        ret->compile_to_devsrc(*this);
+        delete ret;
+    }
     if (contains(output_files, Output::object) || contains(output_files, Output::assembly) ||
         contains(output_files, Output::bitcode) || contains(output_files, Output::llvm_assembly) ||
         contains(output_files, Output::static_library)) {

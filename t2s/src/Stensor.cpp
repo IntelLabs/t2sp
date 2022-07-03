@@ -704,6 +704,10 @@ void Stensor::compile_to_oneapi(const vector<Argument> &args,
         acc.set_feature(Target::EnableSynthesis);
         f.compile_to_oneapi(args, fn_name, acc);
     }
+    else if (t == Starget::IntelGPU){
+        acc.set_feature(Target::IntelGPU);
+        f.compile_to_oneapi(args,fn_name,acc);
+    }
 }
 
 

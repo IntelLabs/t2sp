@@ -350,8 +350,15 @@ void Pipeline::compile_to_oneapi(const vector<Argument> &args,
     
     debug(2) << "OneAPI-compiling for: " << target << "\n";
     Module m = compile_to_module(args, fn_name, target);
+    if (target.has_feature(Target::IntelGPU))
+    {
+        m.compile(single_output(fn_name, m, Output::oneapi_gpu));
+    }
+    else if (target.has_feature(Target::IntelFPGA))
+    {
     auto ext = get_output_info(target);
     m.compile(single_output( fn_name + ext.at(Output::oneapi).extension, m, Output::oneapi));
+    }
 }
 
 void Pipeline::print_loop_nest() {
@@ -410,6 +417,7 @@ void Pipeline::compile_to_host(const string &filename_prefix,
     auto ext = get_output_info(target);
     std::map<Output, std::string> outputs = {
         {Output::dev_src, fn_name},
+        {Output::oneapi_gpu, fn_name},
         {Output::host_header, filename_prefix + ext.at(Output::host_header).extension},
         {Output::host_src, filename_prefix + ext.at(Output::host_src).extension},
     };

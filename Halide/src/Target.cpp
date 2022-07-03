@@ -663,7 +663,7 @@ bool Target::supported() const {
     bad |= has_feature(Target::CUDA);
 #endif
 #if !defined(WITH_OPENCL)
-    bad |= has_feature(Target::OpenCL) || has_feature(Target::OneAPI); // (TODO) Be able to seperate OneAPI from OpenCL
+    bad |= has_feature(Target::OpenCL) || (has_feature(Target::OneAPI) && !has_feature(Target::IntelGPU)); // (TODO) Be able to seperate OneAPI from OpenCL
 #endif
 #if !defined(WITH_CM)
     bad |= has_feature(Target::IntelGPU);
@@ -690,7 +690,7 @@ void Target::set_feature(Feature f, bool value) {
     } else if  (f == Target::OneAPI && value) {
         // Enabling generating OpenCL OneAPI code for IntelFPGAs w/ CodeGen_OneAPI_Dev.h/.cpp
         // NOTE, the IntelFPGA must be set before the OneAPI is set
-        features.set(Target::OpenCL, false);
+        //features.set(Target::OpenCL, false);
     }
 }
 

@@ -474,6 +474,7 @@ SOURCE_FILES = \
   CanonicalizeGPUVars.cpp \
   Closure.cpp \
   CodeGen_ARM.cpp \
+  CodeGen_DPC_Dev.cpp \
   CodeGen_C.cpp \
   CodeGen_D3D12Compute_Dev.cpp \
   CodeGen_GPU_Dev.cpp \
@@ -647,6 +648,7 @@ HEADER_FILES = \
   CanonicalizeGPUVars.h \
   Closure.h \
   CodeGen_ARM.h \
+  CodeGen_DPC_Dev.h \
   CodeGen_C.h \
   CodeGen_D3D12Compute_Dev.h \
   CodeGen_GPU_Dev.h \

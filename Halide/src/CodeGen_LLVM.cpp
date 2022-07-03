@@ -634,6 +634,7 @@ void CodeGen_LLVM::compile_to_devsrc(const Module &input) {
     for (const auto &f : input.functions()) {
         const auto names = get_mangled_names(f, get_target());
         compile_func(f, names.simple_name, names.extern_name);
+        debug(1) << "compiling func...\n";
     }
 
     debug(2) << module.get() << "\n";;

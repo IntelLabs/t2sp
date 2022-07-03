@@ -39,7 +39,8 @@ enum class Output {
     stmt_html,
     dev_src,
     host_header,
-    host_src
+    host_src,
+    oneapi_gpu
 };
 
 /** Type of linkage a function in a lowered Halide module can have.
