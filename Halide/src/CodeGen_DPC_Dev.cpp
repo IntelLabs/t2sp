@@ -853,16 +853,16 @@ void CodeGen_DPC_Dev::CodeGen_DPC_C::add_kernel(Stmt s,
             lcl_range += range_info_thread[i] + ",";
         }
         glb_range.pop_back();
-        glb_range += ")\n";
+        glb_range += ");\n";
         lcl_range.pop_back();
-        lcl_range += ")\n";
+        lcl_range += ");\n";
         string range_str = glb_range + lcl_range;
         range_str += "int nd_item_dimension =" + to_string(range_info_Block.size()) + ";\n";
         range_str += str;
-        std::ifstream reading_sbl("/home/tzl/t2spfinal/t2s/preprocessor/sample/sample_01/post.run.test.t2s.cpp");
+        std::ifstream reading_sbl("post.run.test.t2s.gpu.cpp");
         if (!reading_sbl)
         {
-            user_error << "error while open prepared file,check if you have writen it!";
+            user_error << "An error occurred while opening the file. Please check whether you have created this file!";
         }
         string total_buff_read;
         string buff_read;

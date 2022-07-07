@@ -4,8 +4,17 @@ cd ./sample_01/
 # echo "CWD: $PWD"
 
 # Run
+if [ "$1" == "GPU" ]
+then
+echo "Running preprocessor..."
+../../src/t2spreprocessor ./test.t2s.gpu.cpp
+fi
+
+if [ "$1" == "FPGA" ]
+then
 echo "Running preprocessor..."
 ../../src/t2spreprocessor ./test.t2s.cpp
+fi
 
 # Return back to the directory
 cd ${CWD}

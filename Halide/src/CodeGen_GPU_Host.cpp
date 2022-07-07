@@ -5,6 +5,7 @@
 #include "../../t2s/src/Utilities.h"
 #include "CodeGen_CM_Dev.h"
 #include "CodeGen_D3D12Compute_Dev.h"
+#include "CodeGen_DPC_Dev.h"
 #include "CodeGen_GPU_Host.h"
 #include "CodeGen_Internal.h"
 #include "CodeGen_Metal_Dev.h"
@@ -20,7 +21,6 @@
 #include "Simplify.h"
 #include "Util.h"
 #include "VaryingAttributes.h"
-#include "CodeGen_DPC_Dev.h"
 namespace Halide {
 namespace Internal {
 
@@ -226,8 +226,17 @@ void CodeGen_GPU_Host<CodeGen_CPU>::compile_func(const LoweredFunc &f,
         debug(2) << "Generating init_kernels for " << api_unique_name << "\n";
 
         std::vector<char> kernel_src = gpu_codegen->compile_to_src();
-        if (api_unique_name == "cm" || api_unique_name == "dpc") {
-            debug(1) << "Currently, we do not implement CM/DPC++ runtime, so we just emit source code.\n";
+        if (api_unique_name == "cm") {
+            debug(1) << "Currently, we do not implement CM runtime, so we just emit source code.\n";
+            std::ofstream file(simple_name + "_genx.cpp", std::fstream::out);
+            std::string src(kernel_src.cbegin(), kernel_src.cend());
+            if (file.is_open())
+                file << src;
+            file.close();
+            return;
+        }
+        if (api_unique_name == "dpc") {
+            debug(1) << "Currently, we do not implement DPC++ runtime, so we just emit source code.\n";
             std::ofstream file(simple_name + "_genx.cpp", std::fstream::out);
             std::string src(kernel_src.cbegin(), kernel_src.cend());
             if (file.is_open())

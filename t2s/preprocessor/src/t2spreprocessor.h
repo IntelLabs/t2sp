@@ -487,11 +487,15 @@ struct ParamLocs
   }
 };
 
-std::string GenRunPostCode(OneAPIFuncStruct oneapiStruct, std::vector<std::string> args_name, std::vector<QualType> args_types, std::string funcName)
+std::string GenRunPostCode(OneAPIFuncStruct oneapiStruct, std::vector<std::string> args_name, std::vector<QualType> args_types, std::string funcName, std::vector<std::string> T2S_img_name)
 {
-  std::ostringstream rhs;
-
+  std::ostringstream rhs;  
+  int loop_var_for_t2s_img = 0;
   // check that there is an even number i.e. paris of args and their dimension vector
+  for (auto str : T2S_img_name)
+  {
+    std::cout << t2sprinter::header() << "checking T2S image param :"<< str << "\n";
+  }
   if (((args_name.size() % 3) != 0) || ((args_types.size() % 3) != 0))
   {
     std::cout << t2sprinter::error() << "Uneven match of argument names and argument types i.e. [" << args_name.size() << "] arg names and [" << args_types.size() << "] arg types found.\n";
@@ -573,15 +577,24 @@ std::string GenRunPostCode(OneAPIFuncStruct oneapiStruct, std::vector<std::strin
       fp32 = 14
     */
     std::string image_type;
-    if (arg_type == "float") image_type = "fp32";
-    else if (arg_type == "int") image_type = "signed_int32";
-    else if (arg_type == "unsigned int") image_type = "unsigned_int32";
+    if (arg_type == "float")
+      image_type = "fp32";
+    else if (arg_type == "int")
+      image_type = "signed_int32";
+    else if (arg_type == "unsigned int")
+      image_type = "unsigned_int32";
     else
     {
       std::cout << t2sprinter::error() << "currently, image type does not support arg type:" << arg_type << ",please check t2sp/t2s/preprocessor/t2spreprocessor.h line 555 for detailed info";
       exit(0);
     }
     rhs << "#ifdef GPU\n";
+    //currently only 2-D image is supported
+    //here we must explicitly print out T2S image extension
+    //std::cout << t2sprinter::header() << "debugging purpose:loop variable i = " << i <<'\n';
+    rhs << "int _"<<T2S_img_name[loop_var_for_t2s_img] << "_extent_" << "0 = "<< arg_dim_vector_name << "[0];\n";
+    rhs << "int _"<<T2S_img_name[loop_var_for_t2s_img] << "_extent_" << "1 = "<< arg_dim_vector_name << "[1];\n";
+    loop_var_for_t2s_img++;
     rhs << "sycl::image<2> img" << func_arg_name << "(" << func_arg_name << ", image_channel_order::rgba, image_channel_type::" << image_type << ",\n"
         << "range<2>{" << arg_dim_vector_name << "[0]/4 , " << arg_dim_vector_name << "[1]})\n";
     rhs << "#endif\n";

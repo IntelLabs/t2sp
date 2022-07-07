@@ -16,16 +16,25 @@
 *
 * SPDX-License-Identifier: BSD-2-Clause-Patent
 *******************************************************************************/
-#include "HalideBuffer.h"
 #include "util.h"
-#include "const-parameter.h"
 
+// The only header file needed for including T2S.
 #include "HalideBuffer.h"
-#include "gemm.generated_oneapi_header.h"
+
+// Standard includes
+#include <iostream>
+#include <vector>
+#include <assert.h>
 
 // Constant parameters (inner loop bounds) of the design
-#define GPU 1
-using namespace Halide;
+#include "oneapi-target-4-parameters.h"
+
+#ifdef FPGA
+#include "HalideBuffer.h"
+#include "gemm.generated_oneapi_header.h"
+#endif
+
+#define FPGA
 // Outer loop bounds for testing
 #ifdef TINY // For verifying correctness only
     #define K           4
@@ -36,6 +45,10 @@ using namespace Halide;
     #define J           32
     #define I           32
 #endif
+
+
+
+
 int main(){
     const int TOTAL_I = III * II * I;
     const int TOTAL_J = JJJ * JJ * J;
@@ -43,11 +56,11 @@ int main(){
 
     float *a = new float[TOTAL_K * TOTAL_I];
     float *b = new float[TOTAL_J * TOTAL_K];
-    float *c = new float[TOTAL_J * TOTAL_I];
+    float *c = new float[JJJ * III * JJ * II * J * I];
     
     for(unsigned int i = 0; i < (TOTAL_K * TOTAL_I); i++){ a[i] = random(); }
     for(unsigned int i = 0; i < (TOTAL_J * TOTAL_K); i++){ b[i] = random(); }
-    for(unsigned int i = 0; i < (TOTAL_J * TOTAL_I); i++){ c[i] = 0.0f; }
+    for(unsigned int i = 0; i < (JJJ * III * JJ * II * J * I); i++){ c[i] = 0.0f; }
 
 
     // Specifications to be preprocessed
@@ -55,33 +68,39 @@ int main(){
     // std::vector<int> b_dim{TOTAL_J, TOTAL_K};
     // std::vector<int> c_dim{JJJ, III, JJ, II, J, I};
 
-    size_t a_dim[2] = {TOTAL_K, TOTAL_I};
-    size_t b_dim[2] = {TOTAL_J, TOTAL_K};
-    size_t c_dim[2] = {TOTAL_J, TOTAL_I};
+    int a_dim[2] = {TOTAL_K, TOTAL_I};
+    int b_dim[2] = {TOTAL_J, TOTAL_K};
+    int c_dim[6] = {JJJ, III, JJ, II, J, I};
 
 
 
 
 
 #ifdef FPGA
-Halide::Runtime::Buffer<float, (sizeof(a_dim)/sizeof(size_t))> A_h(a, std::vector<size_t>(std::begin(a_dim), std::end(a_dim)));
+Halide::Runtime::Buffer<float, (sizeof(a_dim)/sizeof(int))> A_h(a, std::vector<int>(std::begin(a_dim), std::end(a_dim)));
 #endif
 #ifdef GPU
-sycl::image<2> imgA(A, image_channel_order::rgba, image_channel_type::fp32
+int _A_extent_0 = a_dim[0];
+int _A_extent_1 = a_dim[1];
+sycl::image<2> imgA(A, image_channel_order::rgba, image_channel_type::fp32,
 range<2>{a_dim[0]/4 , a_dim[1]})
 #endif
 #ifdef FPGA
-Halide::Runtime::Buffer<float, (sizeof(b_dim)/sizeof(size_t))> B_h(b, std::vector<size_t>(std::begin(b_dim), std::end(b_dim)));
+Halide::Runtime::Buffer<float, (sizeof(b_dim)/sizeof(int))> B_h(b, std::vector<int>(std::begin(b_dim), std::end(b_dim)));
 #endif
 #ifdef GPU
-sycl::image<2> imgB(B, image_channel_order::rgba, image_channel_type::fp32
+int _B_extent_0 = b_dim[0];
+int _B_extent_1 = b_dim[1];
+sycl::image<2> imgB(B, image_channel_order::rgba, image_channel_type::fp32,
 range<2>{b_dim[0]/4 , b_dim[1]})
 #endif
 #ifdef FPGA
-Halide::Runtime::Buffer<float, (sizeof(c_dim)/sizeof(size_t))> C_h(c, std::vector<size_t>(std::begin(c_dim), std::end(c_dim)));
+Halide::Runtime::Buffer<float, (sizeof(c_dim)/sizeof(int))> C_h(c, std::vector<int>(std::begin(c_dim), std::end(c_dim)));
 #endif
 #ifdef GPU
-sycl::image<2> imgC(C, image_channel_order::rgba, image_channel_type::fp32
+int _C_extent_0 = c_dim[0];
+int _C_extent_1 = c_dim[1];
+sycl::image<2> imgC(C, image_channel_order::rgba, image_channel_type::fp32,
 range<2>{c_dim[0]/4 , c_dim[1]})
 #endif
 #ifdef FPGA
@@ -103,5 +122,8 @@ std::cout << "kernel exec time: " << exec_time << "\n";
 
 
 
+
+
+printf("Success!\n");
 
 }
