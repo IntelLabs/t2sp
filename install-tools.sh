@@ -8,9 +8,7 @@
 ./install-tool.sh python-packages
 ./install-tool.sh cm
 ./install-tool.sh git-lfs
-if [ "$1" == "oneapi" ]
-then
-./install-tool.sh oneapi
-fi
+./install-tool.sh re2c
+./install-tool.sh ninja
 
 

@@ -369,8 +369,13 @@ class T2SPreprocessorFrontendAction : public clang::ASTFrontendAction {
       rhs_insert << "#include \"HalideBuffer.h\"\n";
       rhs_insert << "#include \"" << funcName << ".generated_oneapi_header.h\"\n";
       rhs_insert << "#endif\n";
-      // rhs_insert << "#ifdef GPU\n";
+      rhs_insert << "#ifdef GPU\n";
       // rhs_insert << "#include \"HalideBuffer.h\"\n";
+      rhs_insert << "#include \"../../../../install/llvm-test-suite/SYCL/ESIMD/esimd_test_utils.hpp\"\n";
+      rhs_insert << "#include <iostream>\n";
+      rhs_insert << "#include <sycl/ext/intel/esimd.hpp>\n";
+      rhs_insert << "#include <CL/sycl.hpp>\n";
+      rhs_insert << "#endif\n";
       R.InsertTextAfterToken( includeLoc , rhs_insert.str() );
       
       // Insert the internal code to run the generated OneAPI Function

@@ -856,9 +856,10 @@ void CodeGen_DPC_Dev::CodeGen_DPC_C::add_kernel(Stmt s,
         glb_range += ");\n";
         lcl_range.pop_back();
         lcl_range += ");\n";
-        string range_str = glb_range + lcl_range;
+        string range_str = "#ifdef GPU\n" + glb_range + lcl_range;
         range_str += "int nd_item_dimension =" + to_string(range_info_Block.size()) + ";\n";
         range_str += str;
+        range_str += "#endif\n";
         std::ifstream reading_sbl("post.run.test.t2s.gpu.cpp");
         if (!reading_sbl)
         {

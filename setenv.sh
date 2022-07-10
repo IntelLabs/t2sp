@@ -50,8 +50,8 @@ TOOLS_PATH=$T2S_PATH/install
 
 # Modify these 3 paths if you installed your own versions of gcc or llvm-clang
 # gcc should be located at $GCC_PATH/bin
-#GCC_PATH=usr/bin/gcc
-GCC_PATH=$TOOLS_PATH/gcc-7.5.0
+GCC_PATH=usr/bin/gcc
+#GCC_PATH=$TOOLS_PATH/gcc-7.5.0
 export LLVM_CONFIG=$TOOLS_PATH/bin/llvm-config
 export CLANG=$TOOLS_PATH/bin/clang
 
