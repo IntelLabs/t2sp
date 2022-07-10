@@ -2,13 +2,13 @@
 
 function show_usage {
     echo "Usage:"
-    echo "  ./install-tool.sh m4|gmp|mpfr|mpc|cmake|gcc|llvm-clang|python-packages|cm|git-lfs|ninja|re2c|oneapi-esimd"
+    echo "  ./install-tool.sh python|m4|gmp|mpfr|mpc|cmake|gcc|llvm-clang|python-packages|cm|git-lfs|ninja|re2c|oneapi-esimd"
 }
 
 # No matter the script is sourced or directly run, BASH_SOURCE is always this script, and $1 is the
 # argument to the script
 T2S_PATH="$( cd "$(dirname "$BASH_SOURCE" )" >/dev/null 2>&1 ; pwd -P )" # The path to this script
-if [ "$1" != "m4"  -a  "$1" != "gmp" -a  "$1" != "mpfr" -a  "$1" != "mpc" -a  "$1" != "cmake" -a  "$1" != "gcc" -a "$1" != "llvm-clang" -a "$1" != "python-packages" -a "$1" != "cm" -a "$1" != "git-lfs" -a "$1" != "ninja" -a "$1" != "re2c" -a "$1" = "oneapi-esimd"]; then
+if [ "$1" != "m4"  -a  "$1" != "gmp" -a  "$1" != "mpfr" -a  "$1" != "mpc" -a  "$1" != "cmake" -a  "$1" != "gcc" -a "$1" != "llvm-clang" -a "$1" != "python-packages" -a "$1" != "cm" -a "$1" != "git-lfs" -a "$1" != "ninja" -a "$1" != "re2c" -a "$1" != "oneapi-esimd" ]; then
     show_usage
     if [ $0 == $BASH_SOURCE ]; then
         # The script is directly run
@@ -162,6 +162,7 @@ function install_git_lfs {
 function install_ninja {
     git clone https://github.com/ninja-build/ninja.git
     cd ninja
+    echo "if you have problems in running configure.py,try replacing the first line of configure.py(#!/usr/bin/env python) to #!/usr/bin/env python3"
     ./configure.py --bootstrap
     cd ..
     cp -rf ninja $T2S_PATH/install
@@ -217,7 +218,7 @@ if [ "$component" == "cmake" ]; then
     install_cmake      "3.11"  "3.11.1"
 fi
 if [ "$component" == "gcc" ]; then
-    install_gcc        "7.5.0"
+    install_gcc        "8.4.0"
 fi
 if [ "$component" == "llvm-clang" ]; then
     install_llvm_clang "90"    "9.0"    "7.5.0"

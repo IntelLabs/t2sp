@@ -10,5 +10,6 @@
 ./install-tool.sh git-lfs
 ./install-tool.sh re2c
 ./install-tool.sh ninja
+./install-tool.sh oneapi-esimd
 
 

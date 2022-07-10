@@ -231,6 +231,7 @@ string CodeGen_DPC_Dev::CodeGen_DPC_C::get_vector_select(const string &name,
                                                          int size,
                                                          int stride) {
     ostringstream os_tmpl;
+    debug(1) << "this is select name:" << name << '\n';
     os_tmpl << print_name(name)
             << ".select<" << size << ", " << stride << ">"
             << "(" << base << ")";
@@ -856,8 +857,9 @@ void CodeGen_DPC_Dev::CodeGen_DPC_C::add_kernel(Stmt s,
         glb_range += ");\n";
         lcl_range.pop_back();
         lcl_range += ");\n";
-        string range_str = "#ifdef GPU\n" + glb_range + lcl_range;
-        range_str += "int nd_item_dimension =" + to_string(range_info_Block.size()) + ";\n";
+        string range_str = "#ifdef GPU\n";
+        range_str += "queue q(esimd_test::ESIMDSelector{}, esimd_test::createExceptionHandler(),property::queue::enable_profiling{});\n" + glb_range + lcl_range;
+        range_str += "const int nd_item_dimension =" + to_string(range_info_Block.size()) + ";\n";
         range_str += str;
         range_str += "#endif\n";
         std::ifstream reading_sbl("post.run.test.t2s.gpu.cpp");
@@ -869,8 +871,14 @@ void CodeGen_DPC_Dev::CodeGen_DPC_C::add_kernel(Stmt s,
         string buff_read;
         while (getline(reading_sbl,buff_read))
         {
+            if (buff_read.find("HalideBuffer") != std::string::npos)
+            {
+                total_buff_read += "#ifndef GPU\n";
+            }
+            
             total_buff_read += buff_read;
             total_buff_read += '\n';
+            total_buff_read += "#endif\n";
         }
         //debug(1) << "this is prepared file:" << total_buff_read;
         total_buff_read.insert(total_buff_read.size()-2,range_str);

@@ -595,8 +595,8 @@ std::string GenRunPostCode(OneAPIFuncStruct oneapiStruct, std::vector<std::strin
     rhs << "int _"<<T2S_img_name[loop_var_for_t2s_img] << "_extent_" << "0 = "<< arg_dim_vector_name << "[0];\n";
     rhs << "int _"<<T2S_img_name[loop_var_for_t2s_img] << "_extent_" << "1 = "<< arg_dim_vector_name << "[1];\n";
     loop_var_for_t2s_img++;
-    rhs << "sycl::image<2> img" << func_arg_name << "(" << func_arg_name << ", image_channel_order::rgba, image_channel_type::" << image_type << ",\n"
-        << "range<2>{" << arg_dim_vector_name << "[0]/4 , " << arg_dim_vector_name << "[1]})\n";
+    rhs << "sycl::image<2> img" << "_" << func_arg_name << "(" << arg_ptr_name << ", image_channel_order::rgba, image_channel_type::" << image_type << ",\n"
+        << "range<2>{" << arg_dim_vector_name << "[0]/4 , " << arg_dim_vector_name << "[1]});\n";
     rhs << "#endif\n";
   }
 
