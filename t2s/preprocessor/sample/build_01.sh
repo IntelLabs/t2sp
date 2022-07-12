@@ -45,7 +45,7 @@ g++ post.t2s.test.t2s.gpu.cpp \
     -lz -lpthread -ldl -std=c++11 -lHalide -DTINY -DGPU;
 
 echo "Executing T2S...";
-./a.out;
+HL_DEBUG_CODEGEN=1 ./a.out;
 #format the file
 clang-format -style=LLVM -i *_genx.cpp 
 # Return back to the directory

@@ -8,7 +8,7 @@ function show_usage {
 # No matter the script is sourced or directly run, BASH_SOURCE is always this script, and $1 is the
 # argument to the script
 T2S_PATH="$( cd "$(dirname "$BASH_SOURCE" )" >/dev/null 2>&1 ; pwd -P )" # The path to this script
-if [ "$1" != "m4"  -a  "$1" != "gmp" -a  "$1" != "mpfr" -a  "$1" != "mpc" -a  "$1" != "cmake" -a  "$1" != "gcc" -a "$1" != "llvm-clang" -a "$1" != "python-packages" -a "$1" != "cm" -a "$1" != "git-lfs" -a "$1" != "ninja" -a "$1" != "re2c" -a "$1" != "oneapi-esimd" ]; then
+if [ "$1" != "m4"  -a  "$1" != "gmp" -a  "$1" != "mpfr" -a  "$1" != "mpc" -a  "$1" != "cmake" -a  "$1" != "gcc" -a "$1" != "llvm-clang" -a "$1" != "python-packages" -a "$1" != "cm" -a "$1" != "git-lfs" -a "$1" != "ninja" -a "$1" != "re2c" -a "$1" != "oneapi-esimd" -a "$1" != "python" ]; then
     show_usage
     if [ $0 == $BASH_SOURCE ]; then
         # The script is directly run
@@ -20,6 +20,9 @@ else
     component="$1"
 fi
 
+function install_python {
+    apt install python
+}
 function install_cmake {
     eval major="$1"
     eval minor="$2"
@@ -201,7 +204,9 @@ export PATH=$T2S_PATH/install/bin:$PATH
 cd $T2S_PATH
 mkdir -p downloads
 cd downloads
-
+if [ "$component" == "python" ]; then
+    install_python        
+fi
 if [ "$component" == "m4" ]; then
     install_m4         "1.4.18"
 fi

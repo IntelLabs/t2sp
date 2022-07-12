@@ -19,7 +19,7 @@ LLVM_CXX_LD_FLAGS := `$(LLVM_CONFIG) --cxxflags --ldflags`
 LLVM_LIBS=`$(LLVM_CONFIG) --libs --system-libs`
 CLANG_INCLUDES= -I $(BASE_DIR)/tools/clang/include/ -I $(T2S_PATH)/install 
 CLANG_INCLUDES += -I ${T2S_PATH}/install/lib/clang/9.0.1/include/
-OTHER_FLAGS= -I ${T2S_PATH}/install/gcc-8.4.0/lib/gcc/x86_64-pc-linux-gnu/8.4.0/include/ -I ${T2S_PATH}/install/lib/clang/9.0.1/include/
+OTHER_FLAGS= -I ${T2S_PATH}/install/gcc-7.5.0/lib/gcc/x86_64-pc-linux-gnu/8.4.0/include/ -I ${T2S_PATH}/install/lib/clang/9.0.1/include/
 
 CLANG_LIBS := \
 	-Wl,--start-group \

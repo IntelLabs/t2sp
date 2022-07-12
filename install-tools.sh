@@ -1,3 +1,4 @@
+./install-tool.sh python
 ./install-tool.sh m4
 ./install-tool.sh gmp
 ./install-tool.sh mpfr

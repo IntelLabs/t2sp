@@ -492,10 +492,6 @@ std::string GenRunPostCode(OneAPIFuncStruct oneapiStruct, std::vector<std::strin
   std::ostringstream rhs;  
   int loop_var_for_t2s_img = 0;
   // check that there is an even number i.e. paris of args and their dimension vector
-  for (auto str : T2S_img_name)
-  {
-    std::cout << t2sprinter::header() << "checking T2S image param :"<< str << "\n";
-  }
   if (((args_name.size() % 3) != 0) || ((args_types.size() % 3) != 0))
   {
     std::cout << t2sprinter::error() << "Uneven match of argument names and argument types i.e. [" << args_name.size() << "] arg names and [" << args_types.size() << "] arg types found.\n";

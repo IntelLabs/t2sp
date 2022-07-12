@@ -231,10 +231,11 @@ string CodeGen_DPC_Dev::CodeGen_DPC_C::get_vector_select(const string &name,
                                                          int size,
                                                          int stride) {
     ostringstream os_tmpl;
-    debug(1) << "this is select name:" << name << '\n';
     os_tmpl << print_name(name)
             << ".select<" << size << ", " << stride << ">"
             << "(" << base << ")";
+    debug(1) << "this is select:" << os_tmpl.str() << '\n';
+
     return os_tmpl.str();
 }
 
@@ -267,8 +268,7 @@ string CodeGen_DPC_Dev::CodeGen_DPC_C::get_vector_element(const string &name,
                                                           const string &index) {
     ostringstream rhs;
     rhs << print_name(name);
-    rhs << "(" << index << ")";
-
+    rhs << "[" << index << "]";
     return rhs.str();
 }
 
@@ -470,7 +470,7 @@ void CodeGen_DPC_Dev::CodeGen_DPC_C::visit(const Load *op) {
     internal_assert(allocations.contains(op->name))
         << op->name << "is not allocated\n";
     const auto &alloc = allocations.get(op->name);
-
+    is_broadcast = false;
     if (alloc.memory_type == MemoryType::Register) {
         if (op->index.type().is_vector()) {
             auto ramp = op->index.as<Ramp>();
@@ -871,14 +871,16 @@ void CodeGen_DPC_Dev::CodeGen_DPC_C::add_kernel(Stmt s,
         string buff_read;
         while (getline(reading_sbl,buff_read))
         {
-            if (buff_read.find("HalideBuffer") != std::string::npos)
+            if ((buff_read.find("Halide") != std::string::npos) || (buff_read.find("util.h") != std::string::npos))
             {
                 total_buff_read += "#ifndef GPU\n";
             }
-            
             total_buff_read += buff_read;
             total_buff_read += '\n';
-            total_buff_read += "#endif\n";
+            if ((buff_read.find("Halide") != std::string::npos) || (buff_read.find("util.h") != std::string::npos))
+            {
+                total_buff_read += "#endif\n";
+            }
         }
         //debug(1) << "this is prepared file:" << total_buff_read;
         total_buff_read.insert(total_buff_read.size()-2,range_str);
