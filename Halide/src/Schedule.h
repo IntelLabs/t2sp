@@ -474,6 +474,7 @@ struct FetchParams {
  
 struct StoreParams {
     std::vector<Expr> shape_args;
+    std::string name;
     size_t rw_len;
 };
  

@@ -403,6 +403,8 @@ void CodeGen_DPC_Dev::CodeGen_DPC_C::print_media_block_rw(Type t, vector<Expr> a
         for (int j = 0; j < cols; j += max_cols_at_once) {
             int cols_at_once = j + max_cols_at_once <= cols ? max_cols_at_once : cols - j;
             auto ramp = args[4].as<Ramp>();
+            // Replace the buffer name with the one specified in stensors
+            string name = is_write ? args[7].as<StringImm>()->value : print_expr(args[0]);
             if (is_write == false) {
                 stream << get_indent() << print_expr(args[3]) << ".select<"
                        << ramp->lanes << ", " << ramp->stride << ">(" << ramp->base << ")"
@@ -410,12 +412,12 @@ void CodeGen_DPC_Dev::CodeGen_DPC_C::print_media_block_rw(Type t, vector<Expr> a
                        << ".select<" << rows_at_once << ", 1, " << cols_at_once << ", 1>("
                        << i << ", " << j << ")=";
                 stream << "media_block_load<" << print_type(t) << ", " << rows_at_once << ", " << cols_at_once << ">(";
-                stream << print_name(print_expr(args[0])) << ", ";
+                stream << print_name(name) << ", ";
                 stream << print_expr(args[1] * bytes) << ", ";
                 stream << print_expr(args[2] + i) << ");\n";
             } else if (is_write == true) {
                 stream << get_indent() << "media_block_store<" << print_type(t) << ", " << rows_at_once << ", " << cols_at_once << ">(";
-                stream << print_name(print_expr(args[0])) << ", ";
+                stream << print_name(name) << ", ";
                 stream << print_expr(args[1] * bytes) << ", ";
                 stream << print_expr(args[2] + i) << ", ";
                 auto ramp = args[4].as<Ramp>();
@@ -743,6 +745,28 @@ void CodeGen_DPC_Dev::CodeGen_DPC_C::visit(const Shuffle *op) {
     CodeGen_C::visit(op);
 }
 
+class FindRefName : public IRVisitor
+{
+    const string &buf_name;
+public:
+    using IRVisitor::visit;
+    string ref_name;
+
+    void visit(const Call *op) override {
+        if (op->is_intrinsic(Call::cm_store_2d)) {
+            internal_assert(op->args[0].as<Variable>());
+            auto &name = op->args[0].as<Variable>()->name;
+            if (name == buf_name && op->args.size() == 8) {
+                internal_assert(op->args[7].as<StringImm>());
+                ref_name = op->args[7].as<StringImm>()->value;
+            }
+        }
+    }
+
+    FindRefName(const string &_b)
+        : buf_name(_b) {}
+};
+
 void CodeGen_DPC_Dev::add_kernel(Stmt s,
                                  const string &name,
                                  const vector<DeviceArgument> &args) {
@@ -769,7 +793,14 @@ void CodeGen_DPC_Dev::CodeGen_DPC_C::add_kernel(Stmt s,
     indent += 2;
     for (size_t i = 0; i < args.size(); i++) {
         if (args[i].is_buffer) {
-            stream << get_indent() << "auto " << print_name(args[i].name) << "=img" << print_name(args[i].name) << ".get_access<uint4,access::mode::" << (args[i].read ? "read" : "write") << ">(cgh)";
+            string name = args[i].name;
+            // Trick: replace the buffer name with the one specified in stensor
+            FindRefName frn(name);
+            s.accept(&frn);
+            if (!frn.ref_name.empty()) {
+                name = frn.ref_name;
+            }
+            stream << get_indent() << "auto " << print_name(name) << "=img" << print_name(name) << ".get_access<uint4,access::mode::" << (args[i].read ? "read" : "write") << ">(cgh)";
             Allocation alloc;
             alloc.type = args[i].type;
             alloc.memory_type = MemoryType::Heap;

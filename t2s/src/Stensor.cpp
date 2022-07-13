@@ -579,7 +579,7 @@ class RealizeOnGPU
     void gpu_store(Schain &c) {
         for (auto &s : c.stensors) {
             if (s.dims.size() > 0) {
-                c.outf.gpu_store(s.dims);
+                c.outf.gpu_store(s.dims, s.name);
                 debug(1) << c.outf.name() << ".gpu_store("
                          << to_string(s.dims) << ");\n";
             }

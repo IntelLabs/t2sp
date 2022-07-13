@@ -2663,11 +2663,12 @@ Func &Func::gpu_fetch(Var loop_level, MemoryType mem_type, vector<Var> outs, vec
     return *this;
 }
 
-Func &Func::gpu_store(const vector<Expr> &args, size_t sz) {
+Func &Func::gpu_store(const vector<Expr> &args, const string &name, size_t sz) {
     invalidate_cache();
 
     StoreParams &rp = func.definition().schedule().store_params();
     rp.shape_args = args;
+    rp.name = name;
     rp.rw_len = sz;
 
     return *this;

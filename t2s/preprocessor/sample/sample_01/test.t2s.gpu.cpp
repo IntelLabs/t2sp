@@ -110,7 +110,7 @@ int main(){
 
     // I/O network
     Stensor DA("aLoader", DRAM), SA("aFeeder", SRAM), DB("bLoader", DRAM), SB("bFeeder", SRAM);
-    Stensor RC2("drainer", REG), RC1("collector", REG), DC("unloader", DRAM), C("deserializer");
+    Stensor RC2("drainer", REG), RC1("collector", REG), DC("unloader", DRAM), C("C");
     A >> DA.out(kkk) >> FIFO(128)
       >> SA.scope(k).out(kkk, iii) >> FIFO(128);
     B >> DB.out(kkk) >> FIFO(128)
