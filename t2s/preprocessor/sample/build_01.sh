@@ -45,9 +45,17 @@ g++ post.t2s.test.t2s.gpu.cpp \
     -lz -lpthread -ldl -std=c++11 -lHalide -DTINY -DGPU;
 
 echo "Executing T2S...";
-HL_DEBUG_CODEGEN=1 ./a.out;
+./a.out;
 #format the file
 clang-format -style=LLVM -i *_genx.cpp 
+#building oneapi esimd
+echo "Building oneAPI...";
+echo "clang++ -fsycl -I $T2S_PATH/install/llvm-test-suite/SYCL/ESIMD/ gemm_genx.cpp"
+clang++ -fsycl -I $T2S_PATH/install/llvm-test-suite/SYCL/ESIMD/ gemm_genx.cpp;
+#execution
+echo "Executing final binary..."
+./a.out
+echo "done"
 # Return back to the directory
 # cd ${CWD}
 echo "CWD: $PWD"

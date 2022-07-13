@@ -815,7 +815,7 @@ void CodeGen_DPC_Dev::CodeGen_DPC_C::add_kernel(Stmt s,
     stream << get_indent() << "nd_range{GlobalRange, LocalRange},\n";
     stream << get_indent() << "[=](nd_item<nd_item_dimension> ndi) SYCL_ESIMD_KERNEL {\n";
             indent += 2;
-    stream << get_indent() << "using namespace sycl::ext::intel::experimental::esimd;\n";
+    stream << get_indent() << "using namespace sycl::ext::intel::esimd;\n";
         // stream << ")\n";
 
         // open_scope();

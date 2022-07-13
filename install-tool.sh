@@ -193,8 +193,11 @@ function install_oneapi-esmid-extention {
     cd ..
     cp -rf sycl_workspace/ $T2S_PATH/install/
     export DPCPP_HOME=$T2S_PATH/install/sycl_workspace
+    python $DPCPP_HOME/llvm/buildbot/configure.py
+    python $DPCPP_HOME/llvm/buildbot/compile.py
     git clone https://github.com/intel/llvm-test-suite.git
     cp -rf llvm-test-suite/ $T2S_PATH/install/
+
 }
 
 # Below we install newer version of gcc and llvm-clang and their dependencies
@@ -220,7 +223,7 @@ if [ "$component" == "mpc" ]; then
     install_mpc        "1.2.1"
 fi
 if [ "$component" == "cmake" ]; then
-    install_cmake      "3.11"  "3.11.1"
+    install_cmake      "3.15"  "3.15.7"
 fi
 if [ "$component" == "gcc" ]; then
     install_gcc        "8.4.0"

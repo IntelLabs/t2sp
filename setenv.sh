@@ -50,8 +50,8 @@ TOOLS_PATH=$T2S_PATH/install
 
 # Modify these 3 paths if you installed your own versions of gcc or llvm-clang
 # gcc should be located at $GCC_PATH/bin
- GCC_PATH=/usr/bin/gcc
-#GCC_PATH=$TOOLS_PATH/gcc-8.4.0
+#GCC_PATH=/usr/bin/gcc
+GCC_PATH=$TOOLS_PATH/gcc-7.5.0
 export LLVM_CONFIG=$TOOLS_PATH/bin/llvm-config
 export CLANG=$TOOLS_PATH/bin/clang
 
@@ -168,6 +168,11 @@ fi
 # Add Halide
 export PATH=$T2S_PATH/Halide/bin:$PATH
 export LD_LIBRARY_PATH=$T2S_PATH/Halide/bin:$LD_LIBRARY_PATH
+
+# Add ESIMD extension clang++
+export DPCPP_HOME=$T2S_PATH/install/sycl_workspace
+export LD_LIBRARY_PATH=$DPCPP_HOME/llvm/build/lib:$LD_LIBRARY_PATH
+export PATH=$DPCPP_HOME/llvm/build/bin:$PATH
 
 # Common options for compiling a specification
 export COMMON_OPTIONS_COMPILING_SPEC="-I $T2S_PATH/Halide/include -L $T2S_PATH/Halide/bin -lz -lpthread -ldl -std=c++11"

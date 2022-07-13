@@ -26,7 +26,7 @@
 #include "gemm.generated_oneapi_header.h"
 #endif
 #ifdef GPU
-#include "../../../../install/llvm-test-suite/SYCL/ESIMD/esimd_test_utils.hpp"
+#include "esimd_test_utils.hpp"
 #include <iostream>
 #include <sycl/ext/intel/esimd.hpp>
 #include <CL/sycl.hpp>
