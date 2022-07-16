@@ -1,7 +1,7 @@
 # Installation
 downloads
 install
-
+.vscode
 # T2S generated tmp
 *.out
 tmp.txt
