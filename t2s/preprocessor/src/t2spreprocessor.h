@@ -487,10 +487,9 @@ struct ParamLocs
   }
 };
 
-std::string GenRunPostCode(OneAPIFuncStruct oneapiStruct, std::vector<std::string> args_name, std::vector<QualType> args_types, std::string funcName, std::vector<std::string> T2S_img_name)
+std::string GenRunPostCode(OneAPIFuncStruct oneapiStruct, std::vector<std::string> args_name, std::vector<QualType> args_types, std::string funcName)
 {
   std::ostringstream rhs;  
-  int loop_var_for_t2s_img = 0;
   // check that there is an even number i.e. paris of args and their dimension vector
   if (((args_name.size() % 3) != 0) || ((args_types.size() % 3) != 0))
   {
@@ -588,9 +587,8 @@ std::string GenRunPostCode(OneAPIFuncStruct oneapiStruct, std::vector<std::strin
     //currently only 2-D image is supported
     //here we must explicitly print out T2S image extension
     //std::cout << t2sprinter::header() << "debugging purpose:loop variable i = " << i <<'\n';
-    rhs << "int _"<<T2S_img_name[loop_var_for_t2s_img] << "_extent_" << "0 = "<< arg_dim_vector_name << "[0];\n";
-    rhs << "int _"<<T2S_img_name[loop_var_for_t2s_img] << "_extent_" << "1 = "<< arg_dim_vector_name << "[1];\n";
-    loop_var_for_t2s_img++;
+    rhs << "int _"<<func_arg_name << "_extent_" << "0 = "<< arg_dim_vector_name << "[0];\n";
+    rhs << "int _"<<func_arg_name << "_extent_" << "1 = "<< arg_dim_vector_name << "[1];\n";
     rhs << "sycl::image<2> img" << "_" << func_arg_name << "(" << arg_ptr_name << ", image_channel_order::rgba, image_channel_type::" << image_type << ",\n"
         << "range<2>{" << arg_dim_vector_name << "[0]/4 , " << arg_dim_vector_name << "[1]});\n";
     rhs << "#endif\n";

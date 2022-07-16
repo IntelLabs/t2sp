@@ -1,20 +1,24 @@
-#include <sstream>
-#include <string>
 #include "CodeGen_DPC_Dev.h"
 #include "IROperator.h"
 #include "Simplify.h"
 #include "Substitute.h"
 #include "fstream"
+#include <cmath>
+#include <sstream>
+#include <stack>
+#include <string>
 namespace Halide {
 namespace Internal {
 
 using std::ostringstream;
+using std::stack;
 using std::string;
 using std::to_string;
 using std::vector;
 static bool is_broadcast;
-vector<string> range_info_Block;
-vector<string> range_info_thread;
+stack<string> range_info_Block;
+stack<string> range_info_thread;
+string global_declaration;
 CodeGen_DPC_Dev::CodeGen_DPC_Dev(Target t)
     : clc(src_stream, t) {
 }
@@ -311,19 +315,16 @@ void CodeGen_DPC_Dev::CodeGen_DPC_C::visit(const For *loop) {
                         (loop->for_type == ForType::GPUThread))
             << "kernel loop must be either gpu block or gpu thread\n";
         internal_assert(is_zero(loop->min));
-        //call a function:store extent
-        // stream << "flag before reset";
-        // stream.seekp(0);
+        // call a function:store extent
+        //  stream << "flag before reset";
+        //  stream.seekp(0);
         stream << get_indent() << print_type(Int(32)) << " "
                << print_name(loop->name) << " = "
                << simt_intrinsic(loop->name) << ";\n";
-        if (loop->for_type == ForType::GPUBlock)
-        {
-            range_info_Block.push_back(print_expr(loop->extent));
-        }
-        else if (loop->for_type == ForType::GPUThread)
-        {
-            range_info_thread.push_back(print_expr(loop->extent));
+        if (loop->for_type == ForType::GPUBlock) {
+            range_info_Block.push(print_expr(loop->extent));
+        } else if (loop->for_type == ForType::GPUThread) {
+            range_info_thread.push(print_expr(loop->extent));
         }
         loop->body.accept(this);
         return;
@@ -745,9 +746,9 @@ void CodeGen_DPC_Dev::CodeGen_DPC_C::visit(const Shuffle *op) {
     CodeGen_C::visit(op);
 }
 
-class FindRefName : public IRVisitor
-{
+class FindRefName : public IRVisitor {
     const string &buf_name;
+
 public:
     using IRVisitor::visit;
     string ref_name;
@@ -764,7 +765,8 @@ public:
     }
 
     FindRefName(const string &_b)
-        : buf_name(_b) {}
+        : buf_name(_b) {
+    }
 };
 
 void CodeGen_DPC_Dev::add_kernel(Stmt s,
@@ -775,20 +777,17 @@ void CodeGen_DPC_Dev::add_kernel(Stmt s,
     // TODO: do we have to uniquify these names, or can we trust that they are safe?
     cur_kernel_name = name;
     clc.add_kernel(s, name, args);
-    string str;
-    str = clc.init_vecs + clc.init_funcs;
-    str += src_stream.str();
-    src_stream.str(str);
+    global_declaration = clc.init_vecs + clc.init_funcs;
 }
 
 void CodeGen_DPC_Dev::CodeGen_DPC_C::add_kernel(Stmt s,
                                                 const string &name,
                                                 const vector<DeviceArgument> &args) {
     debug(2) << "Adding DPC kernel " << name << "\n";
-    //auto begin_pos = stream.tellp();
-    // Emit the function prototype.
-    // stream << get_indent() << "try {\n";
-    // indent += 2;
+    // auto begin_pos = stream.tellp();
+    //  Emit the function prototype.
+    //  stream << get_indent() << "try {\n";
+    //  indent += 2;
     stream << get_indent() << "auto e = q.submit([&](handler &cgh) {\n";
     indent += 2;
     for (size_t i = 0; i < args.size(); i++) {
@@ -814,111 +813,138 @@ void CodeGen_DPC_Dev::CodeGen_DPC_C::add_kernel(Stmt s,
     indent += 2;
     stream << get_indent() << "nd_range{GlobalRange, LocalRange},\n";
     stream << get_indent() << "[=](nd_item<nd_item_dimension> ndi) SYCL_ESIMD_KERNEL {\n";
-            indent += 2;
+    indent += 2;
     stream << get_indent() << "using namespace sycl::ext::intel::esimd;\n";
-        // stream << ")\n";
+    // stream << ")\n";
 
-        // open_scope();
-        print(s);
-        close_scope("kernel " + name);
-        indent -= 2;
-        // assert(indent != 0);
-        stream << get_indent() << ");\n";
-        indent -= 2;
-        // assert(indent != 0);
-        stream << get_indent() << "});\n";
-        // indent -= 2;
-        // stream << get_indent() << "}\n";
-        for (size_t i = 0; i < args.size(); i++) {
-            // Remove buffer arguments from allocation scope
-            if (args[i].is_buffer) {
-                allocations.pop(args[i].name);
-            }
-        }
-        // auto end_pos = stream.tellp();
-    }
-
-    void CodeGen_DPC_Dev::CodeGen_DPC_C::open_scope() {
-        stream << get_indent();
-        indent += 2;
-        stream << "{\n";
-    }
-
-    void CodeGen_DPC_Dev::CodeGen_DPC_C::close_scope(const std::string &comment) {
-        indent -= 2;
-        stream << get_indent();
-        if (!comment.empty()) {
-            stream << "} // " << comment << "\n";
-        } else {
-            stream << "}\n";
+    // open_scope();
+    print(s);
+    close_scope("kernel " + name);
+    indent -= 2;
+    // assert(indent != 0);
+    stream << get_indent() << ");\n";
+    indent -= 2;
+    // assert(indent != 0);
+    stream << get_indent() << "});\n";
+    // indent -= 2;
+    // stream << get_indent() << "}\n";
+    for (size_t i = 0; i < args.size(); i++) {
+        // Remove buffer arguments from allocation scope
+        if (args[i].is_buffer) {
+            allocations.pop(args[i].name);
         }
     }
+    // auto end_pos = stream.tellp();
+}
 
-    void CodeGen_DPC_Dev::init_module() {
-        debug(2) << "CM device codegen init_module\n";
+void CodeGen_DPC_Dev::CodeGen_DPC_C::open_scope() {
+    stream << get_indent();
+    indent += 2;
+    stream << "{\n";
+}
 
-        // wipe the internal kernel source
-        src_stream.str("");
-        src_stream.clear();
-
-        // This identifies the program as CM C (as opposed to SPIR).
-        // src_stream << "#include <cm/cm.h>\n";
-        // src_stream << "#include <cm/cmtl.h>\n";
-        cur_kernel_name = "";
+void CodeGen_DPC_Dev::CodeGen_DPC_C::close_scope(const std::string &comment) {
+    indent -= 2;
+    stream << get_indent();
+    if (!comment.empty()) {
+        stream << "} // " << comment << "\n";
+    } else {
+        stream << "}\n";
     }
+}
 
-    vector<char> CodeGen_DPC_Dev::compile_to_src() {
-        string str = src_stream.str();
-        debug(1) << "DPC kernel:\n"
-                 << str << "\n";
-        int block_range_dim = range_info_Block.size();
-        int thread_range_dim = range_info_thread.size();
-        if (block_range_dim != thread_range_dim)
+void CodeGen_DPC_Dev::init_module() {
+    debug(2) << "CM device codegen init_module\n";
+
+    // wipe the internal kernel source
+    src_stream.str("");
+    src_stream.clear();
+
+    // This identifies the program as CM C (as opposed to SPIR).
+    // src_stream << "#include <cm/cm.h>\n";
+    // src_stream << "#include <cm/cmtl.h>\n";
+    cur_kernel_name = "";
+}
+
+vector<char> CodeGen_DPC_Dev::compile_to_src() {
+    string str = src_stream.str();
+    debug(1) << "DPC kernel:\n"
+             << str << "\n";
+    int block_range_dim = range_info_Block.size();
+    int thread_range_dim = range_info_thread.size();
+    int nd_item_dim = thread_range_dim > block_range_dim ? thread_range_dim : block_range_dim;
+    int range_delta = block_range_dim - thread_range_dim;
+    string glb_range = "range<" + to_string(nd_item_dim) + "> GlobalRange(";
+    string lcl_range = "range<" + to_string(nd_item_dim) + "> LocalRange(";
+    //thread range size > block range size
+    if (range_delta < 0) {
+        while (!range_info_Block.empty()) {
+            glb_range += range_info_Block.top() + "*" + range_info_thread.top() + ",";
+            lcl_range += range_info_thread.top() + ",";
+            range_info_Block.pop();
+            range_info_thread.pop();
+        }
+        while (!range_info_thread.empty())
         {
-            user_error << "when I was coding dpc codegen, I only cared about situations that the block_range_dim equals thread_range_dim,please report this error with your T2S code to our github";
+            glb_range += to_string(1) + "*" + range_info_thread.top() + ",";
+            lcl_range += range_info_thread.top() + ",";
+            range_info_thread.pop();
         }
-        string glb_range = "range<"+ to_string(block_range_dim) +"> GlobalRange(";
-        string lcl_range = "range<"+ to_string(thread_range_dim) +"> LocalRange(";
-        for (int i = block_range_dim - 1; i >= 0; i--)
-        {
-            glb_range += range_info_Block[i] + "*" + range_info_thread[i] + ",";
-            lcl_range += range_info_thread[i] + ",";
-        }
-        glb_range.pop_back();
-        glb_range += ");\n";
-        lcl_range.pop_back();
-        lcl_range += ");\n";
-        string range_str = "#ifdef GPU\n";
-        range_str += "queue q(esimd_test::ESIMDSelector{}, esimd_test::createExceptionHandler(),property::queue::enable_profiling{});\n" + glb_range + lcl_range;
-        range_str += "const int nd_item_dimension =" + to_string(range_info_Block.size()) + ";\n";
-        range_str += str;
-        range_str += "#endif\n";
-        std::ifstream reading_sbl("post.run.test.t2s.gpu.cpp");
-        if (!reading_sbl)
-        {
-            user_error << "An error occurred while opening the file. Please check whether you have created this file!";
-        }
-        string total_buff_read;
-        string buff_read;
-        while (getline(reading_sbl,buff_read))
-        {
-            if ((buff_read.find("Halide") != std::string::npos) || (buff_read.find("util.h") != std::string::npos))
-            {
-                total_buff_read += "#ifndef GPU\n";
-            }
-            total_buff_read += buff_read;
-            total_buff_read += '\n';
-            if ((buff_read.find("Halide") != std::string::npos) || (buff_read.find("util.h") != std::string::npos))
-            {
-                total_buff_read += "#endif\n";
-            }
-        }
-        //debug(1) << "this is prepared file:" << total_buff_read;
-        total_buff_read.insert(total_buff_read.size()-2,range_str);
-        debug(1) << "this is the file we will generate" << total_buff_read;
-        vector<char> buffer(total_buff_read.begin(), total_buff_read.end());
-        return buffer;
     }
+    else if (range_delta == 0) {
+    while (!range_info_Block.empty()) {
+        glb_range += range_info_Block.top() + "*" + range_info_thread.top() + ",";
+        lcl_range += range_info_thread.top() + ",";
+        range_info_Block.pop();
+        range_info_thread.pop();
+    }
+    }
+    else if (range_delta > 0) {
+        while (!range_info_thread.empty()) {
+            glb_range += range_info_Block.top() + "*" + range_info_thread.top() + ",";
+            lcl_range += range_info_thread.top() + ",";
+            range_info_Block.pop();
+            range_info_thread.pop();
+        }
+        while (!range_info_Block.empty())
+        {
+            glb_range += range_info_Block.top() + "*" + to_string(1) + ",";
+            lcl_range += to_string(1) + ",";
+            range_info_Block.pop();
+        }
+    }
+    glb_range.pop_back();
+    glb_range += ");\n";
+    lcl_range.pop_back();
+    lcl_range += ");\n";
+    string range_str = "#ifdef GPU\n";
+    range_str += "queue q(esimd_test::ESIMDSelector{}, esimd_test::createExceptionHandler(),property::queue::enable_profiling{});\n" + glb_range + lcl_range;
+    range_str += "const int nd_item_dimension =" + to_string(nd_item_dim) + ";\n";
+    range_str += str;
+    range_str += "#endif\n";
+    std::ifstream reading_sbl("post.run.test.t2s.gpu.cpp");
+    if (!reading_sbl) {
+        user_error << "An error occurred while opening the file. Please check whether you have created this file!";
+    }
+    string total_buff_read;
+    string buff_read;
+    while (getline(reading_sbl, buff_read)) {
+        if ((buff_read.find("Halide") != std::string::npos) || (buff_read.find("util.h") != std::string::npos)) {
+            total_buff_read += "#ifndef GPU\n";
+        }
+        total_buff_read += buff_read;
+        total_buff_read += '\n';
+        if ((buff_read.find("Halide") != std::string::npos) || (buff_read.find("util.h") != std::string::npos)) {
+            total_buff_read += "#endif\n";
+        }
+    }
+    // debug(1) << "this is prepared file:" << total_buff_read;
+    total_buff_read.insert(total_buff_read.size() - 2, range_str);
+    total_buff_read = global_declaration + total_buff_read;
+    debug(1) << "this is the file we will generate" << total_buff_read;
+    vector<char> buffer(total_buff_read.begin(), total_buff_read.end());
+    return buffer;
+}
 
 }  // namespace Internal
 }  // namespace Halide

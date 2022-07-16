@@ -56,6 +56,9 @@ clang++ -fsycl -I $T2S_PATH/install/llvm-test-suite/SYCL/ESIMD/ gemm_genx.cpp;
 echo "Executing final binary..."
 ./a.out
 echo "done"
+echo "testing performance..."
+clang++ -fsycl -I $T2S_PATH/install/llvm-test-suite/SYCL/ESIMD/ performance.cpp
+./a.out
 # Return back to the directory
 # cd ${CWD}
 echo "CWD: $PWD"

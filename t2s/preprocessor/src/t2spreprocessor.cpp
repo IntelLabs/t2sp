@@ -316,7 +316,6 @@ class T2SPreprocessorFrontendAction : public clang::ASTFrontendAction {
       // Check the argument & Types. Placing them into the vectors
       // all_args_vector & all_types_vecstor to be passed to another function below
       std::cout << t2sprinter::warning() << "===FINAL ARGS CHECK===\n";
-      std::vector<std::string> T2S_img_name;
       for(unsigned int i = 0; i < T2S_ARGS_LOCS.size(); i++){
         ParamLocs arg_loc = T2S_ARGS_LOCS[i];
 
@@ -346,7 +345,6 @@ class T2SPreprocessorFrontendAction : public clang::ASTFrontendAction {
         for(int i = 0; i < types_vecstor.size() / 3; i++){
           QualType t_ImageParam = types_vecstor[i];
           const clang::Type* t_ptr_ImageParam = t_ImageParam.getTypePtr();
-          T2S_img_name.push_back(args_vector[i]);
           QualType t_data = types_vecstor[i+1];
           const clang::Type* t_ptr_data = t_data.getTypePtr();
 
@@ -387,7 +385,7 @@ class T2SPreprocessorFrontendAction : public clang::ASTFrontendAction {
 
       // Pass in the arguments/argument types/oneapiStruct/& function name into the `GenRunPostCode()`
       // Then finally insert the string into the original location of the #pragma t2s_spec_start
-      rhs << GenRunPostCode(oneapiStruct, all_args_vector, all_types_vecstor, funcName,T2S_img_name); // (TODO) Reimplement
+      rhs << GenRunPostCode(oneapiStruct, all_args_vector, all_types_vecstor, funcName); // (TODO) Reimplement
       R.ReplaceText( SourceRange(start_loc.end, start_loc.end) , rhs.str() ); // (TODO) Reimplement/Check
     }
 

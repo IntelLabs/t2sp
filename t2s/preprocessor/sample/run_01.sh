@@ -13,7 +13,7 @@ fi
 if [ "$1" == "FPGA" ]
 then
 echo "Running preprocessor..."
-../../src/t2spreprocessor ./test.t2s.cpp
+../../src/t2spreprocessor ./test.t2s.fpga.cpp
 fi
 
 # Return back to the directory
