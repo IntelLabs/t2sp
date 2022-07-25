@@ -49,7 +49,7 @@ private:
                 << "Device Func " << op->name << " is expected to have one and only one definition\n";
             Stmt body = mutate(op->body);
             Stmt new_body;
-            if( target.has_feature(Target::OneAPI) ){
+            if( target.has_feature(Target::OneAPI) && !target.has_feature(Target::IntelGPU)){
                 new_body = For::make(op->name + ".s0.run_on_device",
                                         0,
                                         1,

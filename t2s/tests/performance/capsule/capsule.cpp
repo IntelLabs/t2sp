@@ -85,7 +85,7 @@ int main(void)
 
     // I/O network
     Stensor DP("PLoader", DRAM), SP("PFeeder", SRAM), DW("WLoader", DRAM), SW("WFeeder", SRAM);
-    Stensor RV("collector", REG), DV("unloader", DRAM), V("deserializer");
+    Stensor RV("collector", REG), DV("unloader", DRAM), V("V");
 #ifdef GPU
     SP.scope(yy_xx).out(cii, yyy_xxx);
 #else
