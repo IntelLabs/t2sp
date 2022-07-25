@@ -350,14 +350,12 @@ void Pipeline::compile_to_oneapi(const vector<Argument> &args,
     
     debug(2) << "OneAPI-compiling for: " << target << "\n";
     Module m = compile_to_module(args, fn_name, target);
-    if (target.has_feature(Target::IntelGPU))
-    {
+    if (target.has_feature(Target::IntelGPU)) {
         m.compile(single_output(fn_name, m, Output::oneapi_gpu));
     }
-    else if (target.has_feature(Target::IntelFPGA))
-    {
-    auto ext = get_output_info(target);
-    m.compile(single_output( fn_name + ext.at(Output::oneapi).extension, m, Output::oneapi));
+    else if (target.has_feature(Target::IntelFPGA)) {
+        auto ext = get_output_info(target);
+        m.compile(single_output( fn_name + ext.at(Output::oneapi_fpga).extension, m, Output::oneapi_fpga));
     }
 }
 

@@ -682,6 +682,7 @@ void Stensor::compile_to_host(string file_name, const vector<Argument> &args,
         Target acc = get_host_target();
         acc.set_feature(Target::IntelFPGA);
         acc.set_feature(Target::EnableSynthesis);
+        acc.set_feature(Target::CM);
         f.compile_to_host(file_name, args, fn_name, acc);
     }
     if (t == Starget::IntelGPU) {
@@ -689,6 +690,7 @@ void Stensor::compile_to_host(string file_name, const vector<Argument> &args,
                         "so we just emit out the source code in " << fn_name << "_genx.cpp\n";
         Target acc = get_host_target();
         acc.set_feature(Target::IntelGPU);
+        acc.set_feature(Target::CM);
         f.compile_to_cm(fn_name, std::move(args), acc);
     }
 }

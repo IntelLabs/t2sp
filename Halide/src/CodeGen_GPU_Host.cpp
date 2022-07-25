@@ -117,7 +117,7 @@ CodeGen_GPU_Host<CodeGen_CPU>::CodeGen_GPU_Host(Target target)
         debug(1) << "Constructing CUDA device codegen\n";
         cgdev[DeviceAPI::CUDA] = new CodeGen_PTX_Dev(target);
     }
-    if (target.has_feature(Target::IntelGPU) && (!target.has_feature(Target::OneAPI))) {
+    if (target.has_feature(Target::CM) && target.has_feature(Target::IntelGPU)) {
         debug(1) << "Constructing CM device codegen\n";
         cgdev[DeviceAPI::CM] = new CodeGen_CM_Dev(target);
     }

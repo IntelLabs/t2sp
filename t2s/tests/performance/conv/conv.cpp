@@ -86,7 +86,7 @@ int main(void)
 
     // I/O network
     Stensor DI("iLoader", DRAM), SI("iFeeder", SRAM), DK("kLoader", DRAM), SK("kFeeder", SRAM);
-    Stensor RO("collector", REG), DO("unloader", DRAM), O("deserializer");
+    Stensor RO("collector", REG), DO("unloader", DRAM), O("O");
     I >> DI.out(cii)                 >> FIFO(256)
       >> SI.scope(kx).out(cii, yyy)  >> FIFO(256);
     K >> DK.out(cii)                 >> FIFO(256)

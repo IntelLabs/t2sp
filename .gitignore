@@ -14,7 +14,7 @@ profile.mon
 *-interface.*
 *_genx.cpp
 temp*
-*.png
+.png
 *.o
 *.isa
 signed* 

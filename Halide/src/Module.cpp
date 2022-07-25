@@ -52,7 +52,7 @@ std::map<Output, OutputInfo> get_output_info(const Target &target) {
         {Output::featurization, {"featurization", ".featurization"}},
         {Output::llvm_assembly, {"llvm_assembly", ".ll"}},
         {Output::object, {"object", is_windows_coff ? ".obj" : ".o"}},
-        {Output::oneapi, {"c_header", ".generated_oneapi_header.h"}},
+        {Output::oneapi_fpga, {"c_header", ".sycl.h"}},
         {Output::python_extension, {"python_extension", ".py.cpp"}},
         {Output::pytorch_wrapper, {"pytorch_wrapper", ".pytorch.h"}},
         {Output::registration, {"registration", ".registration.cpp"}},
@@ -663,8 +663,8 @@ void Module::compile(const std::map<Output, std::string> &output_files) const {
                                target().has_feature(Target::CPlusPlusMangling) ? Internal::CodeGen_C::CPlusPlusImplementation : Internal::CodeGen_C::CImplementation);
         cg.compile(*this);
     }
-    if (contains(output_files, Output::oneapi)) {
-        debug(1) << "Module.compile(): oneapi_dev " << output_files.at(Output::oneapi) << "\n";
+    if (contains(output_files, Output::oneapi_fpga)) {
+        debug(1) << "Module.compile(): oneapi_dev " << output_files.at(Output::oneapi_fpga) << "\n";
         auto t = target();
         t.set_feature(Target::OpenCL, false);
 
@@ -676,7 +676,7 @@ void Module::compile(const std::map<Output, std::string> &output_files) const {
         // Unlike outputing the devsrc only as done in Output::cm_devsrc with CodeGen_GPU_Host<CodeGen_X86>(t)
         // Since the CodeGen_OneAPI_C is protected class of CodeGen_OneAPI_Dev, 
         // we use a public CodeGen_OneAPI_C method to do this
-        std::ofstream file(output_files.at(Output::oneapi));
+        std::ofstream file(output_files.at(Output::oneapi_fpga));
         Internal::CodeGen_OneAPI_Dev cg(t);
         std::string out_str = cg.compile_oneapi(*this);
         file << out_str;

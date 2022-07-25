@@ -142,9 +142,6 @@ string CodeGen_DPC_Dev::CodeGen_DPC_C::get_vector_init_tmpl(Type t,
     }
     return os_tmpl.str();
 }
-// attention:global_offset:units size of elements
-// element_offset:vector or uint,size of elements
-// attention:all element offset in dpc++ is in vector and in bytes.
 string CodeGen_DPC_Dev::CodeGen_DPC_C::get_vector_read_tmpl(Type t,
                                                             const string &name,
                                                             const string &global_offset,
@@ -153,29 +150,16 @@ string CodeGen_DPC_Dev::CodeGen_DPC_C::get_vector_read_tmpl(Type t,
     ostringstream os_tmpl;
     if (with_decl)
         os_tmpl << get_vector_declaration(t, "$ID$");
-    // it should be: $ID$ = gather<type,number of elements>(name,element_offset+global_offset)
-    os_tmpl << get_indent() << "$ID$ = gather<" << print_type(t) << ",";
-    // os_tmpl << get_indent() << "read("
-    //         << print_name(name) << ", "
-    //         << global_offset << ", "
-    //         << element_offset << ", "
-    //         << "$ID$);\n";
+    os_tmpl << get_indent() << "$ID$ = gather<" << print_type(t) << "," <<  t.lanes() << ">(" << print_name(name) << "," << element_offset << "," << global_offset << ")";
     return os_tmpl.str();
 }
-// attention:offset is in bytes
-// attention:all element offset in dpc++ is in vector and in bytes.
 string CodeGen_DPC_Dev::CodeGen_DPC_C::get_vector_read_tmpl(Type t,
                                                             const string &name,
                                                             const string &offset,
                                                             bool dword_aligned = false) {
     ostringstream os_tmpl;
     os_tmpl << get_vector_declaration(t, "$ID$");
-
-    string surface = dword_aligned ? "DWALIGNED(" + print_name(name) + ")" : print_name(name);
-    os_tmpl << get_indent() << "read("
-            << surface << ", "
-            << offset << ", "
-            << "$ID$.select<" << t.lanes() << ", 1>(0));\n";
+    os_tmpl << get_indent() << "$ID$=gather<" << print_type(t) << ", " << t.lanes() << ">(" << print_name(name) << "," << offset << ");";
     return os_tmpl.str();
 }
 
@@ -185,11 +169,7 @@ string CodeGen_DPC_Dev::CodeGen_DPC_C::get_slm_read_tmpl(Type t,
                                                          const string &element_offset) {
     ostringstream os_tmpl;
     os_tmpl << get_vector_declaration(t, "$ID$");
-    os_tmpl << get_indent() << "cm_slm_read("
-            << print_name(name) << "+"
-            << "(" << global_offset << ")*" << t.bits() / 8 << ", "
-            << element_offset << ", "
-            << "$ID$);\n";
+    os_tmpl << "$ID$ = " << "slm_gather<" << print_type(t) << ", " << t.lanes() << ">(" << element_offset << ");\n";
     return os_tmpl.str();
 }
 
@@ -198,11 +178,11 @@ string CodeGen_DPC_Dev::CodeGen_DPC_C::get_vector_write_tmpl(Type t,
                                                              const string &global_offset,
                                                              const string &element_offset) {
     ostringstream os_tmpl;
-    os_tmpl << get_indent() << "write("
+    os_tmpl << get_indent() << "scatter<" <<print_type(t) << ", " << t.lanes()<<">("
             << print_name(name) << ", "
-            << global_offset << ", "
             << element_offset << ", "
-            << "$ID$);\n";
+            << "$ID$" << ","
+            << global_offset << ");\n";
     return os_tmpl.str();
 }
 
@@ -210,7 +190,7 @@ string CodeGen_DPC_Dev::CodeGen_DPC_C::get_vector_write_tmpl(Type t,
                                                              const string &name,
                                                              const string &offset) {
     ostringstream os_tmpl;
-    os_tmpl << get_indent() << "write("
+    os_tmpl << get_indent() << "scatter<" <<print_type(t) << ", " << t.lanes()<<">("
             << print_name(name) << ", "
             << offset << ", "
             << "$ID$);\n";
@@ -222,9 +202,7 @@ string CodeGen_DPC_Dev::CodeGen_DPC_C::get_slm_write_tmpl(Type t,
                                                           const string &global_offset,
                                                           const string &element_offset) {
     ostringstream os_tmpl;
-    os_tmpl << get_indent() << "cm_slm_write("
-            << print_name(name) << "+"
-            << "(" << global_offset << ")*" << t.bits() / 8 << ", "
+    os_tmpl << get_indent() << "slm_scatter<" << print_type(t) <<", " << t.lanes() << ">("
             << element_offset << ", "
             << "$ID$);\n";
     return os_tmpl.str();
@@ -238,8 +216,6 @@ string CodeGen_DPC_Dev::CodeGen_DPC_C::get_vector_select(const string &name,
     os_tmpl << print_name(name)
             << ".select<" << size << ", " << stride << ">"
             << "(" << base << ")";
-    debug(1) << "this is select:" << os_tmpl.str() << '\n';
-
     return os_tmpl.str();
 }
 
@@ -361,36 +337,7 @@ void CodeGen_DPC_Dev::CodeGen_DPC_C::visit(const Evaluate *op) {
     print_expr(op->value);
 }
 
-// void CodeGen_DPC_Dev::CodeGen_DPC_C::print_media_block_rw(Type t, vector<Expr> args, bool is_write) {
-//     int cols = args[5].as<IntImm>()->value;
-//     int rows = args[6].as<IntImm>()->value;
-//     // internal_assert(cols <= 8);
-//     auto ramp = args[4].as<Ramp>();
-//     for (int i = 0; i < rows; i++) {
-//         // args:image load_addr_1 load_addr_2 buf_var store_idx in.ext.1 in.ext.2 leading_dim
-//         //_A, (_57*4), (_56+8), _A_im_buf.select<256, 1>(0).format<float, 32, 8>().select<8, 1, 8, 1>(8, 0)
-//         // now we want:
-//         // TODO:stride?definitely 1?
-//         // currently according to MemorySchedule.cpp stride === 1
-//         //  (void *))B, var.B_im.load.addr.0, var.B_im.load.addr.1, B_im_buf, ramp(0, 1, 64), 8, 8, B.extent.0
-//         if (is_write == false) {
-//             stream << get_indent() << print_expr(args[3]) << ".select<" << std::to_string(cols) << ", " << ramp->stride << ">(" << std::to_string(i) << "*" << std::to_string(cols) << ") = ";
-//             stream << "block_load<" << print_type(t) << "," << std::to_string(cols) << ">(";
-//             stream << print_name(print_expr(args[0])) << " + ";
-//             stream << print_expr(args[1]) << " + ";
-//             stream << print_expr(args[2] + i) << " * " << print_expr(args[7]) << ");";
-//             stream << "\n";
-//         } else {
-//             // stream << get_indent() << print_expr(args[3]) << ".select<" << std::to_string(cols) << ", " << ramp->stride << ">(" << std::to_string(i) << "*" << std::to_string(cols) << ") = ";
-//             stream << get_indent() << "block_store<" << print_type(t) << "," << std::to_string(cols) << ">(";
-//             stream << print_name(print_expr(args[0])) << " + ";
-//             stream << print_expr(args[1]) << " + ";
-//             stream << print_expr(args[2] + i) << " * " << print_expr(args[7]) << ",";
-//             stream << print_expr(args[3]) << ".select<" << std::to_string(cols) << ", " << ramp->stride << ">(" << std::to_string(i) << "*" << std::to_string(cols) << "));";
-//             stream << "\n";
-//         }
-//     }
-// }
+
 void CodeGen_DPC_Dev::CodeGen_DPC_C::print_media_block_rw(Type t, vector<Expr> args, bool is_write) {
     int cols = args[5].as<IntImm>()->value;
     int rows = args[6].as<IntImm>()->value;
@@ -772,7 +719,7 @@ public:
 void CodeGen_DPC_Dev::add_kernel(Stmt s,
                                  const string &name,
                                  const vector<DeviceArgument> &args) {
-    debug(2) << "CodeGen_CM_Dev::compile " << name << "\n";
+    debug(2) << "CodeGen_DPC_Dev::compile " << name << "\n";
 
     // TODO: do we have to uniquify these names, or can we trust that they are safe?
     cur_kernel_name = name;
@@ -783,11 +730,7 @@ void CodeGen_DPC_Dev::add_kernel(Stmt s,
 void CodeGen_DPC_Dev::CodeGen_DPC_C::add_kernel(Stmt s,
                                                 const string &name,
                                                 const vector<DeviceArgument> &args) {
-    debug(2) << "Adding DPC kernel " << name << "\n";
-    // auto begin_pos = stream.tellp();
-    //  Emit the function prototype.
-    //  stream << get_indent() << "try {\n";
-    //  indent += 2;
+    debug(2) << "Adding oneapi_gpu kernel " << name << "\n";
     stream << get_indent() << "auto e = q.submit([&](handler &cgh) {\n";
     indent += 2;
     for (size_t i = 0; i < args.size(); i++) {
@@ -854,15 +797,11 @@ void CodeGen_DPC_Dev::CodeGen_DPC_C::close_scope(const std::string &comment) {
 }
 
 void CodeGen_DPC_Dev::init_module() {
-    debug(2) << "CM device codegen init_module\n";
+    debug(2) << "oneapi_gpu device codegen init_module\n";
 
     // wipe the internal kernel source
     src_stream.str("");
     src_stream.clear();
-
-    // This identifies the program as CM C (as opposed to SPIR).
-    // src_stream << "#include <cm/cm.h>\n";
-    // src_stream << "#include <cm/cmtl.h>\n";
     cur_kernel_name = "";
 }
 
@@ -922,7 +861,7 @@ vector<char> CodeGen_DPC_Dev::compile_to_src() {
     range_str += "const int nd_item_dimension =" + to_string(nd_item_dim) + ";\n";
     range_str += str;
     range_str += "#endif\n";
-    std::ifstream reading_sbl("post.run.test.t2s.gpu.cpp");
+    std::ifstream reading_sbl("oneapi.gpu.run.cpp");
     if (!reading_sbl) {
         user_error << "An error occurred while opening the file. Please check whether you have created this file!";
     }
@@ -938,7 +877,6 @@ vector<char> CodeGen_DPC_Dev::compile_to_src() {
             total_buff_read += "#endif\n";
         }
     }
-    // debug(1) << "this is prepared file:" << total_buff_read;
     total_buff_read.insert(total_buff_read.size() - 2, range_str);
     total_buff_read = global_declaration + total_buff_read;
     debug(1) << "this is the file we will generate" << total_buff_read;

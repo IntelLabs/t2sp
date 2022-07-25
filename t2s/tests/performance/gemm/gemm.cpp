@@ -80,18 +80,17 @@ int main()
 
     // I/O network
     Stensor DA("aLoader", DRAM), SA("aFeeder", SRAM), DB("bLoader", DRAM), SB("bFeeder", SRAM);
-    Stensor RC2("drainer", REG), RC1("collector", REG), DC("unloader", DRAM), C("deserializer");
-    A >> DA.out(kkk) >> FIFO(128)
-      >> SA.scope(k).out(kkk, iii) >> FIFO(128);
-    B >> DB.out(kkk) >> FIFO(128)
-      >> SB.scope(k).out(kkk, jjj) >> FIFO(128);
-    Out >> FIFO(1024) >> RC2.scope(jj).out(jjj, iii)
-        >> FIFO(128)  >> RC1.scope(iii).out(jjj)
-        >> FIFO(128)  >> DC >> C(total_j, total_i);
+    Stensor RC("collector", REG), DC("unloader", DRAM), C("C");
+    A >> DA.out(kkk)                >> FIFO(256)
+      >> SA.scope(k).out(kkk, iii)  >> FIFO(256);
+    B >> DB.out(kkk)                >> FIFO(256)
+      >> SB.scope(k).out(kkk, jjj)  >> FIFO(256);
+    Out >> RC.scope(iii).out(jjj)   >> FIFO(256)
+        >> DC >> C(total_j, total_i);
 
     // Compile the kernel to an FPGA bitstream, and expose a C interface for the host to invoke
 #ifdef GPU
-    C.compile_to_host("gemm-interface", { A, B }, "gemm", IntelGPU,"DPC");
+    C.compile_to_host("gemm-interface", { A, B }, "gemm", IntelGPU);
 #else
     C.compile_to_host("gemm-interface", { A, B }, "gemm", IntelFPGA);
 #endif

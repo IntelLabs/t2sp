@@ -1,4 +1,3 @@
-./install-tool.sh python
 ./install-tool.sh m4
 ./install-tool.sh gmp
 ./install-tool.sh mpfr
@@ -12,5 +11,5 @@
 ./install-tool.sh re2c
 ./install-tool.sh ninja
 ./install-tool.sh oneapi-esimd
-
+./install-tool.sh oneapi-support
 

@@ -2,13 +2,13 @@
 
 function show_usage {
     echo "Usage:"
-    echo "  ./install-tool.sh python|m4|gmp|mpfr|mpc|cmake|gcc|llvm-clang|python-packages|cm|git-lfs|ninja|re2c|oneapi-esimd"
+    echo "  ./install-tool.sh m4|gmp|mpfr|mpc|cmake|gcc|llvm-clang|python-packages|cm|git-lfs|ninja|re2c|oneapi-esimd|oneapi-support"
 }
 
 # No matter the script is sourced or directly run, BASH_SOURCE is always this script, and $1 is the
 # argument to the script
 T2S_PATH="$( cd "$(dirname "$BASH_SOURCE" )" >/dev/null 2>&1 ; pwd -P )" # The path to this script
-if [ "$1" != "m4"  -a  "$1" != "gmp" -a  "$1" != "mpfr" -a  "$1" != "mpc" -a  "$1" != "cmake" -a  "$1" != "gcc" -a "$1" != "llvm-clang" -a "$1" != "python-packages" -a "$1" != "cm" -a "$1" != "git-lfs" -a "$1" != "ninja" -a "$1" != "re2c" -a "$1" != "oneapi-esimd" -a "$1" != "python" ]; then
+if [ "$1" != "m4"  -a  "$1" != "gmp" -a  "$1" != "mpfr" -a  "$1" != "mpc" -a  "$1" != "cmake" -a  "$1" != "gcc" -a "$1" != "llvm-clang" -a "$1" != "python-packages" -a "$1" != "cm" -a "$1" != "git-lfs" -a "$1" != "ninja" -a "$1" != "re2c" -a "$1" != "oneapi-esimd" -a "$1" != "oneapi-support" ]; then
     show_usage
     if [ $0 == $BASH_SOURCE ]; then
         # The script is directly run
@@ -20,9 +20,6 @@ else
     component="$1"
 fi
 
-function install_python {
-    apt install python
-}
 function install_cmake {
     eval major="$1"
     eval minor="$2"
@@ -200,6 +197,15 @@ function install_oneapi-esmid-extention {
 
 }
 
+function install-oneapi-support {
+    wget https://oneapi.team/tattle/oneAPI-samples/-/raw/9d8b94a38f2a98042cf933adfb91ec1da3d5ad51/DirectProgramming/DPC++FPGA/Tutorials/DesignPatterns/pipe_array/src/pipe_array.hpp?inline=false
+    wget https://oneapi.team/tattle/oneAPI-samples/-/raw/9d8b94a38f2a98042cf933adfb91ec1da3d5ad51/DirectProgramming/DPC++FPGA/Tutorials/DesignPatterns/pipe_array/src/pipe_array_internal.hpp?inline=false
+    mv pipe_array.hpp?inline=false pipe_array.hpp
+    mv pipe_array_internal.hpp?inline=false pipe_array_internal.hpp
+    mv pipe_array.hpp $T2S_PATH/t2s/src/oneapi-src
+    mv pipe_array_internal.hpp $T2S_PATH/t2s/src/oneapi-src
+}
+
 # Below we install newer version of gcc and llvm-clang and their dependencies
 mkdir -p $T2S_PATH/install $T2S_PATH/install/bin
 export PATH=$T2S_PATH/install/bin:$PATH
@@ -207,9 +213,6 @@ export PATH=$T2S_PATH/install/bin:$PATH
 cd $T2S_PATH
 mkdir -p downloads
 cd downloads
-if [ "$component" == "python" ]; then
-    install_python        
-fi
 if [ "$component" == "m4" ]; then
     install_m4         "1.4.18"
 fi
@@ -249,6 +252,9 @@ if [ "$component" == "git-lfs" ]; then
 fi
 if [ "$component" == "oneapi-esimd" ]; then
     install_oneapi-esmid-extention
+fi
+if [ "$component" == "oneapi-support" ]; then
+    install-oneapi-support
 fi
 cd ..
 

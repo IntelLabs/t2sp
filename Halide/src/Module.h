@@ -29,7 +29,7 @@ enum class Output {
     featurization,
     llvm_assembly,
     object,
-    oneapi,
+    oneapi_fpga,
     python_extension,
     pytorch_wrapper,
     registration,
