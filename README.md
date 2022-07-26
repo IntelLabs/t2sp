@@ -65,6 +65,8 @@ Currently, we support only Intel FPGAs and GPUs. We assume your device is local 
 + known issues: 
   -  on a GEN 9.5 GPU machine, it is possible to see some errors during installing `m4`, but it turns out that package is not necessary for that machine, and we can ignore the error.  
   - Python 2.x is required for ninja. Make sure you already have python 2.x. `Install-tools.sh ` will not help you download it.
+
+  
 Note: 
 + We assume your system has python >= 2.7 already installed.
 + The above `install-tools.sh` command installs llvm-clang >= 9.0, gcc >= 7.5.0, and python's numpy and matplotlib package. The command installs all of them and their dependencies we know to make the system self-contained. If your system has some of the tools already installed, you could edit `install-tools.sh` to disable the installations of these tools, then modify the environment setting as shown below.
