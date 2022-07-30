@@ -1,0 +1,20 @@
+
+.fancytree-container,
+span.fancytree-focused span.fancytree-title
+{
+    outline: 0 !important;
+}
+
+ul.fancytree-container {
+  border: 0px;
+}
+
+#tree-list {
+  padding-left: 0px;
+  padding-right: 0px;
+  height: 100%;
+}
+
+#tree-body {
+  padding: 0px;
+}
