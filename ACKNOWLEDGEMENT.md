@@ -6,7 +6,7 @@ Many academic researchers have contributed to the project:
 
 + Prof. Zhiru Zhang's group (Cornell): Yi-Hsiang Lai, Shaojie Xiang, Nitish Srivastava, Brendan Sullivan
 
-+ Prof. Wenguang Chen and Youhui Zhang's group (THU), and Prof. Yu Zhang's group (USTC): Mingzhe Zhang, Weihao Zhang, Guanyu Feng, Huanqi Cao
++ Prof. Wenguang Chen and Youhui Zhang's group (THU), and Prof. Yu Zhang's group (USTC): Mingzhe Zhang, Weihao Zhang, Guanyu Feng, Huanqi Cao, Zelin Tan
 
 + Prof. Jason Cong's group (UCLA): Jie Wang
 
