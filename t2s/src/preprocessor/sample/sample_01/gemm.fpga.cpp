@@ -138,6 +138,7 @@ int main(){
     C.compile_to_oneapi( { A, B }, "gemm", IntelGPU);
 #else
     // C.compile_to_host("gemm-interface", { A, B }, "gemm", IntelFPGA);
+    // THE NAME OF SECOND VAR IS VERY IMPORTANT
     C.compile_to_oneapi( { A, B }, "gemm", IntelFPGA);
 #endif
 

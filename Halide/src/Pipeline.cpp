@@ -33,9 +33,10 @@ std::string output_name(const string &filename, const string &fn_name, const str
 std::string output_name(const string &filename, const Module &m, const string &ext) {
     return output_name(filename, m.name(), ext);
 }
-
+//function name: filename here
 std::map<Output, std::string> single_output(const string &filename, const Module &m, Output output_type) {
     auto ext = get_output_info(m.target());
+    //here:output_name returns fn_name
     std::map<Output, std::string> outputs = {
         {output_type, output_name(filename, m, ext.at(output_type).extension)}};
     return outputs;
@@ -351,6 +352,7 @@ void Pipeline::compile_to_oneapi(const vector<Argument> &args,
     debug(2) << "OneAPI-compiling for: " << target << "\n";
     Module m = compile_to_module(args, fn_name, target);
     if (target.has_feature(Target::IntelGPU)) {
+        //Output::oneapi_gpu -> fn_name
         m.compile(single_output(fn_name, m, Output::oneapi_gpu));
     }
     else if (target.has_feature(Target::IntelFPGA)) {

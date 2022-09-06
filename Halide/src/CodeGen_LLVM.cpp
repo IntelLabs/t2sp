@@ -725,7 +725,6 @@ void CodeGen_LLVM::begin_func(LinkageType linkage, const std::string &name,
         }
     }
 
-    debug(1) << "Generating llvm bitcode prolog for function " << name << "...\n";
 
     // Null out the destructor block.
     destructor_block = nullptr;

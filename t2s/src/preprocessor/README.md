@@ -6,29 +6,21 @@ The T2S Preprocessor is a clang lib-tool to create OneAPI generated code using s
 
 The preprocessor is an executable source-to-source translation tool built using Clang.
 
-For FPGA, T2S spec is translated to oneAPI DPC++.
+- For FPGA, T2S spec is translated to oneAPI DPC++.
 
-For GPU, T2S spec is translated to oneAPI DPC++ with ESIMD extention.
+- For GPU, T2S spec is translated to oneAPI DPC++ with ESIMD extention.
 
 All source code can be found in the `t2s/src/preprocessor/` directory.
 
 The preprocessor generates two files for a given file (e.g. `filename.cpp` ) 
 
-- (1) `<filename>.spec.cpp`: 
-  - For FPGA : to create a OneAPI Code Generator & generate a header file to be used by the file 2
-  - For GPU : to run the device code generator(t2sp/Halide/src/CodeGen_DPC_Dev.cpp) by `compile_to_oneapi()`
-- (2) `<filename>.run.cpp`: 
-  - For FPGA : to generate a final executable
-  - For GPU : provide host code for device code generator (t2sp/Halide/src/CodeGen_DPC_Dev.cpp)
+- (1) `<filename>.<device>.spec.cpp`: 
+  - to create a OneAPI Code Generator & generate a header file to be used by the file 2
+- (2) `<filename>.<device>.run.cpp`: 
+  - to generate a final executable
+- Currently, `<device>` is FPGA or GPU
 
-
-The preprocessor uses the following `#pragma`s & `.compile_to_oneapi()` method to identify:
-
-- (1) Function Arguments
-- (2) T2S Specifications
-- (3) Header file name created by the OneAPI Code Generater through the `.compile_to_oneapi()` method(this step only works for code that runs on FPGA)
-
-### <a name="workflow"></a>Work flow for preprocessor
+## <a name="workflow"></a>Work flow for preprocessor
 
 ![](./workflow.png)
 
@@ -69,16 +61,12 @@ int main(){
 }
 ```
 
-To use oneapi as a backend of T2S, you need to manually write code for data preparation (e.g `Initialize data` and `Dimensions of the data` in the code above) and  `#pragma`s. The preprocessor will do the rest for you.
+### Tips for you to write your own file:
 
-Here are some useful tips for you to write your own file:
-
-- Go to `preprocessor/sample`, there are examples that called `gemm.cpp` and`oneapi.gpu.cpp`.Check these files carefully before you start your own one.
-- Name your file `<filename>.cpp` for FPGA, `oneapi.gpu.cpp` for GPU.(**Currently,YOU HAVE TO NAME IT AS `oneapi.gpu.cpp` for GPU ,because we have to keep the T2S spec name unchanged for device code generator**)
-
-- Initialize data for `ImageParam` and `Stensor` at the beginning of `main()`
+- Go to `preprocessor/sample`, there are some very useful examples. Check these example files carefully before you start your own one.
+- Prepare your data before `#pragma t2s_spec_start` 
 - Using `#pragma t2s_spec_start`  at the beginning of T2S spec and `#pragma t2s_spec_end` at the end of T2S spec
-- Using  `#pragma t2s_submit` to submit your `Stensor`/`Imageparam` with its corresponding data Initialization array like `*a,*b,*c` and data dimension infomation array like`a_dim,b_dim,c_dim` .Remember, match them carefully!
+- Using  `#pragma t2s_submit` to submit your `Stensor`/`Imageparam` with its corresponding data Initialization array like `*a,*b,*c` and data dimension infomation array like `a_dim,b_dim,c_dim`. 
 
 ## Build
 
@@ -108,8 +96,7 @@ $ ls -l
 
 #### FPGA
 
-Currently, there is one example, `~/path/to/t2sp/preprocessor/sample/sample_01/`. 
-The core file used by the preprocessor is located at `~/path/to/t2sp/preprocessor/sample/sample_01/test.t2s.cpp`.
+Currently, there is only one example, `~/path/to/t2sp/preprocessor/sample/sample_01/`. 
 
 To build `sample_01`, execute the following steps assuming you have already built the preprocessor:
 
@@ -131,7 +118,10 @@ cd sample_01/
 
 #### GPU
 
-Currently, there are three examples, in directory `~/path/to/t2sp/preprocessor/sample/`:  `sample_01(sgemm),sample_02(2-D convolution),sample_03(Capsule convolution)`.
+Currently, there are three examples, check them in directory `~/path/to/t2sp/preprocessor/sample/` 
+- `sample_01(sgemm)`
+- `sample_02(2-D convolution)`
+- `sample_03(Capsule convolution)`
 
 To build these samples, execute the following steps assuming you have already built the preprocessor.Take `sample_01` as an example:
 
@@ -139,12 +129,12 @@ To build these samples, execute the following steps assuming you have already bu
 cd ~/path/to/t2sp/
 cd ./t2s/preprocessor/sample/
 # using another clang++ for DPC++ ESIMD
+#!!!!!!!!!!VERY IMPORTANT!!!!REMENBER TO SOURCE THIS BASH SCRIPT
 source ./setenv.sh
 # To run the preprocessor on sample_01, run the following Pre-made script
 ./run_01.sh GPU
 
 # To compile and execute the sample_01, run the following Pre-made script:
-# performance test is included in this script
 ./build_01.sh GPU
 
 #if you want to clean all the generated files
@@ -153,17 +143,14 @@ source ./setenv.sh
 
 You can run other samples in a similar way by running `run_02.sh run_03.sh ` and `build_02.sh build_03.sh`.
 
-To check the generated oneapi file translated from T2S spec, take sample_01 as an example, go to `preprocessor/sample/sample_01` then you will see a oneapi file named `gemm_genx.cpp` .
-
-You can check other generated oneapi files in a similar way, they are all named in the form of `*_genx.cpp`.
 
 ## Performance
 
-##### FPGA Performance
+### FPGA Performance
 
-Check image in [Work flow for preprocessor](#workflow) in this Readme.md.
+Check the image in [Work flow for preprocessor](#workflow) in this Readme.md.
 
-##### GPU Performance
+### GPU Performance
 
 |                     | Gen 9.5                           | Gen 12                           |
 | ------------------- | --------------------------------- | -------------------------------- |
@@ -255,29 +242,13 @@ cd t2s/preprocessor/src/
 #}
 ```
 
-#### Generated DPC++ code for GPU
 
-##### Host code
 
-If you meet problems related to generated DPC++ host code for GPU, try to debug `preprocessor/src/t2spreprocessor.h` and `preprocessor/src/t2spreprocessor.cpp`. 
+## Feel free to report your problem
+### For problems related to GPU:
+At present, DPC++  backend for T2S is still in the development stage. If you encounter any problems, please report them to me and other developers.
 
-##### Device code(kernel)
-
-If you meet problems related to generated DPC++ device code(kernel) for GPU, try to debug `t2sp/Halide/src/CodeGen_DPC_Dev.cpp`.
-
-##### Other possible problems
-
-Host code generation and device code generation are seperated. Device code generator (`t2sp/Halide/src/CodeGen_DPC_Dev.cpp`) requires generated host code stored in a specific file named `oneapi.gpu.run.cpp`.
-
-Normally `oneapi.gpu.run.cpp` is generated by preprocessor.However, if you don't name your file for preprocessor as `oneapi.gpu.cpp`, you are very likely to encounter this problem.Device Code generator will tell you `An error occurred while opening the file. Please check whether you have created this file!`.
-
-If you fail to compile, check whether you run setenv.sh in the `preprocessor/sample`
-
-##### Feel free to report your problem
-
-At present, DPC++ ESIMD backend for T2S is still in the development stage. If you encounter any problems, please report them to me and other developers.
-
-You can contact me through my email:tanzl@mail.ustc.edu.cn.
+You can contact me through my Email : tanzl@mail.ustc.edu.cn
 
 
 

@@ -9,8 +9,8 @@ echo "Conv FPGA example has not been added to this directory yet";
 elif [ "$1" == "GPU" ];
 then
 echo "Building T2S for Intel GPU...";
-echo "CMD: g++ oneapi.gpu.spec.cpp -I ${T2S_PATH}/t2s/src/ -I ${T2S_PATH}/t2s/tests/correctness/util -I ${T2S_PATH}/Halide/include -L ${T2S_PATH}/Halide/bin -lz -lpthread -ldl -std=c++11 -lHalide -DTINY -DGPU;";
-g++ oneapi.gpu.spec.cpp \
+echo "CMD: g++ conv.gpu.spec.cpp -I ${T2S_PATH}/t2s/src/ -I ${T2S_PATH}/t2s/tests/correctness/util -I ${T2S_PATH}/Halide/include -L ${T2S_PATH}/Halide/bin -lz -lpthread -ldl -std=c++11 -lHalide -DTINY -DGPU;";
+g++ conv.gpu.spec.cpp \
     -I ${T2S_PATH}/t2s/src/ \
     -I ${T2S_PATH}/t2s/tests/correctness/util \
     -I ${T2S_PATH}/Halide/include \
@@ -23,8 +23,8 @@ echo "Executing T2S...";
 clang-format -style=LLVM -i *_genx.cpp 
 #building oneapi esimd
 echo "Building oneAPI...";
-echo "clang++ -fsycl -I $T2S_PATH/install/llvm-test-suite/SYCL/ESIMD/ conv_genx.cpp"
-clang++ -fsycl -I $T2S_PATH/install/llvm-test-suite/SYCL/ESIMD/ conv_genx.cpp;
+echo "clang++ -fsycl -I $T2S_PATH/install/llvm-test-suite/SYCL/ESIMD/ conv.gpu.run.cpp"
+clang++ -fsycl -I $T2S_PATH/install/llvm-test-suite/SYCL/ESIMD/ conv.gpu.run.cpp;
 #execution
 echo "Executing final binary..."
 ./a.out

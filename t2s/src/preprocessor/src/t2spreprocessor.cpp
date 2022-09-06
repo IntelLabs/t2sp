@@ -365,15 +365,8 @@ class T2SPreprocessorFrontendAction : public clang::ASTFrontendAction {
       rhs_insert << "\n\n";
       rhs_insert << "#ifdef FPGA\n";
       rhs_insert << "#include \"HalideBuffer.h\"\n";
+      rhs_insert << "#endif\n";
       rhs_insert << "#include \"" << funcName << ".sycl.h\"\n";
-      rhs_insert << "#endif\n";
-      rhs_insert << "#ifdef GPU\n";
-      // rhs_insert << "#include \"HalideBuffer.h\"\n";
-      rhs_insert << "#include \"esimd_test_utils.hpp\"\n";
-      rhs_insert << "#include <iostream>\n";
-      rhs_insert << "#include <sycl/ext/intel/esimd.hpp>\n";
-      rhs_insert << "#include <CL/sycl.hpp>\n";
-      rhs_insert << "#endif\n";
       R.InsertTextAfterToken( includeLoc , rhs_insert.str() );
       
       // Insert the internal code to run the generated OneAPI Function
@@ -549,8 +542,22 @@ class T2SPreprocessorFrontendAction : public clang::ASTFrontendAction {
       runfile.open( runfilename.str().c_str() );
       RB = &run_Rewriter.getEditBuffer(run_Rewriter.getSourceMgr().getMainFileID());
       runfile << std::string(RB->begin(), RB->end());
-
-
+      std::ifstream reading_sbl(runfilename.str().c_str());
+      std::string total_buff_read;
+      std::string buff_read;
+      while (getline(reading_sbl, buff_read)) {
+        if ((buff_read.find("Halide") != std::string::npos) || (buff_read.find("util.h") != std::string::npos)) {
+            total_buff_read += "#ifndef GPU\n";
+        }
+        total_buff_read += buff_read;
+        total_buff_read += '\n';
+        if ((buff_read.find("Halide") != std::string::npos) || (buff_read.find("util.h") != std::string::npos)) {
+            total_buff_read += "#endif\n";
+        }
+      }
+      std::ofstream runfile_gpu;
+      runfile_gpu.open(runfilename.str().c_str());
+      runfile_gpu << total_buff_read;
       //-----------------------------------------------//
     }
 

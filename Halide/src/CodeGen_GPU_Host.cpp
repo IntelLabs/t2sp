@@ -237,7 +237,7 @@ void CodeGen_GPU_Host<CodeGen_CPU>::compile_func(const LoweredFunc &f,
         }
         if (api_unique_name == "dpc") {
             debug(1) << "Currently, we do not implement DPC++ runtime, so we just emit source code.\n";
-            std::ofstream file(simple_name + "_genx.cpp", std::fstream::out);
+            std::ofstream file(simple_name + ".sycl.h", std::fstream::out);
             std::string src(kernel_src.cbegin(), kernel_src.cend());
             if (file.is_open())
                 file << src;

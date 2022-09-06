@@ -502,7 +502,7 @@ std::string GenRunPostCode(OneAPIFuncStruct oneapiStruct, std::vector<std::strin
 
   std::vector<std::string> new_halide_names_vector;
   std::string new_halide_output_name;
-
+  std::vector<std::string> fn_var;
   for (unsigned int i = 0; i < args_name.size(); i = i + 3)
   {
     unsigned int FuncArgName_index = i;
@@ -591,6 +591,9 @@ std::string GenRunPostCode(OneAPIFuncStruct oneapiStruct, std::vector<std::strin
     rhs << "int _"<<func_arg_name << "_extent_" << "1 = "<< arg_dim_vector_name << "[1];\n";
     rhs << "sycl::image<2> img" << "_" << func_arg_name << "(" << arg_ptr_name << ", image_channel_order::rgba, image_channel_type::" << image_type << ",\n"
         << "range<2>{" << arg_dim_vector_name << "[0]/4 , " << arg_dim_vector_name << "[1]});\n";
+    fn_var.push_back("sycl::image<2> img_" + func_arg_name); 
+    fn_var.push_back("int _" + func_arg_name + "_extent_0");
+    fn_var.push_back("int _" + func_arg_name + "_extent_1");   
     rhs << "#endif\n";
   }
 
@@ -624,6 +627,16 @@ std::string GenRunPostCode(OneAPIFuncStruct oneapiStruct, std::vector<std::strin
   rhs << ");\n";
   rhs << "std::cout << \"Run completed!\\n\";\n";
   rhs << "std::cout << \"kernel exec time: \" << exec_time << \"\\n\";\n";
+  rhs << "#endif\n";
+  rhs << "#ifdef GPU\n";
+  rhs << "void execution(";
+  for (unsigned i = 0; i < fn_var.size()-1; i++)
+  {
+    rhs << fn_var[i];
+    rhs << ",";
+  }
+  rhs << fn_var[fn_var.size()-1];
+  rhs << ");\n";
   rhs << "#endif\n";
   return rhs.str();
 }

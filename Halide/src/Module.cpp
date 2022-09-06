@@ -595,11 +595,30 @@ void Module::compile(const std::map<Output, std::string> &output_files) const {
     }
     if (contains(output_files, Output::oneapi_gpu)) {
         debug(1) << "Module.compile(): oneapi_src " << output_files.at(Output::oneapi_gpu) << "\n";
+        //std::ofstream file(output_files.at(Output::oneapi_gpu));
         llvm::LLVMContext context;
         CodeGen_LLVM *ret = new CodeGen_GPU_Host<CodeGen_X86>(this->target());
         ret->set_context(context);
         ret->compile_to_devsrc(*this);
         delete ret;
+    }
+    if (contains(output_files, Output::oneapi_fpga)) {
+        debug(1) << "Module.compile(): oneapi_dev " << output_files.at(Output::oneapi_fpga) << "\n";
+        auto t = target();
+        t.set_feature(Target::OpenCL, false);
+
+        // CodeGen_OneAPI expects to be compiled with DPC++ i.e. C++17
+        // So we hard set the featrues here
+        t.set_feature(Target::CPlusPlusMangling, true);
+
+        // We invoke compile() like method using the OneAPI CodeGenerator much like CodeGen_C 
+        // Unlike outputing the devsrc only as done in Output::cm_devsrc with CodeGen_GPU_Host<CodeGen_X86>(t)
+        // Since the CodeGen_OneAPI_C is protected class of CodeGen_OneAPI_Dev, 
+        // we use a public CodeGen_OneAPI_C method to do this
+        std::ofstream file(output_files.at(Output::oneapi_fpga));
+        Internal::CodeGen_OneAPI_Dev cg(t);
+        std::string out_str = cg.compile_oneapi(*this);
+        file << out_str;
     }
     if (contains(output_files, Output::object) || contains(output_files, Output::assembly) ||
         contains(output_files, Output::bitcode) || contains(output_files, Output::llvm_assembly) ||
@@ -662,24 +681,6 @@ void Module::compile(const std::map<Output, std::string> &output_files) const {
                                target(),
                                target().has_feature(Target::CPlusPlusMangling) ? Internal::CodeGen_C::CPlusPlusImplementation : Internal::CodeGen_C::CImplementation);
         cg.compile(*this);
-    }
-    if (contains(output_files, Output::oneapi_fpga)) {
-        debug(1) << "Module.compile(): oneapi_dev " << output_files.at(Output::oneapi_fpga) << "\n";
-        auto t = target();
-        t.set_feature(Target::OpenCL, false);
-
-        // CodeGen_OneAPI expects to be compiled with DPC++ i.e. C++17
-        // So we hard set the featrues here
-        t.set_feature(Target::CPlusPlusMangling, true);
-
-        // We invoke compile() like method using the OneAPI CodeGenerator much like CodeGen_C 
-        // Unlike outputing the devsrc only as done in Output::cm_devsrc with CodeGen_GPU_Host<CodeGen_X86>(t)
-        // Since the CodeGen_OneAPI_C is protected class of CodeGen_OneAPI_Dev, 
-        // we use a public CodeGen_OneAPI_C method to do this
-        std::ofstream file(output_files.at(Output::oneapi_fpga));
-        Internal::CodeGen_OneAPI_Dev cg(t);
-        std::string out_str = cg.compile_oneapi(*this);
-        file << out_str;
     }
     if (contains(output_files, Output::host_header)) {
         debug(1) << "Module.compile(): host_header " << output_files.at(Output::host_header) << "\n";

@@ -7,6 +7,7 @@
 #include <sstream>
 #include <stack>
 #include <string>
+#include <vector>
 namespace Halide {
 namespace Internal {
 
@@ -18,6 +19,7 @@ using std::vector;
 static bool is_broadcast;
 stack<string> range_info_Block;
 stack<string> range_info_thread;
+vector<string> function_var;
 string global_declaration;
 CodeGen_DPC_Dev::CodeGen_DPC_Dev(Target t)
     : clc(src_stream, t) {
@@ -743,6 +745,12 @@ void CodeGen_DPC_Dev::CodeGen_DPC_C::add_kernel(Stmt s,
                 name = frn.ref_name;
             }
             stream << get_indent() << "auto " << print_name(name) << "=img" << print_name(name) << ".get_access<uint4,access::mode::" << (args[i].read ? "read" : "write") << ">(cgh)";
+            string fn_img_var  = "sycl::image<2>& img" + print_name(name);
+            function_var.push_back(fn_img_var);
+            string fn_ext_var = "int " + print_name(name) + "_extent_0";
+            function_var.push_back(fn_ext_var);
+            fn_ext_var = "int " + print_name(name) + "_extent_1";
+            function_var.push_back(fn_ext_var);
             Allocation alloc;
             alloc.type = args[i].type;
             alloc.memory_type = MemoryType::Heap;
@@ -856,31 +864,25 @@ vector<char> CodeGen_DPC_Dev::compile_to_src() {
     glb_range += ");\n";
     lcl_range.pop_back();
     lcl_range += ");\n";
-    string range_str = "#ifdef GPU\n";
-    range_str += "queue q(esimd_test::ESIMDSelector{}, esimd_test::createExceptionHandler(),property::queue::enable_profiling{});\n" + glb_range + lcl_range;
+    string range_str = "#include \"esimd_test_utils.hpp\"\n"; 
+    range_str += "#include <iostream>\n";
+    range_str += "#include <sycl/ext/intel/esimd.hpp>\n";
+    range_str += "#include <CL/sycl.hpp>\n";
+    range_str += global_declaration + "\n";
+    range_str += "void execution(";
+    for (unsigned i = 0; i < function_var.size()-1; i++)
+    {
+        range_str += function_var[i];
+        range_str += ",";
+    }
+    range_str += function_var[function_var.size() - 1];
+    range_str += "){\n";
+    range_str += "sycl::queue q(esimd_test::ESIMDSelector{}, esimd_test::createExceptionHandler(),property::queue::enable_profiling{});\n" + glb_range + lcl_range;
     range_str += "const int nd_item_dimension =" + to_string(nd_item_dim) + ";\n";
     range_str += str;
-    range_str += "#endif\n";
-    std::ifstream reading_sbl("oneapi.gpu.run.cpp");
-    if (!reading_sbl) {
-        user_error << "An error occurred while opening the file. Please check whether you have created this file!";
-    }
-    string total_buff_read;
-    string buff_read;
-    while (getline(reading_sbl, buff_read)) {
-        if ((buff_read.find("Halide") != std::string::npos) || (buff_read.find("util.h") != std::string::npos)) {
-            total_buff_read += "#ifndef GPU\n";
-        }
-        total_buff_read += buff_read;
-        total_buff_read += '\n';
-        if ((buff_read.find("Halide") != std::string::npos) || (buff_read.find("util.h") != std::string::npos)) {
-            total_buff_read += "#endif\n";
-        }
-    }
-    total_buff_read.insert(total_buff_read.size() - 2, range_str);
-    total_buff_read = global_declaration + total_buff_read;
-    debug(1) << "this is the file we will generate" << total_buff_read;
-    vector<char> buffer(total_buff_read.begin(), total_buff_read.end());
+    range_str += "}";
+    
+    vector<char> buffer(range_str.begin(), range_str.end());
     return buffer;
 }
 

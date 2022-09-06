@@ -7,7 +7,7 @@ echo "CWD: $PWD"
 if [ "$1" == "GPU" ]
 then
 echo "Running preprocessor..."
-../../src/t2spreprocessor ./oneapi.gpu.cpp
+../../src/t2spreprocessor ./conv.gpu.cpp
 fi
 
 if [ "$1" == "FPGA" ]

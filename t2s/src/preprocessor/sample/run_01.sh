@@ -7,13 +7,13 @@ cd ./sample_01/
 if [ "$1" == "GPU" ]
 then
 echo "Running preprocessor..."
-../../src/t2spreprocessor ./oneapi.gpu.cpp
+../../src/t2spreprocessor ./gemm.gpu.cpp
 fi
 
 if [ "$1" == "FPGA" ]
 then
 echo "Running preprocessor..."
-../../src/t2spreprocessor ./gemm.cpp
+../../src/t2spreprocessor ./gemm.fpga.cpp
 fi
 
 # Return back to the directory
