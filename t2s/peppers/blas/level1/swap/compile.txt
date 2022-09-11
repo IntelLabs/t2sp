@@ -1,0 +1,5 @@
+cd $HOME/t2sp_a10
+source ./setenv.sh devcloud fpga
+cd ~/t2sp_a10/t2s/peppers/blas/level1/swap
+g++ sswap-run-fpga.cpp -std=c++11 -o ./b.out && ./b.out
+g++ dswap-run-fpga.cpp -std=c++11 -o ./b.out && ./b.out

@@ -1,0 +1,5 @@
+cd $HOME/t2sp_a10
+source ./setenv.sh devcloud fpga
+cd ~/t2sp_a10/t2s/peppers/blas/level3/syr2k
+g++ ssyr2k-run-fpga.cpp -std=c++11 -o ./b.out && ./b.out
+g++ dsyr2k-run-fpga.cpp -std=c++11 -o ./b.out && ./b.out

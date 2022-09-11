@@ -1,0 +1,5 @@
+cd $HOME/t2sp_a10
+source ./setenv.sh devcloud fpga
+cd ~/t2sp_a10/t2s/peppers/blas/level1/axpy
+g++ saxpy-run-fpga.cpp -std=c++11 -o ./b.out && ./b.out
+g++ daxpy-run-fpga.cpp -std=c++11 -o ./b.out && ./b.out
