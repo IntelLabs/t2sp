@@ -1,0 +1,17 @@
+cd $HOME/t2sp_a10
+source ./setenv.sh devcloud fpga
+
+# GBMV performance
+cd $HOME/t2sp_a10/t2s/tests/performance
+./devcloud-job.sh gbmv3 a10 large hw
+
+# GER correctness
+cd $HOME/t2sp_a10/t2s/tests/performance
+./test.sh devcloud ger a10 tiny emulator
+
+# SYMV correctness
+cd $HOME/t2sp_a10/t2s/tests/performance/symv
+rm -rf a.aocx a a/
+aoc -O0 -g -march=emulator -board=a10gx -emulator-channel-depth-model=strict a.cl
+g++ symv-run-fpga.cpp symv-interface.cpp ../../../src/AOT-OpenCL-Runtime.cpp ../../../src/Roofline.cpp ../../../src/SharedUtilsInC.cpp -g -DLINUX -DALTERA_CL -fPIC -I../../../src/ -I /home/u128292/t2sp_a10/Halide/include -I/glob/development-tools/versions/fpgasupportstack/a10/1.2.1/intelFPGA_pro/hld/examples_aoc/common/inc /glob/development-tools/versions/fpgasupportstack/a10/1.2.1/intelFPGA_pro/hld/examples_aoc/common/src/AOCLUtils/opencl.cpp /glob/development-tools/versions/fpgasupportstack/a10/1.2.1/intelFPGA_pro/hld/examples_aoc/common/src/AOCLUtils/options.cpp -I/glob/development-tools/versions/fpgasupportstack/a10/1.2.1/intelFPGA_pro/hld/host/include -L/glob/development-tools/versions/fpgasupportstack/a10/1.2.1/intelFPGA_pro/hld/linux64/lib -L/glob/development-tools/versions/fpgasupportstack/a10/1.2.1/inteldevstack/a10_gx_pac_ias_1_2_1_pv/opencl/opencl_bsp/linux64/lib -L/glob/development-tools/versions/fpgasupportstack/a10/1.2.1/intelFPGA_pro/hld/host/linux64/lib -lOpenCL -L /home/u128292/t2sp_a10/Halide/bin -lelf /home/u128292/t2sp_a10/Halide/lib/libHalide.a -DTINY -lz -lpthread -ldl -std=c++11 -o ./b.out
+env BITSTREAM=a.aocx CL_CONTEXT_EMULATOR_DEVICE_INTELFPGA=1 'INTEL_FPGA_OCL_PLATFORM_NAME=Intel(R) FPGA Emulation Platform for OpenCL(TM)' ./b.out

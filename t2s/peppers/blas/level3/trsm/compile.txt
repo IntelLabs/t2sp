@@ -1,0 +1,5 @@
+cd $HOME/t2sp_a10
+source ./setenv.sh devcloud fpga
+cd ~/t2sp_a10/t2s/peppers/blas/level3/trsm
+g++ strsm-run-fpga.cpp -std=c++11 -o ./b.out && ./b.out
+g++ dtrsm-run-fpga.cpp -std=c++11 -o ./b.out && ./b.out
