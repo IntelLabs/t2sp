@@ -46,7 +46,7 @@ if [ "$2" != "fpga" -a "$2" != "gpu" ]; then
 fi
 
 export T2S_PATH="$( cd "$(dirname $(realpath "$BASH_SOURCE") )" >/dev/null 2>&1 ; pwd -P )" # The path to this script
-TOOLS_PATH=$T2S_PATH/install
+TOOLS_PATH=$HOME/old-t2sp/install
 
 # Modify these 3 paths if you installed your own versions of gcc or llvm-clang
 # gcc should be located at $GCC_PATH/bin
@@ -87,24 +87,29 @@ if [ "$2" = "fpga" ]; then
         if [ -f /data/intel_fpga/devcloudLoginToolSetup.sh ]; then
             source /data/intel_fpga/devcloudLoginToolSetup.sh
         fi
-        pbsnodes -s v-qsvr-fpga  $(hostname) >& tmp.txt
+        pbsnodes $(hostname) >& tmp.txt
         if grep "fpga,arria10" tmp.txt; then
-            tools_setup -t  A10DS 1.2.1
+        if grep "fpga_opencl" tmp.txt; then
+              tools_setup -t A10DS 1.2.1
+        fi
             export FPGA_BOARD=pac_a10
         else
-            if grep "fpga,darby" tmp.txt; then
-                tools_setup -t S10DS
+            if grep "fpga,stratix10" tmp.txt; then
+        if grep "fpga_opencl" tmp.txt; then
+                  tools_setup -t S10DS
+        fi
                 export FPGA_BOARD=pac_s10_dc
             else
                 echo The current compute node does not have either an A10 or an S10 card with it.
                 echo Please choose another compute node from 'Nodes with Arria 10 Release 1.2.1',
-                echo or 'Nodes with Stratix 10', without OneAPI
+                echo or 'Nodes with Stratix 10'
                 return
             fi
         fi
         export AOCL_SO=$ALTERAOCLSDKROOT/host/linux64/lib/libalteracl.so
         export AOCL_BOARD_SO=$AOCL_BOARD_PACKAGE_ROOT/linux64/lib/libintel_opae_mmd.so
-        export AOCL_LIBS="-L$INTELFPGAOCLSDKROOT/linux64/lib -L$AOCL_BOARD_PACKAGE_ROOT/linux64/lib -L$INTELFPGAOCLSDKROOT/host/linux64/lib -Wl,--no-as-needed -lalteracl  -lintel_opae_mmd"
+        #export AOCL_LIBS="-L$INTELFPGAOCLSDKROOT/linux64/lib -L$AOCL_BOARD_PACKAGE_ROOT/linux64/lib -L$INTELFPGAOCLSDKROOT/host/linux64/lib -Wl,--no-as-needed -lalteracl  -lintel_opae_mmd"
+    export AOCL_LIBS="$(aocl link-config)"
 
         # The aoc on DevCloud has an LLVM whose version is different from that of the LLVM libHalide.so has linked with. Consequently, calling
         # aoc dynamically will have two LLVMs messed up: the aoc has some LLVM calls to some symbols that are not resolved to be in the aoc linked
@@ -179,5 +184,4 @@ export COMMON_AOC_OPTION_FOR_EXECUTION="-v -profile -fpc -fp-relaxed -board=$FPG
 export COMMON_OPTIONS_COMPILING_HOST="$T2S_PATH/t2s/src/AOT-OpenCL-Runtime.cpp $T2S_PATH/t2s/src/Roofline.cpp $T2S_PATH/t2s/src/SharedUtilsInC.cpp -DLINUX -DALTERA_CL -fPIC -I$T2S_PATH/t2s/src/ -I $T2S_PATH/Halide/include -I$INTELFPGAOCLSDKROOT/examples_aoc/common/inc $INTELFPGAOCLSDKROOT/examples_aoc/common/src/AOCLUtils/opencl.cpp $INTELFPGAOCLSDKROOT/examples_aoc/common/src/AOCLUtils/options.cpp -I$INTELFPGAOCLSDKROOT/host/include -L$INTELFPGAOCLSDKROOT/linux64/lib -L$AOCL_BOARD_PACKAGE_ROOT/linux64/lib -L$INTELFPGAOCLSDKROOT/host/linux64/lib -lOpenCL -L $T2S_PATH/Halide/bin -lelf -lz -lpthread -ldl -std=c++11"
 export COMMON_OPTIONS_COMPILING_HOST_FOR_EMULATION="$COMMON_OPTIONS_COMPILING_HOST $EMULATOR_LIBHALIDE_TO_LINK"
 export COMMON_OPTIONS_COMPILING_HOST_FOR_EXECUTION="$COMMON_OPTIONS_COMPILING_HOST $HW_LIBHALIDE_TO_LINK"
-
 

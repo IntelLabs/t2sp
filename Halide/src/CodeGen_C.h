@@ -77,7 +77,7 @@ protected:
 
     /** Emit an expression as an assignment, then return the id of the
      * resulting var */
-    std::string print_expr(Expr);
+    virtual std::string print_expr(Expr);
 
     /** Like print_expr, but cast the Expr to the given Type */
     std::string print_cast_expr(const Type &, Expr);

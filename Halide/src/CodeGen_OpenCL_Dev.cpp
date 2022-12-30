@@ -217,6 +217,241 @@ string simt_intrinsic(const string &name) {
 }
 }  // namespace
 
+string CodeGen_OpenCL_Dev::CodeGen_OpenCL_C::print_expr(Expr e) {
+    id = "$$ BAD ID $$";
+    e.accept(this);
+    if (this->clean_code) {
+        for (const auto &p : cache) {
+            if (p.second == id) {
+                return p.first;
+            }
+        }
+        // The expression might be a constant, for example, and thus no intermediate variable is used.
+    }
+    return id;
+}
+
+string CodeGen_OpenCL_Dev::CodeGen_OpenCL_C::print_assignment(Type t, const std::string &rhs) {
+    auto cached = cache.find(rhs);
+    if (cached == cache.end()) {
+        id = unique_name('_');
+        if (!this->clean_code) {
+            stream << get_indent() << print_type(t, AppendSpace) << (output_kind == CPlusPlusImplementation ? "const " : "") << id << " = " << rhs << ";\n";
+        }
+        cache[rhs] = id;
+    } else {
+        id = cached->second;
+    }
+    if (this->clean_code) {
+        return rhs;
+    } else {
+        return id;
+    }
+}
+
+void CodeGen_OpenCL_Dev::CodeGen_OpenCL_C::close_scope(const std::string &comment) {
+    cache.clear();
+    indent--;
+    stream << get_indent();
+    if (!this->clean_code && !comment.empty()) {
+        stream << "} // " << comment << "\n";
+    } else {
+        stream << "}\n";
+    }
+}
+
+int CodeGen_OpenCL_Dev::CodeGen_OpenCL_C::precedence_of_op(const char *op) {
+    // Per https://en.cppreference.com/w/c/language/operator_precedence
+    if (strcmp(op, "!") == 0 || strcmp(op, "~") == 0) {
+        return 2;
+    }
+    if (strcmp(op, "*") == 0 || strcmp(op, "/") == 0 || strcmp(op, "%") == 0) {
+        return 3;
+    }
+    if (strcmp(op, "+") == 0 || strcmp(op, "-") == 0) {
+        return 4;
+    }
+    if (strcmp(op, "<<") == 0 || strcmp(op, ">>") == 0) {
+        return 5;
+    }
+    if (strcmp(op, "<") == 0 || strcmp(op, "<=") == 0 || strcmp(op, ">") == 0 || strcmp(op, ">=") == 0) {
+        return 6;
+    }
+    if (strcmp(op, "==") == 0 || strcmp(op, "!=") == 0) {
+        return 7;
+    }
+    if (strcmp(op, "&") == 0) {
+        return 8;
+    }
+    if (strcmp(op, "^") == 0) {
+        return 9;
+    }
+    if (strcmp(op, "|") == 0) {
+        return 10;
+    }
+    if (strcmp(op, "&&") == 0) {
+        return 11;
+    }
+    if (strcmp(op, "||") == 0) {
+        return 12;
+    }
+    if (strcmp(op, "?:") == 0) {
+        return 13;
+    }
+
+    internal_assert(strcmp(op, "Variable") == 0 || strcmp(op, "Immediate") == 0 || strcmp(op, "Call") == 0);
+    return 1;
+}
+
+void CodeGen_OpenCL_Dev::CodeGen_OpenCL_C::op_of_expr(const Expr & e, char * op) {
+    internal_assert(op != NULL);
+    if (e.as<Variable>()) {
+        strncpy(op, "Variable", 15);
+    } else if (e.as<IntImm>() || e.as<UIntImm>() || e.as<StringImm>() ||e.as<FloatImm>()) {
+        strncpy(op, "Immediate", 15);
+    } else if (e.as<Cast>() || e.as<Max>() || e.as<Min>()) {
+        strncpy(op, "Call", 15);
+    } else if (e.as<Add>()) {
+        strncpy(op, "+", 15);
+    } else if (e.as<Sub>()) {
+        strncpy(op, "-", 15);
+    } else if (e.as<Mul>()) {
+        strncpy(op, "*", 15);
+    } else if (e.as<Div>()) {
+        strncpy(op, "/", 15);
+    } else if (e.as<Mod>()) {
+        strncpy(op, "%", 15);
+    } else if (e.as<EQ>()) {
+        strncpy(op, "==", 15);
+    } else if (e.as<NE>()) {
+        strncpy(op, "!=", 15);
+    } else if (e.as<LT>()) {
+        strncpy(op, "<", 15);
+    } else if (e.as<LE>()) {
+        strncpy(op, "<=", 15);
+    } else if (e.as<GT>()) {
+        strncpy(op, ">", 15);
+    } else if (e.as<GE>()) {
+        strncpy(op, ">=", 15);
+    } else if (e.as<And>()) {
+        strncpy(op, "&&", 15);
+    } else if (e.as<Or>()) {
+        strncpy(op, "||", 15);
+    } else if (e.as<Not>()) {
+        strncpy(op, "!", 15);
+    } else if (e.as<Select>()) {
+        strncpy(op, "?:", 15);
+    } else {
+        const Call *call = e.as<Call>();
+        if (call) {
+            if (call->name == "bitwise_and") {
+                strncpy(op, "&", 15);
+            } else if (call->name == "bitwise_not") {
+                strncpy(op, "~", 15);
+            } else if (call->name == "bitwise_or") {
+                strncpy(op, "|", 15);
+            } else if (call->name == "bitwise_xor") {
+                strncpy(op, "^", 15);
+            } else if (call->name == "shift_left") {
+                strncpy(op, "<<", 15);
+            } else if (call->name == "shift_right") {
+                strncpy(op, ">>", 15);
+            } else {
+                strncpy(op, "Call", 15);
+            }
+        } else {
+            // All the other types of expressions will be generatd as function calls.
+            strncpy(op, "Call", 15);
+        }
+    }
+}
+
+bool CodeGen_OpenCL_Dev::CodeGen_OpenCL_C::op_takes_precedent(const char *op, const Expr &e) {
+    char e_op[20];
+    if (e.as<Div>()) {
+        // Div can be generated as >>, +/-, or /. Use the one with the lowest precedence, i.e. >>
+        e_op[0] = '>'; e_op[1] = '>'; e_op[2] = '\0';
+    } else if (e.as<Mod>()) {
+        // Mod can be generated as &, +/-, fmod(), or %. Use the one with the lowest precedence, i.e. &
+        e_op[0] = '&'; e_op[1] = '\0';
+    } else {
+        op_of_expr(e, e_op);
+    }
+    return (precedence_of_op(op) < precedence_of_op(e_op));
+}
+
+void CodeGen_OpenCL_Dev::CodeGen_OpenCL_C::visit_for_helper(const For *op) {
+    if (!ends_with(op->name, ".run_on_device")) {
+        string id_min = print_expr(op->min);
+        string id_ub = print_expr(simplify(op->min + op->extent));
+
+        if (op->for_type == ForType::Parallel) {
+            stream << get_indent() << "#pragma omp parallel for\n";
+        } else {
+            internal_assert(op->for_type == ForType::Serial ||
+                            op->for_type == ForType::PragmaUnrolled ||
+                            op->for_type == ForType::Unrolled)
+                << "Can only emit serial or parallel for loops to C\n";
+        }
+
+        stream << get_indent() << "for (int "
+            << print_name(op->name)
+            << " = " << id_min
+            << "; "
+            << print_name(op->name)
+            << " < " << id_ub
+            << "; "
+            << print_name(op->name)
+            << (this->clean_code ? (string)"++) " : (string)"++)\n");
+
+        open_scope();
+        op->body.accept(this);
+        close_scope("for " + print_name(op->name));
+    } else if (!ends_with(op->name, ".autorun.run_on_device")) {
+        // Only set args for non-autorun kernels
+        debug(2) << "Set kernel args: " << op->name << "\n";
+        debug(4) << op->body << "\n";
+
+        // compute a closure over the state passed into the kernel
+        HostClosure c(op->body, op->name);
+
+        // Determine the arguments that must be passed into the halide function
+        vector<DeviceArgument> closure_args = c.arguments();
+
+        // Sort the args by the size of the underlying type. This is
+        // helpful for avoiding struct-packing ambiguities in metal,
+        // which passes the scalar args as a struct.
+        std::sort(closure_args.begin(), closure_args.end(),
+                  [](const DeviceArgument &a, const DeviceArgument &b) {
+                      if (a.is_buffer != b.is_buffer) {
+                          return a.is_buffer < b.is_buffer;
+                      } else if (a.type == b.type) {
+                          return a.type.bits() > b.type.bits();
+                      } else {
+                          return a.type.is_float() < b.type.is_float();
+                      }
+                  });
+
+        for (size_t i = 0; i < closure_args.size(); i++) {
+            auto &arg = closure_args[i];
+            stream << get_indent() << "status = clSetKernelArg("
+                   << "kernel[current_kernel], "
+                   << i << ", ";
+            if (arg.is_buffer) {
+                stream << "sizeof(cl_mem), "
+                       << "(void *)&((device_handle *)_halide_buffer_get_device(" << print_name(arg.name + ".buffer") << "))->mem";
+            } else {
+                stream << "sizeof(" << print_type(arg.type) << "), "
+                       << "(void *)&" << print_name(arg.name);
+            }
+            stream << ");\n"
+                   << get_indent() << "CHECK(status);\n";
+        }
+
+        stream << get_indent() << "current_kernel++;\n\n";
+    }
+}
+
 void CodeGen_OpenCL_Dev::CodeGen_OpenCL_C::visit(const For *loop) {
     if (is_gpu_var(loop->name)) {
         internal_assert((loop->for_type == ForType::GPUBlock) ||
@@ -246,7 +481,7 @@ void CodeGen_OpenCL_Dev::CodeGen_OpenCL_C::visit(const For *loop) {
         }
         loop->body.accept(this);
     } else if(ends_with(loop->name, ".infinite")){
-        stream << get_indent() << "while(1)\n";
+        stream << get_indent() << (this->clean_code ? (string)"while(1) " : (string)"while(1)\n");
         open_scope();
         loop->body.accept(this);
         close_scope("while "+print_name(loop->name));
@@ -270,7 +505,7 @@ void CodeGen_OpenCL_Dev::CodeGen_OpenCL_C::visit(const For *loop) {
         }
     } else if (loop->for_type == ForType::PragmaUnrolled) {
         stream << get_indent() << "#pragma unroll\n";
-        CodeGen_C::visit(loop);
+        visit_for_helper(loop);
     } else {
         /*
         If not explicitly define a env variable(DELAYUNROLL or PRAGMAUNROLL), the unrolling strategy will be automatically
@@ -323,10 +558,10 @@ void CodeGen_OpenCL_Dev::CodeGen_OpenCL_C::visit(const For *loop) {
                 }
             } else {
                 stream << get_indent() << "#pragma unroll\n";
-                CodeGen_C::visit(loop);
+                visit_for_helper(loop);
             }
         } else {
-            CodeGen_C::visit(loop);
+            visit_for_helper(loop);
         }
     }
 }
@@ -1445,7 +1680,13 @@ void CodeGen_OpenCL_Dev::CodeGen_OpenCL_C::visit_binop(Type t, Expr a, Expr b, c
     string sa = print_expr(a);
     string sb = print_expr(b);
     if (is_standard_opencl_type(t) && is_standard_opencl_type(a.type())) {
-        print_assignment(t, sa + " " + op + " " + sb);
+        if (this->clean_code) {
+            string sa1 = op_takes_precedent(op, a) ? "(" + sa + ")" : sa;
+            string sb1 = op_takes_precedent(op, b) ? "(" + sb + ")" : sb;
+            print_assignment(t, sa1 + " " + op + " " + sb1);
+        } else {
+            print_assignment(t, sa + " " + op + " " + sb);
+        }
     } else {
         // Output something like bool16 x = {a.s0 op b.s0, a.s1 op b.s0, ...}
         internal_assert(t.is_vector() && a.type().is_vector() && t.lanes() == a.type().lanes());
@@ -1506,6 +1747,23 @@ void CodeGen_OpenCL_Dev::CodeGen_OpenCL_C::visit(const Cast *op) {
 }
 
 void CodeGen_OpenCL_Dev::CodeGen_OpenCL_C::visit(const Select *op) {
+    if (this->clean_code && op->false_value.defined()) {
+        string cond_id = print_expr(op->condition);
+        string true_value = print_expr(op->true_value);
+        string false_value = print_expr(op->false_value);
+
+        char select_op[3];
+        select_op[0] = '?';
+        select_op[1] = ':';
+        select_op[2] = '\0';
+
+        string cond_id1 = op_takes_precedent(select_op, op->condition) ? "(" + cond_id + ")" : cond_id;
+        string true_value1 = op_takes_precedent(select_op, op->true_value) ? "(" + true_value + ")" : true_value;
+        string false_value1 = op_takes_precedent(select_op, op->false_value) ? "(" + false_value + ")" : false_value;
+        print_assignment(op->type,  cond_id1 + " ? " + true_value1 + " : " + false_value1);
+        return;
+    }
+
     // The branch(es) might contain actions with side effects like a channel read.
     // Thus we must guard the branch(es).
     // So first convert to if_then_else.
@@ -1518,7 +1776,7 @@ void CodeGen_OpenCL_Dev::CodeGen_OpenCL_C::visit(const Select *op) {
 
 void CodeGen_OpenCL_Dev::CodeGen_OpenCL_C::visit(const IfThenElse *op) {
     string cond_id = print_expr(op->condition);
-    stream << get_indent() << "if (" << cond_id << ")\n";
+    stream << get_indent() << "if (" << cond_id << (this->clean_code ? (string)") " : (string)")\n");
     open_scope();
     op->then_case.accept(this);
     close_scope("if " + cond_id);
@@ -1595,6 +1853,23 @@ void CodeGen_OpenCL_Dev::CodeGen_OpenCL_C::visit(const Free *op) {
 
 void CodeGen_OpenCL_Dev::CodeGen_OpenCL_C::visit(const AssertStmt *op) {
     user_warning << "Ignoring assertion inside OpenCL kernel: " << op->condition << "\n";
+}
+
+void CodeGen_OpenCL_Dev::CodeGen_OpenCL_C::visit(const Evaluate *op) {
+    if (is_const(op->value)) return;
+    // Skip the evaluation of some intrinsics
+    bool skip_eval = false;
+    if (auto call = op->value.as<Call>()) {
+        if (call->is_intrinsic(Call::overlay) || call->is_intrinsic(Call::overlay_switch) || call->is_intrinsic(Call::annotate) ||  call->is_intrinsic(Call::write_array) ||
+            call->is_intrinsic(Call::write_channel) || call->is_intrinsic(Call::write_channel_nb) || call->is_intrinsic(Call::write_mem_channel) ||
+            call->is_intrinsic(Call::write_shift_reg) || call->is_intrinsic(Call::read_channel)) {
+            skip_eval = true;
+        }
+    }
+    string id = print_expr(op->value);
+    if (!skip_eval) {
+        stream << get_indent() << "(void)" << id << ";\n";
+    }
 }
 
 void CodeGen_OpenCL_Dev::CodeGen_OpenCL_C::visit(const Shuffle *op) {
