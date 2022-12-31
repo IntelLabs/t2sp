@@ -75,6 +75,10 @@ protected:
     /** A cache of generated values in scope */
     std::map<std::string, std::string> cache;
 
+    /** If clean_code is true, any Expr will be printed as a single string without any intermediate assignment; otherwise, it is decomposed into
+    *   sub-expressions and every sub-expression is printed as a string. */
+    bool clean_code;
+
     /** Emit an expression as an assignment, then return the id of the
      * resulting var */
     virtual std::string print_expr(Expr);

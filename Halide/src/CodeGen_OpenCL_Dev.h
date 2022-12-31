@@ -58,6 +58,7 @@ protected:
     public:
         CodeGen_OpenCL_C(std::ostream &s, Target t)
             : CodeGen_C(s, t) {
+        	this->clean_code = (getenv("CLEANCODE") != NULL);
         }
         void add_kernel(Stmt stmt,
                         const std::string &name,
@@ -161,12 +162,8 @@ protected:
         // For saving the pointer args streamed from scehduler
         std::map<std::string, std::string> pointer_args;
 
-        /** If clean_code is true, any Expr will be printed as a single string without any intermediate assignment; otherwise, it is decomposed into
-        *   sub-expressions and every sub-expression is printed as a string. */
-        bool clean_code;
-
-        std::string print_expr(Expr) override;
-        std::string print_assignment(Type t, const std::string &rhs) override;
+        //std::string print_expr(Expr) override;
+        //std::string print_assignment(Type t, const std::string &rhs) override;
         void close_scope(const std::string &comment) override;
 
         /** Precedence of the operator according to the C standard */

@@ -217,6 +217,7 @@ string simt_intrinsic(const string &name) {
 }
 }  // namespace
 
+/*
 string CodeGen_OpenCL_Dev::CodeGen_OpenCL_C::print_expr(Expr e) {
     id = "$$ BAD ID $$";
     e.accept(this);
@@ -248,6 +249,7 @@ string CodeGen_OpenCL_Dev::CodeGen_OpenCL_C::print_assignment(Type t, const std:
         return id;
     }
 }
+*/
 
 void CodeGen_OpenCL_Dev::CodeGen_OpenCL_C::close_scope(const std::string &comment) {
     cache.clear();
@@ -1124,7 +1126,7 @@ void CodeGen_OpenCL_Dev::CodeGen_OpenCL_C::visit(const Call *op) {
             values.push_back(print_expr(op->args[i]));
         }
         ostringstream rhs;
-        rhs << "{";
+        rhs << "(" << print_type(op->type) << ") {";
         for (size_t i = 0; i < op->args.size(); i++) {
             rhs << get_indent() << values[i];
             if (i < op->args.size() - 1) rhs << ", ";
@@ -1982,12 +1984,16 @@ void CodeGen_OpenCL_Dev::CodeGen_OpenCL_C::visit(const Shuffle *op) {
 }
 
 void CodeGen_OpenCL_Dev::CodeGen_OpenCL_C::visit(const Max *op) {
-    print_expr(Call::make(op->type, "max", {op->a, op->b}, Call::Extern));
+    ostringstream rhs;
+    rhs << "max(" << print_expr(op->a) << ", " << print_expr(op->b) << ")";
+    print_assignment(op->type, rhs.str());
+
 }
 
 void CodeGen_OpenCL_Dev::CodeGen_OpenCL_C::visit(const Min *op) {
-    print_expr(Call::make(op->type, "min", {op->a, op->b}, Call::Extern));
-}
+    ostringstream rhs;
+    rhs << "min(" << print_expr(op->a) << ", " << print_expr(op->b) << ")";
+    print_assignment(op->type, rhs.str());}
 
 void CodeGen_OpenCL_Dev::CodeGen_OpenCL_C::visit(const Atomic *op) {
     // Most GPUs require all the threads in a warp to perform the same operations,

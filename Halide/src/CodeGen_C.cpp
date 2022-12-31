@@ -317,7 +317,7 @@ public:
 };
 
 CodeGen_C::CodeGen_C(ostream &s, Target t, OutputKind output_kind, const std::string &guard)
-    : IRPrinter(s), id("$$ BAD ID $$"), target(t), output_kind(output_kind),
+    : IRPrinter(s), id("$$ BAD ID $$"), target(t), output_kind(output_kind), clean_code(false),
       extern_c_open(false), inside_atomic_mutex_node(false), emit_atomic_stores(false) {
 
     if (is_host_interface()) {
@@ -1915,10 +1915,44 @@ void CodeGen_C::compile(const Buffer<> &buffer) {
     stream << "static halide_buffer_t * const " << name << "_buffer = &" << name << "_buffer_;\n";
 }
 
+/*
 string CodeGen_C::print_expr(Expr e) {
     id = "$$ BAD ID $$";
     e.accept(this);
     return id;
+}
+*/
+
+string CodeGen_C::print_expr(Expr e) {
+    id = "$$ BAD ID $$";
+    e.accept(this);
+    if (this->clean_code) {
+        for (const auto &p : cache) {
+            if (p.second == id) {
+                return p.first;
+            }
+        }
+        // The expression might be a constant, for example, and thus no intermediate variable is used.
+    }
+    return id;
+}
+
+string CodeGen_C::print_assignment(Type t, const std::string &rhs) {
+    auto cached = cache.find(rhs);
+    if (cached == cache.end()) {
+        id = unique_name('_');
+        if (!this->clean_code) {
+            stream << get_indent() << print_type(t, AppendSpace) << (output_kind == CPlusPlusImplementation ? "const " : "") << id << " = " << rhs << ";\n";
+        }
+        cache[rhs] = id;
+    } else {
+        id = cached->second;
+    }
+    if (this->clean_code) {
+        return rhs;
+    } else {
+        return id;
+    }
 }
 
 string CodeGen_C::print_cast_expr(const Type &t, Expr e) {
@@ -1933,10 +1967,12 @@ string CodeGen_C::print_cast_expr(const Type &t, Expr e) {
     }
 }
 
+
 void CodeGen_C::print_stmt(Stmt s) {
     s.accept(this);
 }
 
+/*
 string CodeGen_C::print_assignment(Type t, const std::string &rhs) {
     auto cached = cache.find(rhs);
     if (cached == cache.end()) {
@@ -1948,6 +1984,7 @@ string CodeGen_C::print_assignment(Type t, const std::string &rhs) {
     }
     return id;
 }
+*/
 
 void CodeGen_C::open_scope() {
     cache.clear();
@@ -2641,6 +2678,11 @@ void CodeGen_C::visit(const Select *op) {
 
 void CodeGen_C::visit(const LetStmt *op) {
     string id_value = print_expr(op->value);
+    if (this->clean_code) {
+    	// The value returned from the above print_expr is not an intermediate variable, but the RHS of the let stmt.
+    	// However, since the RHS may be used multiple times, we must need the intermediate variable, which is cached.
+    	id_value = cache[id_value];
+    }
     Stmt body = op->body;
     if (op->value.type().is_handle()) {
         // The body might contain a Load or Store that references this
