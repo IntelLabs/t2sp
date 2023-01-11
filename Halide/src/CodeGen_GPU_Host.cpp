@@ -122,8 +122,13 @@ CodeGen_GPU_Host<CodeGen_CPU>::CodeGen_GPU_Host(Target target)
         cgdev[DeviceAPI::CM] = new CodeGen_CM_Dev(target);
     }
     if (target.has_feature(Target::OpenCL)) {
-        debug(1) << "Constructing OpenCL device codegen\n";
-        cgdev[DeviceAPI::OpenCL] = new CodeGen_OpenCL_Dev(target);
+        if (getenv("CLEARCODE") != NULL) {
+            debug(1) << "Constructing clear OpenCL device codegen\n";
+            cgdev[DeviceAPI::OpenCL] = new CodeGen_Clear_OpenCL_Dev(target);
+        } else {
+            debug(1) << "Constructing OpenCL device codegen\n";
+            cgdev[DeviceAPI::OpenCL] = new CodeGen_OpenCL_Dev(target);
+        }
     }
     if (target.has_feature(Target::OneAPI)) {
         debug(1) << "Constructing OneAPI device codegen\n";
