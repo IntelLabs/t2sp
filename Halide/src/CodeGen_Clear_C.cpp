@@ -2030,12 +2030,6 @@ bool CodeGen_Clear_C::op_takes_precedent(const char *op, const Expr &e) {
 string CodeGen_Clear_C::print_expr(Expr e) {
     id = "$$ BAD ID $$";
     e.accept(this);
-    for (const auto &p : cache) {
-        if (p.second == id) {
-            return p.first;
-        }
-    }
-    // The expression might be a constant, for example, and thus no intermediate variable is used.
     return id;
 }
 
@@ -2056,23 +2050,17 @@ void CodeGen_Clear_C::print_stmt(Stmt s) {
 }
 
 string CodeGen_Clear_C::print_assignment(Type t, const std::string &rhs) {
-    auto cached = cache.find(rhs);
-    if (cached == cache.end()) {
-        id = unique_name('_');
-        cache[rhs] = id;
-    }
+	// Type conversion must have been done before calling this function
     return rhs;
 }
 
 void CodeGen_Clear_C::open_scope() {
-    cache.clear();
     stream << get_indent();
     indent++;
     stream << "{\n";
 }
 
 void CodeGen_Clear_C::close_scope(const std::string &comment) {
-    cache.clear();
     indent--;
     stream << get_indent();
     stream << "}\n";
@@ -2089,7 +2077,9 @@ void CodeGen_Clear_C::visit(const Cast *op) {
 void CodeGen_Clear_C::visit_binop(Type t, Expr a, Expr b, const char *op) {
     string sa = print_expr(a);
     string sb = print_expr(b);
-    print_assignment(t, sa + " " + op + " " + sb);
+    string sa1 = op_takes_precedent(op, a) ? "(" + sa + ")" : sa;
+    string sb1 = op_takes_precedent(op, b) ? "(" + sb + ")" : sb;
+    print_assignment(t, sa1 + " " + op + " " + sb1);
 }
 
 void CodeGen_Clear_C::visit(const Add *op) {
@@ -2105,33 +2095,11 @@ void CodeGen_Clear_C::visit(const Mul *op) {
 }
 
 void CodeGen_Clear_C::visit(const Div *op) {
-    int bits;
-    char* ediv = getenv("EUCLIDEAN_DIVISION");
-    if (is_const_power_of_two_integer(op->b, &bits)) {
-        visit_binop(op->type, op->a, make_const(op->a.type(), bits), ">>");
-    } else if (ediv && op->type.is_int()) {
-        print_expr(lower_euclidean_div(op->a, op->b));
-    } else {
-        visit_binop(op->type, op->a, op->b, "/");
-    }
+	visit_binop(op->type, op->a, op->b, "/");
 }
 
 void CodeGen_Clear_C::visit(const Mod *op) {
-    int bits;
-    char* ediv = getenv("EUCLIDEAN_DIVISION");
-    if (is_const_power_of_two_integer(op->b, &bits)) {
-        visit_binop(op->type, op->a, make_const(op->a.type(), (1 << bits) - 1), "&");
-    } else if (ediv && op->type.is_int()) {
-        print_expr(lower_euclidean_mod(op->a, op->b));
-    } else if (op->type.is_float()) {
-        string arg0 = print_expr(op->a);
-        string arg1 = print_expr(op->b);
-        ostringstream rhs;
-        rhs << "fmod(" << arg0 << ", " << arg1 << ")";
-        print_assignment(op->type, rhs.str());
-    } else {
-        visit_binop(op->type, op->a, op->b, "%");
-    }
+	visit_binop(op->type, op->a, op->b, "%");
 }
 
 void CodeGen_Clear_C::visit(const Max *op) {
@@ -2701,27 +2669,14 @@ void CodeGen_Clear_C::visit(const Store *op) {
         }
         stream << "[" << id_index << "] = " << id_value << ";\n";
     }
-    cache.clear();
 }
 
 void CodeGen_Clear_C::visit(const Let *op) {
-    string id_value = print_expr(op->value);
-    // The value returned from the above print_expr is not an intermediate variable, but the RHS of the let stmt.
-    // However, since the RHS may be used multiple times, we must need the intermediate variable, which is cached.
-    id_value = cache[id_value];
-
-    Expr body = op->body;
-    if (op->value.type().is_handle()) {
-        // The body might contain a Load that references this directly
-        // by name, so we can't rewrite the name.
-        stream << get_indent() << print_type(op->value.type())
-               << " " << print_name(op->name)
-               << " = " << id_value << ";\n";
-    } else {
-        Expr new_var = Variable::make(op->value.type(), id_value);
-        body = substitute(op->name, new_var, body);
-    }
-    print_expr(body);
+    string value = print_expr(op->value);
+	stream << get_indent() << print_type(op->value.type())
+		   << " " << print_name(op->name)
+		   << " = " << value << ";\n";
+    print_expr(op->body);
 }
 
 void CodeGen_Clear_C::visit(const Select *op) {

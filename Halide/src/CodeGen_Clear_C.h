@@ -72,9 +72,6 @@ protected:
      * definitions and whether the interface us extern "C" or C++. */
     OutputKind output_kind;
 
-    /** A cache of generated values in scope */
-    std::map<std::string, std::string> cache;
-
     /** Emit an expression as an assignment, then return the id of the
      * resulting var */
     std::string print_expr(Expr);

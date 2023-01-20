@@ -506,7 +506,7 @@ void CodeGen_Clear_OpenCL_Dev::CodeGen_OpenCL_C::visit(const Call *op) {
             type = print_name(channel_name + ".array.t");
         }
         string read_call = "read_channel_intel(" + print_name(channel_name) + string_channel_index + ")";
-        stream << get_indent() << type << " " << id << " = " << read_call << ";\n";
+        stream << read_call;
     } else if (op->is_intrinsic(Call::read_channel_nb)) {
         std::string string_channel_index;
         const StringImm *v = op->args[0].as<StringImm>();
@@ -799,12 +799,6 @@ void CodeGen_Clear_OpenCL_Dev::CodeGen_OpenCL_C::visit(const Call *op) {
                 }
             }
             std::string write_data = print_expr(op->args[op->args.size()-1]);
-
-            // After writing to a shift register, the original cached value is no longer valid.
-            auto cached = cache.find(rhs.str());
-            if (cached != cache.end()) {
-                cache.erase(cached);
-            }
             stream << get_indent() << rhs.str() << " = " << write_data << ";\n";
         } else {
             ostringstream rhs;
@@ -1221,20 +1215,11 @@ void CodeGen_Clear_OpenCL_Dev::CodeGen_OpenCL_C::visit(const Load *op) {
         rhs << print_name(op->name);
     }
     rhs << "[" << id_index << "]";
-
-    std::map<string, string>::iterator cached = cache.find(rhs.str());
-    if (cached != cache.end()) {
-        id = cached->second;
-        return;
-    }
-
     if (op->index.type().is_vector()) {
         // If index is a vector, gather vector elements.
         internal_assert(op->type.is_vector());
 
         id = "_" + unique_name('V');
-        cache[rhs.str()] = id;
-
         stream << get_indent() << print_type(op->type)
                << " " << id << ";\n";
 
@@ -1354,7 +1339,6 @@ void CodeGen_Clear_OpenCL_Dev::CodeGen_OpenCL_C::visit(const Store *op) {
                    << get_indent() << "}\n";
             indent -= 2;
         }
-        cache.clear();
         return;
     }
 
@@ -1418,8 +1402,6 @@ void CodeGen_Clear_OpenCL_Dev::CodeGen_OpenCL_C::visit(const Store *op) {
         stream << "[" << id_index << "] = "
                << id_value << ";\n";
     }
-
-    cache.clear();
 }
 
 namespace {
@@ -1445,7 +1427,7 @@ void CodeGen_Clear_OpenCL_Dev::CodeGen_OpenCL_C::visit_binop(Type t, Expr a, Exp
     string sa = print_expr(a);
     string sb = print_expr(b);
     if (is_standard_opencl_type(t) && is_standard_opencl_type(a.type())) {
-        print_assignment(t, sa + " " + op + " " + sb);
+    	parent.visit_binop(t, a, b, op);
     } else {
         // Output something like bool16 x = {a.s0 op b.s0, a.s1 op b.s0, ...}
         internal_assert(t.is_vector() && a.type().is_vector() && t.lanes() == a.type().lanes());
@@ -1506,6 +1488,23 @@ void CodeGen_Clear_OpenCL_Dev::CodeGen_OpenCL_C::visit(const Cast *op) {
 }
 
 void CodeGen_Clear_OpenCL_Dev::CodeGen_OpenCL_C::visit(const Select *op) {
+    if (op->false_value.defined()) {
+        string cond_id = print_expr(op->condition);
+        string true_value = print_expr(op->true_value);
+        string false_value = print_expr(op->false_value);
+
+        char select_op[3];
+        select_op[0] = '?';
+        select_op[1] = ':';
+        select_op[2] = '\0';
+
+        string cond_id1 = op_takes_precedent(select_op, op->condition) ? "(" + cond_id + ")" : cond_id;
+        string true_value1 = op_takes_precedent(select_op, op->true_value) ? "(" + true_value + ")" : true_value;
+        string false_value1 = op_takes_precedent(select_op, op->false_value) ? "(" + false_value + ")" : false_value;
+        print_assignment(op->type,  cond_id1 + " ? " + true_value1 + " : " + false_value1);
+        return;
+    }
+
     // The branch(es) might contain actions with side effects like a channel read.
     // Thus we must guard the branch(es).
     // So first convert to if_then_else.
@@ -1514,6 +1513,8 @@ void CodeGen_Clear_OpenCL_Dev::CodeGen_OpenCL_C::visit(const Select *op) {
         << "Please do not perform vectorization if the value of a URE depends on the incoming data.\n";
     Expr c = Call::make(op->type, Call::if_then_else, {op->condition, op->true_value, op->false_value}, Call::PureIntrinsic);
     c.accept(this);
+
+
 }
 
 void CodeGen_Clear_OpenCL_Dev::CodeGen_OpenCL_C::visit(const IfThenElse *op) {
@@ -1707,11 +1708,15 @@ void CodeGen_Clear_OpenCL_Dev::CodeGen_OpenCL_C::visit(const Shuffle *op) {
 }
 
 void CodeGen_Clear_OpenCL_Dev::CodeGen_OpenCL_C::visit(const Max *op) {
-    print_expr(Call::make(op->type, "max", {op->a, op->b}, Call::Extern));
+    ostringstream rhs;
+    rhs << "max(" << print_expr(op->a) << ", " << print_expr(op->b) << ")";
+    print_assignment(op->type, rhs.str());
 }
 
 void CodeGen_Clear_OpenCL_Dev::CodeGen_OpenCL_C::visit(const Min *op) {
-    print_expr(Call::make(op->type, "min", {op->a, op->b}, Call::Extern));
+    ostringstream rhs;
+    rhs << "min(" << print_expr(op->a) << ", " << print_expr(op->b) << ")";
+    print_assignment(op->type, rhs.str());
 }
 
 void CodeGen_Clear_OpenCL_Dev::CodeGen_OpenCL_C::visit(const Atomic *op) {
@@ -2675,7 +2680,6 @@ void CodeGen_Clear_OpenCL_Dev::CodeGen_OpenCL_C::visit(const Provide *op){
             stream << "]";
         }
         stream << " = " << id_value << ";\n";
-        cache.clear();
     } else if (ends_with(op->name, ".temp")) {
         internal_assert(op->values.size() == 1);
         string id_value = print_expr(op->values[0]);
@@ -2693,7 +2697,6 @@ void CodeGen_Clear_OpenCL_Dev::CodeGen_OpenCL_C::visit(const Provide *op){
         }
         stream << " = " << id_value ;
         stream<< ";\n";
-        cache.clear();
     }else if(ends_with(op->name,".break")){
         stream<<"break;\n";
     }
