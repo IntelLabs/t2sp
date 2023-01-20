@@ -1,5 +1,5 @@
-#ifndef HALIDE_CODEGEN_C_H
-#define HALIDE_CODEGEN_C_H
+#ifndef HALIDE_CODEGEN_CLEAR_C_H
+#define HALIDE_CODEGEN_CLEAR_C_H
 
 /** \file
  *
@@ -21,7 +21,7 @@ namespace Internal {
  * definition, and some things are handled differently to be valid
  * C++.
  */
-class CodeGen_C : public IRPrinter {
+class CodeGen_Clear_C : public IRPrinter {
 public:
     enum OutputKind {
         CHeader,
@@ -36,11 +36,11 @@ public:
 
     /** Initialize a C code generator pointing at a particular output
      * stream (e.g. a file, or std::cout) */
-    CodeGen_C(std::ostream &dest,
+    CodeGen_Clear_C(std::ostream &dest,
               Target target,
               OutputKind output_kind = CImplementation,
               const std::string &include_guard = "");
-    ~CodeGen_C() override;
+    ~CodeGen_Clear_C() override;
 
     /** Emit the declarations contained in the module as C code. */
     void compile(const Module &module);
@@ -185,6 +185,17 @@ protected:
     void forward_declare_type_if_needed(const Type &t);
 
     void set_name_mangling_mode(NameMangling mode);
+
+    /** Precedence of the operator according to the C standard */
+    int precedence_of_op(const char *op);
+
+    /** The operator of the expression in C */
+    void op_of_expr(const Expr & e, char * op);
+
+    /** If the op takes precedent over the operator of the expression e?
+     *  This is used to determine if a parenthesis should be generated around e.
+     */
+    bool op_takes_precedent(const char *op, const Expr &e);
 
     using IRPrinter::visit;
 

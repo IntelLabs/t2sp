@@ -24,141 +24,11 @@ using std::sort;
 using std::string;
 using std::vector;
 
-
-CodeGen_Clear_OpenCL_Dev::CodeGen_Clear_OpenCL_Dev(ostream &s, Target t, OutputKind output_kind, const std::string &guard)
-    : IRPrinter(s), id("$$ BAD ID $$"), target(t), output_kind(output_kind) {
-
-    if (is_host_interface()) {
-        if (is_header()) {
-            stream << "#ifndef HALIDE_" << print_name(guard) << '\n'
-                   << "#define HALIDE_" << print_name(guard) << '\n';
-            stream << "#include \"AOT-OpenCL-Runtime.h\"" << '\n';
-        } else {
-            stream << "#include \"" << guard << "\"" << '\n';
-        }
-
-    } else {
-        if (is_header()) {
-            // If it's a header, emit an include guard.
-            stream << "#ifndef HALIDE_" << print_name(guard) << '\n'
-                   << "#define HALIDE_" << print_name(guard) << '\n'
-                   << "#include <stdint.h>\n"
-                   << "\n"
-                   << "// Forward declarations of the types used in the interface\n"
-                   << "// to the Halide pipeline.\n"
-                   << "//\n";
-            if (target.has_feature(Target::NoRuntime)) {
-                stream << "// For the definitions of these structs, include HalideRuntime.h\n";
-            } else {
-                stream << "// Definitions for these structs are below.\n";
-            }
-            stream << "\n"
-                   << "// Halide's representation of a multi-dimensional array.\n"
-                   << "// Halide::Runtime::Buffer is a more user-friendly wrapper\n"
-                   << "// around this. Its declaration is in HalideBuffer.h\n"
-                   << "struct halide_buffer_t;\n"
-                   << "\n"
-                   << "// Metadata describing the arguments to the generated function.\n"
-                   << "// Used to construct calls to the _argv version of the function.\n"
-                   << "struct halide_filter_metadata_t;\n"
-                   << "\n";
-            // We just forward declared the following types:
-            forward_declared.insert(type_of<halide_buffer_t *>().handle_type);
-            forward_declared.insert(type_of<halide_filter_metadata_t *>().handle_type);
-            if (t.has_feature(Target::LegacyBufferWrappers)) {
-                stream << "// The legacy buffer type. Do not use in new code.\n"
-                       << "struct buffer_t;\n"
-                       << "\n";
-                forward_declared.insert(type_of<buffer_t *>().handle_type);
-            }
-        } else if (is_extern_decl()) {
-            // Extern decls to be wrapped inside other code (eg python extensions);
-            // emit the forward decls with a minimum of noise. Note that we never
-            // mess with legacy buffer types in this case.
-            stream << "struct halide_buffer_t;\n"
-                   << "struct halide_filter_metadata_t;\n"
-                   << "\n";
-            forward_declared.insert(type_of<halide_buffer_t *>().handle_type);
-            forward_declared.insert(type_of<halide_filter_metadata_t *>().handle_type);
-        } else {
-            // Include declarations of everything generated C source might want
-            stream
-                << headers
-                << globals
-                << halide_internal_runtime_header_HalideRuntime_h << '\n'
-                << halide_internal_initmod_inlined_c << '\n';
-            add_common_macros(stream);
-            stream << '\n';
-        }
-        stream << kDefineMustUseResult << '\n';
-
-        // Throw in a default (empty) definition of HALIDE_FUNCTION_ATTRS
-        // (some hosts may define this to e.g. __attribute__((warn_unused_result)))
-        stream << "#ifndef HALIDE_FUNCTION_ATTRS\n";
-        stream << "#define HALIDE_FUNCTION_ATTRS\n";
-        stream << "#endif\n";
-    }
+CodeGen_Clear_OpenCL_Dev::CodeGen_Clear_OpenCL_Dev(Target t)
+    : clc(src_stream, t) {
 }
 
-CodeGen_Clear_OpenCL_Dev::~CodeGen_Clear_OpenCL_Dev() {
-    set_name_mangling_mode(NameMangling::Default);
-
-    if (is_header()) {
-        if (!target.has_feature(Target::NoRuntime) && !is_host_interface()) {
-            stream << "\n"
-                   << "// The generated object file that goes with this header\n"
-                   << "// includes a full copy of the Halide runtime so that it\n"
-                   << "// can be used standalone. Declarations for the functions\n"
-                   << "// in the Halide runtime are below.\n";
-            if (target.os == Target::Windows) {
-                stream
-                    << "//\n"
-                    << "// The inclusion of this runtime means that it is not legal\n"
-                    << "// to link multiple Halide-generated object files together.\n"
-                    << "// This problem is Windows-specific. On other platforms, we\n"
-                    << "// use weak linkage.\n";
-            } else {
-                stream
-                    << "//\n"
-                    << "// The runtime is defined using weak linkage, so it is legal\n"
-                    << "// to link multiple Halide-generated object files together,\n"
-                    << "// or to clobber any of these functions with your own\n"
-                    << "// definition.\n";
-            }
-            stream << "//\n"
-                   << "// To generate an object file without a full copy of the\n"
-                   << "// runtime, use the -no_runtime target flag. To generate a\n"
-                   << "// standalone Halide runtime to use with such object files\n"
-                   << "// use the -r flag with any Halide generator binary, e.g.:\n"
-                   << "// $ ./my_generator -r halide_runtime -o . target=host\n"
-                   << "\n"
-                   << halide_internal_runtime_header_HalideRuntime_h << '\n';
-            internal_assert(target.has_feature(Target::OpenCL));
-            stream << halide_internal_runtime_header_HalideRuntimeOpenCL_h << '\n';
-        }
-        stream << "#endif\n";
-    }
-}
-
-void CodeGen_Clear_OpenCL_Dev::CodeGen_Clear_OpenCL_C::add_common_macros(std::ostream &dest) {
-    const char *macros = R"INLINE_CODE(
-// ll suffix in OpenCL is reserved for 128-bit integers.
-#if defined __OPENCL_VERSION__
-#define ADD_INT64_T_SUFFIX(x) x##l
-#define ADD_UINT64_T_SUFFIX(x) x##ul
-// HLSL doesn't have any suffixes.
-#elif defined HLSL_VERSION
-#define ADD_INT64_T_SUFFIX(x) x
-#define ADD_UINT64_T_SUFFIX(x) x
-#else
-#define ADD_INT64_T_SUFFIX(x) x##ll
-#define ADD_UINT64_T_SUFFIX(x) x##ull
-#endif
-)INLINE_CODE";
-    dest << macros;
-}
-
-std::string CodeGen_Clear_OpenCL_Dev::CodeGen_Clear_OpenCL_C::vector_index_to_string(int idx) {
+std::string CodeGen_Clear_OpenCL_Dev::CodeGen_OpenCL_C::vector_index_to_string(int idx) {
     std::ostringstream oss;
     if (idx >= 10 && idx < 16) {
         char c = idx - 10 + 'a';
@@ -169,7 +39,7 @@ std::string CodeGen_Clear_OpenCL_Dev::CodeGen_Clear_OpenCL_C::vector_index_to_st
     return std::move(oss.str());
 }
 
-bool CodeGen_Clear_OpenCL_Dev::CodeGen_Clear_OpenCL_C::is_standard_opencl_type(Type type) {
+bool CodeGen_Clear_OpenCL_Dev::CodeGen_OpenCL_C::is_standard_opencl_type(Type type) {
     int bits = type.bits();
     int lanes = type.lanes();
     bool standard_bits = false;
@@ -192,7 +62,7 @@ bool CodeGen_Clear_OpenCL_Dev::CodeGen_Clear_OpenCL_C::is_standard_opencl_type(T
     return standard_bits && standard_lanes;
 }
 
-string CodeGen_Clear_OpenCL_Dev::CodeGen_Clear_OpenCL_C::print_type(Type type, AppendSpaceIfNeeded space) {
+string CodeGen_Clear_OpenCL_Dev::CodeGen_OpenCL_C::print_type(Type type, AppendSpaceIfNeeded space) {
     ostringstream oss;
     if (type.is_generated_struct()) {
         int type_id = type.bits();
@@ -264,10 +134,10 @@ string CodeGen_Clear_OpenCL_Dev::CodeGen_Clear_OpenCL_C::print_type(Type type, A
 }
 
 // These are built-in types in OpenCL
-void CodeGen_Clear_OpenCL_Dev::CodeGen_Clear_OpenCL_C::add_vector_typedefs(const std::set<Type> &vector_types) {
+void CodeGen_Clear_OpenCL_Dev::CodeGen_OpenCL_C::add_vector_typedefs(const std::set<Type> &vector_types) {
 }
 
-Expr CodeGen_Clear_OpenCL_Dev::CodeGen_Clear_OpenCL_C::DefineVectorStructTypes::mutate(const Expr &op) {
+Expr CodeGen_Clear_OpenCL_Dev::CodeGen_OpenCL_C::DefineVectorStructTypes::mutate(const Expr &op) {
     Type type = op.type();
 
     if (type.lanes() > 1 && !parent->is_standard_opencl_type(type)) {
@@ -313,11 +183,11 @@ Expr CodeGen_Clear_OpenCL_Dev::CodeGen_Clear_OpenCL_C::DefineVectorStructTypes::
     return IRMutator::mutate(op);
 }
 
-Stmt CodeGen_Clear_OpenCL_Dev::CodeGen_Clear_OpenCL_C::DefineVectorStructTypes::mutate(const Stmt &op) {
+Stmt CodeGen_Clear_OpenCL_Dev::CodeGen_OpenCL_C::DefineVectorStructTypes::mutate(const Stmt &op) {
     return IRMutator::mutate(op);
 }
 
-string CodeGen_Clear_OpenCL_Dev::CodeGen_Clear_OpenCL_C::print_reinterpret(Type type, Expr e) {
+string CodeGen_Clear_OpenCL_Dev::CodeGen_OpenCL_C::print_reinterpret(Type type, Expr e) {
     ostringstream oss;
     oss << "as_" << print_type(type) << "(" << print_expr(e) << ")";
     return oss.str();
@@ -347,7 +217,7 @@ string simt_intrinsic(const string &name) {
 }
 }  // namespace
 
-void CodeGen_Clear_OpenCL_Dev::CodeGen_Clear_OpenCL_C::visit(const For *loop) {
+void CodeGen_Clear_OpenCL_Dev::CodeGen_OpenCL_C::visit(const For *loop) {
     if (is_gpu_var(loop->name)) {
         internal_assert((loop->for_type == ForType::GPUBlock) ||
                         (loop->for_type == ForType::GPUThread))
@@ -376,7 +246,7 @@ void CodeGen_Clear_OpenCL_Dev::CodeGen_Clear_OpenCL_C::visit(const For *loop) {
         }
         loop->body.accept(this);
     } else if(ends_with(loop->name, ".infinite")){
-        stream << get_indent() << "while(1)\n";
+        stream << get_indent() << "while(1) ";
         open_scope();
         loop->body.accept(this);
         close_scope("while "+print_name(loop->name));
@@ -400,7 +270,7 @@ void CodeGen_Clear_OpenCL_Dev::CodeGen_Clear_OpenCL_C::visit(const For *loop) {
         }
     } else if (loop->for_type == ForType::PragmaUnrolled) {
         stream << get_indent() << "#pragma unroll\n";
-        CodeGen_C::visit(loop);
+        CodeGen_Clear_C::visit(loop);
     } else {
         /*
         If not explicitly define a env variable(DELAYUNROLL or PRAGMAUNROLL), the unrolling strategy will be automatically
@@ -453,15 +323,15 @@ void CodeGen_Clear_OpenCL_Dev::CodeGen_Clear_OpenCL_C::visit(const For *loop) {
                 }
             } else {
                 stream << get_indent() << "#pragma unroll\n";
-                CodeGen_C::visit(loop);
+                CodeGen_Clear_C::visit(loop);
             }
         } else {
-            CodeGen_C::visit(loop);
+            CodeGen_Clear_C::visit(loop);
         }
     }
 }
 
-void CodeGen_Clear_OpenCL_Dev::CodeGen_Clear_OpenCL_C::CheckConditionalChannelAccess::visit(const IfThenElse *op) {
+void CodeGen_Clear_OpenCL_Dev::CodeGen_OpenCL_C::CheckConditionalChannelAccess::visit(const IfThenElse *op) {
     bool old_cond = in_if_then_else;
     in_if_then_else = true;
     op->then_case.accept(this);
@@ -473,7 +343,7 @@ void CodeGen_Clear_OpenCL_Dev::CodeGen_Clear_OpenCL_C::CheckConditionalChannelAc
     in_if_then_else = old_cond;
 }
 
-void CodeGen_Clear_OpenCL_Dev::CodeGen_Clear_OpenCL_C::CheckConditionalChannelAccess::visit(const Call *op) {
+void CodeGen_Clear_OpenCL_Dev::CodeGen_OpenCL_C::CheckConditionalChannelAccess::visit(const Call *op) {
     if (op->is_intrinsic(Call::read_channel) || op->is_intrinsic(Call::write_channel) ||
         op->is_intrinsic(Call::read_channel_nb) || op->is_intrinsic(Call::write_channel_nb)) {
         conditional_access |= in_if_then_else;
@@ -481,7 +351,7 @@ void CodeGen_Clear_OpenCL_Dev::CodeGen_Clear_OpenCL_C::CheckConditionalChannelAc
     IRVisitor::visit(op);
 }
 
-void CodeGen_Clear_OpenCL_Dev::CodeGen_Clear_OpenCL_C::CheckConditionalChannelAccess::visit(const For *op) {
+void CodeGen_Clear_OpenCL_Dev::CodeGen_OpenCL_C::CheckConditionalChannelAccess::visit(const For *op) {
     if (op->for_type == ForType::Serial || op->for_type == ForType::Unrolled) {
         if (!is_const(op->min)) {
             irregular_loop_dep = true;
@@ -498,7 +368,7 @@ void CodeGen_Clear_OpenCL_Dev::CodeGen_Clear_OpenCL_C::CheckConditionalChannelAc
     IRVisitor::visit(op);
 }
 
-void CodeGen_Clear_OpenCL_Dev::CodeGen_Clear_OpenCL_C::visit(const Ramp *op) {
+void CodeGen_Clear_OpenCL_Dev::CodeGen_OpenCL_C::visit(const Ramp *op) {
     string id_base = print_expr(op->base);
     string id_stride = print_expr(op->stride);
 
@@ -521,7 +391,7 @@ void CodeGen_Clear_OpenCL_Dev::CodeGen_Clear_OpenCL_C::visit(const Ramp *op) {
     print_assignment(op->type.with_lanes(op->lanes), rhs.str());
 }
 
-void CodeGen_Clear_OpenCL_Dev::CodeGen_Clear_OpenCL_C::visit(const Broadcast *op) {
+void CodeGen_Clear_OpenCL_Dev::CodeGen_OpenCL_C::visit(const Broadcast *op) {
     string id_value = print_expr(op->value);
     if (is_standard_opencl_type(op->type)) {
         print_assignment(op->type.with_lanes(op->lanes), id_value);
@@ -541,11 +411,11 @@ const char *vector_elements = "0123456789ABCDEF";
 
 }  // namespace
 
-string CodeGen_Clear_OpenCL_Dev::CodeGen_Clear_OpenCL_C::get_memory_space(const string &buf) {
+string CodeGen_Clear_OpenCL_Dev::CodeGen_OpenCL_C::get_memory_space(const string &buf) {
     return "__address_space_" + print_name(buf);
 }
 
-void CodeGen_Clear_OpenCL_Dev::CodeGen_Clear_OpenCL_C::visit(const Call *op) {
+void CodeGen_Clear_OpenCL_Dev::CodeGen_OpenCL_C::visit(const Call *op) {
     if (op->is_intrinsic(Call::bool_to_mask)) {
         if (op->args[0].type().is_vector()) {
             // The argument is already a mask of the right width. Just
@@ -598,7 +468,7 @@ void CodeGen_Clear_OpenCL_Dev::CodeGen_Clear_OpenCL_C::visit(const Call *op) {
             Expr e = Call::make(op->type, op->name, {op->args[0], cast(t, op->args[1])}, op->call_type);
             e.accept(this);
         } else {
-            CodeGen_C::visit(op);
+            CodeGen_Clear_C::visit(op);
         }
     } else if (op->is_intrinsic(Call::read_channel)) {
         std::string string_channel_index;
@@ -1293,11 +1163,11 @@ void CodeGen_Clear_OpenCL_Dev::CodeGen_Clear_OpenCL_C::visit(const Call *op) {
         stream << get_indent() << "mem_fence(CLK_CHANNEL_MEM_FENCE);\n\n";
     } else {
         // Other intrinsics
-        CodeGen_C::visit(op);
+        CodeGen_Clear_C::visit(op);
     }
 }
 
-string CodeGen_Clear_OpenCL_Dev::CodeGen_Clear_OpenCL_C::print_extern_call(const Call *op) {
+string CodeGen_Clear_OpenCL_Dev::CodeGen_OpenCL_C::print_extern_call(const Call *op) {
     internal_assert(!function_takes_user_context(op->name));
     vector<string> args(op->args.size());
     for (size_t i = 0; i < op->args.size(); i++) {
@@ -1308,7 +1178,7 @@ string CodeGen_Clear_OpenCL_Dev::CodeGen_Clear_OpenCL_C::print_extern_call(const
     return rhs.str();
 }
 
-void CodeGen_Clear_OpenCL_Dev::CodeGen_Clear_OpenCL_C::visit(const Load *op) {
+void CodeGen_Clear_OpenCL_Dev::CodeGen_OpenCL_C::visit(const Load *op) {
     user_assert(is_one(op->predicate)) << "Predicated load is not supported inside OpenCL kernel.\n";
 
     // If we're loading a contiguous ramp into a vector, use vload instead.
@@ -1382,7 +1252,7 @@ void CodeGen_Clear_OpenCL_Dev::CodeGen_Clear_OpenCL_C::visit(const Load *op) {
     }
 }
 
-void CodeGen_Clear_OpenCL_Dev::CodeGen_Clear_OpenCL_C::visit(const Store *op) {
+void CodeGen_Clear_OpenCL_Dev::CodeGen_OpenCL_C::visit(const Store *op) {
     user_assert(is_one(op->predicate)) << "Predicated store is not supported inside OpenCL kernel.\n";
 
     if (emit_atomic_stores) {
@@ -1559,7 +1429,7 @@ namespace {
 // like this:
 //      int16  x = y == z;                   // y and z are int16
 //      bool16 b = {x.s0, x.s1, ..., x.s15}; // convert from int16 to bool16
-void CodeGen_Clear_OpenCL_Dev::CodeGen_Clear_OpenCL_C::cast_to_bool_vector(Type bool_type, Type other_type, string other_var) {
+void CodeGen_Clear_OpenCL_Dev::CodeGen_OpenCL_C::cast_to_bool_vector(Type bool_type, Type other_type, string other_var) {
     if (bool_type.is_vector() && bool_type.bits() == 1 && other_type.bits() != 1) {
         internal_assert(other_type.is_vector() && other_type.lanes() == bool_type.lanes());
         std::ostringstream oss;
@@ -1571,7 +1441,7 @@ void CodeGen_Clear_OpenCL_Dev::CodeGen_Clear_OpenCL_C::cast_to_bool_vector(Type 
     }
 }
 
-void CodeGen_Clear_OpenCL_Dev::CodeGen_Clear_OpenCL_C::visit_binop(Type t, Expr a, Expr b, const char *op) {
+void CodeGen_Clear_OpenCL_Dev::CodeGen_OpenCL_C::visit_binop(Type t, Expr a, Expr b, const char *op) {
     string sa = print_expr(a);
     string sb = print_expr(b);
     if (is_standard_opencl_type(t) && is_standard_opencl_type(a.type())) {
@@ -1589,37 +1459,37 @@ void CodeGen_Clear_OpenCL_Dev::CodeGen_Clear_OpenCL_C::visit_binop(Type t, Expr 
     }
 }
 
-void CodeGen_Clear_OpenCL_Dev::CodeGen_Clear_OpenCL_C::visit(const EQ *op) {
+void CodeGen_Clear_OpenCL_Dev::CodeGen_OpenCL_C::visit(const EQ *op) {
     visit_binop(eliminated_bool_type(op->type, op->a.type()), op->a, op->b, "==");
     cast_to_bool_vector(op->type, op->a.type(), id);
 }
 
-void CodeGen_Clear_OpenCL_Dev::CodeGen_Clear_OpenCL_C::visit(const NE *op) {
+void CodeGen_Clear_OpenCL_Dev::CodeGen_OpenCL_C::visit(const NE *op) {
     visit_binop(eliminated_bool_type(op->type, op->a.type()), op->a, op->b, "!=");
     cast_to_bool_vector(op->type, op->a.type(), id);
 }
 
-void CodeGen_Clear_OpenCL_Dev::CodeGen_Clear_OpenCL_C::visit(const LT *op) {
+void CodeGen_Clear_OpenCL_Dev::CodeGen_OpenCL_C::visit(const LT *op) {
     visit_binop(eliminated_bool_type(op->type, op->a.type()), op->a, op->b, "<");
     cast_to_bool_vector(op->type, op->a.type(), id);
 }
 
-void CodeGen_Clear_OpenCL_Dev::CodeGen_Clear_OpenCL_C::visit(const LE *op) {
+void CodeGen_Clear_OpenCL_Dev::CodeGen_OpenCL_C::visit(const LE *op) {
     visit_binop(eliminated_bool_type(op->type, op->a.type()), op->a, op->b, "<=");
     cast_to_bool_vector(op->type, op->a.type(), id);
 }
 
-void CodeGen_Clear_OpenCL_Dev::CodeGen_Clear_OpenCL_C::visit(const GT *op) {
+void CodeGen_Clear_OpenCL_Dev::CodeGen_OpenCL_C::visit(const GT *op) {
     visit_binop(eliminated_bool_type(op->type, op->a.type()), op->a, op->b, ">");
     cast_to_bool_vector(op->type, op->a.type(), id);
 }
 
-void CodeGen_Clear_OpenCL_Dev::CodeGen_Clear_OpenCL_C::visit(const GE *op) {
+void CodeGen_Clear_OpenCL_Dev::CodeGen_OpenCL_C::visit(const GE *op) {
     visit_binop(eliminated_bool_type(op->type, op->a.type()), op->a, op->b, ">=");
     cast_to_bool_vector(op->type, op->a.type(), id);
 }
 
-void CodeGen_Clear_OpenCL_Dev::CodeGen_Clear_OpenCL_C::visit(const Cast *op) {
+void CodeGen_Clear_OpenCL_Dev::CodeGen_OpenCL_C::visit(const Cast *op) {
     if (!target.has_feature(Target::CLHalf) &&
         ((op->type.is_float() && op->type.bits() < 32) ||
          (op->value.type().is_float() && op->value.type().bits() < 32))) {
@@ -1631,11 +1501,11 @@ void CodeGen_Clear_OpenCL_Dev::CodeGen_Clear_OpenCL_C::visit(const Cast *op) {
     if (op->type.is_vector()) {
         print_assignment(op->type, "convert_" + print_type(op->type) + "(" + print_expr(op->value) + ")");
     } else {
-        CodeGen_C::visit(op);
+        CodeGen_Clear_C::visit(op);
     }
 }
 
-void CodeGen_Clear_OpenCL_Dev::CodeGen_Clear_OpenCL_C::visit(const Select *op) {
+void CodeGen_Clear_OpenCL_Dev::CodeGen_OpenCL_C::visit(const Select *op) {
     // The branch(es) might contain actions with side effects like a channel read.
     // Thus we must guard the branch(es).
     // So first convert to if_then_else.
@@ -1646,7 +1516,7 @@ void CodeGen_Clear_OpenCL_Dev::CodeGen_Clear_OpenCL_C::visit(const Select *op) {
     c.accept(this);
 }
 
-void CodeGen_Clear_OpenCL_Dev::CodeGen_Clear_OpenCL_C::visit(const IfThenElse *op) {
+void CodeGen_Clear_OpenCL_Dev::CodeGen_OpenCL_C::visit(const IfThenElse *op) {
     string cond_id = print_expr(op->condition);
     stream << get_indent() << "if (" << cond_id << ")\n";
     open_scope();
@@ -1661,7 +1531,7 @@ void CodeGen_Clear_OpenCL_Dev::CodeGen_Clear_OpenCL_C::visit(const IfThenElse *o
     }
 }
 
-void CodeGen_Clear_OpenCL_Dev::CodeGen_Clear_OpenCL_C::visit(const Allocate *op) {
+void CodeGen_Clear_OpenCL_Dev::CodeGen_OpenCL_C::visit(const Allocate *op) {
     user_assert(!op->new_expr.defined()) << "Allocate node inside OpenCL kernel has custom new expression.\n"
                                          << "(Memoization is not supported inside GPU kernels at present.)\n";
 
@@ -1712,7 +1582,7 @@ void CodeGen_Clear_OpenCL_Dev::CodeGen_Clear_OpenCL_C::visit(const Allocate *op)
     }
 }
 
-void CodeGen_Clear_OpenCL_Dev::CodeGen_Clear_OpenCL_C::visit(const Free *op) {
+void CodeGen_Clear_OpenCL_Dev::CodeGen_OpenCL_C::visit(const Free *op) {
     if (op->name == "__shared") {
         return;
     } else {
@@ -1723,11 +1593,11 @@ void CodeGen_Clear_OpenCL_Dev::CodeGen_Clear_OpenCL_C::visit(const Free *op) {
     }
 }
 
-void CodeGen_Clear_OpenCL_Dev::CodeGen_Clear_OpenCL_C::visit(const AssertStmt *op) {
+void CodeGen_Clear_OpenCL_Dev::CodeGen_OpenCL_C::visit(const AssertStmt *op) {
     user_warning << "Ignoring assertion inside OpenCL kernel: " << op->condition << "\n";
 }
 
-void CodeGen_Clear_OpenCL_Dev::CodeGen_Clear_OpenCL_C::visit(const Shuffle *op) {
+void CodeGen_Clear_OpenCL_Dev::CodeGen_OpenCL_C::visit(const Shuffle *op) {
     int op_lanes = op->type.lanes();
     internal_assert(!op->vectors.empty());
     int arg_lanes = op->vectors[0].type().lanes();
@@ -1836,15 +1706,15 @@ void CodeGen_Clear_OpenCL_Dev::CodeGen_Clear_OpenCL_C::visit(const Shuffle *op) 
     }
 }
 
-void CodeGen_Clear_OpenCL_Dev::CodeGen_Clear_OpenCL_C::visit(const Max *op) {
+void CodeGen_Clear_OpenCL_Dev::CodeGen_OpenCL_C::visit(const Max *op) {
     print_expr(Call::make(op->type, "max", {op->a, op->b}, Call::Extern));
 }
 
-void CodeGen_Clear_OpenCL_Dev::CodeGen_Clear_OpenCL_C::visit(const Min *op) {
+void CodeGen_Clear_OpenCL_Dev::CodeGen_OpenCL_C::visit(const Min *op) {
     print_expr(Call::make(op->type, "min", {op->a, op->b}, Call::Extern));
 }
 
-void CodeGen_Clear_OpenCL_Dev::CodeGen_Clear_OpenCL_C::visit(const Atomic *op) {
+void CodeGen_Clear_OpenCL_Dev::CodeGen_OpenCL_C::visit(const Atomic *op) {
     // Most GPUs require all the threads in a warp to perform the same operations,
     // which means our mutex will lead to deadlock.
     user_assert(op->mutex_name.empty())
@@ -1898,7 +1768,7 @@ class IsAutorun : public IRVisitor {
         IsAutorun() : is_autorun(false) {}
 };
 
-void CodeGen_Clear_OpenCL_Dev::CodeGen_Clear_OpenCL_C::add_kernel(Stmt s,
+void CodeGen_Clear_OpenCL_Dev::CodeGen_OpenCL_C::add_kernel(Stmt s,
                                                       const string &name,
                                                       const vector<DeviceArgument> &args) {
 
@@ -2501,7 +2371,7 @@ void CodeGen_Clear_OpenCL_Dev::compile_to_aocx(std::ostringstream &src_stream) {
     user_assert(ret != -1) << "Failed in compiling " << cl_name;
 }
 
-void CodeGen_Clear_OpenCL_Dev::CodeGen_Clear_OpenCL_C::print_global_data_structures_before_kernel(const Stmt *op) {
+void CodeGen_Clear_OpenCL_Dev::CodeGen_OpenCL_C::print_global_data_structures_before_kernel(const Stmt *op) {
     // Define the compiler-generated vector and struct types.
     DefineVectorStructTypes def(this);
     def.mutate(*op);
@@ -2513,7 +2383,7 @@ void CodeGen_Clear_OpenCL_Dev::CodeGen_Clear_OpenCL_C::print_global_data_structu
     stream << decl.channels;
 }
 
-void CodeGen_Clear_OpenCL_Dev::CodeGen_Clear_OpenCL_C::DeclareChannels::visit(const Realize *op) {
+void CodeGen_Clear_OpenCL_Dev::CodeGen_OpenCL_C::DeclareChannels::visit(const Realize *op) {
     if (ends_with(op->name, ".channel") || ends_with(op->name, ".channel.array")) {
         // Get the bounds in which all bounds are for the dimensions of the channel array, except the last one is for the min depth.
         Region bounds = op->bounds;
@@ -2551,7 +2421,7 @@ void CodeGen_Clear_OpenCL_Dev::CodeGen_Clear_OpenCL_C::DeclareChannels::visit(co
     IRVisitor::visit(op);
 }
 
-void CodeGen_Clear_OpenCL_Dev::CodeGen_Clear_OpenCL_C::DeclareArrays::visit(const Call *op) {
+void CodeGen_Clear_OpenCL_Dev::CodeGen_OpenCL_C::DeclareArrays::visit(const Call *op) {
     if (op->is_intrinsic(Call::write_array)) {
         string printed_name = parent->print_name(op->args[0].as<StringImm>()->value);
         string type_name = printed_name + "_t";
@@ -2572,7 +2442,7 @@ e.g.    realize shift regs [k, J-k] [0, K] [0, T]
                 ...
 The corresponding systolic array of above case is triangular in shape.
 */
-bool CodeGen_Clear_OpenCL_Dev::CodeGen_Clear_OpenCL_C::is_irregular(Region &bounds) {
+bool CodeGen_Clear_OpenCL_Dev::CodeGen_OpenCL_C::is_irregular(Region &bounds) {
     bool irregular_bounds = false;
     for (int i = bounds.size()-1; i >= 0; i--) {
         Expr extent = bounds[i].extent;
@@ -2584,12 +2454,12 @@ bool CodeGen_Clear_OpenCL_Dev::CodeGen_Clear_OpenCL_C::is_irregular(Region &boun
     return irregular_bounds;
 }
 
-void CodeGen_Clear_OpenCL_Dev::CodeGen_Clear_OpenCL_C::gather_shift_regs_allocates(const Stmt *op) {
+void CodeGen_Clear_OpenCL_Dev::CodeGen_OpenCL_C::gather_shift_regs_allocates(const Stmt *op) {
     GatherShiftRegsAllocates gatherer(this, shift_regs_allocates, shift_regs_bounds, space_vars);
     op->accept(&gatherer);
 }
 
-void CodeGen_Clear_OpenCL_Dev::CodeGen_Clear_OpenCL_C::GatherShiftRegsAllocates::print_irregular_bounds_allocates(std::string reg_name, std::string type, std::string name, Region space_bounds, Region time_bounds, int space_bound_level) {
+void CodeGen_Clear_OpenCL_Dev::CodeGen_OpenCL_C::GatherShiftRegsAllocates::print_irregular_bounds_allocates(std::string reg_name, std::string type, std::string name, Region space_bounds, Region time_bounds, int space_bound_level) {
     Expr min = space_bounds[space_bound_level].min;
     Expr extent = space_bounds[space_bound_level].extent;
     const IntImm *e_min = min.as<IntImm>();
@@ -2636,7 +2506,7 @@ void CodeGen_Clear_OpenCL_Dev::CodeGen_Clear_OpenCL_C::GatherShiftRegsAllocates:
 }
 
 // gather loop info from the annotation
-void CodeGen_Clear_OpenCL_Dev::CodeGen_Clear_OpenCL_C::GatherShiftRegsAllocates::visit(const Call *op) {
+void CodeGen_Clear_OpenCL_Dev::CodeGen_OpenCL_C::GatherShiftRegsAllocates::visit(const Call *op) {
     if (op->is_intrinsic(Call::annotate) && op->args[0].as<StringImm>()->value == "Bounds") {
         std::string reg_name = op->args[1].as<StringImm>()->value;
         std::vector<Expr> vars(op->args.begin() + 2, op->args.end());
@@ -2646,7 +2516,7 @@ void CodeGen_Clear_OpenCL_Dev::CodeGen_Clear_OpenCL_C::GatherShiftRegsAllocates:
     }
 }
 
-void CodeGen_Clear_OpenCL_Dev::CodeGen_Clear_OpenCL_C::GatherShiftRegsAllocates::visit(const Realize *op) {
+void CodeGen_Clear_OpenCL_Dev::CodeGen_OpenCL_C::GatherShiftRegsAllocates::visit(const Realize *op) {
     if (ends_with(op->name, ".channel") || ends_with(op->name, ".channel.array")) {
     } else if (ends_with(op->name, ".shreg")) {
         ostringstream rhs;
@@ -2735,7 +2605,7 @@ void CodeGen_Clear_OpenCL_Dev::CodeGen_Clear_OpenCL_C::GatherShiftRegsAllocates:
     IRVisitor::visit(op);
 }
 
-void CodeGen_Clear_OpenCL_Dev::CodeGen_Clear_OpenCL_C::visit(const Realize *op) {
+void CodeGen_Clear_OpenCL_Dev::CodeGen_OpenCL_C::visit(const Realize *op) {
     if (ends_with(op->name, ".channel") || ends_with(op->name, ".channel")) {
         // We have already declared the channel before the kernel with print_global_data_structures_before_kernel().
         // Just skip it and get into the body.
@@ -2788,7 +2658,7 @@ void CodeGen_Clear_OpenCL_Dev::CodeGen_Clear_OpenCL_C::visit(const Realize *op) 
     }
 }
 
-void CodeGen_Clear_OpenCL_Dev::CodeGen_Clear_OpenCL_C::visit(const Provide *op){
+void CodeGen_Clear_OpenCL_Dev::CodeGen_OpenCL_C::visit(const Provide *op){
     if (ends_with(op->name, ".ibuffer")) {
         internal_assert(op->values.size() == 1);
         string id_value = print_expr(op->values[0]);
@@ -2828,7 +2698,7 @@ void CodeGen_Clear_OpenCL_Dev::CodeGen_Clear_OpenCL_C::visit(const Provide *op){
         stream<<"break;\n";
     }
     else {
-        CodeGen_C::visit(op);
+        CodeGen_Clear_C::visit(op);
     }
 }
 
