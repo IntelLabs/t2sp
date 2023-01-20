@@ -505,8 +505,7 @@ void CodeGen_Clear_OpenCL_Dev::CodeGen_OpenCL_C::visit(const Call *op) {
         if (op->type.is_handle() && !op->type.is_generated_struct()) {
             type = print_name(channel_name + ".array.t");
         }
-        string read_call = "read_channel_intel(" + print_name(channel_name) + string_channel_index + ")";
-        stream << read_call;
+        id = "read_channel_intel(" + print_name(channel_name) + string_channel_index + ")";
     } else if (op->is_intrinsic(Call::read_channel_nb)) {
         std::string string_channel_index;
         const StringImm *v = op->args[0].as<StringImm>();
@@ -1233,7 +1232,7 @@ void CodeGen_Clear_OpenCL_Dev::CodeGen_OpenCL_C::visit(const Load *op) {
                 << "[" << id_index << ".s" << vector_elements[i] << "];\n";
         }
     } else {
-        print_assignment(op->type, rhs.str());
+        id = print_assignment(op->type, rhs.str());
     }
 }
 
@@ -1424,14 +1423,14 @@ void CodeGen_Clear_OpenCL_Dev::CodeGen_OpenCL_C::cast_to_bool_vector(Type bool_t
 }
 
 void CodeGen_Clear_OpenCL_Dev::CodeGen_OpenCL_C::visit_binop(Type t, Expr a, Expr b, const char *op) {
-    string sa = print_expr(a);
-    string sb = print_expr(b);
     if (is_standard_opencl_type(t) && is_standard_opencl_type(a.type())) {
-    	parent.visit_binop(t, a, b, op);
+    	CodeGen_Clear_C::visit_binop(t, a, b, op);
     } else {
         // Output something like bool16 x = {a.s0 op b.s0, a.s1 op b.s0, ...}
         internal_assert(t.is_vector() && a.type().is_vector() && t.lanes() == a.type().lanes());
         std::ostringstream oss;
+        string sa = print_expr(a);
+        string sb = print_expr(b);
         for (int i = 0; i < t.lanes(); i++) {
             oss << ((i == 0) ? "{" : ", ") << sa << ".s" << vector_index_to_string(i) << op
                 << sb << ".s" << vector_index_to_string(i);

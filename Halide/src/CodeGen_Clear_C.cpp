@@ -2079,7 +2079,7 @@ void CodeGen_Clear_C::visit_binop(Type t, Expr a, Expr b, const char *op) {
     string sb = print_expr(b);
     string sa1 = op_takes_precedent(op, a) ? "(" + sa + ")" : sa;
     string sb1 = op_takes_precedent(op, b) ? "(" + sb + ")" : sb;
-    print_assignment(t, sa1 + " " + op + " " + sb1);
+    id = print_assignment(t, sa1 + " " + op + " " + sb1);
 }
 
 void CodeGen_Clear_C::visit(const Add *op) {
@@ -2613,7 +2613,7 @@ void CodeGen_Clear_C::visit(const Load *op) {
         }
         rhs << "[" << id_index << "]";
     }
-    print_assignment(t, rhs.str());
+    id = print_assignment(t, rhs.str());
 }
 
 void CodeGen_Clear_C::visit(const Store *op) {
@@ -2711,22 +2711,10 @@ void CodeGen_Clear_C::visit(const Select *op) {
 
 void CodeGen_Clear_C::visit(const LetStmt *op) {
     string id_value = print_expr(op->value);
-    // The value returned from the above print_expr is not an intermediate variable, but the RHS of the let stmt.
-    // However, since the RHS may be used multiple times, we must need the intermediate variable, which is cached.
-    id_value = cache[id_value];
-
-    Stmt body = op->body;
-    if (op->value.type().is_handle()) {
-        // The body might contain a Load or Store that references this
-        // directly by name, so we can't rewrite the name.
-        stream << get_indent() << print_type(op->value.type())
-               << " " << print_name(op->name)
-               << " = " << id_value << ";\n";
-    } else {
-        Expr new_var = Variable::make(op->value.type(), id_value);
-        body = substitute(op->name, new_var, body);
-    }
-    body.accept(this);
+	stream << get_indent() << print_type(op->value.type())
+		   << " " << print_name(op->name)
+		   << " = " << id_value << ";\n";
+    op->body.accept(this);
 }
 
 // Halide asserts have different semantics to C asserts.  They're
@@ -3089,16 +3077,8 @@ void CodeGen_Clear_C::visit(const IfThenElse *op) {
 
 void CodeGen_Clear_C::visit(const Evaluate *op) {
     if (is_const(op->value)) return;
-    // Skip the evaluation of some intrinsics
-    bool skip_eval = false;
-    if (auto call = op->value.as<Call>()) {
-        if (call->is_intrinsic(Call::overlay) || call->is_intrinsic(Call::overlay_switch) || call->is_intrinsic(Call::annotate))
-            skip_eval = true;
-    }
-    string id = print_expr(op->value);
-    if (!skip_eval) {
-        stream << get_indent() << "(void)" << id << ";\n";
-    }
+    // Print out the value
+    print_expr(op->value);
 }
 
 void CodeGen_Clear_C::visit(const Shuffle *op) {
