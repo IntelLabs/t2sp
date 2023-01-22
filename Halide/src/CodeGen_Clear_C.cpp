@@ -317,7 +317,7 @@ public:
 };
 
 CodeGen_Clear_C::CodeGen_Clear_C(ostream &s, Target t, OutputKind output_kind, const std::string &guard)
-    : IRPrinter(s), id("$$ BAD ID $$"), target(t), output_kind(output_kind),
+    : IRPrinter(s), latest_expr("$$ BAD ID $$"), target(t), output_kind(output_kind),
       extern_c_open(false), inside_atomic_mutex_node(false), emit_atomic_stores(false) {
 
     if (is_host_interface()) {
@@ -2021,16 +2021,16 @@ void CodeGen_Clear_C::op_of_expr(const Expr & e, char * op) {
     }
 }
 
-bool CodeGen_Clear_C::op_takes_precedent(const char *op, const Expr &e) {
+int CodeGen_Clear_C::precedence_of_expr(const Expr &e) {
     char e_op[20];
     op_of_expr(e, e_op);
-    return (precedence_of_op(op) < precedence_of_op(e_op));
+    return precedence_of_op(e_op);
 }
 
 string CodeGen_Clear_C::print_expr(Expr e) {
-    id = "$$ BAD ID $$";
+    latest_expr = "$$ BAD ID $$";
     e.accept(this);
-    return id;
+    return latest_expr;
 }
 
 string CodeGen_Clear_C::print_cast_expr(const Type &t, Expr e) {
@@ -2039,9 +2039,9 @@ string CodeGen_Clear_C::print_cast_expr(const Type &t, Expr e) {
     if (t.is_vector() &&
         t.lanes() == e.type().lanes() &&
         t != e.type()) {
-        return print_assignment(t, type + "::convert_from<" + print_type(e.type()) + ">(" + value + ")");
+        return set_latest_expr(t, type + "::convert_from<" + print_type(e.type()) + ">(" + value + ")");
     } else {
-        return print_assignment(t, "(" + type + ")(" + value + ")");
+        return set_latest_expr(t, "(" + type + ")(" + value + ")");
     }
 }
 
@@ -2049,9 +2049,10 @@ void CodeGen_Clear_C::print_stmt(Stmt s) {
     s.accept(this);
 }
 
-string CodeGen_Clear_C::print_assignment(Type t, const std::string &rhs) {
+string CodeGen_Clear_C::set_latest_expr(Type t, const std::string &rhs) {
 	// Type conversion must have been done before calling this function
-    return rhs;
+	latest_expr = rhs;
+    return latest_expr;
 }
 
 void CodeGen_Clear_C::open_scope() {
@@ -2067,19 +2068,19 @@ void CodeGen_Clear_C::close_scope(const std::string &comment) {
 }
 
 void CodeGen_Clear_C::visit(const Variable *op) {
-    id = print_name(op->name);
+    latest_expr = print_name(op->name);
 }
 
 void CodeGen_Clear_C::visit(const Cast *op) {
-    id = print_cast_expr(op->type, op->value);
+    latest_expr = print_cast_expr(op->type, op->value);
 }
 
 void CodeGen_Clear_C::visit_binop(Type t, Expr a, Expr b, const char *op) {
     string sa = print_expr(a);
     string sb = print_expr(b);
-    string sa1 = op_takes_precedent(op, a) ? "(" + sa + ")" : sa;
-    string sb1 = op_takes_precedent(op, b) ? "(" + sb + ")" : sb;
-    id = print_assignment(t, sa1 + " " + op + " " + sb1);
+    string sa1 = (precedence_of_op(op) < precedence_of_expr(a)) ? "(" + sa + ")" : sa;
+    string sb1 = (precedence_of_op(op) <= precedence_of_expr(b)) ? "(" + sb + ")" : sb;
+    set_latest_expr(t, sa1 + " " + op + " " + sb1);
 }
 
 void CodeGen_Clear_C::visit(const Add *op) {
@@ -2110,7 +2111,7 @@ void CodeGen_Clear_C::visit(const Max *op) {
     } else {
         ostringstream rhs;
         rhs << print_type(op->type) << "::max(" << print_expr(op->a) << ", " << print_expr(op->b) << ")";
-        print_assignment(op->type, rhs.str());
+        set_latest_expr(op->type, rhs.str());
     }
 }
 
@@ -2122,7 +2123,7 @@ void CodeGen_Clear_C::visit(const Min *op) {
     } else {
         ostringstream rhs;
         rhs << print_type(op->type) << "::min(" << print_expr(op->a) << ", " << print_expr(op->b) << ")";
-        print_assignment(op->type, rhs.str());
+        set_latest_expr(op->type, rhs.str());
     }
 }
 
@@ -2159,25 +2160,27 @@ void CodeGen_Clear_C::visit(const And *op) {
 }
 
 void CodeGen_Clear_C::visit(const Not *op) {
-    print_assignment(op->type, "!(" + print_expr(op->a) + ")");
+    string sa = print_expr(op->a);
+    string sa1 = (precedence_of_op("!") <= precedence_of_expr(op->a)) ? "(" + sa + ")" : sa;
+    set_latest_expr(op->type, "!" + sa1);
 }
 
 void CodeGen_Clear_C::visit(const IntImm *op) {
     if (op->type == Int(32)) {
-        id = std::to_string(op->value);
+        latest_expr = std::to_string(op->value);
     } else {
-        print_assignment(op->type, "(" + print_type(op->type) + ")(ADD_INT64_T_SUFFIX(" + std::to_string(op->value) + "))");
+        set_latest_expr(op->type, "(" + print_type(op->type) + ")(ADD_INT64_T_SUFFIX(" + std::to_string(op->value) + "))");
     }
 }
 
 void CodeGen_Clear_C::visit(const UIntImm *op) {
-    print_assignment(op->type, "(" + print_type(op->type) + ")(ADD_UINT64_T_SUFFIX(" + std::to_string(op->value) + "))");
+    set_latest_expr(op->type, "(" + print_type(op->type) + ")(ADD_UINT64_T_SUFFIX(" + std::to_string(op->value) + "))");
 }
 
 void CodeGen_Clear_C::visit(const StringImm *op) {
     ostringstream oss;
     oss << Expr(op);
-    id = oss.str();
+    latest_expr = oss.str();
 }
 
 // NaN is the only float/double for which this is true... and
@@ -2196,12 +2199,12 @@ static bool isinf(T x) {
 
 void CodeGen_Clear_C::visit(const FloatImm *op) {
     if (isnan(op->value)) {
-        id = "nan_f32()";
+        latest_expr = "nan_f32()";
     } else if (isinf(op->value)) {
         if (op->value > 0) {
-            id = "inf_f32()";
+            latest_expr = "inf_f32()";
         } else {
-            id = "neg_inf_f32()";
+            latest_expr = "neg_inf_f32()";
         }
     } else {
         // Write the constant as reinterpreted uint to avoid any bits lost in conversion.
@@ -2216,7 +2219,7 @@ void CodeGen_Clear_C::visit(const FloatImm *op) {
             oss << "(double) ";
         }
         oss << "float_from_bits(" << u.as_uint << " /* " << u.as_float << " */)";
-        print_assignment(op->type, oss.str());
+        set_latest_expr(op->type, oss.str());
     }
 }
 
@@ -2244,20 +2247,28 @@ void CodeGen_Clear_C::visit(const Call *op) {
         internal_assert(op->args.size() == 2);
         string a0 = print_expr(op->args[0]);
         string a1 = print_expr(op->args[1]);
-        rhs << a0 << " & " << a1;
+        string a00 = (precedence_of_op("&") <= precedence_of_expr(op->args[0])) ? "(" + a0 + ")" : a0;
+        string a11 = (precedence_of_op("&") <= precedence_of_expr(op->args[1])) ? "(" + a1 + ")" : a1;
+        rhs << a00 << " & " << a11;
     } else if (op->is_intrinsic(Call::bitwise_xor)) {
         internal_assert(op->args.size() == 2);
         string a0 = print_expr(op->args[0]);
         string a1 = print_expr(op->args[1]);
-        rhs << a0 << " ^ " << a1;
+        string a00 = (precedence_of_op("^") <= precedence_of_expr(op->args[0])) ? "(" + a0 + ")" : a0;
+        string a11 = (precedence_of_op("^") <= precedence_of_expr(op->args[1])) ? "(" + a1 + ")" : a1;
+        rhs << a00 << " ^ " << a11;
     } else if (op->is_intrinsic(Call::bitwise_or)) {
         internal_assert(op->args.size() == 2);
         string a0 = print_expr(op->args[0]);
         string a1 = print_expr(op->args[1]);
-        rhs << a0 << " | " << a1;
+        string a00 = (precedence_of_op("|") <= precedence_of_expr(op->args[0])) ? "(" + a0 + ")" : a0;
+        string a11 = (precedence_of_op("|") <= precedence_of_expr(op->args[1])) ? "(" + a1 + ")" : a1;
+        rhs << a00 << " | " << a11;
     } else if (op->is_intrinsic(Call::bitwise_not)) {
         internal_assert(op->args.size() == 1);
-        rhs << "~" << print_expr(op->args[0]);
+        string a0 = print_expr(op->args[0]);
+        string a00 = (precedence_of_op("~") <= precedence_of_expr(op->args[0])) ? "(" + a0 + ")" : a0;
+        rhs << "~" << a00;
     } else if (op->is_intrinsic(Call::reinterpret)) {
         internal_assert(op->args.size() == 1);
         rhs << print_reinterpret(op->type, op->args[0]);
@@ -2265,12 +2276,16 @@ void CodeGen_Clear_C::visit(const Call *op) {
         internal_assert(op->args.size() == 2);
         string a0 = print_expr(op->args[0]);
         string a1 = print_expr(op->args[1]);
-        rhs << a0 << " << " << a1;
+        string a00 = (precedence_of_op("<<") <= precedence_of_expr(op->args[0])) ? "(" + a0 + ")" : a0;
+        string a11 = (precedence_of_op("<<") <= precedence_of_expr(op->args[1])) ? "(" + a1 + ")" : a1;
+        rhs << a00 << " << " << a11;
     } else if (op->is_intrinsic(Call::shift_right)) {
         internal_assert(op->args.size() == 2);
         string a0 = print_expr(op->args[0]);
         string a1 = print_expr(op->args[1]);
-        rhs << a0 << " >> " << a1;
+        string a00 = (precedence_of_op(">>") <= precedence_of_expr(op->args[0])) ? "(" + a0 + ")" : a0;
+        string a11 = (precedence_of_op(">>") <= precedence_of_expr(op->args[1])) ? "(" + a1 + ")" : a1;
+        rhs << a00 << " >> " << a11;
     } else if (op->is_intrinsic(Call::count_leading_zeros) ||
                op->is_intrinsic(Call::count_trailing_zeros) ||
                op->is_intrinsic(Call::popcount)) {
@@ -2335,7 +2350,7 @@ void CodeGen_Clear_C::visit(const Call *op) {
     } else if (op->is_intrinsic(Call::memoize_expr)) {
         internal_assert(!op->args.empty());
         string arg = print_expr(op->args[0]);
-        rhs << "(" << arg << ")";
+        rhs << arg;
     } else if (op->is_intrinsic(Call::alloca)) {
         internal_assert(op->args.size() == 1);
         internal_assert(op->type.is_handle());
@@ -2480,9 +2495,17 @@ void CodeGen_Clear_C::visit(const Call *op) {
                << "} " << instance_name << "(_ucon, " << arg << ");\n";
         rhs << print_expr(0);
     } else if (op->is_intrinsic(Call::div_round_to_zero)) {
-        rhs << print_expr(op->args[0]) << " / " << print_expr(op->args[1]);
+        string a0 = print_expr(op->args[0]);
+        string a1 = print_expr(op->args[1]);
+        string a00 = (precedence_of_op("/") <= precedence_of_expr(op->args[0])) ? "(" + a0 + ")" : a0;
+        string a11 = (precedence_of_op("/") <= precedence_of_expr(op->args[1])) ? "(" + a1 + ")" : a1;
+        rhs << a00  << " / " << a11;
     } else if (op->is_intrinsic(Call::mod_round_to_zero)) {
-        rhs << print_expr(op->args[0]) << " % " << print_expr(op->args[1]);
+        string a0 = print_expr(op->args[0]);
+        string a1 = print_expr(op->args[1]);
+        string a00 = (precedence_of_op("%") <= precedence_of_expr(op->args[0])) ? "(" + a0 + ")" : a0;
+        string a11 = (precedence_of_op("%") <= precedence_of_expr(op->args[1])) ? "(" + a1 + ")" : a1;
+        rhs << a00  << " % " << a11;
     } else if (op->is_intrinsic(Call::signed_integer_overflow)) {
         user_error << "Signed integer overflow occurred during constant-folding. Signed"
                       " integer overflow for int32 and int64 is undefined behavior in"
@@ -2538,9 +2561,9 @@ void CodeGen_Clear_C::visit(const Call *op) {
     if (op->name == "halide_print") {
         stream << get_indent() << rhs.str() << ";\n";
         // Make an innocuous assignment value for our caller (probably an Evaluate node) to ignore.
-        print_assignment(op->type, "0");
+        set_latest_expr(op->type, "0");
     } else {
-        print_assignment(op->type, rhs.str());
+        set_latest_expr(op->type, rhs.str());
     }
 }
 
@@ -2554,7 +2577,7 @@ string CodeGen_Clear_C::print_scalarized_expr(Expr e) {
         string elem = print_expr(e2);
         ostringstream rhs;
         rhs << v << ".replace(" << lane << ", " << elem << ")";
-        v = print_assignment(t, rhs.str());
+        v = set_latest_expr(t, rhs.str());
     }
     return v;
 }
@@ -2613,7 +2636,7 @@ void CodeGen_Clear_C::visit(const Load *op) {
         }
         rhs << "[" << id_index << "]";
     }
-    id = print_assignment(t, rhs.str());
+    set_latest_expr(t, rhs.str());
 }
 
 void CodeGen_Clear_C::visit(const Store *op) {
@@ -2705,7 +2728,7 @@ void CodeGen_Clear_C::visit(const Select *op) {
         } else {
             rhs << type << "::select(" << cond << ", " << true_val << ", " << false_val << ")";
         }
-        print_assignment(op->type, rhs.str());
+        set_latest_expr(op->type, rhs.str());
     }
 }
 
@@ -2883,7 +2906,7 @@ void CodeGen_Clear_C::visit(const Ramp *op) {
     Type vector_type = op->type.with_lanes(op->lanes);
     string id_base = print_expr(op->base);
     string id_stride = print_expr(op->stride);
-    print_assignment(vector_type, print_type(vector_type) + "::ramp(" + id_base + ", " + id_stride + ")");
+    set_latest_expr(vector_type, print_type(vector_type) + "::ramp(" + id_base + ", " + id_stride + ")");
 }
 
 void CodeGen_Clear_C::visit(const Broadcast *op) {
@@ -2896,7 +2919,7 @@ void CodeGen_Clear_C::visit(const Broadcast *op) {
         rhs = id_value;
     }
 
-    print_assignment(vector_type, rhs);
+    set_latest_expr(vector_type, rhs);
 }
 
 void CodeGen_Clear_C::visit(const Provide *op) {
@@ -2953,7 +2976,7 @@ void CodeGen_Clear_C::visit(const Allocate *op) {
             // it would have constant size).
             internal_assert(!op->extents.empty());
 
-            size_id = print_assignment(Int(64), print_expr(op->extents[0]));
+            size_id = set_latest_expr(Int(64), print_expr(op->extents[0]));
             size_id_type = Int(64);
 
             for (size_t i = 1; i < op->extents.size(); i++) {
@@ -2965,7 +2988,7 @@ void CodeGen_Clear_C::visit(const Allocate *op) {
                 } else {
                     new_size_id_rhs = size_id + " * " + next_extent;
                 }
-                size_id = print_assignment(Int(64), new_size_id_rhs);
+                size_id = set_latest_expr(Int(64), new_size_id_rhs);
             }
             stream << get_indent() << "if (("
                    << size_id << " > ((int64_t(1) << 31) - 1)) || (("
@@ -2990,7 +3013,7 @@ void CodeGen_Clear_C::visit(const Allocate *op) {
                                                  Variable::make(size_id_type, size_id),
                                                  make_const(size_id_type, 0));
             conditional_size = simplify(conditional_size);
-            size_id = print_assignment(Int(64), print_expr(conditional_size));
+            size_id = set_latest_expr(Int(64), print_expr(conditional_size));
         }
 
         Allocation alloc;
@@ -3104,7 +3127,7 @@ void CodeGen_Clear_C::visit(const Shuffle *op) {
         stream << get_indent() << "const " << print_type(op->vectors[0].type()) << " " << storage_name << "[] = { " << with_commas(vecs) << " };\n";
 
         rhs << print_type(op->type) << "::concat(" << op->vectors.size() << ", " << storage_name << ")";
-        src = print_assignment(op->type, rhs.str());
+        src = set_latest_expr(op->type, rhs.str());
     }
     ostringstream rhs;
     if (op->type.is_scalar()) {
@@ -3114,7 +3137,7 @@ void CodeGen_Clear_C::visit(const Shuffle *op) {
         stream << get_indent() << "const int32_t " << indices_name << "[" << op->indices.size() << "] = { " << with_commas(op->indices) << " };\n";
         rhs << print_type(op->type) << "::shuffle(" << src << ", " << indices_name << ")";
     }
-    print_assignment(op->type, rhs.str());
+    set_latest_expr(op->type, rhs.str());
 }
 
 void CodeGen_Clear_C::test() {

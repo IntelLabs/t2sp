@@ -172,10 +172,17 @@ void CodeGen_GPU_Host<CodeGen_CPU>::compile_func(const LoweredFunc &f,
         if (target.has_feature(Target::IntelFPGA) && !target.has_feature(Target::OneAPI)) {
             internal_assert(cgdev.find(DeviceAPI::OpenCL) != cgdev.end());
             // Defines Pipes/Channels and their data types
-            ((CodeGen_OpenCL_Dev*)cgdev[DeviceAPI::OpenCL])->print_global_data_structures_before_kernel(&f.body);
+            if (getenv("CLEARCODE") != NULL) {
+                ((CodeGen_Clear_OpenCL_Dev*)cgdev[DeviceAPI::OpenCL])->print_global_data_structures_before_kernel(&f.body);
 
-            // Gather shift registers' allocations.
-            ((CodeGen_OpenCL_Dev*)cgdev[DeviceAPI::OpenCL])->gather_shift_regs_allocates(&f.body);
+                // Gather shift registers' allocations.
+                ((CodeGen_Clear_OpenCL_Dev*)cgdev[DeviceAPI::OpenCL])->gather_shift_regs_allocates(&f.body);
+            } else {
+                ((CodeGen_OpenCL_Dev*)cgdev[DeviceAPI::OpenCL])->print_global_data_structures_before_kernel(&f.body);
+
+                // Gather shift registers' allocations.
+                ((CodeGen_OpenCL_Dev*)cgdev[DeviceAPI::OpenCL])->gather_shift_regs_allocates(&f.body);
+            }
         }
         if(target.has_feature(Target::IntelFPGA) && target.has_feature(Target::OneAPI)){
             internal_assert(cgdev.find(DeviceAPI::OneAPI) != cgdev.end());

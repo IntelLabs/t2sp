@@ -6,6 +6,7 @@
 
 #include "CodeGen_GPU_Host.h"
 #include "CodeGen_X86.h"
+#include "CodeGen_Clear_OpenCL_Dev.h"
 #include "CodeGen_OpenCL_Dev.h"
 #include "../../t2s/src/CodeGen_OneAPI_Dev.h"
 

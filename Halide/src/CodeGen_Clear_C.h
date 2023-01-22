@@ -62,8 +62,8 @@ protected:
     virtual void compile(const Buffer<> &buffer);
     // @}
 
-    /** An ID for the most recently generated ssa variable */
-    std::string id;
+    /** The most recently generated expression */
+    std::string latest_expr;
 
     /** The target being generated for. */
     Target target;
@@ -72,9 +72,11 @@ protected:
      * definitions and whether the interface us extern "C" or C++. */
     OutputKind output_kind;
 
-    /** Emit an expression as an assignment, then return the id of the
-     * resulting var */
+    /** Walk the expression tree and set latest_expr as a string representation */
     std::string print_expr(Expr);
+
+    /** Set latest_expr as the given rhs. Return latest_expr. */
+    std::string set_latest_expr(Type t, const std::string &rhs);
 
     /** Like print_expr, but cast the Expr to the given Type */
     std::string print_cast_expr(const Type &, Expr);
@@ -113,9 +115,6 @@ protected:
 
     /** Convert a vector Expr into a series of scalar Exprs, then reassemble into vector of original type.  */
     std::string print_scalarized_expr(Expr e);
-
-    /** Emit an SSA-style assignment, and set id to the freshly generated name. Return id. */
-    virtual std::string print_assignment(Type t, const std::string &rhs);
 
     /** Return true if only generating an interface, which may be extern "C" or C++ */
     bool is_header() {
@@ -189,10 +188,8 @@ protected:
     /** The operator of the expression in C */
     void op_of_expr(const Expr & e, char * op);
 
-    /** If the op takes precedent over the operator of the expression e?
-     *  This is used to determine if a parenthesis should be generated around e.
-     */
-    bool op_takes_precedent(const char *op, const Expr &e);
+    /** Precedence of the operator of the expression */
+    int precedence_of_expr(const Expr &e);
 
     using IRPrinter::visit;
 
