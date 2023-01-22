@@ -13,6 +13,7 @@
 #include "Type.h"
 #include "Util.h"
 #include "Var.h"
+#include "../../t2s/src/DebugPrint.h"
 #include "../../t2s/src/Utilities.h"
 
 namespace Halide {
@@ -1996,6 +1997,9 @@ void CodeGen_Clear_C::op_of_expr(const Expr & e, char * op) {
         strncpy(op, "!", 15);
     } else if (e.as<Select>()) {
         strncpy(op, "?:", 15);
+    } else if (e.as<Let>()) {
+    	// The expression we care is the body.
+    	op_of_expr(e.as<Let>()->body, op);
     } else {
         const Call *call = e.as<Call>();
         if (call) {
@@ -2015,7 +2019,7 @@ void CodeGen_Clear_C::op_of_expr(const Expr & e, char * op) {
                 strncpy(op, "Call", 15);
             }
         } else {
-            // All the other types of expressions will be generatd as function calls.
+            // All the other types of expressions will be generated as function calls.
             strncpy(op, "Call", 15);
         }
     }

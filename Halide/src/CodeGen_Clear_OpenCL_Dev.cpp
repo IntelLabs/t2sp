@@ -1517,7 +1517,7 @@ void CodeGen_Clear_OpenCL_Dev::CodeGen_OpenCL_C::visit(const Select *op) {
 
 void CodeGen_Clear_OpenCL_Dev::CodeGen_OpenCL_C::visit(const IfThenElse *op) {
     string cond_id = print_expr(op->condition);
-    stream << get_indent() << "if (" << cond_id << ")\n";
+    stream << get_indent() << "if (" << cond_id << ") ";
     open_scope();
     op->then_case.accept(this);
     close_scope("if " + cond_id);
