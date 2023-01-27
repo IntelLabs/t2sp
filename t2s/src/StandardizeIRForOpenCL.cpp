@@ -17,6 +17,7 @@
 * SPDX-License-Identifier: BSD-2-Clause-Patent
 *******************************************************************************/
 #include "CodeGen_Internal.h"
+#include "CSE.h"
 #include "IR.h"
 #include "IRMutator.h"
 #include "IROperator.h"
@@ -25,6 +26,8 @@
 
 namespace Halide {
 namespace Internal {
+
+using std::string;
 
 class OpenCLStandardizer : public IRMutator {
   public:
@@ -94,6 +97,52 @@ class OpenCLStandardizer : public IRMutator {
         return op;
     }
 
+    Expr visit(const Load *op) override {
+        user_assert(is_one(op->predicate)) << "Predicated load is not supported inside OpenCL kernel.\n";
+
+        Expr ramp_base = strided_ramp_base(op->index);
+        if (ramp_base.defined()) {
+            // Loading a contiguous ramp into a vector. Do nothing for now
+            return op;
+        } else if (op->index.type().is_vector()) {
+            // If index is a vector, gather vector elements. We will generate code like this:
+            //  int8 value; addr = ...; value.s0 = A[addr.s0]; value.s1 = A[addr.s1]; ...
+            internal_assert(op->type.is_vector());
+            string index_name = unique_name('t');
+            Expr index_var = Variable::make(op->index.type(), index_name);
+            Expr load = Load::make(op->type, op->name, index_var, op->image, op->param, op->predicate, op->alignment);
+            Expr mutate_index = mutate(op->index);
+            Expr simplified_index = common_subexpression_elimination(mutate_index); // Simplify the index in case it contains redundancy
+            Expr index = Let::make(index_name, simplified_index, load);
+            return index;
+        } else {
+            // Do nothing for now
+            return op;
+        }
+    }
+
+    Stmt visit(const Store *op) override {
+        user_assert(is_one(op->predicate)) << "Predicated store is not supported inside OpenCL kernel.\n";
+
+        Expr ramp_base = strided_ramp_base(op->index);
+        if (ramp_base.defined()) {
+            // Writing a contiguous ramp.
+            return IRMutator::visit(op);
+        } else if (op->index.type().is_vector()) {
+            // If index is a vector, scatter vector elements. Make a LetStmt for the index and the value, as
+            // we will generate code like this: addr= ..; v=...; A[addr.s0] = v.s0; A[addr.s1] = v.s1; etc.
+            string index_name = unique_name('t');
+            Expr index_var = Variable::make(op->index.type(), index_name);
+            string value_name = unique_name('t');
+            Expr value_var = Variable::make(op->value.type(), value_name);
+            Stmt store = Store::make(op->name, value_var, index_var, op->param, op->predicate, op->alignment);
+            Stmt value_stmt = LetStmt::make(value_name, mutate(op->value), store);
+            Stmt index_stmt = LetStmt::make(index_name, mutate(op->index), value_stmt);
+            return index_stmt;
+        } else {
+            return IRMutator::visit(op);
+        }
+    }
 };
 Stmt standardize_ir_for_opencl_code_gen(Stmt s) {
     OpenCLStandardizer standardizer;

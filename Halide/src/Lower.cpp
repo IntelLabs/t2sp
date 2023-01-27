@@ -633,7 +633,6 @@ Module lower(const vector<Function> &output_funcs,
         debug(2) << "Lowering after standardizing IR for generating OpenCL code:\n" << s << "\n\n";
     }
 
-
     if (!custom_passes.empty()) {
         for (size_t i = 0; i < custom_passes.size(); i++) {
             debug(1) << "Running custom lowering pass " << i << "...\n";
@@ -641,15 +640,6 @@ Module lower(const vector<Function> &output_funcs,
             debug(1) << "Lowering after custom pass " << i << ":\n"
                      << s << "\n\n";
         }
-    }
-
-    // The code generator should blindly generate code according to the IR, without tricks if possible.
-    // So here standardize the IR to make it have the same abstraction level as the target language to generate.
-    // Although it is done here right now only for OpenCL, ideally it should be done for any target HW and language.
-    if (t.features_any_of({Target::OpenCL})) {
-        debug(1) << "Standardize IR for generating OpenCL code...\n";
-        s = standardize_ir_for_opencl_code_gen(s);
-        debug(2) << "Lowering after standardizing IR for generating OpenCL code:\n" << s << "\n\n";
     }
 
     vector<Argument> public_args = args;

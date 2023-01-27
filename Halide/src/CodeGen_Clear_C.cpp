@@ -1998,8 +1998,14 @@ void CodeGen_Clear_C::op_of_expr(const Expr & e, char * op) {
     } else if (e.as<Select>()) {
         strncpy(op, "?:", 15);
     } else if (e.as<Let>()) {
-    	// The expression we care is the body.
-    	op_of_expr(e.as<Let>()->body, op);
+        // The expression we care is the body.
+        op_of_expr(e.as<Let>()->body, op);
+    } else if (e.as<Broadcast>()) {
+        // The expression we care is the value.
+        op_of_expr(e.as<Broadcast>()->value, op);
+    } else if (e.as<Ramp>()) {
+        // The expression will be generated as base + stride * (0,.., lanes-1). So operation is +
+        strncpy(op, "+", 15);
     } else {
         const Call *call = e.as<Call>();
         if (call) {
@@ -2280,15 +2286,23 @@ void CodeGen_Clear_C::visit(const Call *op) {
         internal_assert(op->args.size() == 2);
         string a0 = print_expr(op->args[0]);
         string a1 = print_expr(op->args[1]);
-        string a00 = (precedence_of_op("<<") <= precedence_of_expr(op->args[0])) ? "(" + a0 + ")" : a0;
-        string a11 = (precedence_of_op("<<") <= precedence_of_expr(op->args[1])) ? "(" + a1 + ")" : a1;
+        // We often get a warning like: in a+b<<c, + is executed before <<. Although this is not an error,
+        // to avoid confusion, let us generate it like (a+b) << c instead.
+        string a00 = (precedence_of_op("<<") <= precedence_of_expr(op->args[0])) ? "(" + a0 + ")" :
+                     (op->args[0].as<Add>() || op->args[0].as<Sub>()) ? "(" + a0 + ")" : a0;
+        string a11 = (precedence_of_op("<<") <= precedence_of_expr(op->args[1])) ? "(" + a1 + ")" :
+                     (op->args[1].as<Add>() || op->args[1].as<Sub>()) ? "(" + a1 + ")" : a1;
         rhs << a00 << " << " << a11;
     } else if (op->is_intrinsic(Call::shift_right)) {
         internal_assert(op->args.size() == 2);
         string a0 = print_expr(op->args[0]);
         string a1 = print_expr(op->args[1]);
-        string a00 = (precedence_of_op(">>") <= precedence_of_expr(op->args[0])) ? "(" + a0 + ")" : a0;
-        string a11 = (precedence_of_op(">>") <= precedence_of_expr(op->args[1])) ? "(" + a1 + ")" : a1;
+        // We often get a warning like: in a+b>>c, + is executed before >>. Although this is not an error,
+        // to avoid confusion, let us generate it like (a+b) >> c instead.
+        string a00 = (precedence_of_op(">>") <= precedence_of_expr(op->args[0])) ? "(" + a0 + ")" :
+                     (op->args[0].as<Add>() || op->args[0].as<Sub>()) ? "(" + a0 + ")" : a0;
+        string a11 = (precedence_of_op(">>") <= precedence_of_expr(op->args[1])) ? "(" + a1 + ")" :
+                     (op->args[1].as<Add>() || op->args[1].as<Sub>()) ? "(" + a1 + ")" : a1;
         rhs << a00 << " >> " << a11;
     } else if (op->is_intrinsic(Call::count_leading_zeros) ||
                op->is_intrinsic(Call::count_trailing_zeros) ||

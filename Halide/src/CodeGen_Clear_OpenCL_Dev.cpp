@@ -1486,6 +1486,12 @@ void CodeGen_Clear_OpenCL_Dev::CodeGen_OpenCL_C::visit(const Cast *op) {
 }
 
 void CodeGen_Clear_OpenCL_Dev::CodeGen_OpenCL_C::visit(const Select *op) {
+    // The branch(es) might contain actions with side effects like a channel read.
+    // Thus we must guard the branch(es).
+    // So first convert to if_then_else.
+    user_assert(op->condition.type().is_scalar())
+        << "The OpenCL does not support branch divergence. "
+        << "Please do not perform vectorization if the value of a URE depends on the incoming data.\n";
     if (op->false_value.defined()) {
         string cond_id = print_expr(op->condition);
         string true_value = print_expr(op->true_value);
@@ -1503,12 +1509,6 @@ void CodeGen_Clear_OpenCL_Dev::CodeGen_OpenCL_C::visit(const Select *op) {
         return;
     }
 
-    // The branch(es) might contain actions with side effects like a channel read.
-    // Thus we must guard the branch(es).
-    // So first convert to if_then_else.
-    user_assert(op->condition.type().is_scalar())
-        << "The OpenCL does not support branch divergence. "
-        << "Please do not perform vectorization if the value of a URE depends on the incoming data.\n";
     Expr c = Call::make(op->type, Call::if_then_else, {op->condition, op->true_value, op->false_value}, Call::PureIntrinsic);
     c.accept(this);
 
