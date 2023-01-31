@@ -72,81 +72,52 @@ bool should_extract(const Expr &e, bool lift_all) {
     return true;
 }
 
-// A global-value-numbering of expressions. Returns canonical form of
-// the Expr and writes out a global value numbering as a side-effect.
-class GVN : public IRMutator {
-public:
-    struct Entry {
-        Expr expr;
-        int use_count = 0;
-        // All consumer Exprs for which this is the last child Expr.
-        map<ExprWithCompareCache, int> uses;
-        Entry(const Expr &e)
-            : expr(e) {
-        }
-    };
-    vector<std::unique_ptr<Entry>> entries;
 
-    map<Expr, int, ExprCompare> shallow_numbering, output_numbering;
-    map<ExprWithCompareCache, int> leaves;
+Stmt GVN::mutate(const Stmt &s) override {
+    internal_error << "Can't call GVN on a Stmt: " << s << "\n";
+    return Stmt();
+}
 
-    int number = -1;
 
-    IRCompareCache cache;
-
-    GVN()
-        : number(0), cache(8) {
-    }
-
-    Stmt mutate(const Stmt &s) override {
-        internal_error << "Can't call GVN on a Stmt: " << s << "\n";
-        return Stmt();
-    }
-
-    ExprWithCompareCache with_cache(Expr e) {
-        return ExprWithCompareCache(e, &cache);
-    }
-
-    Expr mutate(const Expr &e) override {
-        // Early out if we've already seen this exact Expr.
-        {
-            auto iter = shallow_numbering.find(e);
-            if (iter != shallow_numbering.end()) {
-                number = iter->second;
-                return entries[number]->expr;
-            }
-        }
-
-        // We haven't seen this exact Expr before. Rebuild it using
-        // things already in the numbering.
-        number = -1;
-        Expr new_e = IRMutator::mutate(e);
-
-        // 'number' is now set to the numbering for the last child of
-        // this Expr (or -1 if there are no children). Next we see if
-        // that child has an identical parent to this one.
-
-        auto &use_map = number == -1 ? leaves : entries[number]->uses;
-        auto p = use_map.emplace(with_cache(new_e), (int)entries.size());
-        auto iter = p.first;
-        bool novel = p.second;
-        if (novel) {
-            // This is a never-before-seen Expr
-            number = (int)entries.size();
-            iter->second = number;
-            entries.emplace_back(new Entry(new_e));
-        } else {
-            // This child already has a syntactically-equal parent
+Expr GVN::mutate(const Expr &e) override {
+    // Early out if we've already seen this exact Expr.
+    {
+        auto iter = shallow_numbering.find(e);
+        if (iter != shallow_numbering.end()) {
             number = iter->second;
-            new_e = entries[number]->expr;
+            return entries[number]->expr;
         }
-
-        // Memorize this numbering for the old and new forms of this Expr
-        shallow_numbering[e] = number;
-        output_numbering[new_e] = number;
-        return new_e;
     }
-};
+
+    // We haven't seen this exact Expr before. Rebuild it using
+    // things already in the numbering.
+    number = -1;
+    Expr new_e = IRMutator::mutate(e);
+
+    // 'number' is now set to the numbering for the last child of
+    // this Expr (or -1 if there are no children). Next we see if
+    // that child has an identical parent to this one.
+
+    auto &use_map = number == -1 ? leaves : entries[number]->uses;
+    auto p = use_map.emplace(with_cache(new_e), (int)entries.size());
+    auto iter = p.first;
+    bool novel = p.second;
+    if (novel) {
+        // This is a never-before-seen Expr
+        number = (int)entries.size();
+        iter->second = number;
+        entries.emplace_back(new Entry(new_e));
+    } else {
+        // This child already has a syntactically-equal parent
+        number = iter->second;
+        new_e = entries[number]->expr;
+    }
+
+    // Memorize this numbering for the old and new forms of this Expr
+    shallow_numbering[e] = number;
+    output_numbering[new_e] = number;
+    return new_e;
+}
 
 /** Fill in the use counts in a global value numbering. */
 class ComputeUseCounts : public IRGraphVisitor {
@@ -185,19 +156,6 @@ public:
     }
 };
 
-/** Rebuild an expression using a map of replacements. Works on graphs without exploding. */
-class Replacer : public IRGraphMutator {
-public:
-    Replacer() = default;
-    Replacer(const map<Expr, Expr, ExprCompare> &r)
-        : IRGraphMutator() {    
-        expr_replacements = r;
-    }
-
-    void erase(const Expr &e) {
-        expr_replacements.erase(e);
-    }
-};
 
 class RemoveLets : public IRGraphMutator {
     using IRGraphMutator::visit;

@@ -5,10 +5,60 @@
  * Defines a pass for introducing let expressions to wrap common sub-expressions. */
 
 #include "IR.h"
+#include "IREquality.h"
 #include <set>
 
 namespace Halide {
 namespace Internal {
+
+// A global-value-numbering of expressions. Returns canonical form of
+// the Expr and writes out a global value numbering as a side-effect.
+class GVN : public IRMutator {
+private:
+    ExprWithCompareCache with_cache(Expr e) {
+        return ExprWithCompareCache(e, &cache);
+    }
+
+public:
+    struct Entry {
+        Expr expr;
+        int use_count = 0;
+        // All consumer Exprs for which this is the last child Expr.
+        map<ExprWithCompareCache, int> uses;
+        Entry(const Expr &e)
+            : expr(e) {
+        }
+    };
+    vector<std::unique_ptr<Entry>> entries;
+
+    map<Expr, int, ExprCompare> shallow_numbering, output_numbering;
+    map<ExprWithCompareCache, int> leaves;
+
+    int number = -1;
+
+    IRCompareCache cache;
+
+    GVN()
+        : number(0), cache(8) {
+    }
+
+    Stmt mutate(const Stmt &s) override;
+    Expr mutate(const Expr &e) override;
+};
+
+/** Rebuild an expression using a map of replacements. Works on graphs without exploding. */
+class Replacer : public IRGraphMutator {
+public:
+    Replacer() = default;
+    Replacer(const map<Expr, Expr, ExprCompare> &r)
+        : IRGraphMutator() {
+        expr_replacements = r;
+    }
+
+    void erase(const Expr &e) {
+        expr_replacements.erase(e);
+    }
+};
 
 /** Replace each common sub-expression in the argument with a
  * variable, and wrap the resulting expr in a let statement giving a

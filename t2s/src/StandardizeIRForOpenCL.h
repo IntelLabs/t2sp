@@ -28,7 +28,10 @@
 namespace Halide {
 namespace Internal {
 
-/* Standardize IR for generating OpenCL code */
+/* Standardize IR so that generating OpenCL code is straightforward: the code generator
+ * simply prints whatever the IR is, without doing any smart tricks. Not only this simplifies
+ * the code generator, but also improves code readability, as no immediate variable would be
+ * blindly generated. */
 extern Stmt standardize_ir_for_opencl_code_gen(Stmt s);
 
 }
