@@ -579,7 +579,7 @@ class RealizeOnGPU
     void gpu_store(Schain &c) {
         for (auto &s : c.stensors) {
             if (s.dims.size() > 0) {
-                c.outf.gpu_store(s.dims);
+                c.outf.gpu_store(s.dims, s.name);
                 debug(1) << c.outf.name() << ".gpu_store("
                          << to_string(s.dims) << ");\n";
             }
@@ -682,6 +682,7 @@ void Stensor::compile_to_host(string file_name, const vector<Argument> &args,
         Target acc = get_host_target();
         acc.set_feature(Target::IntelFPGA);
         acc.set_feature(Target::EnableSynthesis);
+        acc.set_feature(Target::CM);
         f.compile_to_host(file_name, args, fn_name, acc);
     }
     if (t == Starget::IntelGPU) {
@@ -689,11 +690,12 @@ void Stensor::compile_to_host(string file_name, const vector<Argument> &args,
                         "so we just emit out the source code in " << fn_name << "_genx.cpp\n";
         Target acc = get_host_target();
         acc.set_feature(Target::IntelGPU);
+        acc.set_feature(Target::CM);
         f.compile_to_cm(fn_name, std::move(args), acc);
     }
 }
 
-
+//here we want to store fn_name
 void Stensor::compile_to_oneapi(const vector<Argument> &args,
                               const std::string fn_name, Starget t) {
     Func f = stensor_realize_wrapper(t);
@@ -703,6 +705,10 @@ void Stensor::compile_to_oneapi(const vector<Argument> &args,
         acc.set_feature(Target::IntelFPGA);
         acc.set_feature(Target::EnableSynthesis);
         f.compile_to_oneapi(args, fn_name, acc);
+    }
+    else if (t == Starget::IntelGPU){
+        acc.set_feature(Target::IntelGPU);
+        f.compile_to_oneapi(args,fn_name,acc);
     }
 }
 

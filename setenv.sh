@@ -168,6 +168,9 @@ fi
 export PATH=$T2S_PATH/Halide/bin:$PATH
 export LD_LIBRARY_PATH=$T2S_PATH/Halide/bin:$LD_LIBRARY_PATH
 
+# Add ESIMD extension clang++
+export DPCPP_HOME=$T2S_PATH/install/sycl_workspace
+
 # Common options for compiling a specification
 export COMMON_OPTIONS_COMPILING_SPEC="-I $T2S_PATH/Halide/include -L $T2S_PATH/Halide/bin -lz -lpthread -ldl -std=c++11"
 

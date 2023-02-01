@@ -2,13 +2,13 @@
 
 function show_usage {
     echo "Usage:"
-    echo "  ./install-tool.sh m4|gmp|mpfr|mpc|cmake|gcc|llvm-clang|python-packages|cm|git-lfs"
+    echo "  ./install-tool.sh m4|gmp|mpfr|mpc|cmake|gcc|llvm-clang|python-packages|cm|git-lfs|ninja|re2c|oneapi-esimd|oneapi-support"
 }
 
 # No matter the script is sourced or directly run, BASH_SOURCE is always this script, and $1 is the
 # argument to the script
 T2S_PATH="$( cd "$(dirname "$BASH_SOURCE" )" >/dev/null 2>&1 ; pwd -P )" # The path to this script
-if [ "$1" != "m4"  -a  "$1" != "gmp" -a  "$1" != "mpfr" -a  "$1" != "mpc" -a  "$1" != "cmake" -a  "$1" != "gcc" -a "$1" != "llvm-clang" -a "$1" != "python-packages" -a "$1" != "cm" -a "$1" != "git-lfs" ]; then
+if [ "$1" != "m4"  -a  "$1" != "gmp" -a  "$1" != "mpfr" -a  "$1" != "mpc" -a  "$1" != "cmake" -a  "$1" != "gcc" -a "$1" != "llvm-clang" -a "$1" != "python-packages" -a "$1" != "cm" -a "$1" != "git-lfs" -a "$1" != "ninja" -a "$1" != "re2c" -a "$1" != "oneapi-esimd" -a "$1" != "oneapi-support" ]; then
     show_usage
     if [ $0 == $BASH_SOURCE ]; then
         # The script is directly run
@@ -159,6 +159,53 @@ function install_git_lfs {
     cd ..
 }
 
+function install_ninja {
+    git clone https://github.com/ninja-build/ninja.git
+    cd ninja
+    echo "if you have problems in running configure.py,try replacing the first line of configure.py(#!/usr/bin/env python) to #!/usr/bin/env python3"
+    ./configure.py --bootstrap
+    cd ..
+    cp -rf ninja $T2S_PATH/install
+}
+
+function install_re2c {
+    wget https://github.com/skvadrik/re2c/releases/download/3.0/re2c-3.0.tar.xz
+    tar -xvf re2c-3.0.tar.xz
+    rm re2c-3.0.tar.xz
+    cd re2c-3.0
+    autoreconf -i -W all
+    ./configure
+    make
+    make install
+    cd ..
+    cp -rf re2c-3.0 $T2S_PATH/install
+}
+
+function install_oneapi-esmid-extention {
+    export DPCPP_HOME=$T2S_PATH/downloads/sycl_workspace
+    mkdir $DPCPP_HOME
+    cd $DPCPP_HOME
+    git clone https://github.com/intel/llvm -b sycl
+    python $DPCPP_HOME/llvm/buildbot/configure.py
+    cd ..
+    cp -rf sycl_workspace/ $T2S_PATH/install/
+    export DPCPP_HOME=$T2S_PATH/install/sycl_workspace
+    python $DPCPP_HOME/llvm/buildbot/configure.py
+    python $DPCPP_HOME/llvm/buildbot/compile.py
+    git clone https://github.com/intel/llvm-test-suite.git
+    cp -rf llvm-test-suite/ $T2S_PATH/install/
+
+}
+
+function install-oneapi-support {
+    wget https://oneapi.team/tattle/oneAPI-samples/-/raw/9d8b94a38f2a98042cf933adfb91ec1da3d5ad51/DirectProgramming/DPC++FPGA/Tutorials/DesignPatterns/pipe_array/src/pipe_array.hpp?inline=false
+    wget https://oneapi.team/tattle/oneAPI-samples/-/raw/9d8b94a38f2a98042cf933adfb91ec1da3d5ad51/DirectProgramming/DPC++FPGA/Tutorials/DesignPatterns/pipe_array/src/pipe_array_internal.hpp?inline=false
+    mv pipe_array.hpp?inline=false pipe_array.hpp
+    mv pipe_array_internal.hpp?inline=false pipe_array_internal.hpp
+    mv pipe_array.hpp $T2S_PATH/t2s/src/oneapi-src
+    mv pipe_array_internal.hpp $T2S_PATH/t2s/src/oneapi-src
+}
+
 # Below we install newer version of gcc and llvm-clang and their dependencies
 mkdir -p $T2S_PATH/install $T2S_PATH/install/bin
 export PATH=$T2S_PATH/install/bin:$PATH
@@ -166,7 +213,6 @@ export PATH=$T2S_PATH/install/bin:$PATH
 cd $T2S_PATH
 mkdir -p downloads
 cd downloads
-
 if [ "$component" == "m4" ]; then
     install_m4         "1.4.18"
 fi
@@ -180,10 +226,10 @@ if [ "$component" == "mpc" ]; then
     install_mpc        "1.2.1"
 fi
 if [ "$component" == "cmake" ]; then
-    install_cmake      "3.11"  "3.11.1"
+    install_cmake      "3.15"  "3.15.7"
 fi
 if [ "$component" == "gcc" ]; then
-    install_gcc        "7.5.0"
+    install_gcc        "8.4.0"
 fi
 if [ "$component" == "llvm-clang" ]; then
     install_llvm_clang "90"    "9.0"    "7.5.0"
@@ -195,8 +241,20 @@ if [ "$component" == "cm" ]; then
     # install_cm_20211028
     install_cm_20200119
 fi
+if [ "$component" == "ninja" ]; then
+    install_ninja
+fi
+if [ "$component" == "re2c" ]; then
+    install_re2c
+fi
 if [ "$component" == "git-lfs" ]; then
     install_git_lfs 3.1.4
+fi
+if [ "$component" == "oneapi-esimd" ]; then
+    install_oneapi-esmid-extention
+fi
+if [ "$component" == "oneapi-support" ]; then
+    install-oneapi-support
 fi
 cd ..
 

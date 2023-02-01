@@ -994,7 +994,7 @@ class GPUStoreInserter : public IRMutator
     bool in_output = false;
     bool in_thread = false;
     string output_func;
-
+    string buf_ref_name;
     Stmt make_store(string name, Expr ld_idx, size_t len) {
         const auto &st_name = ori_store->name;
         const auto &ld_name = ori_load->name;
@@ -1018,7 +1018,7 @@ class GPUStoreInserter : public IRMutator
             call_args.push_back(ld_idx);
             for (size_t i = 0; i < elems.size(); i++)
                 call_args.push_back(elems[i]);
-
+            call_args.push_back(buf_ref_name);
             Expr call = Call::make(ld_type, Call::cm_store_2d, call_args, Call::Intrinsic);
             return Evaluate::make(call);
         }
@@ -1041,8 +1041,10 @@ public:
         for (auto &kv : func_info) {
             Function func;
             internal_assert(function_is_in_environment(kv.first, env, func));
-            if (kv.second.is_output && func.definition().schedule().has_store())
+            if (kv.second.is_output && func.definition().schedule().has_store()) {
                 output_func = kv.first;
+                buf_ref_name = func.definition().schedule().store_params().name;
+            }
         }
     }
 

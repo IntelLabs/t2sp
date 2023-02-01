@@ -1310,6 +1310,7 @@ typedef enum halide_target_feature_t {
     halide_target_feature_one_api, ///< Enable Intel OneAPI dpcpp program generation
     halide_target_feature_intel_gpu, ///< Enable Intel Graphics
     halide_target_feature_enable_synthesis, ///< Enable synthesizing binaries. Currently used only for Intel FPGAs.
+    halide_target_feature_cm, ///< Enable C for metal
     halide_target_feature_end ///< A sentinel. Every target is considered to have this feature, and setting this feature does nothing.
 } halide_target_feature_t;
 

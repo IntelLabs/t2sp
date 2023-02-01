@@ -373,6 +373,7 @@ const std::map<std::string, Target::Feature> feature_name_map = {
     {"sve2", Target::SVE2},
     {"intel_fpga", Target::IntelFPGA},
     {"intel_gpu", Target::IntelGPU},
+    {"cm", Target::CM},
     {"enable_synthesis", Target::EnableSynthesis}
     // NOTE: When adding features to this map, be sure to update
     // PyEnums.cpp and halide.cmake as well.
@@ -663,7 +664,10 @@ bool Target::supported() const {
     bad |= has_feature(Target::CUDA);
 #endif
 #if !defined(WITH_OPENCL)
-    bad |= has_feature(Target::OpenCL) || has_feature(Target::OneAPI); // (TODO) Be able to seperate OneAPI from OpenCL
+    bad |= has_feature(Target::OpenCL); 
+#endif
+#if !defined(WITH_ONEAPI)
+    bad |= has_feature(Target::OneAPI);
 #endif
 #if !defined(WITH_CM)
     bad |= has_feature(Target::IntelGPU);
@@ -687,10 +691,6 @@ void Target::set_feature(Feature f, bool value) {
     if (f == Target::IntelFPGA && value) {
         // Enabling generating OpenCL code for Intel FPGAs
         features.set(Target::OpenCL, true);
-    } else if  (f == Target::OneAPI && value) {
-        // Enabling generating OpenCL OneAPI code for IntelFPGAs w/ CodeGen_OneAPI_Dev.h/.cpp
-        // NOTE, the IntelFPGA must be set before the OneAPI is set
-        features.set(Target::OpenCL, false);
     }
 }
 

@@ -128,6 +128,7 @@ struct Target {
         OneAPI = halide_target_feature_one_api,
         IntelGPU = halide_target_feature_intel_gpu,
         EnableSynthesis = halide_target_feature_enable_synthesis,
+        CM = halide_target_feature_cm,
         FeatureEnd = halide_target_feature_end
     };
     Target()
