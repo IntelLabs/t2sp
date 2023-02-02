@@ -461,15 +461,7 @@ void CodeGen_Clear_OpenCL_Dev::CodeGen_OpenCL_C::visit(const Call *op) {
         stream << get_indent() << "barrier(CLK_LOCAL_MEM_FENCE);\n";
         set_latest_expr(op->type, "0");
     } else if (op->is_intrinsic(Call::shift_left) || op->is_intrinsic(Call::shift_right)) {
-        // Some OpenCL implementations forbid mixing signed-and-unsigned shift values;
-        // if the RHS is uint, quietly cast it back to int if the LHS is int
-        if (op->args[0].type().is_int() && op->args[1].type().is_uint()) {
-            Type t = op->args[0].type().with_code(halide_type_int);
-            Expr e = Call::make(op->type, op->name, {op->args[0], cast(t, op->args[1])}, op->call_type);
-            e.accept(this);
-        } else {
-            CodeGen_Clear_C::visit(op);
-        }
+        CodeGen_Clear_C::visit(op);
     } else if (op->is_intrinsic(Call::read_channel)) {
         std::string string_channel_index;
         const StringImm *v = op->args[0].as<StringImm>();

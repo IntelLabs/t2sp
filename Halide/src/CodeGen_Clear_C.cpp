@@ -2851,7 +2851,7 @@ void CodeGen_Clear_C::visit(const Atomic *op) {
 void CodeGen_Clear_C::visit(const For *op) {
     if (!ends_with(op->name, ".run_on_device")) {
         string id_min = print_expr(op->min);
-        string id_ub = print_expr(simplify(op->min + op->extent));
+        string id_ub = print_expr(is_zero(op->min) ? op->extent : simplify(op->min + op->extent));
 
         if (op->for_type == ForType::Parallel) {
             stream << get_indent() << "#pragma omp parallel for\n";

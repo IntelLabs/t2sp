@@ -6,6 +6,7 @@
 
 #include "IR.h"
 #include "IREquality.h"
+#include "IRMutator.h"
 #include <set>
 
 namespace Halide {
@@ -24,15 +25,15 @@ public:
         Expr expr;
         int use_count = 0;
         // All consumer Exprs for which this is the last child Expr.
-        map<ExprWithCompareCache, int> uses;
+        std::map<ExprWithCompareCache, int> uses;
         Entry(const Expr &e)
             : expr(e) {
         }
     };
-    vector<std::unique_ptr<Entry>> entries;
+    std::vector<std::unique_ptr<Entry>> entries;
 
-    map<Expr, int, ExprCompare> shallow_numbering, output_numbering;
-    map<ExprWithCompareCache, int> leaves;
+    std::map<Expr, int, ExprCompare> shallow_numbering, output_numbering;
+    std::map<ExprWithCompareCache, int> leaves;
 
     int number = -1;
 
@@ -50,7 +51,7 @@ public:
 class Replacer : public IRGraphMutator {
 public:
     Replacer() = default;
-    Replacer(const map<Expr, Expr, ExprCompare> &r)
+    Replacer(const std::map<Expr, Expr, ExprCompare> &r)
         : IRGraphMutator() {
         expr_replacements = r;
     }
