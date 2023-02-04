@@ -192,7 +192,6 @@ class MiscLoweringStmtForOpenCL : public IRMutator {
     }
 };
 
-// This does not really mutate any expression. Jus to take advantage of the mutate(Expr) interface.
 class GatherGVNOfEveryExprInStmt : public IRMutator {
 private:
     GVN &gvn;
@@ -202,66 +201,53 @@ public:
 
     Stmt mutate(const Stmt &s) override {
         if (const LetStmt *op = s.as<LetStmt>()) {
-            this->mutate(op->value);
-            return op;
+            return LetStmt::make(op->name, this->mutate(op->value), op->body);
         } else if (const AssertStmt *op = s.as<AssertStmt>()) {
-            this->mutate(op->condition);
-            this->mutate(op->message);
-            return op;
+            return AssertStmt::make(this->mutate(op->condition), this->mutate(op->message));
         } else if (const ProducerConsumer *op = s.as<ProducerConsumer>()) {
             return op;
         } else if (const Store *op = s.as<Store>()) {
-            this->mutate(op->predicate);
-            this->mutate(op->value);
-            this->mutate(op->index);
-            return op;
+            return Store::make(op->name, this->mutate(op->value), this->mutate(op->index),
+                               op->param, this->mutate(op->predicate), op->alignment);
         } else if (const For *op = s.as<For>()) {
-            this->mutate(op->min);
-            this->mutate(op->extent);
-            return op;
+            return For::make(op->name, this->mutate(op->min), this->mutate(op->extent), op->for_type, op->device_api, op->body);
         } else if (const Provide *op = s.as<Provide>()) {
+            vector<Expr> values, args;
             for (auto &v : op->values) {
-                this->mutate(v);
+                values.push_back(this->mutate(v));
             }
             for (auto &a : op->args) {
-                this->mutate(a);
+                args.push_back(this->mutate(a));
             }
-            return op;
+            return Provide::make(op->name, values, args);
         } else if (const Allocate *op = s.as<Allocate>()) {
+            vector<Expr> extents;
             for (auto &e : op->extents) {
-                this->mutate(e);
+                extents.push_back(this->mutate(e));
             }
-            this->mutate(op->condition);
-            this->mutate(op->new_expr);
-            return op;
+            return Allocate::make(op->name, op->type, op->memory_type, extents, this->mutate(op->condition), op->body, this->mutate(op->new_expr), op->free_function);
         } else if (const Free *op = s.as<Free>()) {
             return op;
         } else if (const Realize *op = s.as<Realize>()) {
-            this->mutate(op->condition);
+            Region bounds;
             for (auto &b : op->bounds) {
-                this->mutate(b.min);
-                this->mutate(b.extent);
+                bounds.push_back(Range(this->mutate(b.min), this->mutate(b.extent)));
             }
-            return op;
+            return Realize::make(op->name, op->types, op->memory_type, bounds, this->mutate(op->condition), op->body);
         } else if (const Block *op = s.as<Block>()) {
             return op;
         } else if (const IfThenElse *op = s.as<IfThenElse>()) {
-            this->mutate(op->condition);
-            return op;
+            return IfThenElse::make(this->mutate(op->condition), op->then_case, op->else_case);
         } else if (const Evaluate *op = s.as<Evaluate>()) {
-            this->mutate(op->value);
-            return op;
+            return Evaluate::make(this->mutate(op->value));
         } else if (const Prefetch *op = s.as<Prefetch>()) {
+            Region bounds;
             for (auto &b : op->bounds) {
-                this->mutate(b.min);
-                this->mutate(b.extent);
+                bounds.push_back(Range(this->mutate(b.min), this->mutate(b.extent)));
             }
-            this->mutate(op->condition);
-            return op;
+            return Prefetch::make(op->name, op->types, bounds, op->prefetch, this->mutate(op->condition), op->body);
         } else if (const Acquire *op = s.as<Acquire>()) {
-            this->mutate(op->semaphore);
-            this->mutate(op->count);
-            return op;
+            return Acquire::make(this->mutate(op->semaphore), this->mutate(op->count), op->body);
         } else if (const Fork *op = s.as<Fork>()) {
             return op;
         } else {
@@ -271,6 +257,9 @@ public:
     }
 
     Expr mutate(const Expr &e) override {
+        static int count=0;
+        count++;
+        debug(4) << "TOGVN: " << count << ": " << to_string(e) << "\n";
         return gvn.mutate(e);
     }
 };
@@ -280,20 +269,124 @@ public:
 // Modified from CSE.cpp ComputeUseCounts class
 class FindMustHoistExprInStmt : public IRGraphVisitor {
     GVN &gvn;
-    const Stmt &s; // The statement to look at
+    const Stmt &parent_stmt; // The statement containing the current expression
+    const Expr *parent_expr; // The expression containing the current expression
 private:
+    // For an operand of a binary or unary operation only:
+    bool must_hoist_operand(const Expr &operand) {
+        if (!operand.as<Variable>()) {
+            Type t = operand.type();
+            if (t.is_generated_struct() || (t.is_bool() && t.is_vector())) {
+                // Operand is not a variable, and its type is a generated struct. We have to apply the operation to every field
+                // of the struct, and thus we need hoist this operand so that code generation looks like:
+                //     t = operand; // compute the operand in a Let Expr.
+                //     ... = t.s0 + t.s1 ... // the fields now can be accessed
+                // Note a bool vector has no OpenCL native implementation, and has to be implemented in a user-defined struct as well.
+                return true;
+            }
+        }
+        return false;
+    }
+
     // Some expressions must be hoisted out to make code generation work.
     bool must_hoist(const Expr &e) {
         // If this statement is a Store of a vector into non-contiguous addresses. We need hoist out the index and the value, as
-        // we will generate code referring to distinct elements like v.s* here: addr= ..; v=...; A[addr.s0] = v.s0; A[addr.s1] = v.s1; etc.
-        if (s.as<Store>()) {
-            const Store *store = s.as<Store>();
+        // we will generate code referring to distinct elements like: addr= ..; v=...; A[addr.s0] = v.s0; A[addr.s1] = v.s1; etc.
+        if (const Store *store = parent_stmt.as<Store>()) {
             user_assert(is_one(store->predicate)) << "Predicated store is not supported inside OpenCL kernel.\n";
             Expr ramp_base = strided_ramp_base(store->index);
-            if (!ramp_base.defined() && store->index.type().is_vector() && (e.same_as(store->index) || e.same_as(store->value))) {
-                return true;
+            if (!ramp_base.defined() && store->index.type().is_vector()) {
+                if (e.same_as(store->index) || e.same_as(store->value)) {
+                    if (!e.as<Variable>()) {
+                        return true;
+                    }
+                }
+                return false;
             }
-            return false;
+        }
+
+        // If this expression is an operand with a type of user-defined struct, we may have to hoist it out if we need access its fields.
+        if (parent_expr) {
+            if (const Add *op = parent_expr->as<Add>()) {
+                if (e.same_as(op->a) || e.same_as(op->b)) {
+                    return must_hoist_operand(e);
+                }
+            }
+            if (const Sub *op = parent_expr->as<Sub>()) {
+                if (e.same_as(op->a) || e.same_as(op->b)) {
+                    return must_hoist_operand(e);
+                }
+            }
+            if (const Mul *op = parent_expr->as<Mul>()) {
+                if (e.same_as(op->a) || e.same_as(op->b)) {
+                    return must_hoist_operand(e);
+                }
+            }
+            if (const Div *op = parent_expr->as<Div>()) {
+                if (e.same_as(op->a) || e.same_as(op->b)) {
+                    return must_hoist_operand(e);
+                }
+            }
+            if (const Mod *op = parent_expr->as<Mod>()) {
+                if (e.same_as(op->a) || e.same_as(op->b)) {
+                    return must_hoist_operand(e);
+                }
+            }
+            if (const Min *op = parent_expr->as<Min>()) {
+                if (e.same_as(op->a) || e.same_as(op->b)) {
+                    return must_hoist_operand(e);
+                }
+            }
+            if (const Max *op = parent_expr->as<Max>()) {
+                if (e.same_as(op->a) || e.same_as(op->b)) {
+                    return must_hoist_operand(e);
+                }
+            }
+            if (const EQ *op = parent_expr->as<EQ>()) {
+                if (e.same_as(op->a) || e.same_as(op->b)) {
+                    return must_hoist_operand(e);
+                }
+            }
+            if (const NE *op = parent_expr->as<NE>()) {
+                if (e.same_as(op->a) || e.same_as(op->b)) {
+                    return must_hoist_operand(e);
+                }
+            }
+            if (const LT *op = parent_expr->as<LT>()) {
+                if (e.same_as(op->a) || e.same_as(op->b)) {
+                    return must_hoist_operand(e);
+                }
+            }
+            if (const LE *op = parent_expr->as<LE>()) {
+                if (e.same_as(op->a) || e.same_as(op->b)) {
+                    return must_hoist_operand(e);
+                }
+            }
+            if (const GT *op = parent_expr->as<GT>()) {
+                if (e.same_as(op->a) || e.same_as(op->b)) {
+                    return must_hoist_operand(e);
+                }
+            }
+            if (const GE *op = parent_expr->as<GE>()) {
+                if (e.same_as(op->a) || e.same_as(op->b)) {
+                    return must_hoist_operand(e);
+                }
+            }
+            if (const And *op = parent_expr->as<And>()) {
+                if (e.same_as(op->a) || e.same_as(op->b)) {
+                    return must_hoist_operand(e);
+                }
+            }
+            if (const Or *op = parent_expr->as<Or>()) {
+                if (e.same_as(op->a) || e.same_as(op->b)) {
+                    return must_hoist_operand(e);
+                }
+            }
+            if (const Not *op = parent_expr->as<Not>()) {
+                if (e.same_as(op->a)) {
+                    return must_hoist_operand(e);
+                }
+            }
         }
 
         if (const Broadcast *a = e.as<Broadcast>()) {
@@ -312,7 +405,7 @@ private:
     }
 
 public:
-    FindMustHoistExprInStmt(GVN &g, const Stmt &s) : gvn(g), s(s) { }
+    FindMustHoistExprInStmt(GVN &g, const Stmt &s) : gvn(g), parent_stmt(s), parent_expr(NULL) { }
 
     using IRGraphVisitor::include;
     using IRGraphVisitor::visit;
@@ -378,22 +471,98 @@ public:
     }
 
     void include(const Expr &e) override {
-        if (!must_hoist(e)) {
-            e.accept(this);
-            return;
-        }
-        debug(4) << "FindMustHoistExprInStmt: must hoist " << e << "\n";
+        if (must_hoist(e)) {
+            debug(4) << "FindMustHoistExprInStmt: must hoist " << e << "\n";
 
-        // Find this thing's number.
-        auto iter = gvn.output_numbering.find(e);
-        if (iter != gvn.output_numbering.end()) {
-            gvn.entries[iter->second]->use_count = 100;
-        } else {
-            internal_error << "Expr not in shallow numbering!\n";
+            // Find this thing's number.
+            auto iter = gvn.output_numbering.find(e);
+            if (iter != gvn.output_numbering.end()) {
+                gvn.entries[iter->second]->use_count = 100;
+            } else {
+                internal_error << "Expr not in shallow numbering!\n";
+            }
         }
 
         // Visit the children if we haven't been here before.
-        IRGraphVisitor::include(e);
+        const Expr *original_parent_expr = parent_expr;
+        parent_expr = &e;
+        if (e.as<IntImm>() || e.as<UIntImm>() || e.as<FloatImm>() || e.as<StringImm>() ||e.as<Variable>()) {
+            // Nothing to do
+        } else if (const Cast *op = e.as<Cast>()) {
+            this->include(op->value);
+        } else if (const Add *op = e.as<Add>()) {
+            this->include(op->a);
+            this->include(op->b);
+        } else if (const Sub *op = e.as<Sub>()) {
+            this->include(op->a);
+            this->include(op->b);
+        } else if (const Mul *op = e.as<Mul>()) {
+            this->include(op->a);
+            this->include(op->b);
+        } else if (const Div *op = e.as<Div>()) {
+            this->include(op->a);
+            this->include(op->b);
+        } else if (const Mod *op = e.as<Mod>()) {
+            this->include(op->a);
+            this->include(op->b);
+        } else if (const Min *op = e.as<Min>()) {
+            this->include(op->a);
+            this->include(op->b);
+        } else if (const Max *op = e.as<Max>()) {
+            this->include(op->a);
+            this->include(op->b);
+        } else if (const EQ *op = e.as<EQ>()) {
+            this->include(op->a);
+            this->include(op->b);
+        } else if (const NE *op = e.as<NE>()) {
+            this->include(op->a);
+            this->include(op->b);
+        } else if (const LT *op = e.as<LT>()) {
+            this->include(op->a);
+            this->include(op->b);
+        } else if (const LE *op = e.as<LE>()) {
+            this->include(op->a);
+            this->include(op->b);
+        } else if (const GT *op = e.as<GT>()) {
+            this->include(op->a);
+            this->include(op->b);
+        } else if (const GE *op = e.as<GE>()) {
+            this->include(op->a);
+            this->include(op->b);
+        } else if (const And *op = e.as<And>()) {
+            this->include(op->a);
+            this->include(op->b);
+        } else if (const Or *op = e.as<Or>()) {
+            this->include(op->a);
+            this->include(op->b);
+        } else if (const Not *op = e.as<Not>()) {
+            this->include(op->a);
+        } else if (const Select *op = e.as<Select>()) {
+            this->include(op->condition);
+            this->include(op->true_value);
+            this->include(op->false_value);
+        } else if (const Load *op = e.as<Load>()) {
+            this->include(op->predicate);
+            this->include(op->index);
+        } else if (const Ramp *op = e.as<Ramp>()) {
+            this->include(op->base);
+            this->include(op->stride);
+        } else if (const Broadcast *op = e.as<Broadcast>()) {
+            this->include(op->value);
+        } else if (const Call *op = e.as<Call>()) {
+            for (auto &a : op->args) {
+                this->include(a);
+            }
+        } else if (const Let *op = e.as<Let>()) {
+            this->include(op->value);
+            this->include(op->body);
+        } else {
+            internal_assert(e.as<Shuffle>());
+            for (auto &v : e.as<Shuffle>()->vectors) {
+                this->include(v);
+            }
+        }
+        parent_expr = original_parent_expr;
     }
 };
 
@@ -409,6 +578,9 @@ class StmtStandardizerOpenCL : public IRMutator {
     bool in_opencl_device_kernel;
   public:
     Stmt mutate(const Stmt &s) override {
+        if (!s.defined()) {
+            return s;
+        }
         const For *loop = s.as<For>();
         if (loop && loop->device_api == DeviceAPI::OpenCL && ends_with(loop->name, ".run_on_device")) {
             in_opencl_device_kernel = true;
@@ -425,6 +597,7 @@ class StmtStandardizerOpenCL : public IRMutator {
             GVN gvn;
             new_s = GatherGVNOfEveryExprInStmt(gvn).mutate(new_s);
 
+            // We will also hoist out some expressions that have no equivalent OpenCL expressions. Their use_count is marked as 100.
             FindMustHoistExprInStmt find_hoistable(gvn, new_s);
             find_hoistable.include(new_s);
 
