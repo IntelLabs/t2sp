@@ -18,6 +18,7 @@
 *******************************************************************************/
 #include "CodeGen_Internal.h"
 #include "CSE.h"
+#include "EliminateBoolVectors.h"
 #include "IREquality.h"
 #include "IRMatch.h"
 #include "IRMutator.h"
@@ -123,7 +124,7 @@ class MiscLoweringStmtForOpenCL : public IRMutator {
         }
     }
 
-    Expr mutate(const Expr &e) override {
+    Expr mutate_compute(const Expr &e) {
         static int count=0;
         count++;
         debug(4) << "MUTATE " << count << ": " << e << "\n";
@@ -190,6 +191,52 @@ class MiscLoweringStmtForOpenCL : public IRMutator {
             return IRMutator::mutate(e);
         }
     }
+
+    Expr mutate_bool_vector_type(Expr &e, Type operand_type) {
+        static int count=0;
+        count++;
+        debug(4) << "MutableBool " << count << ": " << to_string(e) << ". Operand type is " << operand_type << "\n";
+        Type intermediate_type = e.type().with_code(Type::Int).with_bits(operand_type.bits());
+        debug(4) << "    intermediate type is " << intermediate_type << "\n";
+        string intermediate_name = unique_name('t');
+        Expr intermediate_var = Variable::make(intermediate_type, intermediate_name);
+        Expr cast = Cast::make(e.type(), intermediate_var);
+        e.set_type(intermediate_type);
+        Expr new_e = Let::make(intermediate_name, e, cast);
+        debug(4) << "    Aftrmutable: " << to_string(new_e) << "\n";
+        return new_e;
+    }
+
+    Expr mutate(const Expr &e) override {
+        // First, mutate the computation of the expression. Type won't be changed.
+        Expr new_e = mutate_compute(e);
+
+        // Second, see if we need change the return type of the expression.
+        // If the expression returns a bool vector, but its operands are integers, for example, we
+        // need generate code like:
+        //      int16  x = y == z;                   // y and z are int16
+        //      bool16 b = {x.s0, x.s1, ..., x.s15}; // convert from int16 to bool16
+        // Note that a bool vector like bool16 above has to be generated as a struct type, as OpenCL does not
+        // support it natively.
+        if (new_e.type().is_bool() && new_e.type().is_vector()) {
+            if (const EQ *op = new_e.as<EQ>()) {
+                new_e = mutate_bool_vector_type(new_e, op->a.type());
+            } else if (const NE *op = new_e.as<NE>()) {
+                new_e = mutate_bool_vector_type(new_e, op->a.type());
+            } else if (const LT *op = new_e.as<LT>()) {
+                new_e = mutate_bool_vector_type(new_e, op->a.type());
+            } else if (const LE *op = new_e.as<LE>()) {
+                new_e = mutate_bool_vector_type(new_e, op->a.type());
+            } else if (const GT *op = new_e.as<GT>()) {
+                new_e = mutate_bool_vector_type(new_e, op->a.type());
+            } else if (const GE *op = new_e.as<GE>()) {
+                new_e = mutate_bool_vector_type(new_e, op->a.type());
+            }
+        }
+
+        return new_e;
+    }
+
 };
 
 class GatherGVNOfEveryExprInStmt : public IRMutator {
@@ -647,7 +694,21 @@ class StmtStandardizerOpenCL : public IRMutator {
 };
 
 Stmt standardize_ir_for_opencl_code_gen(Stmt s) {
-    // Standardize every statement
+    // Standardize every statement independently. The standardization process has the following steps:
+    // 1. MISC lowering. Lower expressions in a statement to what can be directly expressed by OpenCL. For example, if
+    //    an expression returns a vector, and individual elements of that vector have to be accessed later, then we should
+    //    store the vector in a variable (using a Let Expr), before it can be accessed element-wise. For another example,
+    //    if an expression returns a boolean vector, we have to make it return a vector of e.g. int type, and then cast that
+    //    vector to a boolean vector. For other examples, we might convert / into a shift, etc.
+    //    Example: a statement looks like
+    //               ...= ... Select(cond, e, ...), where expression e has a type of bool2 vector and is not a variable.
+    //    After MISC lowering, the statement looks like:
+    //               ...= ... Select(cond, Let int2 t = e in (let bool2 t' = Cast(t) in t'), ...)
+    // 2. Hoist the Let Exprs created before before the enclosing statement. For the above example:
+    //               int2  t  = e if e has no side effect, otherwise int2 t = Select(cond, e, (int2){0, 0})
+    //               bool2 t' = Cast(t)
+    //               ...= ... Select(cond, t', ...)
+    // 3. Also hoist CSEs.
     StmtStandardizerOpenCL standardizer;
     s = standardizer.mutate(s);
     return s;
