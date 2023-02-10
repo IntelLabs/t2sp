@@ -318,7 +318,7 @@ void CodeGen_Clear_OpenCL_Dev::CodeGen_OpenCL_C::visit(const For *loop) {
 
                 Stmt iters;
                 for (int i = 0; i < e->value; i++) {
-                    Stmt iter = simplify(substitute(loop->name, loop->min + i, body));
+                    Stmt iter = substitute(loop->name, simplify(loop->min + i), body);
                     iter.accept(this);
                 }
             } else {
@@ -396,7 +396,7 @@ void CodeGen_Clear_OpenCL_Dev::CodeGen_OpenCL_C::visit(const Broadcast *op) {
     if (is_standard_opencl_type(op->type)) {
         set_latest_expr(op->type.with_lanes(op->lanes), id_value);
     } else {
-        string s = "{";
+        string s = "(" + print_type(op->type) + ") {";
         for (int i = 0; i < op->lanes; i++) {
             s += ((i == 0) ? "" : ", ") + id_value;
         }
@@ -1397,22 +1397,6 @@ void CodeGen_Clear_OpenCL_Dev::CodeGen_OpenCL_C::visit(const Store *op) {
 namespace {
 }
 
-// In the following logic operations, we specially handle the non-standard bool vector
-// like this:
-//      int16  x = y == z;                   // y and z are int16
-//      bool16 b = {x.s0, x.s1, ..., x.s15}; // convert from int16 to bool16
-void CodeGen_Clear_OpenCL_Dev::CodeGen_OpenCL_C::cast_to_bool_vector(Type bool_type, Type other_type, string other_var) {
-    if (bool_type.is_vector() && bool_type.bits() == 1 && other_type.bits() != 1) {
-        internal_assert(other_type.is_vector() && other_type.lanes() == bool_type.lanes());
-        std::ostringstream oss;
-        for (int i = 0; i < bool_type.lanes(); i++) {
-            oss << (i == 0 ? "{" : ", ") << "(bool)" << other_var << ".s" << vector_index_to_string(i);
-        }
-        oss << "};\n";
-        set_latest_expr(bool_type, oss.str());
-    }
-}
-
 void CodeGen_Clear_OpenCL_Dev::CodeGen_OpenCL_C::visit_binop(Type t, Expr a, Expr b, const char *op) {
     if (is_standard_opencl_type(t) && is_standard_opencl_type(a.type())) {
     	CodeGen_Clear_C::visit_binop(t, a, b, op);
@@ -1423,42 +1407,36 @@ void CodeGen_Clear_OpenCL_Dev::CodeGen_OpenCL_C::visit_binop(Type t, Expr a, Exp
         string sa = print_expr(a);
         string sb = print_expr(b);
         for (int i = 0; i < t.lanes(); i++) {
-            oss << ((i == 0) ? "{" : ", ") << sa << ".s" << vector_index_to_string(i) << op
+            oss << ((i == 0) ? "(" + print_type(t) + ") {" : ", ") << sa << ".s" << vector_index_to_string(i) << op
                 << sb << ".s" << vector_index_to_string(i);
         }
-        oss << "};\n";
+        oss << "}";
         set_latest_expr(t, oss.str());
     }
 }
 
 void CodeGen_Clear_OpenCL_Dev::CodeGen_OpenCL_C::visit(const EQ *op) {
-    visit_binop(eliminated_bool_type(op->type, op->a.type()), op->a, op->b, "==");
-    cast_to_bool_vector(op->type, op->a.type(), latest_expr);
+    visit_binop(op->type, op->a, op->b, "==");
 }
 
 void CodeGen_Clear_OpenCL_Dev::CodeGen_OpenCL_C::visit(const NE *op) {
-    visit_binop(eliminated_bool_type(op->type, op->a.type()), op->a, op->b, "!=");
-    cast_to_bool_vector(op->type, op->a.type(), latest_expr);
+    visit_binop(op->type, op->a, op->b, "!=");
 }
 
 void CodeGen_Clear_OpenCL_Dev::CodeGen_OpenCL_C::visit(const LT *op) {
-    visit_binop(eliminated_bool_type(op->type, op->a.type()), op->a, op->b, "<");
-    cast_to_bool_vector(op->type, op->a.type(), latest_expr);
+    visit_binop(op->type, op->a, op->b, "<");
 }
 
 void CodeGen_Clear_OpenCL_Dev::CodeGen_OpenCL_C::visit(const LE *op) {
-    visit_binop(eliminated_bool_type(op->type, op->a.type()), op->a, op->b, "<=");
-    cast_to_bool_vector(op->type, op->a.type(), latest_expr);
+    visit_binop(op->type, op->a, op->b, "<=");
 }
 
 void CodeGen_Clear_OpenCL_Dev::CodeGen_OpenCL_C::visit(const GT *op) {
-    visit_binop(eliminated_bool_type(op->type, op->a.type()), op->a, op->b, ">");
-    cast_to_bool_vector(op->type, op->a.type(), latest_expr);
+    visit_binop(op->type, op->a, op->b, ">");
 }
 
 void CodeGen_Clear_OpenCL_Dev::CodeGen_OpenCL_C::visit(const GE *op) {
-    visit_binop(eliminated_bool_type(op->type, op->a.type()), op->a, op->b, ">=");
-    cast_to_bool_vector(op->type, op->a.type(), latest_expr);
+    visit_binop(op->type, op->a, op->b, ">=");
 }
 
 void CodeGen_Clear_OpenCL_Dev::CodeGen_OpenCL_C::visit(const Cast *op) {
@@ -1471,7 +1449,19 @@ void CodeGen_Clear_OpenCL_Dev::CodeGen_OpenCL_C::visit(const Cast *op) {
     }
 
     if (op->type.is_vector()) {
-        set_latest_expr(op->type, "convert_" + print_type(op->type) + "(" + print_expr(op->value) + ")");
+        string value = print_expr(op->value);
+        if (op->type.is_bool()) {
+            // We have standardized the IR so that op value must be a viriable.
+            internal_assert(op->value.as<Variable>());
+            std::ostringstream oss;
+            for (int i = 0; i < op->type.lanes(); i++) {
+                oss << (i == 0 ? "{" : ", ") << "(bool)" << value << ".s" << vector_index_to_string(i);
+            }
+            oss << "}";
+            set_latest_expr(op->type, oss.str());
+        } else {
+            set_latest_expr(op->type, "convert_" + print_type(op->type) + "(" +  + ")");
+        }
     } else {
         CodeGen_Clear_C::visit(op);
     }
