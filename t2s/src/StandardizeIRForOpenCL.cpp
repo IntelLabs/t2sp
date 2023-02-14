@@ -38,6 +38,7 @@ namespace Internal {
 using std::string;
 using std::map;
 using std::pair;
+using std::tuple;
 using std::string;
 using std::vector;
 using std::set;
@@ -359,18 +360,107 @@ public:
 class Let2LetStmt : public IRMutator {
 private:
     bool in_opencl_device_kernel;
-    vector<pair<string, Expr>> name_value_pairs; // For each "Let x=value" found, record x and value here.
+    Expr path_condition; // Condition of the path, within the current statement, to the current Expr.
+
+    // For each "Let x=value" found, record the path condition, x and value.
+    vector<tuple<Expr, string, Expr>> cond_name_value_tuples;
+
+    // Internal helper functions. From CSE.cpp
+    void update_path_condition(const Expr &new_condition) {
+        if (equal(path_condition, const_true())) {
+            path_condition = new_condition;
+        } else {
+            path_condition = path_condition && new_condition;
+        }
+    }
+
+    bool expr_has_side_effect(const Expr &e) {
+        if (e.as<IntImm>() || e.as<UIntImm>() || e.as<FloatImm>() || e.as<StringImm>() || e.as<Variable>()) {
+            return false;
+        } else if (const Cast *op = e.as<Cast>()) {
+            return expr_has_side_effect(op->value);
+        } else if (const Add *op = e.as<Add>()) {
+            return expr_has_side_effect(op->a) || expr_has_side_effect(op->b);
+        } else if (const Sub *op = e.as<Sub>()) {
+            return expr_has_side_effect(op->a) || expr_has_side_effect(op->b);
+        } else if (const Mul *op = e.as<Mul>()) {
+            return expr_has_side_effect(op->a) || expr_has_side_effect(op->b);
+        } else if (const Div *op = e.as<Div>()) {
+            return expr_has_side_effect(op->a) || expr_has_side_effect(op->b);
+        } else if (const Mod *op = e.as<Mod>()) {
+            return expr_has_side_effect(op->a) || expr_has_side_effect(op->b);
+        } else if (const Min *op = e.as<Min>()) {
+            return expr_has_side_effect(op->a) || expr_has_side_effect(op->b);
+        } else if (const Max *op = e.as<Max>()) {
+            return expr_has_side_effect(op->a) || expr_has_side_effect(op->b);
+        } else if (const EQ *op = e.as<EQ>()) {
+            return expr_has_side_effect(op->a) || expr_has_side_effect(op->b);
+        } else if (const NE *op = e.as<NE>()) {
+            return expr_has_side_effect(op->a) || expr_has_side_effect(op->b);
+        } else if (const LT *op = e.as<LT>()) {
+            return expr_has_side_effect(op->a) || expr_has_side_effect(op->b);
+        } else if (const LE *op = e.as<LE>()) {
+            return expr_has_side_effect(op->a) || expr_has_side_effect(op->b);
+        } else if (const GT *op = e.as<GT>()) {
+            return expr_has_side_effect(op->a) || expr_has_side_effect(op->b);
+        } else if (const GE *op = e.as<GE>()) {
+            return expr_has_side_effect(op->a) || expr_has_side_effect(op->b);
+        } else if (const And *op = e.as<And>()) {
+            return expr_has_side_effect(op->a) || expr_has_side_effect(op->b);
+        } else if (const Or *op = e.as<Or>()) {
+            return expr_has_side_effect(op->a) || expr_has_side_effect(op->b);
+        } else if (const Not *op = e.as<Not>()) {
+            return expr_has_side_effect(op->a);
+        } else if (const Select *op = e.as<Select>()) {
+            return expr_has_side_effect(op->condition) || expr_has_side_effect(op->true_value) || expr_has_side_effect(op->false_value);
+        } else if (const Load *op = e.as<Load>()) { // We do not care if a bad address is used on FPGA: there is no segmentation fault there anyway
+            return expr_has_side_effect(op->predicate) || expr_has_side_effect(op->index);
+        } else if (const Ramp *op = e.as<Ramp>()) {
+            return expr_has_side_effect(op->base) || expr_has_side_effect(op->stride);
+        } else if (const Broadcast *op = e.as<Broadcast>()) {
+            return expr_has_side_effect(op->value);
+        } else if (const Call *op = e.as<Call>()) {
+            if (op->is_intrinsic(Call::read_channel) || op->is_intrinsic(Call::write_channel) ||
+                op->is_intrinsic(Call::read_channel_nb) || op->is_intrinsic(Call::write_channel_nb)) {
+                return true;
+            } else {
+                return false;
+            }
+        } else if (const Let *op = e.as<Let>()) {
+            return expr_has_side_effect(op->value) || expr_has_side_effect(op->body);
+        } else {
+            const Shuffle *shuffle = e.as<Shuffle>();
+            internal_assert(shuffle);
+            bool has_side_effect = false;
+            for (auto &v : shuffle->vectors) {
+                has_side_effect |=  expr_has_side_effect(v);
+            }
+            for (auto &i : shuffle->indices) {
+                has_side_effect |=  expr_has_side_effect(i);
+            }
+            return has_side_effect;
+        }
+    }
+
 public:
     using IRMutator::mutate;
     Let2LetStmt() : in_opencl_device_kernel(false) { }
 
-    // Create LetStms, according to name_value_pairs, before the current statement s
+    // Create LetStms, according to cond_name_value_tuples, before the current statement s
     Stmt make_LetStmts(const Stmt &s) {
         Stmt new_s = s;
-        for (int i = name_value_pairs.size() - 1; i >= 0; i--) {
-            new_s = LetStmt::make(name_value_pairs[i].first, name_value_pairs[i].second, new_s);
+        for (int i = cond_name_value_tuples.size() - 1; i >= 0; i--) {
+            const Expr   &cond  = std::get<0>(cond_name_value_tuples[i]);
+            const string &name  = std::get<1>(cond_name_value_tuples[i]);
+            const Expr   &value = std::get<2>(cond_name_value_tuples[i]);
+            if (expr_has_side_effect(value)) {
+                Expr undefined_value;
+                new_s = LetStmt::make(name, Select::make(cond, value, undefined_value), new_s);
+            } else {
+                new_s = LetStmt::make(name, value, new_s);
+            }
         }
-        name_value_pairs.clear();
+        cond_name_value_tuples.clear();
         return new_s;
     }
 
@@ -382,13 +472,13 @@ public:
         if (loop && loop->device_api == DeviceAPI::OpenCL && ends_with(loop->name, ".run_on_device")) {
             in_opencl_device_kernel = true;
         }
-
+        path_condition = const_true(); // The path condition is meant to be within the current statement
         Stmt new_s = s;
         if (in_opencl_device_kernel) {
-            internal_assert(name_value_pairs.size() == 0); // The vector is empty before a statement is processed, and is cleared after that statement is processed..
+            internal_assert(cond_name_value_tuples.size() == 0); // The vector is empty before a statement is processed, and is cleared after that statement is processed..
             if (const LetStmt *op = s.as<LetStmt>()) {
                 Stmt new_body = mutate(op->body);
-                internal_assert(name_value_pairs.size() == 0);
+                internal_assert(cond_name_value_tuples.size() == 0);
                 new_s = make_LetStmts(LetStmt::make(op->name, mutate(op->value), new_body));
             } else if (const AssertStmt *op = s.as<AssertStmt>()) {
                 new_s = make_LetStmts(AssertStmt::make(mutate(op->condition), mutate(op->message)));
@@ -399,7 +489,7 @@ public:
                 new_s = make_LetStmts(Store::make(op->name, mutate(op->value), mutate(op->index), op->param, op->predicate, op->alignment));
             } else if (const For *op = s.as<For>()) {
                 Stmt new_body = mutate(op->body);
-                internal_assert(name_value_pairs.size() == 0);
+                internal_assert(cond_name_value_tuples.size() == 0);
                 new_s = make_LetStmts(For::make(op->name, mutate(op->min), mutate(op->extent), op->for_type, op->device_api, new_body));
             } else if (const Provide *op = s.as<Provide>()) {
                 vector<Expr> values, args;
@@ -412,7 +502,7 @@ public:
                 new_s = make_LetStmts(Provide::make(op->name, values, args));
             } else if (const Allocate *op = s.as<Allocate>()) {
                 Stmt new_body = mutate(op->body);
-                internal_assert(name_value_pairs.size() == 0);
+                internal_assert(cond_name_value_tuples.size() == 0);
                 vector<Expr> extents;
                 for (auto &e : op->extents) {
                     extents.push_back(mutate(e));
@@ -422,7 +512,7 @@ public:
                 return op;
             } else if (const Realize *op = s.as<Realize>()) {
                 Stmt new_body = mutate(op->body);
-                internal_assert(name_value_pairs.size() == 0);
+                internal_assert(cond_name_value_tuples.size() == 0);
                 Region bounds;
                 for (auto &b : op->bounds) {
                     bounds.push_back({mutate(b.min), mutate(b.extent)});
@@ -430,24 +520,24 @@ public:
                 new_s = make_LetStmts(Realize::make(op->name, op->types, op->memory_type, bounds, mutate(op->condition), new_body));
             } else if (const Block *op = s.as<Block>()) {
                 Stmt new_first = mutate(op->first);
-                internal_assert(name_value_pairs.size() == 0);
+                internal_assert(cond_name_value_tuples.size() == 0);
                 Stmt new_rest = mutate(op->rest);
-                internal_assert(name_value_pairs.size() == 0);
+                internal_assert(cond_name_value_tuples.size() == 0);
                 new_s = Block::make(new_first, new_rest);
             } else if (const IfThenElse *op = s.as<IfThenElse>()) {
                 Stmt new_then_case = mutate(op->then_case);
-                internal_assert(name_value_pairs.size() == 0);
+                internal_assert(cond_name_value_tuples.size() == 0);
                 Stmt new_else_case;
                 if (op->else_case.defined()) {
                     new_else_case = mutate(op->else_case);
                 }
-                internal_assert(name_value_pairs.size() == 0);
+                internal_assert(cond_name_value_tuples.size() == 0);
                 new_s = make_LetStmts(IfThenElse::make(mutate(op->condition), new_then_case, new_else_case));
             } else if (const Evaluate *op = s.as<Evaluate>()) {
                 new_s = make_LetStmts(Evaluate::make(mutate(op->value)));
             } else if (const Prefetch *op = s.as<Prefetch>()) {
                 Stmt new_body = mutate(op->body);
-                internal_assert(name_value_pairs.size() == 0);
+                internal_assert(cond_name_value_tuples.size() == 0);
                 Region bounds;
                 for (auto &b : op->bounds) {
                     bounds.push_back({mutate(b.min), mutate(b.extent)});
@@ -455,13 +545,13 @@ public:
                 new_s = make_LetStmts(Prefetch::make(op->name, op->types, bounds,op->prefetch, mutate(op->condition), new_body));
             } else if (const Acquire *op = s.as<Acquire>()) {
                 Stmt new_body = mutate(op->body);
-                internal_assert(name_value_pairs.size() == 0);
+                internal_assert(cond_name_value_tuples.size() == 0);
                 new_s = make_LetStmts(Acquire::make(mutate(op->semaphore), mutate(op->count), new_body));
             } else if (const Fork *op = s.as<Fork>()) {
                 Stmt new_first = mutate(op->first);
-                internal_assert(name_value_pairs.size() == 0);
+                internal_assert(cond_name_value_tuples.size() == 0);
                 Stmt new_rest = mutate(op->rest);
-                internal_assert(name_value_pairs.size() == 0);
+                internal_assert(cond_name_value_tuples.size() == 0);
                 new_s = Fork::make(new_first, new_rest);
             } else {
                 const Atomic *atomic = s.as<Atomic>();
@@ -483,9 +573,24 @@ public:
             return e;
         }
 
-        if (const Let *op = e.as<Let>()) {
+        if (const Select *op = e.as<Select>()) {
+            Expr prev_path_condition = path_condition;
+
+            update_path_condition(op->condition);
+            Expr new_true_value = mutate(op->true_value);
+            path_condition = prev_path_condition;
+
+            Expr new_false_value;
+            if (op->false_value.defined()) {
+                update_path_condition(!op->condition);
+                new_false_value = mutate(op->false_value);
+            }
+            path_condition = prev_path_condition;
+
+            return Select::make(mutate(op->condition), new_true_value, new_false_value);
+        } else if (const Let *op = e.as<Let>()) {
             Expr new_value = mutate(op->value);
-            name_value_pairs.push_back(pair<string, Expr>(op->name, new_value));
+            cond_name_value_tuples.push_back(tuple<Expr, string, Expr>(path_condition, op->name, new_value));
             return mutate(op->body); // it is the body that represents the entire expression
         } else {
             return IRMutator::mutate(e);
