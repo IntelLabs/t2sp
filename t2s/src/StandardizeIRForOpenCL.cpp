@@ -46,11 +46,22 @@ using std::queue;
 // Misc lowering of some expressions in a single statement
 class MiscLoweringStmtForOpenCL : public IRMutator {
   private:
-    bool is_variable(const Expr &e) {
-        if (e.as<Variable>()) {
-            return true;
+    // Return the variable representing the whole expression, if there is such a variable.
+    const Variable *as_variable(const Expr &e) {
+        if (const Variable *op = e.as<Variable>()) {
+            return op;
         }
-        return false;
+        // For a Let expression:
+        //     Let x = value in body
+        // body, not x, represents the entire expression. So check if the body is actually a variable.
+        if (const Let * op = e.as<Let>()) {
+            return as_variable(op->body);
+        }
+        return NULL;
+    }
+
+    bool is_variable(const Expr &e) {
+        return as_variable(e) != NULL;
     }
 
     Expr save_to_intermediate_vector(const Expr &operand) {
@@ -72,12 +83,15 @@ class MiscLoweringStmtForOpenCL : public IRMutator {
     }
 
     Expr mutate_bool_vector_type(Expr &e, const Type &operand_type) {
+        internal_assert(e.type().is_bool() && e.type().is_vector());
+        Type bool_vec_type = e.type();
         Type intermediate_type = e.type().with_code(Type::Int).with_bits(operand_type.bits());
         string intermediate_name = unique_name('t');
         Expr intermediate_var = Variable::make(intermediate_type, intermediate_name);
-        Expr cast = Cast::make(e.type(), intermediate_var);
+        Expr cast = Cast::make(bool_vec_type, intermediate_var);
         e.set_type(intermediate_type);
         Expr new_e = Let::make(intermediate_name, e, cast);
+        new_e.set_type(bool_vec_type);
         return new_e;
     }
 
@@ -181,7 +195,11 @@ class MiscLoweringStmtForOpenCL : public IRMutator {
     Expr mutate(const Expr &e) override {
         static int count=0;
         count++;
-        debug(4) << "MUTATE " << count << ": " << e << "\n";
+        int original_count= count;
+        debug(4) << "MUTATE " << original_count << ": " << e << "\n";
+        Expr orig_e, des_e, lets_e, cse_e, ret_e;
+        orig_e = e;
+
         // First, modify the expression to desirable computations.
         Expr new_e = e;
         if (const Add* op = e.as<Add>()) {
@@ -230,6 +248,8 @@ class MiscLoweringStmtForOpenCL : public IRMutator {
                 new_e = Let::make(index_name, op->index, load);
             }
         }
+        debug(4) << "MUTATE " << original_count << ": after lowering to desirable compute: " << new_e << "\n";
+        des_e = new_e;
 
         // Second, create Let Expr for ALU operations' operands that are vectors but we need access their elements in this expression.
         if (const Add *op = new_e.as<Add>()) {
@@ -265,6 +285,8 @@ class MiscLoweringStmtForOpenCL : public IRMutator {
         } else if (const Not *op = new_e.as<Not>()) {
             new_e = Not::make(save_to_intermediate_vector(op->a));
         }
+        debug(4) << "MUTATE " << original_count << ": after creating Lets: " << new_e << "\n";
+        lets_e = new_e;
 
         // Third, we did not get into sub-expressions above, and now do it.
         if (new_e.as<IntImm>() || new_e.as<UIntImm>() || new_e.as<FloatImm>() || new_e.as<StringImm>() || new_e.as<Variable>()) {
@@ -328,7 +350,8 @@ class MiscLoweringStmtForOpenCL : public IRMutator {
             }
             new_e = Shuffle::make(vectors, shuffle->indices);
         }
-
+        debug(4) << "MUTATE " << original_count << ": after handling sub-expressions: " << new_e << "\n";
+        cse_e = new_e;
 
         // Finally, see if we need change the return type of the expression.
         // If the expression returns a bool vector, but its operands are integers, for example, we
@@ -352,11 +375,140 @@ class MiscLoweringStmtForOpenCL : public IRMutator {
                 new_e = mutate_bool_vector_type(new_e, op->a.type());
             }
         }
+        debug(4) << "MUTATE " << original_count << ": after changing return type: " << new_e << "\n";
+        ret_e= new_e;
+
+
+        static int count1=0;
+        count1++;
+        debug(4) << "MUTATEPRocess: " << count1 << ": Orignal e: " << to_string(orig_e) << "\n";
+        debug(4) << "MUTATEPRocess: " << count1 << ": des_e: " << to_string(des_e) << "\n";
+        debug(4) << "MUTATEPRocess: " << count1 << ": lets_e: " << to_string(lets_e) << "\n";
+        debug(4) << "MUTATEPRocess: " << count1 << ": cse_e: " << to_string(cse_e) << "\n";
+        debug(4) << "MUTATEPRocess: " << count1 << ": ret_e: " << to_string(ret_e) << "\n";
+
 
         return new_e;
     }
 };
 
+class Let2LetStmt : public IRMutator {
+private:
+    vector<pair<string, Expr>> name_value_pairs; // For each "Let x=value" found, record x and value here.
+public:
+    bool changed; // Any Let has been hosited as LetStmt
+    using IRMutator::mutate;
+    Let2LetStmt() { changed = false; }
+
+    // Create LetStms, according to name_value_pairs, before the current statement s
+    Stmt make_LetStmts(const Stmt &s) {
+        Stmt new_s = s;
+        for (int i = name_value_pairs.size() - 1; i >= 0; i--) {
+            new_s = LetStmt::make(name_value_pairs[i].first, name_value_pairs[i].second, new_s);
+        }
+        changed = name_value_pairs.size() > 0;
+        name_value_pairs.clear();
+        return new_s;
+    }
+
+    Stmt mutate(const Stmt &s) override {
+        internal_assert(name_value_pairs.size() == 0); // The vector is empty before a statement is processed, and is cleared after that statement is processed..
+        if (const LetStmt *op = s.as<LetStmt>()) {
+            Stmt new_body = mutate(op->body);
+            internal_assert(name_value_pairs.size() == 0);
+            return make_LetStmts(LetStmt::make(op->name, mutate(op->value), new_body));
+        } else if (const AssertStmt *op = s.as<AssertStmt>()) {
+            return make_LetStmts(AssertStmt::make(mutate(op->condition), mutate(op->message)));
+        } else if (const ProducerConsumer *op = s.as<ProducerConsumer>()) {
+            return ProducerConsumer::make(op->name, op->is_producer, mutate(op->body));
+        } else if (const Store *op = s.as<Store>()) {
+            user_assert(is_one(op->predicate)) << "Predicated store is not supported inside OpenCL kernel.\n";
+            return make_LetStmts(Store::make(op->name, mutate(op->value), mutate(op->index), op->param, op->predicate, op->alignment));
+        } else if (const For *op = s.as<For>()) {
+            Stmt new_body = mutate(op->body);
+            internal_assert(name_value_pairs.size() == 0);
+            return make_LetStmts(For::make(op->name, mutate(op->min), mutate(op->extent), op->for_type, op->device_api, new_body));
+        } else if (const Provide *op = s.as<Provide>()) {
+            vector<Expr> values, args;
+            for (auto &v : op->values) {
+                values.push_back(mutate(v));
+            }
+            for (auto &a : op->args) {
+                args.push_back(mutate(a));
+            }
+            return make_LetStmts(Provide::make(op->name, values, args));
+        } else if (const Allocate *op = s.as<Allocate>()) {
+            Stmt new_body = mutate(op->body);
+            internal_assert(name_value_pairs.size() == 0);
+            vector<Expr> extents;
+            for (auto &e : op->extents) {
+                extents.push_back(mutate(e));
+            }
+            return  make_LetStmts(Allocate::make(op->name, op->type, op->memory_type, extents, mutate(op->condition), new_body, mutate(op->new_expr), op->free_function));
+        } else if (const Free *op = s.as<Free>()) {
+            return op;
+        } else if (const Realize *op = s.as<Realize>()) {
+            Stmt new_body = mutate(op->body);
+            internal_assert(name_value_pairs.size() == 0);
+            Region bounds;
+            for (auto &b : op->bounds) {
+                bounds.push_back({mutate(b.min), mutate(b.extent)});
+            }
+            return make_LetStmts(Realize::make(op->name, op->types, op->memory_type, bounds, mutate(op->condition), new_body));
+        } else if (const Block *op = s.as<Block>()) {
+            Stmt new_first = mutate(op->first);
+            internal_assert(name_value_pairs.size() == 0);
+            Stmt new_rest = mutate(op->rest);
+            internal_assert(name_value_pairs.size() == 0);
+            return Block::make(new_first, new_rest);
+        } else if (const IfThenElse *op = s.as<IfThenElse>()) {
+            Stmt new_then_case = mutate(op->then_case);
+            internal_assert(name_value_pairs.size() == 0);
+            Stmt new_else_case;
+            if (op->else_case.defined()) {
+                new_else_case = mutate(op->else_case);
+            }
+            internal_assert(name_value_pairs.size() == 0);
+            return make_LetStmts(IfThenElse::make(mutate(op->condition), new_then_case, new_else_case));
+        } else if (const Evaluate *op = s.as<Evaluate>()) {
+            return make_LetStmts(Evaluate::make(mutate(op->value)));
+        } else if (const Prefetch *op = s.as<Prefetch>()) {
+            Stmt new_body = mutate(op->body);
+            internal_assert(name_value_pairs.size() == 0);
+            Region bounds;
+            for (auto &b : op->bounds) {
+                bounds.push_back({mutate(b.min), mutate(b.extent)});
+            }
+            return make_LetStmts(Prefetch::make(op->name, op->types, bounds,op->prefetch, mutate(op->condition), new_body));
+        } else if (const Acquire *op = s.as<Acquire>()) {
+            Stmt new_body = mutate(op->body);
+            internal_assert(name_value_pairs.size() == 0);
+            return make_LetStmts(Acquire::make(mutate(op->semaphore), mutate(op->count), new_body));
+        } else if (const Fork *op = s.as<Fork>()) {
+            Stmt new_first = mutate(op->first);
+            internal_assert(name_value_pairs.size() == 0);
+            Stmt new_rest = mutate(op->rest);
+            internal_assert(name_value_pairs.size() == 0);
+            return Fork::make(new_first, new_rest);
+        } else {
+            const Atomic *atomic = s.as<Atomic>();
+            internal_assert(atomic);
+            return Atomic::make(atomic->producer_name, atomic->mutex_name, mutate(atomic->body));
+        }
+    }
+
+    Expr mutate(const Expr &e) override {
+        if (const Let *op = e.as<Let>()) {
+            Expr new_value = mutate(op->value);
+            name_value_pairs.push_back(pair<string, Expr>(op->name, new_value));
+            return mutate(op->body); // it is the body that represents the entire expression
+        } else {
+            return IRMutator::mutate(e);
+        }
+    }
+};
+
+/*
 class GatherGVNOfEveryExprInStmt : public IRMutator {
 private:
     GVN &gvn;
@@ -428,6 +580,7 @@ public:
         return gvn.mutate(e);
     }
 };
+*/
 
 // Standardize each statement in the IR for OpenCL code generation
 class StmtStandardizerOpenCL : public IRMutator {
@@ -449,11 +602,26 @@ class StmtStandardizerOpenCL : public IRMutator {
         }
         Stmt new_s = s;
         if (in_opencl_device_kernel) {
+            static int count=0;
+            count++;
             // Misc lowering of some expressions in this statement according to OpenCL's capability
-            debug(4) << "MiscLoweringStmtForOpenCL: " << "Statement before:\n" << to_string(new_s) << "\n";
+            debug(4) << "MiscLoweringStmtForOpenCL: " << count << ": Statement before:\n" << to_string(new_s) << "\n";
             new_s = MiscLoweringStmtForOpenCL().mutate(new_s);
-            debug(4) << "MiscLoweringStmtForOpenCL: " << "Statement after:\n" << to_string(new_s) << "\n\n";
-/*
+            debug(4) << "MiscLoweringStmtForOpenCL: " << count << ": Statement after:\n" << to_string(new_s) << "\n\n";
+
+            // We have created Let expressions in the above step. Make them as LetStmt. For example:
+            //      ... = select(cond, Let x = value in body, ...)
+            // standardize the IR like this:
+            //      LetStmt x = value in
+            //          ... = select(cond, body, ...)
+            // Then in code generation (NOT in IR), we should find the condition of the LetStmt, and print code like this, e.g.:
+            //      int x; if (cond) { x = value; }
+            //      if (cond) ... = body else ...
+            debug(4) << "Let2LetStmt: " << count << ": Statement before:\n" << to_string(new_s) << "\n\n";
+            new_s = Let2LetStmt().mutate(new_s);
+            debug(4) << "Let2LetStmt: " << count << ": Statement after:\n" << to_string(new_s) << "\n\n";
+
+            /*
             // Use statement-level global value numbering to label distinct expressions within the statement
             // We will hoist out expressions with multiple uses before the statement to avoid redundant computation, also make the generated code clearer.
             GVN gvn;
