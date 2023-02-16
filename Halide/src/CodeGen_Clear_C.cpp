@@ -2060,8 +2060,8 @@ void CodeGen_Clear_C::print_stmt(Stmt s) {
 }
 
 string CodeGen_Clear_C::set_latest_expr(Type t, const std::string &rhs) {
-	// Type conversion must have been done before calling this function
-	latest_expr = rhs;
+    // Type conversion must have been done before calling this function
+    latest_expr = rhs;
     return latest_expr;
 }
 
@@ -2106,11 +2106,11 @@ void CodeGen_Clear_C::visit(const Mul *op) {
 }
 
 void CodeGen_Clear_C::visit(const Div *op) {
-	visit_binop(op->type, op->a, op->b, "/");
+    visit_binop(op->type, op->a, op->b, "/");
 }
 
 void CodeGen_Clear_C::visit(const Mod *op) {
-	visit_binop(op->type, op->a, op->b, "%");
+    visit_binop(op->type, op->a, op->b, "%");
 }
 
 void CodeGen_Clear_C::visit(const Max *op) {
@@ -2228,7 +2228,7 @@ void CodeGen_Clear_C::visit(const FloatImm *op) {
         if (op->type.bits() == 64) {
             oss << "(double) ";
         }
-        oss << "float_from_bits(" << u.as_uint << " /* " << u.as_float << " */)";
+        oss << "float_from_bits(" << u.as_uint << ")"; // "/* " << u.as_float << " */)";
         set_latest_expr(op->type, oss.str());
     }
 }
@@ -2714,9 +2714,9 @@ void CodeGen_Clear_C::visit(const Store *op) {
 
 void CodeGen_Clear_C::visit(const Let *op) {
     string value = print_expr(op->value);
-	stream << get_indent() << print_type(op->value.type())
-		   << " " << print_name(op->name)
-		   << " = " << value << ";\n";
+    stream << get_indent() << print_type(op->value.type())
+           << " " << print_name(op->name)
+           << " = " << value << ";\n";
     print_expr(op->body);
 }
 
@@ -2752,9 +2752,9 @@ void CodeGen_Clear_C::visit(const Select *op) {
 
 void CodeGen_Clear_C::visit(const LetStmt *op) {
     string id_value = print_expr(op->value);
-	stream << get_indent() << print_type(op->value.type())
-		   << " " << print_name(op->name)
-		   << " = " << id_value << ";\n";
+    stream << get_indent() << print_type(op->value.type())
+           << " " << print_name(op->name)
+           << " = " << id_value << ";\n";
     op->body.accept(this);
 }
 
@@ -2942,7 +2942,7 @@ void CodeGen_Clear_C::visit(const Broadcast *op) {
 
 void CodeGen_Clear_C::visit(const Provide *op) {
     if (ends_with(op->name, ".temp")) {
-    	internal_assert(op->values.size() == 1);
+        internal_assert(op->values.size() == 1);
         internal_assert(op->args.size() == 0);
         string value = print_expr(op->values[0]);
         string name = print_name(op->name);

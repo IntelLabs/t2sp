@@ -318,7 +318,7 @@ void CodeGen_Clear_OpenCL_Dev::CodeGen_OpenCL_C::visit(const For *loop) {
 
                 Stmt iters;
                 for (int i = 0; i < e->value; i++) {
-                    Stmt iter = substitute(loop->name, simplify(loop->min + i), body);
+                    Stmt iter = simplify(substitute(loop->name, simplify(loop->min + i), body));
                     iter.accept(this);
                 }
             } else {
@@ -1399,7 +1399,7 @@ namespace {
 
 void CodeGen_Clear_OpenCL_Dev::CodeGen_OpenCL_C::visit_binop(Type t, Expr a, Expr b, const char *op) {
     if (is_standard_opencl_type(t) && is_standard_opencl_type(a.type())) {
-    	CodeGen_Clear_C::visit_binop(t, a, b, op);
+        CodeGen_Clear_C::visit_binop(t, a, b, op);
     } else {
         // Output something like bool16 x = {a.s0 op b.s0, a.s1 op b.s0, ...}
         internal_assert(t.is_vector() && a.type().is_vector() && t.lanes() == a.type().lanes());
@@ -1460,7 +1460,7 @@ void CodeGen_Clear_OpenCL_Dev::CodeGen_OpenCL_C::visit(const Cast *op) {
             oss << "}";
             set_latest_expr(op->type, oss.str());
         } else {
-            set_latest_expr(op->type, "convert_" + print_type(op->type) + "(" +  + ")");
+            set_latest_expr(op->type, "convert_" + print_type(op->type) + "(" + print_expr(op->value) + ")");
         }
     } else {
         CodeGen_Clear_C::visit(op);
@@ -1505,7 +1505,7 @@ void CodeGen_Clear_OpenCL_Dev::CodeGen_OpenCL_C::visit(const IfThenElse *op) {
     close_scope("if " + cond_id);
 
     if (op->else_case.defined()) {
-        stream << get_indent() << "else\n";
+        stream << get_indent() << "else ";
         open_scope();
         op->else_case.accept(this);
         close_scope("if " + cond_id + " else");
