@@ -73,6 +73,7 @@ protected:
         std::string print_reinterpret(Type type, Expr e) override;
         std::string print_extern_call(const Call *op) override;
         void add_vector_typedefs(const std::set<Type> &vector_types) override;
+        std::string print_name(const std::string &name) override;
 
         // Generate code for the compiler-generated vectors and structs.
         // This class does not really mutate the IR.
@@ -160,6 +161,27 @@ protected:
         std::map<std::string, std::vector<Expr>> space_vars; // For shift regs with irregular bounds
         // For saving the pointer args streamed from scehduler
         std::map<std::string, std::string> pointer_args;
+
+        class MapNames : public IRVisitor {
+            using IRVisitor::visit;
+        private:
+        public:
+            MapNames(CodeGen_OpenCL_C* parent, const std::string &kernel_name, std::map<std::string, std::string> &name_map) :
+                parent(parent), kernel_name(kernel_name), name_map(name_map) {}
+            CodeGen_OpenCL_C* parent;
+            const std::string &kernel_name;
+            std::map<std::string, std::string> &name_map; // A verbose name -> a succinct name
+
+            void map_verbose_to_succinct(const std::string &name);
+
+            void visit(const Let *) override;
+            void visit(const LetStmt *) override;
+            void visit(const For *) override;
+            void visit(const Allocate *) override;
+            void visit(const Realize *) override;
+        };
+        std::map<std::string, std::string> name_map; // A verbose name -> a succinct name
+        void map_verbose_to_succinct_names(const Stmt &op, const std::string &kernel_name);
 
         void visit(const For *) override;
         void visit(const Ramp *op) override;

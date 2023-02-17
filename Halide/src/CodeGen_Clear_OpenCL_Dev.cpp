@@ -1753,16 +1753,59 @@ class IsAutorun : public IRVisitor {
         IsAutorun() : is_autorun(false) {}
 };
 
+
+void CodeGen_Clear_OpenCL_Dev::CodeGen_OpenCL_C::MapNames::map_verbose_to_succinct(const string &name) {
+    string new_name = name;
+    if (starts_with(name, kernel_name + ".s0.")) {
+        new_name = remove_prefix(new_name, kernel_name + ".s0.");
+    }
+    for (auto &n : name_map) {
+        internal_assert(n.second != new_name); // There should not be a duplicate of this name
+    }
+    name_map[name] = new_name;
+}
+
+
+void CodeGen_Clear_OpenCL_Dev::CodeGen_OpenCL_C::MapNames::visit(const Let *op) {
+    map_verbose_to_succinct(op->name);
+}
+void CodeGen_Clear_OpenCL_Dev::CodeGen_OpenCL_C::MapNames::visit(const LetStmt *op) {
+    map_verbose_to_succinct(op->name);
+}
+
+void CodeGen_Clear_OpenCL_Dev::CodeGen_OpenCL_C::MapNames::visit(const For *op) {
+    map_verbose_to_succinct(op->name);
+}
+
+void CodeGen_Clear_OpenCL_Dev::CodeGen_OpenCL_C::MapNames::visit(const Allocate *op) {
+    map_verbose_to_succinct(op->name);
+}
+
+void CodeGen_Clear_OpenCL_Dev::CodeGen_OpenCL_C::MapNames::visit(const Realize *op) {
+    map_verbose_to_succinct(op->name);
+}
+
+void CodeGen_Clear_OpenCL_Dev::CodeGen_OpenCL_C::map_verbose_to_succinct_names(const Stmt &s, const std::string &kernel_name) {
+    name_map.clear(); // The names we care now are variables, etc. within a kernel
+    MapNames mapper(this, kernel_name, name_map);
+    s.accept(&mapper);
+}
+
+std::string CodeGen_Clear_OpenCL_Dev::CodeGen_OpenCL_C::print_name(const std::string &name) {
+    if (name_map.find(name) == name_map.end()) {
+        return CodeGen_Clear_C::print_name(name);
+    }
+    return name_map[name];
+}
+
 void CodeGen_Clear_OpenCL_Dev::CodeGen_OpenCL_C::add_kernel(Stmt s,
                                                       const string &name,
                                                       const vector<DeviceArgument> &args) {
 
     debug(2) << "Adding OpenCL kernel " << name << "\n";
 
-    //debug(2) << "Eliminating bool vectors\n";
-    //s = eliminate_bool_vectors(s);
-    //debug(2) << "After eliminating bool vectors:\n"
-    //         << s << "\n";
+    // Build a map from verbose names to succinct names
+    map_verbose_to_succinct_names(s, name);
 
     // Figure out which arguments should be passed in __constant.
     // Such arguments should be:
