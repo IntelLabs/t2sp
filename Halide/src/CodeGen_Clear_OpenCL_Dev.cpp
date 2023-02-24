@@ -853,11 +853,8 @@ void CodeGen_Clear_OpenCL_Dev::CodeGen_Clear_OpenCL_C::visit(const Call *op) {
             stream << get_indent() << rhs.str() << " = " << write_data << ";\n";
         }
     } else if (ends_with(op->name, ".ibuffer")) {
-        std::string name = op->name.substr(0, op->name.length()-std::string(".ibuffer").size());
-        string buffer_name = name + '.' + std::to_string(op->value_index) + ".ibuffer";
-        // Do not directly print to stream: there might have been a cached value useable.
         ostringstream rhs;
-        rhs << print_name(buffer_name);
+        rhs << print_name(op->name + '.' + std::to_string(op->value_index));
         for(size_t i = 0; i < op->args.size(); i++) {
             rhs << "[";
             rhs << print_expr(op->args[i]);
@@ -2660,9 +2657,6 @@ void CodeGen_Clear_OpenCL_Dev::CodeGen_Clear_OpenCL_C::visit(const Realize *op) 
         // The Realize scope ends and its name is dead
         kernel_name_map.erase(op->name);
     } else if(ends_with(op->name,".ibuffer")){
-        string stripped = remove_postfix(op->name, ".ibuffer");
-        map_verbose_to_succinct_locally(op->name, CodeGen_Clear_C::print_name(stripped));
-
         std::string string_bound = "" ;
         std::vector<std::string> access_exprs;
         for (Range b : op->bounds) {
@@ -2671,9 +2665,15 @@ void CodeGen_Clear_OpenCL_Dev::CodeGen_Clear_OpenCL_C::visit(const Realize *op) 
         for (std::string ae : access_exprs) {
             string_bound += "[" + ae + "]";
         }
+        bool multi_values = op->types.size() > 1;
         for(size_t i=0;i<op->types.size();i++) {
-            std::string name = op->name.substr(0, op->name.length()-std::string(".ibuffer").size());
-            string buffer_name = name + '.' + std::to_string(i) + ".ibuffer";
+            string stripped = remove_postfix(op->name, ".ibuffer");
+            stripped = extract_after_tokens(stripped, 1); // Remove the function prefix
+            if (multi_values) {
+                stripped += '.' + std::to_string(i);
+            }
+            string buffer_name = op->name + '.' + std::to_string(i);
+            map_verbose_to_succinct_locally(buffer_name, print_name(stripped));
             stream << get_indent() << print_type(op->types[i]) << " ";
             stream << "__attribute__((memory, numbanks("
                    << access_exprs.back()
@@ -2683,7 +2683,10 @@ void CodeGen_Clear_OpenCL_Dev::CodeGen_Clear_OpenCL_C::visit(const Realize *op) 
         print_stmt(op->body);
 
         // The Realize scope ends and its name is dead
-        kernel_name_map.erase(op->name);
+        for(size_t i=0;i<op->types.size();i++) {
+            string buffer_name = op->name + '.' + std::to_string(i);
+            kernel_name_map.erase(buffer_name);
+        }
     } else if (ends_with(op->name,".break")){
         print_stmt(op->body);
     } else {
@@ -2697,12 +2700,11 @@ void CodeGen_Clear_OpenCL_Dev::CodeGen_Clear_OpenCL_C::visit(const Provide *op){
     if (ends_with(op->name, ".ibuffer")) {
         internal_assert(op->values.size() == 1);
         string id_value = print_expr(op->values[0]);
-        std::string name = op->name.substr(0, op->name.length()-std::string(".ibuffer").size());
         std::vector<std::string> access_exprs;
         for(size_t i = 0; i < op->args.size(); i++) {
             access_exprs.push_back(print_expr(op->args[i]));
         }
-        string buffer_name = name + '.' + std::to_string(0) + ".ibuffer";
+        string buffer_name = op->name + '.' + std::to_string(0);
         stream << get_indent() << print_name(buffer_name);
         for(size_t i = 0; i < op->args.size(); i++) {
             stream << "[";

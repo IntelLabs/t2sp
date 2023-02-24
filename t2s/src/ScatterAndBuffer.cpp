@@ -1249,7 +1249,7 @@ private:
                 // internal_assert(opnd.type() == entry.second[i]);
                 buffer_info buf;
                 buf.type = entry.second[i];
-                buf.name = func_name + "_DB_f" + std::to_string(i) + ".ibuffer";
+                buf.name = func_name + ".DB_f" + std::to_string(i) + ".ibuffer";
                 calculate_buffer_dims_args(opnd, buf);
                 buffers_info.push_back(buf);
             }
@@ -1257,7 +1257,7 @@ private:
             internal_assert(isolated_operands.size() == 1);
             buffer_info buf;
             buf.type = original_read_node.type();
-            buf.name = func_name + "_DB.ibuffer";
+            buf.name = func_name + ".DB.ibuffer";
             calculate_buffer_dims_args(isolated_operands[0], buf);
             buffers_info.push_back(buf);
         }
