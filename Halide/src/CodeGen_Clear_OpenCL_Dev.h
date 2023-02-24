@@ -54,9 +54,9 @@ public:
 
 
 protected:
-    class CodeGen_OpenCL_C : public CodeGen_Clear_C {
+    class CodeGen_Clear_OpenCL_C : public CodeGen_Clear_C {
     public:
-        CodeGen_OpenCL_C(std::ostream &s, Target t)
+        CodeGen_Clear_OpenCL_C(std::ostream &s, Target t)
             : CodeGen_Clear_C(s, t) {
         }
         void add_kernel(Stmt stmt,
@@ -74,13 +74,15 @@ protected:
         std::string print_extern_call(const Call *op) override;
         void add_vector_typedefs(const std::set<Type> &vector_types) override;
         std::string print_name(const std::string &name) override;
+        void map_verbose_to_succinct_globally(const std::string &verbose, const std::string &succinct);
+        void map_verbose_to_succinct_locally(const std::string &verbose, const std::string &succinct);
 
         // Generate code for the compiler-generated vectors and structs.
         // This class does not really mutate the IR.
         class DefineVectorStructTypes : public IRMutator {
             using IRMutator::visit;
         private:
-            CodeGen_OpenCL_C* parent;
+            CodeGen_Clear_OpenCL_C* parent;
         public:
             // Definitions of non-standard vector types.
             std::string vectors;
@@ -88,7 +90,7 @@ protected:
             // Definitions of the struct types.
             std::string structs;
             
-            DefineVectorStructTypes(CodeGen_OpenCL_C* parent) : parent(parent) {}
+            DefineVectorStructTypes(CodeGen_Clear_OpenCL_C* parent) : parent(parent) {}
             Expr mutate(const Expr &expr) override;
             Stmt mutate(const Stmt &stmt) override;
         };
@@ -101,21 +103,21 @@ protected:
         class DeclareChannels : public IRVisitor {
             using IRVisitor::visit;
         private:
-            CodeGen_OpenCL_C* parent;
+            CodeGen_Clear_OpenCL_C* parent;
         public:
             std::string channels;
-            DeclareChannels(CodeGen_OpenCL_C* parent) : parent(parent) {}
+            DeclareChannels(CodeGen_Clear_OpenCL_C* parent) : parent(parent) {}
             void visit(const Realize *op) override;
         };
 
         // For declaring temporary array variable
         class DeclareArrays : public IRVisitor {
             using IRVisitor::visit;
-            CodeGen_OpenCL_C* parent;
+            CodeGen_Clear_OpenCL_C* parent;
             std::set<std::string> array_set;
         public:
             std::ostringstream arrays;
-            DeclareArrays(CodeGen_OpenCL_C* parent) : parent(parent) {}
+            DeclareArrays(CodeGen_Clear_OpenCL_C* parent) : parent(parent) {}
             void visit(const Call *op) override;
         };
 
@@ -123,14 +125,14 @@ protected:
         class CheckConditionalChannelAccess : public IRVisitor {
             using IRVisitor::visit;
         private:
-            CodeGen_OpenCL_C* parent;
+            CodeGen_Clear_OpenCL_C* parent;
             std::string current_loop_name;
         public:
             bool in_if_then_else;       // The current IR is in a branch
             bool conditional_access;    // There is a conditional execution of channel read/write inside the current loop
             bool irregular_loop_dep;    // There is a irregular loop inside the current loop and the irregular bound 
                                         // depends on current loop var
-            CheckConditionalChannelAccess(CodeGen_OpenCL_C* parent, std::string current_loop_name) : parent(parent), current_loop_name(current_loop_name) {
+            CheckConditionalChannelAccess(CodeGen_Clear_OpenCL_C* parent, std::string current_loop_name) : parent(parent), current_loop_name(current_loop_name) {
                 in_if_then_else = false;
                 conditional_access = false;
                 irregular_loop_dep = false;
@@ -144,12 +146,12 @@ protected:
         class GatherShiftRegsAllocates : public IRVisitor {
             using IRVisitor::visit;
         private:
-            CodeGen_OpenCL_C* parent;
+            CodeGen_Clear_OpenCL_C* parent;
             std::map<std::string, std::vector<std::string>> &shift_regs_allocates; // For all shift regs
             std::map<std::string, size_t> &shift_regs_bounds; // Only for shift regs whose types are nonstandard_vectors
             std::map<std::string, std::vector<Expr>> &space_vars;
         public:
-            GatherShiftRegsAllocates(CodeGen_OpenCL_C* parent, std::map<std::string, std::vector<std::string>> &shift_regs_allocates,
+            GatherShiftRegsAllocates(CodeGen_Clear_OpenCL_C* parent, std::map<std::string, std::vector<std::string>> &shift_regs_allocates,
                 std::map<std::string, size_t> &shift_regs_bounds, std::map<std::string, std::vector<Expr>> &space_vars) :
                     parent(parent), shift_regs_allocates(shift_regs_allocates), shift_regs_bounds(shift_regs_bounds), space_vars(space_vars) {}
             void visit(const Call *op) override;
@@ -162,26 +164,9 @@ protected:
         // For saving the pointer args streamed from scehduler
         std::map<std::string, std::string> pointer_args;
 
-        class MapNames : public IRVisitor {
-            using IRVisitor::visit;
-        private:
-        public:
-            MapNames(CodeGen_OpenCL_C* parent, const std::string &kernel_name, std::map<std::string, std::string> &name_map) :
-                parent(parent), kernel_name(kernel_name), name_map(name_map) {}
-            CodeGen_OpenCL_C* parent;
-            const std::string &kernel_name;
-            std::map<std::string, std::string> &name_map; // A verbose name -> a succinct name
-
-            void map_verbose_to_succinct(const std::string &name);
-
-            void visit(const Let *) override;
-            void visit(const LetStmt *) override;
-            void visit(const For *) override;
-            void visit(const Allocate *) override;
-            void visit(const Realize *) override;
-        };
-        std::map<std::string, std::string> name_map; // A verbose name -> a succinct name
-        void map_verbose_to_succinct_names(const Stmt &op, const std::string &kernel_name);
+        // Maps from verbose names to succinct names
+        std::map<std::string, std::string> global_name_map;
+        std::map<std::string, std::string> kernel_name_map;
 
         void visit(const For *) override;
         void visit(const Ramp *op) override;
@@ -215,7 +200,7 @@ protected:
 
     std::ostringstream src_stream;
     std::string cur_kernel_name;
-    CodeGen_OpenCL_C clc;
+    CodeGen_Clear_OpenCL_C clc;
 
 private:
     // Methods only for generating OpenCL code for Intel FPGAs

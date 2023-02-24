@@ -1407,7 +1407,19 @@ string CodeGen_Clear_C::print_reinterpret(Type type, Expr e) {
 }
 
 string CodeGen_Clear_C::print_name(const string &name) {
-    return c_print_name(name);
+    ostringstream oss;
+    for (size_t i = 0; i < name.size(); i++) {
+        if (name[i] == '.') {
+            oss << '_';
+        } else if (name[i] == '$') {
+            oss << "_";
+        } else if (name[i] != '_' && !isalnum(name[i])) {
+            oss << "_";
+        } else {
+            oss << name[i];
+        }
+    }
+    return oss.str();
 }
 
 namespace {
