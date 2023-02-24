@@ -2808,11 +2808,6 @@ void CodeGen_Clear_C::visit(const AssertStmt *op) {
 
 void CodeGen_Clear_C::visit(const ProducerConsumer *op) {
     stream << get_indent();
-    if (op->is_producer) {
-        stream << "// produce " << op->name << '\n';
-    } else {
-        stream << "// consume " << op->name << '\n';
-    }
     print_stmt(op->body);
 }
 

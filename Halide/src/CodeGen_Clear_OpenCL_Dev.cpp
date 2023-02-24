@@ -1842,7 +1842,7 @@ void CodeGen_Clear_OpenCL_Dev::CodeGen_Clear_OpenCL_C::add_kernel(Stmt s,
 
 
     // Create preprocessor replacements for the address spaces of all our buffers.
-    stream << "// Address spaces for " << name << "\n";
+    stream << "\n";
     for (size_t i = 0; i < args.size(); i++) {
         if (args[i].is_buffer) {
             vector<BufferSize>::iterator constant = constants.begin();
@@ -1909,7 +1909,7 @@ void CodeGen_Clear_OpenCL_Dev::CodeGen_Clear_OpenCL_C::add_kernel(Stmt s,
         stream << ",\n"
                << " __address_space___shared int16* __shared";
     }
-    stream << ")\n";
+    stream << ") ";
 
     open_scope();
 
