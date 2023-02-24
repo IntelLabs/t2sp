@@ -74,6 +74,7 @@ protected:
         std::string print_extern_call(const Call *op) override;
         void add_vector_typedefs(const std::set<Type> &vector_types) override;
         std::string print_name(const std::string &name) override;
+        bool succinct_name_is_unique(const std::string &verbose, const std::string &succinct);
         void map_verbose_to_succinct_globally(const std::string &verbose, const std::string &succinct);
         void map_verbose_to_succinct_locally(const std::string &verbose, const std::string &succinct);
 

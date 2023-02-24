@@ -1758,7 +1758,21 @@ class IsAutorun : public IRVisitor {
         IsAutorun() : is_autorun(false) {}
 };
 
-std::string CodeGen_Clear_OpenCL_Dev::CodeGen_Clear_OpenCL_C::print_name(const std::string &name) {
+bool CodeGen_Clear_OpenCL_Dev::CodeGen_Clear_OpenCL_C::succinct_name_is_unique(const string &verbose, const string &succinct) {
+    for (auto &n : global_name_map) {
+        if (n.second == succinct && n.first != verbose) {
+        	return false;
+        }
+    }
+    for (auto &n : kernel_name_map) {
+        if (n.second == succinct && n.first != verbose) {
+        	return false;
+        }
+    }
+    return true;
+}
+
+string CodeGen_Clear_OpenCL_Dev::CodeGen_Clear_OpenCL_C::print_name(const std::string &name) {
     auto it = global_name_map.find(name);
     if (it != global_name_map.end()) {
         return it->second;
@@ -1772,17 +1786,21 @@ std::string CodeGen_Clear_OpenCL_Dev::CodeGen_Clear_OpenCL_C::print_name(const s
 }
 
 void CodeGen_Clear_OpenCL_Dev::CodeGen_Clear_OpenCL_C::map_verbose_to_succinct_globally(const string &verbose, const string &succinct) {
-    for (auto &n : global_name_map) {
-        internal_assert(n.second != succinct || n.first == verbose); // The succinct name corresponds to only one verbose name
+    // Make sure the succinct name corresponds to only one verbose name
+	string succ = succinct;
+    while (!succinct_name_is_unique(verbose, succ)) {
+    	succ += "_";
     }
-    global_name_map[verbose] = succinct;
+    global_name_map[verbose] = succ;
 }
 
 void CodeGen_Clear_OpenCL_Dev::CodeGen_Clear_OpenCL_C::map_verbose_to_succinct_locally(const string &verbose, const string &succinct) {
-    for (auto &n : kernel_name_map) {
-        internal_assert(n.second != succinct || n.first == verbose); // The succinct name corresponds to only one verbose name
+    // Make sure the succinct name corresponds to only one verbose name
+	string succ = succinct;
+    while (!succinct_name_is_unique(verbose, succ)) {
+    	succ += "_";
     }
-    kernel_name_map[verbose] = succinct;
+    kernel_name_map[verbose] = succ;
 }
 
 void CodeGen_Clear_OpenCL_Dev::CodeGen_Clear_OpenCL_C::add_kernel(Stmt s,
@@ -2398,13 +2416,9 @@ void CodeGen_Clear_OpenCL_Dev::CodeGen_Clear_OpenCL_C::print_global_data_structu
 }
 
 void CodeGen_Clear_OpenCL_Dev::CodeGen_Clear_OpenCL_C::DeclareChannels::visit(const Realize *op) {
-    if (ends_with(op->name, ".channel")) {
-        parent->map_verbose_to_succinct_globally(op->name, parent->print_name(op->name));
-    } else if (ends_with(op->name, ".channel.array")) {
-        parent->map_verbose_to_succinct_globally(op->name, parent->print_name(op->name));
-    }
-
     if (ends_with(op->name, ".channel") || ends_with(op->name, ".channel.array")) {
+        parent->map_verbose_to_succinct_globally(op->name, parent->print_name(op->name));
+
         // Get the bounds in which all bounds are for the dimensions of the channel array, except the last one is for the min depth.
         Region bounds = op->bounds;
         std::string bounds_str = "";
@@ -2516,9 +2530,10 @@ void CodeGen_Clear_OpenCL_Dev::CodeGen_Clear_OpenCL_C::GatherShiftRegsAllocates:
 
         for (int i = 0; i < e_extent->value; i++) {
             std::string new_name = name + "_" + std::to_string(e_min->value + i);
+            parent->map_verbose_to_succinct_globally(new_name, parent->print_name(new_name)); // Record as a global variable name
             debug(3) << "allocate shift regs " << type << " " << new_name << bounds_str << ";\n";
             ostringstream rhs;
-            rhs << type << " " << new_name << bounds_str << ";\n";
+            rhs << type << " " << parent->print_name(new_name) << bounds_str << ";\n";
             shift_regs_allocates[reg_name].push_back(rhs.str());
         }
 
@@ -2581,6 +2596,7 @@ void CodeGen_Clear_OpenCL_Dev::CodeGen_Clear_OpenCL_C::GatherShiftRegsAllocates:
             // debug(3) << shift_regs_allocates[reg_name];
 
         } else {
+            parent->map_verbose_to_succinct_globally(op->name, parent->print_name(op->name)); // Record as a global variable name
             for (int i = bounds.size()-1; i >= 0; i--) {
                 Range b = bounds[i];
                 Expr extent = b.extent;
