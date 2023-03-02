@@ -308,7 +308,7 @@ class BufferInserter: public IRMutator{
         debug(4) << "inserting buffer: "<<op->name<<"\n";
         string cycle_name = caller_name + ".cycle.temp";
         if(this_level == loop_level){
-            string buffer_name = caller_name + "_buffer_.ibuffer";
+            string buffer_name = caller_name + ".DB.ibuffer";
             Expr original_condition = Expr();
             {//find the original_condition and data type of the data
                 const Call * read_channel = iter->second.read_node.as<Call>();

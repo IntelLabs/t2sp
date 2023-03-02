@@ -173,6 +173,7 @@ protected:
         void visit(const Ramp *op) override;
         void visit(const Broadcast *op) override;
         void visit(const Call *op) override;
+        void visit(const Let *) override;
         void visit(const Load *op) override;
         void visit(const Store *op) override;
         void visit(const Cast *op) override;
@@ -187,6 +188,7 @@ protected:
         void visit(const Allocate *op) override;
         void visit(const Free *op) override;
         void visit(const AssertStmt *op) override;
+        void visit(const LetStmt *) override;
         void visit(const Shuffle *op) override;
         void visit(const Min *op) override;
         void visit(const Max *op) override;

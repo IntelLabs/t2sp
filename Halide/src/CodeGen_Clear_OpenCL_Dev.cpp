@@ -423,6 +423,19 @@ string CodeGen_Clear_OpenCL_Dev::CodeGen_Clear_OpenCL_C::get_memory_space(const 
     return "__address_space_" + print_name(buf);
 }
 
+void CodeGen_Clear_OpenCL_Dev::CodeGen_Clear_OpenCL_C::visit(const Let *op) {
+    map_verbose_to_succinct_locally(op->name, CodeGen_Clear_C::print_name(op->name));
+    CodeGen_Clear_C::visit(op);
+    kernel_name_map.erase(op->name);
+}
+
+void CodeGen_Clear_OpenCL_Dev::CodeGen_Clear_OpenCL_C::visit(const LetStmt *op) {
+    map_verbose_to_succinct_locally(op->name, CodeGen_Clear_C::print_name(op->name));
+    CodeGen_Clear_C::visit(op);
+    kernel_name_map.erase(op->name);
+}
+
+
 void CodeGen_Clear_OpenCL_Dev::CodeGen_Clear_OpenCL_C::visit(const Call *op) {
     if (op->is_intrinsic(Call::bool_to_mask)) {
         if (op->args[0].type().is_vector()) {
@@ -1053,8 +1066,9 @@ void CodeGen_Clear_OpenCL_Dev::CodeGen_Clear_OpenCL_C::visit(const Call *op) {
                     string delimiter = "::";
                     size_t pos = arg_name.find(delimiter);
                     string id = arg_name.substr(0, pos);
-
-                    string value = arg_name.substr(pos + delimiter.length()) + " + " + print_expr(op->args[k+1]);
+                    // arg_name is like inputs.args0::b1. Look up the declared name  without the arg index, i.e. inputs.args::b1.
+                    string printed_arg_name = print_name("inputs.args::" + arg_name.substr(pos + 2, arg_name.size()));
+                    string value = printed_arg_name + " + " + print_expr(op->args[k+1]);
                     input entry = {id, value};
                     k++;
                     inputs.push_back(entry);
@@ -1143,9 +1157,8 @@ void CodeGen_Clear_OpenCL_Dev::CodeGen_Clear_OpenCL_C::visit(const Call *op) {
         stream << get_indent() << "inputs.finish = task.index;\n";
         for (auto& input : inputs) {
             string name = input.name;
-            string prefix = (starts_with(name, "inputs.args")) ? "_" : "";
             stream << get_indent() << input.name << " = "
-                << prefix << input.value << ";\n";
+                << input.value << ";\n";
         }
         stream << get_indent() << "task.inputs = inputs;\n";
         stream << get_indent() << "write_channel_intel(qt, task);\n";
@@ -1521,6 +1534,8 @@ void CodeGen_Clear_OpenCL_Dev::CodeGen_Clear_OpenCL_C::visit(const Allocate *op)
     user_assert(!op->new_expr.defined()) << "Allocate node inside OpenCL kernel has custom new expression.\n"
                                          << "(Memoization is not supported inside GPU kernels at present.)\n";
 
+    map_verbose_to_succinct_globally(op->name, CodeGen_Clear_C::print_name(op->name));
+
     if (op->name == "__shared") {
         // Already handled
         op->body.accept(this);
@@ -1534,37 +1549,36 @@ void CodeGen_Clear_OpenCL_Dev::CodeGen_Clear_OpenCL_C::visit(const Allocate *op)
             debug(2) << "Found pointer arg " << op->name << "... \n";
 
             op->body.accept(this);
-            return;
+        } else {
+            open_scope();
+
+            debug(2) << "Allocate " << op->name << " on device\n";
+
+            debug(3) << "Pushing allocation called " << op->name << " onto the symbol table\n";
+
+            // Allocation is not a shared memory allocation, just make a local declaration.
+            // It must have a constant size.
+            int32_t size = op->constant_allocation_size();
+            user_assert(size > 0)
+                << "Allocation " << op->name << " has a dynamic size. "
+                << "Only fixed-size allocations are supported on the gpu. "
+                << "Try storing into shared memory instead.";
+
+            stream << get_indent() << print_type(op->type) << ' '
+                   << print_name(op->name) << "[" << size << "];\n";
+            stream << get_indent() << "#define " << get_memory_space(op->name) << " __private\n";
+
+            Allocation alloc;
+            alloc.type = op->type;
+            allocations.push(op->name, alloc);
+
+            op->body.accept(this);
+
+            // Should have been freed internally
+            internal_assert(!allocations.contains(op->name));
+
+            close_scope("alloc " + print_name(op->name));
         }
-
-        open_scope();
-
-        debug(2) << "Allocate " << op->name << " on device\n";
-
-        debug(3) << "Pushing allocation called " << op->name << " onto the symbol table\n";
-
-        // Allocation is not a shared memory allocation, just make a local declaration.
-        // It must have a constant size.
-        int32_t size = op->constant_allocation_size();
-        user_assert(size > 0)
-            << "Allocation " << op->name << " has a dynamic size. "
-            << "Only fixed-size allocations are supported on the gpu. "
-            << "Try storing into shared memory instead.";
-
-        stream << get_indent() << print_type(op->type) << ' '
-               << print_name(op->name) << "[" << size << "];\n";
-        stream << get_indent() << "#define " << get_memory_space(op->name) << " __private\n";
-
-        Allocation alloc;
-        alloc.type = op->type;
-        allocations.push(op->name, alloc);
-
-        op->body.accept(this);
-
-        // Should have been freed internally
-        internal_assert(!allocations.contains(op->name));
-
-        close_scope("alloc " + print_name(op->name));
     }
 }
 
@@ -1761,12 +1775,12 @@ class IsAutorun : public IRVisitor {
 bool CodeGen_Clear_OpenCL_Dev::CodeGen_Clear_OpenCL_C::succinct_name_is_unique(const string &verbose, const string &succinct) {
     for (auto &n : global_name_map) {
         if (n.second == succinct && n.first != verbose) {
-        	return false;
+            return false;
         }
     }
     for (auto &n : kernel_name_map) {
         if (n.second == succinct && n.first != verbose) {
-        	return false;
+            return false;
         }
     }
     return true;
@@ -1787,18 +1801,18 @@ string CodeGen_Clear_OpenCL_Dev::CodeGen_Clear_OpenCL_C::print_name(const std::s
 
 void CodeGen_Clear_OpenCL_Dev::CodeGen_Clear_OpenCL_C::map_verbose_to_succinct_globally(const string &verbose, const string &succinct) {
     // Make sure the succinct name corresponds to only one verbose name
-	string succ = succinct;
+    string succ = succinct;
     while (!succinct_name_is_unique(verbose, succ)) {
-    	succ += "_";
+        succ += "_";
     }
     global_name_map[verbose] = succ;
 }
 
 void CodeGen_Clear_OpenCL_Dev::CodeGen_Clear_OpenCL_C::map_verbose_to_succinct_locally(const string &verbose, const string &succinct) {
     // Make sure the succinct name corresponds to only one verbose name
-	string succ = succinct;
+    string succ = succinct;
     while (!succinct_name_is_unique(verbose, succ)) {
-    	succ += "_";
+        succ += "_";
     }
     kernel_name_map[verbose] = succ;
 }
@@ -1880,9 +1894,11 @@ void CodeGen_Clear_OpenCL_Dev::CodeGen_Clear_OpenCL_C::add_kernel(Stmt s,
             // TODO: Update buffer attributes if written in kernel ip
             char *overlay_num = getenv("HL_OVERLAY_NUM");
             if (!args[i].write && overlay_num == NULL) stream << "const ";
+            string printed_name = print_name(args[i].name);
+            map_verbose_to_succinct_locally("inputs.args::" + args[i].name, printed_name);
             stream << print_type(args[i].type) << " *"
                    << "restrict "
-                   << print_name(args[i].name);
+                   << printed_name;
             Allocation alloc;
             alloc.type = args[i].type;
             allocations.push(args[i].name, alloc);
@@ -1896,10 +1912,11 @@ void CodeGen_Clear_OpenCL_Dev::CodeGen_Clear_OpenCL_C::add_kernel(Stmt s,
                 t = t.with_code(halide_type_uint);
                 name += "_bits";
             }
+            string printed_name = print_name(name);
             stream << " const "
                    << print_type(t)
                    << " "
-                   << print_name(name);
+                   << printed_name;
         }
 
         if (i < args.size() - 1) stream << ",\n";
@@ -2417,8 +2434,6 @@ void CodeGen_Clear_OpenCL_Dev::CodeGen_Clear_OpenCL_C::print_global_data_structu
 
 void CodeGen_Clear_OpenCL_Dev::CodeGen_Clear_OpenCL_C::DeclareChannels::visit(const Realize *op) {
     if (ends_with(op->name, ".channel") || ends_with(op->name, ".channel.array")) {
-        parent->map_verbose_to_succinct_globally(op->name, parent->print_name(op->name));
-
         // Get the bounds in which all bounds are for the dimensions of the channel array, except the last one is for the min depth.
         Region bounds = op->bounds;
         std::string bounds_str = "";
@@ -2440,13 +2455,24 @@ void CodeGen_Clear_OpenCL_Dev::CodeGen_Clear_OpenCL_C::DeclareChannels::visit(co
 
         std::ostringstream oss;
         if (ends_with(op->name, ".channel")) {
+               parent->map_verbose_to_succinct_globally(op->name, parent->print_name(op->name));
             oss << "channel " << type << " " << parent->print_name(op->name) << bounds_str << attributes << ";\n";
             channels += oss.str();
         } else {
+            // For a channel array, we will declare a global channel and a local channel array. For example, for this IR:
+            //        realize F.channel.array[0, 2], [0, 256] of type `float32x4'
+            // We will generate a global channel:
+            //        typedef struct { float4 s[2]; } F_channel_array_t;
+            //        channel F_channel_array_t F_channel __attribute__((depth(256)));
+            // And then in function F, generate a local channel array:
+            //        F_channel_array_t F_channel_array;
+            // Here we add the global channel. We will add the local channel array separately.
+            string stripped = remove_postfix(op->name, ".array");
+            string channel_name = parent->print_name(stripped);
+            parent->map_verbose_to_succinct_globally(stripped, channel_name);
+
             string printed_name = parent->print_name(op->name);
             string type_name = printed_name + "_t";
-            size_t pos_last_token = printed_name.rfind('_');
-            string channel_name = printed_name.substr(0, pos_last_token);
             oss << "typedef struct { " << type << " s" << bounds_str << "; } " << type_name << ";\n";
             oss << "channel " << type_name << " " << channel_name << attributes << ";\n";
             channels += oss.str();
@@ -2457,12 +2483,17 @@ void CodeGen_Clear_OpenCL_Dev::CodeGen_Clear_OpenCL_C::DeclareChannels::visit(co
 
 void CodeGen_Clear_OpenCL_Dev::CodeGen_Clear_OpenCL_C::DeclareArrays::visit(const Call *op) {
     if (op->is_intrinsic(Call::write_array)) {
-        string printed_name = parent->print_name(op->args[0].as<StringImm>()->value);
+        string channel_array_name = op->args[0].as<StringImm>()->value;
+        string printed_name = parent->print_name(channel_array_name);
+        parent->map_verbose_to_succinct_locally(channel_array_name, printed_name);
+
         string type_name = printed_name + "_t";
         if (array_set.find(printed_name) == array_set.end()) {
             array_set.insert(printed_name);
             arrays << parent->get_indent() << type_name << " " << printed_name << ";\n";
         }
+
+       parent-> kernel_name_map.erase(channel_array_name);
     }
     return IRVisitor::visit(op);
 }
@@ -2642,7 +2673,7 @@ void CodeGen_Clear_OpenCL_Dev::CodeGen_Clear_OpenCL_C::GatherShiftRegsAllocates:
 }
 
 void CodeGen_Clear_OpenCL_Dev::CodeGen_Clear_OpenCL_C::visit(const Realize *op) {
-    if (ends_with(op->name, ".channel") || ends_with(op->name, ".channel")) {
+    if (ends_with(op->name, ".channel") || ends_with(op->name, ".channel.array")) {
         // We have already declared the channel before the kernel with print_global_data_structures_before_kernel().
         // Just skip it and get into the body.
         print_stmt(op->body);
