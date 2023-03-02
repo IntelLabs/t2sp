@@ -94,6 +94,11 @@ string extract_after_tokens(const string &str, int num_tokens) {
     return "";
 }
 
+string remove_prefix(const string &str, const string &prefix) {
+    internal_assert(starts_with(str, prefix));
+    return str.substr(prefix.size(), str.size());
+}
+
 string remove_postfix(const string &str, const string &postfix) {
     internal_assert(ends_with(str, postfix));
     return str.substr(0, str.size() - postfix.size());

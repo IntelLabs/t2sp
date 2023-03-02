@@ -216,6 +216,8 @@ void check(const Buffer<float> &resultQ, const Buffer<float> &resultR, const Buf
     }
 
     bool pass = true;
+    /* QR decomposition is unique under the condition that the original input is full rank and rjj >0.
+     * See https://www.ics.uci.edu/~xhx/courses/CS206/NLA-QR.pdf, slide 14.
     // compare C style results with URE style results
     printf("*** Matrix R: C style results (URE style results)\n");
     for (int i = 1; i <= I; i++) {
@@ -240,18 +242,19 @@ void check(const Buffer<float> &resultQ, const Buffer<float> &resultR, const Buf
         }
         printf("\n");
     }
+    */
 
-    // check if Q * R can reproduce the inputs
-    printf("*** Q * R (Input)\n");
+    // check if resultQ * resultR can reproduce the inputs
+    printf("*** Check if resultQ * resultR == Input\n");
     for (int k = 0; k < K; k++) {
         for (int j = 1; j <= J; j++) {
-            float golden = 0.0f;
+            float result = 0.0f;
             for (int i = 1; i <= I; i++) {
-                golden += Q(k, i) * R(j, i);
+                result += resultQ(k, i) * (j >= i ? resultR(j, i) : 0.0f);
             }
-            bool correct = fabs(input(j - 1, k) - golden) < 0.005;
+            bool correct = fabs(input(j - 1, k) - result) < 0.005;
             pass = pass && correct;
-            printf("%6.2f (%6.2f%s)", golden, input(j - 1, k), correct ? "" : " !!");
+            printf("%6.2f (%6.2f%s)", result, input(j - 1, k), correct ? "" : " !!");
         }
         printf("\n");
     }
@@ -281,8 +284,8 @@ void check_complex(const Buffer<float> &resultQ_re,
         printf("\n");
     }
 
-    // check if Q * R can reproduce the inputs
-    printf("*** Q * R [Input]\n");
+    // check if resultQ * resultR can reproduce the inputs
+    printf("*** Check if resultQ * resultR == Input\n");
     for (int k = 0; k < K; k++) {
         for (int j = 1; j <= J; j++) {
             float golden_re = 0.0f;

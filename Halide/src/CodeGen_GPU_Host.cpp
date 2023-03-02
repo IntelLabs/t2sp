@@ -5,6 +5,7 @@
 #include "CodeGen_GPU_Host.h"
 #include "CodeGen_Internal.h"
 #include "CodeGen_Metal_Dev.h"
+#include "CodeGen_Clear_OpenCL_Dev.h"
 #include "CodeGen_OpenCL_Dev.h"
 #include "../../t2s/src/CodeGen_OneAPI_Dev.h"
 #include "CodeGen_CM_Dev.h"
@@ -122,8 +123,13 @@ CodeGen_GPU_Host<CodeGen_CPU>::CodeGen_GPU_Host(Target target)
         cgdev[DeviceAPI::CM] = new CodeGen_CM_Dev(target);
     }
     if (target.has_feature(Target::OpenCL)) {
-        debug(1) << "Constructing OpenCL device codegen\n";
-        cgdev[DeviceAPI::OpenCL] = new CodeGen_OpenCL_Dev(target);
+        if (getenv("CLEARCODE") != NULL) {
+            debug(1) << "Constructing clear OpenCL device codegen\n";
+            cgdev[DeviceAPI::OpenCL] = new CodeGen_Clear_OpenCL_Dev(target);
+        } else {
+            debug(1) << "Constructing OpenCL device codegen\n";
+            cgdev[DeviceAPI::OpenCL] = new CodeGen_OpenCL_Dev(target);
+        }
     }
     if (target.has_feature(Target::OneAPI)) {
         debug(1) << "Constructing OneAPI device codegen\n";
@@ -166,10 +172,17 @@ void CodeGen_GPU_Host<CodeGen_CPU>::compile_func(const LoweredFunc &f,
         if (target.has_feature(Target::IntelFPGA) && !target.has_feature(Target::OneAPI)) {
             internal_assert(cgdev.find(DeviceAPI::OpenCL) != cgdev.end());
             // Defines Pipes/Channels and their data types
-            ((CodeGen_OpenCL_Dev*)cgdev[DeviceAPI::OpenCL])->print_global_data_structures_before_kernel(&f.body);
+            if (getenv("CLEARCODE") != NULL) {
+                ((CodeGen_Clear_OpenCL_Dev*)cgdev[DeviceAPI::OpenCL])->print_global_data_structures_before_kernel(&f.body);
 
-            // Gather shift registers' allocations.
-            ((CodeGen_OpenCL_Dev*)cgdev[DeviceAPI::OpenCL])->gather_shift_regs_allocates(&f.body);
+                // Gather shift registers' allocations.
+                ((CodeGen_Clear_OpenCL_Dev*)cgdev[DeviceAPI::OpenCL])->gather_shift_regs_allocates(&f.body);
+            } else {
+                ((CodeGen_OpenCL_Dev*)cgdev[DeviceAPI::OpenCL])->print_global_data_structures_before_kernel(&f.body);
+
+                // Gather shift registers' allocations.
+                ((CodeGen_OpenCL_Dev*)cgdev[DeviceAPI::OpenCL])->gather_shift_regs_allocates(&f.body);
+            }
         }
         if(target.has_feature(Target::IntelFPGA) && target.has_feature(Target::OneAPI)){
             internal_assert(cgdev.find(DeviceAPI::OneAPI) != cgdev.end());

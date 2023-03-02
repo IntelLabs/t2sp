@@ -475,6 +475,8 @@ SOURCE_FILES = \
   Closure.cpp \
   CodeGen_ARM.cpp \
   CodeGen_C.cpp \
+  CodeGen_Clear_C.cpp \
+  CodeGen_Clear_OpenCL_Dev.cpp \
   CodeGen_D3D12Compute_Dev.cpp \
   CodeGen_GPU_Dev.cpp \
   CodeGen_GPU_Host.cpp \
@@ -648,6 +650,8 @@ HEADER_FILES = \
   Closure.h \
   CodeGen_ARM.h \
   CodeGen_C.h \
+  CodeGen_Clear_C.h \
+  CodeGen_Clear_OpenCL_Dev.h \
   CodeGen_D3D12Compute_Dev.h \
   CodeGen_GPU_Dev.h \
   CodeGen_GPU_Host.h \
@@ -826,6 +830,7 @@ T2S_SOURCE_FILES = \
   ScatterAndBuffer.cpp \
   SliceExprTree.cpp \
   SpaceTimeTransform.cpp \
+  StandardizeIRForOpenCL.cpp \
   Stensor.cpp \
   StructType.cpp \
   TriangularLoopOptimize.cpp \
@@ -860,6 +865,7 @@ T2S_HEADER_FILES = \
   ScatterAndBuffer.h \
   SliceExprTree.h \
   SpaceTimeTransform.h \
+  StandardizeIRForOpenCL.h \
   Stensor.h \
   StructType.h \
   TriangularLoopOptimize.h \
