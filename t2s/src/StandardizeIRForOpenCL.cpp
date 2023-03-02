@@ -52,9 +52,9 @@ const Variable *as_variable(const Expr &e) {
     // For a Let expression:
     //     Let x = value in body
     // body, not x, represents the entire expression. So check if the body is actually a variable.
-    // This is a special case we create during standarization. Sometime we have something like
+    // This is a special case we create during standardization. Sometimes we have something like
     //     Let x = value in x
-    // i.e. the body is just a varaiable. We have this case only because we will hoist that "Let x = value"
+    // i.e. the body is just a variable. We have this case only because we will hoist that "Let x = value"
     // out of the enclosing statement, but leave that reference to x inside the statement.
     if (const Let * op = e.as<Let>()) {
         return as_variable(op->body);
@@ -197,7 +197,7 @@ private:
                 // of the struct, and thus we need hoist this operand so that code generation looks like:
                 //     t = new_operand; // compute the new_operand in a Let Expr.
                 //     ... = t.s0 + t.s1 ... // the fields now can be accessed
-                // Note a bool vector has no OpenCL native implementation, and has to be implemented in a user-defined struct as well.
+                // Note a bool vector has no OpenCL native implementation, and has to be implemented in a user-defined struct.
                 string name = unique_name('t');
                 Expr var = Variable::make(t, name);
                 Expr e = Let::make(name, new_operand, var);
@@ -598,94 +598,20 @@ public:
     }
 };
 
-/*
-class GatherGVNOfEveryExprInStmt : public IRMutator {
-private:
-    GVN &gvn;
-public:
-    using IRMutator::mutate;
-    GatherGVNOfEveryExprInStmt(GVN &gvn): gvn(gvn) {};
-
-    Stmt mutate(const Stmt &s) override {
-        if (const LetStmt *op = s.as<LetStmt>()) {
-            return LetStmt::make(op->name, mutate(op->value), op->body);
-        } else if (const AssertStmt *op = s.as<AssertStmt>()) {
-            return AssertStmt::make(mutate(op->condition), mutate(op->message));
-        } else if (const ProducerConsumer *op = s.as<ProducerConsumer>()) {
-            return op;
-        } else if (const Store *op = s.as<Store>()) {
-            return Store::make(op->name, mutate(op->value), mutate(op->index),
-                               op->param, mutate(op->predicate), op->alignment);
-        } else if (const For *op = s.as<For>()) {
-            return For::make(op->name, mutate(op->min), mutate(op->extent), op->for_type, op->device_api, op->body);
-        } else if (const Provide *op = s.as<Provide>()) {
-            vector<Expr> values, args;
-            for (auto &v : op->values) {
-                values.push_back(mutate(v));
-            }
-            for (auto &a : op->args) {
-                args.push_back(mutate(a));
-            }
-            return Provide::make(op->name, values, args);
-        } else if (const Allocate *op = s.as<Allocate>()) {
-            vector<Expr> extents;
-            for (auto &e : op->extents) {
-                extents.push_back(mutate(e));
-            }
-            return Allocate::make(op->name, op->type, op->memory_type, extents, mutate(op->condition), op->body, mutate(op->new_expr), op->free_function);
-        } else if (const Free *op = s.as<Free>()) {
-            return op;
-        } else if (const Realize *op = s.as<Realize>()) {
-            Region bounds;
-            for (auto &b : op->bounds) {
-                bounds.push_back(Range(mutate(b.min), mutate(b.extent)));
-            }
-            return Realize::make(op->name, op->types, op->memory_type, bounds, mutate(op->condition), op->body);
-        } else if (const Block *op = s.as<Block>()) {
-            return op;
-        } else if (const IfThenElse *op = s.as<IfThenElse>()) {
-            return IfThenElse::make(mutate(op->condition), op->then_case, op->else_case);
-        } else if (const Evaluate *op = s.as<Evaluate>()) {
-            return Evaluate::make(mutate(op->value));
-        } else if (const Prefetch *op = s.as<Prefetch>()) {
-            Region bounds;
-            for (auto &b : op->bounds) {
-                bounds.push_back(Range(mutate(b.min), mutate(b.extent)));
-            }
-            return Prefetch::make(op->name, op->types, bounds, op->prefetch, mutate(op->condition), op->body);
-        } else if (const Acquire *op = s.as<Acquire>()) {
-            return Acquire::make(mutate(op->semaphore), mutate(op->count), op->body);
-        } else if (const Fork *op = s.as<Fork>()) {
-            return op;
-        } else {
-            internal_assert(s.as<Atomic>());
-            return s;
-        }
-    }
-
-    Expr mutate(const Expr &e) override {
-        static int count=0;
-        count++;
-        debug(4) << "TOGVN: " << count << ": " << to_string(e) << "\n";
-        return gvn.mutate(e);
-    }
-};
-*/
-
 Stmt standardize_ir_for_opencl_code_gen(Stmt s) {
     // Standardize every statement independently. The standardization process has the following steps:
     // 1. MISC lowering. Lower expressions in a statement to desirable compute, e.g. divide by 2 ==> shift by 1
     // 2. If an expression returns a vector, and individual elements of that vector have to be accessed later, then we should
     //    store the vector in a variable (using a Let Expr), before it can be accessed element-wise.
     // 3. If an expression returns a boolean vector, we have to make it return a vector of e.g. int type, and then cast that
-    //    vector to a boolean vector. For other examples, we might convert / into a shift, etc.
+    //    vector to a boolean vector.
     //    Example: a statement looks like
     //               ...= ... Select(cond, e, ...), where expression e has a type of bool2 vector and is not a variable.
-    //    After MISC lowering, the statement looks like:
+    //    The statement will be changed into
     //               ...= ... Select(cond, Let int2 t = e in (let bool2 t' = Cast(t) in t'), ...)
-    // 4. Hoist the Let Exprs created before before the enclosing statement as LetStmts. For the above example:
-    //               LetStmt int2  t  = e if e has no side effect, otherwise int2 t = Select(cond, e)
-    //                 LetStmt bool2 t' = Cast(t)
+    // 4. Hoist the Let Exprs created above to be before the enclosing statement as LetStmts. For the above example:
+    //               LetStmt int2  t  = e if e has no side effect, otherwise int2 t = Select(cond, e) in
+    //                 LetStmt bool2 t' = Cast(t) in
     //                   ...= ... Select(cond, t', ...)
     // 5. TODO: Also hoist CSEs.
 
@@ -707,45 +633,9 @@ Stmt standardize_ir_for_opencl_code_gen(Stmt s) {
     // standardize the IR like this:
     //      LetStmt x = value in
     //          ... = select(cond, body, ...)
-    // Then in code generation (NOT in IR), we should find the condition of the LetStmt, and print code like this, e.g.:
-    //      int x; if (cond) { x = value; }
-    //      if (cond) ... = body else ...
     new_s = Let2LetStmt().mutate(new_s);
     debug(4) << "After Let2LetStmt:\n" << to_string(new_s) << "\n\n";
 
-/*
-    // Use statement-level global value numbering to label distinct expressions within the statement
-    // We will hoist out expressions with multiple uses before the statement to avoid redundant computation, also make the generated code clearer.
-    GVN gvn;
-    new_s = GatherGVNOfEveryExprInStmt(gvn).mutate(new_s);
-
-    // Figure out which ones we'll pull out as lets and variables.
-    vector<pair<string, Expr>> lets;
-    map<Expr, Expr, ExprCompare> replacements;
-    for (size_t i = 0; i < gvn.entries.size(); i++) {
-        const auto &e = gvn.entries[i];
-        if (e->use_count > 1) {
-            string name = unique_name('t');
-            lets.emplace_back(name, e->expr);
-            // Point references to this expr to the variable instead.
-            replacements[e->expr] = Variable::make(e->expr.type(), name);
-            debug(4) << "StmtStandardizerOpenCL: " << i << " to replace: " << to_string(e->expr) << " with " << to_string(replacements[e->expr]) << "\n";
-        }
-    }
-
-    // Rebuild the expr to include references to the variables:
-    Replacer replacer(replacements);
-    new_s = replacer.mutate(new_s);
-
-    // Wrap the final Stmt in LetStmts.
-    for (size_t i = lets.size(); i > 0; i--) {
-        Expr value = lets[i - 1].second;
-        // Drop this variable as an acceptable replacement for this expr.
-        replacer.erase(value);
-        // Use containing lets in the value.
-        value = replacer.mutate(lets[i - 1].second);
-        new_s = LetStmt::make(lets[i - 1].first, value, new_s);
-    }*/
     return new_s;
 }
 
