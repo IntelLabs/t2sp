@@ -22,7 +22,7 @@ ImageParam a(Float(32), 3);
 #define BATCH   a.dim(2).extent()
 #define I       128
 #define J       128
-#define K       128
+#define K       128 
 
 int main(void) {
     // Macros: for convenient use.
@@ -104,8 +104,8 @@ int main(void) {
     // Pipeline({QDeserializer, RDeserializer}).realize({resultQ, resultR}, target);
     // resultR.copy_to_host();
     // resultQ.copy_to_host();
-    Pipeline({QDeserializer, RDeserializer}).compile_jit(target);
-    
+    Pipeline({QDeserializer, RDeserializer}).compile_to_host("qrd-interface", { a }, "qrd", target);
+ 
     cout << "Success!\n";
     return 0;
 }

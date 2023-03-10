@@ -174,7 +174,7 @@ if [ "$component" == "gmp" ]; then
     install_gmp        "6.2.1"
 fi
 if [ "$component" == "mpfr" ]; then
-    install_mpfr       "4.1.0"
+    install_mpfr       "4.2.0"
 fi
 if [ "$component" == "mpc" ]; then
     install_mpc        "1.2.1"

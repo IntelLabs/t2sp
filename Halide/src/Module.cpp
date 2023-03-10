@@ -6,6 +6,7 @@
 
 #include "CodeGen_GPU_Host.h"
 #include "CodeGen_X86.h"
+#include "CodeGen_Clear_OneAPI_Dev.h"
 #include "CodeGen_Clear_OpenCL_Dev.h"
 #include "CodeGen_OpenCL_Dev.h"
 #include "../../t2s/src/CodeGen_OneAPI_Dev.h"
@@ -657,22 +658,25 @@ void Module::compile(const std::map<Output, std::string> &output_files) const {
         cg.compile(*this);
     }
     if (contains(output_files, Output::oneapi)) {
-        debug(1) << "Module.compile(): oneapi_dev " << output_files.at(Output::oneapi) << "\n";
+        debug(1) << "Module.compile(): oneapi " << output_files.at(Output::oneapi) << "\n";
         auto t = target();
         t.set_feature(Target::OpenCL, false);
 
         // CodeGen_OneAPI expects to be compiled with DPC++ i.e. C++17
-        // So we hard set the featrues here
         t.set_feature(Target::CPlusPlusMangling, true);
 
-        // We invoke compile() like method using the OneAPI CodeGenerator much like CodeGen_C 
-        // Unlike outputing the devsrc only as done in Output::cm_devsrc with CodeGen_GPU_Host<CodeGen_X86>(t)
-        // Since the CodeGen_OneAPI_C is protected class of CodeGen_OneAPI_Dev, 
-        // we use a public CodeGen_OneAPI_C method to do this
+        // We invoke compile() like method using the OneAPI CodeGenerator much like CodeGen_C. We output both host and device source code in a file,
+        // and thus this is different from outputting device source code only as done in Output::cm_devsrc with CodeGen_GPU_Host.
         std::ofstream file(output_files.at(Output::oneapi));
-        Internal::CodeGen_OneAPI_Dev cg(t);
-        std::string out_str = cg.compile_oneapi(*this);
-        file << out_str;
+        if (getenv("CLEARCODE") != NULL) {
+            Internal::CodeGen_Clear_OneAPI_Dev cg(t);
+            std::string out_str = cg.compile(*this);
+            file << out_str;
+        } else {
+            Internal::CodeGen_OneAPI_Dev cg(t);
+            std::string out_str = cg.compile_oneapi(*this);
+            file << out_str;
+        }
     }
     if (contains(output_files, Output::host_header)) {
         debug(1) << "Module.compile(): host_header " << output_files.at(Output::host_header) << "\n";
