@@ -96,16 +96,19 @@ int main(void) {
     QCollector.late_fuse(vec_a, b, 4);
 
     Target target = get_host_target();
-    target.set_feature(Target::IntelFPGA);
-    target.set_feature(Target::Debug);
+    target.set_features({Target::IntelFPGA, Target::Debug, Target::OneAPI});
 
     // Buffer<float> resultQ(K, J, BATCH_SIZE);
     // Buffer<float> resultR(J, I, BATCH_SIZE);
     // Pipeline({QDeserializer, RDeserializer}).realize({resultQ, resultR}, target);
     // resultR.copy_to_host();
     // resultQ.copy_to_host();
+#ifdef OPENCL
     Pipeline({QDeserializer, RDeserializer}).compile_to_host("qrd-interface", { a }, "qrd", target);
- 
+#else
+    Pipeline({QDeserializer, RDeserializer}).compile_to_oneapi({ a }, "qrd", target); 
+#endif
+
     cout << "Success!\n";
     return 0;
 }
