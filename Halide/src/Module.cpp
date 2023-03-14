@@ -54,7 +54,7 @@ std::map<Output, OutputInfo> get_output_info(const Target &target) {
         {Output::featurization, {"featurization", ".featurization"}},
         {Output::llvm_assembly, {"llvm_assembly", ".ll"}},
         {Output::object, {"object", is_windows_coff ? ".obj" : ".o"}},
-        {Output::oneapi, {"c_header", ".generated_oneapi_header.h"}},
+        {Output::oneapi, {"c_header", ".sycl.h"}},
         {Output::python_extension, {"python_extension", ".py.cpp"}},
         {Output::pytorch_wrapper, {"pytorch_wrapper", ".pytorch.h"}},
         {Output::registration, {"registration", ".registration.cpp"}},

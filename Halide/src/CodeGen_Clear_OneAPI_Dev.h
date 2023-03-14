@@ -239,9 +239,6 @@ protected:
         // set to true/false inside add_kernel()
         bool currently_inside_kernel;
 
-        // stream point to clean and reset from
-        const std::string EmitOneAPIFunc_Marker = "\n// EmitOneAPIFunc MARKER \n";
-
         // pointer to src stream
         std::ostringstream *stream_ptr;
 
@@ -291,15 +288,11 @@ protected:
         // Create a simple assert(false) depending on the id_cond passed in
         void create_assertion(const std::string &id_cond, const std::string &id_msg);
 
-        std::string RunTimeHeaders();
-
     public:
         EmitOneAPIFunc(CodeGen_Clear_OneAPI_C* parent, std::ostringstream &s, Target t) :
-            CodeGen_Clear_OneAPI_C(s, t) {
-                parent = parent;
-                stream << EmitOneAPIFunc_Marker;
-                stream << RunTimeHeaders();
+            CodeGen_Clear_OneAPI_C(s, t) { // Note this assocates s with stream in CodeGen_Clear_OneAPI_C, which is inherited from IRPrinter
                 stream_ptr = &s;
+                parent = parent;
                 ext_funcs.p = this;
                 currently_inside_kernel = false;
         }
@@ -309,6 +302,8 @@ protected:
                         const std::string &name,
                         const std::vector<DeviceArgument> &args);
         std::string get_str();
+        void clean_stream();
+        void write_runtime_headers(); 
     };
 };
 

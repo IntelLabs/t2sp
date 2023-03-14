@@ -575,7 +575,7 @@ Module lower(const vector<Function> &output_funcs,
              << s << "\n\n";
 
     debug(1) << "Promoting channels...\n";
-    s = channel_promotion(s);
+    //s = channel_promotion(s);
     debug(2) << "Lowering after channel promotion:\n"
              << s << "\n\n";
 

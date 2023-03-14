@@ -2354,6 +2354,16 @@ string CodeGen_Clear_OneAPI_Dev::compile(const Module &input){
     std::ostringstream EmitOneAPIFunc_stream;
     EmitOneAPIFunc em_visitor(&clc, EmitOneAPIFunc_stream, clc.get_target() );
 
+    // The Halide runtime headers, etc. into a separate file to make the main file cleaner
+    std::ofstream runtime_file("halide_runtime_etc.h");
+    runtime_file << em_visitor.get_str() + "\n";
+    runtime_file << "void halide_device_and_host_free_as_destructor(void *user_context, void *obj) {\n";
+    runtime_file << "}\n";
+
+    // Clean the stream, and include both Halide and sycl runtime headers into a single header.
+    em_visitor.clean_stream();
+    em_visitor.write_runtime_headers();
+
     internal_assert(input.buffers().size() <= 0) << "OneAPI has no implementation to compile buffers at this time.\n";
     for (const auto &f : input.functions()) {
         em_visitor.print_global_data_structures_before_kernel(&f.body);
@@ -2905,23 +2915,25 @@ void CodeGen_Clear_OneAPI_Dev::EmitOneAPIFunc::create_assertion(const string &id
     close_scope("");
 }
 
-string CodeGen_Clear_OneAPI_Dev::EmitOneAPIFunc::RunTimeHeaders() {
-    std::ostringstream rhs;
-    rhs << "#include <CL/sycl.hpp>\n";
-    rhs << "#include <sycl/ext/intel/fpga_extensions.hpp>\n";
-    rhs << "#include \"dpc_common.hpp\"\n";
-    rhs << "#include \"pipe_array.hpp\"\n";
-    rhs << "using namespace sycl;\n";
-    rhs << "void halide_device_and_host_free_as_destructor(void *user_context, void *obj) {\n";
-    rhs << "}\n";
-    rhs << "struct device_handle {\n";
-    rhs << "    // Important: order these to avoid any padding between fields;\n";
-    rhs << "    // some Win32 compiler optimizer configurations can inconsistently\n";
-    rhs << "    // insert padding otherwise.\n";
-    rhs << "    uint64_t offset;\n";
-    rhs << "    void* mem;\n";
-    rhs << "};\n";
-    return rhs.str();
+void CodeGen_Clear_OneAPI_Dev::EmitOneAPIFunc::clean_stream() {
+    stream_ptr->str("");
+    stream_ptr->clear();
+}
+
+void CodeGen_Clear_OneAPI_Dev::EmitOneAPIFunc::write_runtime_headers() {
+    stream << "#include \"halide_runtime_etc.h\"\n";
+    stream << "#include <CL/sycl.hpp>\n";
+    stream << "#include <sycl/ext/intel/fpga_extensions.hpp>\n";
+    stream << "#include \"dpc_common.hpp\"\n";
+    stream << "#include \"pipe_array.hpp\"\n";
+    stream << "using namespace sycl;\n";
+    stream << "struct device_handle {\n";
+    stream << "    // Important: order these to avoid any padding between fields;\n";
+    stream << "    // some Win32 compiler optimizer configurations can inconsistently\n";
+    stream << "    // insert padding otherwise.\n";
+    stream << "    uint64_t offset;\n";
+    stream << "    void* mem;\n";
+    stream << "};\n";
 }
 
 string CodeGen_Clear_OneAPI_Dev::EmitOneAPIFunc::get_str() {
