@@ -2,25 +2,11 @@
 
 function show_usage {
     echo "DevCloud usage:"
-    echo "  source setenv.sh devcloud (fpga | gpu) (gen9 | gen12)"
+    echo "  source setenv.sh devcloud oneapi fpga"
+    echo "  source setenv.sh devcloud opencl fpga"
+    echo "  source setenv.sh devcloud cm (gen9 | gen12)"
     echo "Local usage:"
-    echo "  source setenv.sh local    (fpga | gpu) (gen9 | gen12)"
-}       
-
-function setup_dpcpp_devcloud {
-    if ! command -v dpcpp &> /dev/null
-    then
-        echo "sourcing dpcpp setup script"
-
-        # Using default configuration 
-        source /glob/development-tools/versions/oneapi/2022.1.2/oneapi/setvars.sh 
-        
-        # Using config file
-        # (NOTE) config file needs modification
-        # source /glob/development-tools/versions/oneapi/2022.1.2/oneapi/setvars.sh --config="${T2S_PATH}/oneapi_config.txt" 
-    else
-        echo "dpcpp command exists"
-    fi
+    echo "  source setenv.sh local opencl fpga # Only this local configuration supported so far" 
 }
 
 if [ $0 == $BASH_SOURCE ]; then
@@ -40,7 +26,34 @@ if [ "$1" == "devcloud" ]; then
     fi
 fi
 
-if [ "$2" != "fpga" -a "$2" != "gpu" ]; then
+if [ "$1" == "local" ]; then
+    if [ "$2" != "opencl" -o "$3" != "fpga" ]; then
+        show_usage
+        return
+    fi 
+fi
+
+if [ "$2" != "oneapi" -a "$2" != "opencl" -a  "$2" != "cm" ]; then
+    show_usage
+    return 
+fi
+
+if [ "$3" != "fpga" -a "$3" != "gen9" -a  "$3" != "gen12" ]; then
+    show_usage
+    return 
+fi
+
+if [ "$2" == "oneapi" -a "$3" != "fpga" ]; then
+    show_usage
+    return 
+fi
+
+if [ "$2" == "opencl" -a "$3" != "fpga" ]; then
+    show_usage
+    return 
+fi
+
+if [ "$2" == "cm" -a "$3" != "gen9" -a "$3" != "gen12" ]; then
     show_usage
     return 
 fi
@@ -54,7 +67,7 @@ GCC_PATH=$TOOLS_PATH/gcc-7.5.0
 export LLVM_CONFIG=$TOOLS_PATH/bin/llvm-config
 export CLANG=$TOOLS_PATH/bin/clang
 
-if [ "$1" = "local" -a "$2" = "fpga" ]; then
+if [ "$1" = "local" -a "$3" = "fpga" ]; then
     # Modify according to your machine's setting
     ALTERA_PATH=$HOME/intelFPGA_pro
     AOCL_VERSION=19.1
@@ -65,57 +78,55 @@ fi
 
 #### No need to change below this point ##########
 
-if [ "$2" = "fpga" ]; then
-    if [ "$1" = "local" ]; then
-        # Intel OpenCL related setting
-        export ALTERAOCLSDKROOT=$ALTERA_PATH/$AOCL_VERSION/hld
-        export INTELFPGAOCLSDKROOT=$ALTERAOCLSDKROOT
-        export AOCL_SO=$ALTERAOCLSDKROOT/host/linux64/lib/libalteracl.so
-        export AOCL_BOARD_SO=$ALTERA_PATH/$AOCL_VERSION/hld/board/${FPGA_BOARD_PACKAGE}/linux64/lib/libaltera_${FPGA_BOARD_PACKAGE}_mmd.so
-        export AOCL_LIBS="-L$ALTERA_PATH/$AOCL_VERSION/hld/board/${FPGA_BOARD_PACKAGE}/host/linux64/lib -L$ALTERA_PATH/$AOCL_VERSION/hld/board/${FPGA_BOARD_PACKAGE}/linux64/lib -L$ALTERA_PATH/$AOCL_VERSION/hld/host/linux64/lib -Wl,--no-as-needed -lalteracl -laltera_${FPGA_BOARD_PACKAGE}_mmd"
-        export QSYS_ROOTDIR=$ALTERAOCLSDKROOT/../qsys/bin
-        export QUARTUS_ROOTDIR_OVERRIDE=$ALTERAOCLSDKROOT/../quartus
-        export LD_LIBRARY_PATH=$ALTERAOCLSDKROOT/host/linux64/lib:$ALTERAOCLSDKROOT/board/${FPGA_BOARD_PACKAGE}/linux64/lib:$LD_LIBRARY_PATH
-        export PATH=$QUARTUS_ROOTDIR_OVERRIDE/bin:$ALTERAOCLSDKROOT/bin:$PATH
-        source $ALTERAOCLSDKROOT/init_opencl.sh
-        unset CL_CONTEXT_EMULATOR_DEVICE_ALTERA
-        export EMULATOR_LIBHALIDE_TO_LINK="-lHalide"
-        export HW_LIBHALIDE_TO_LINK="-lHalide"
-    fi
+if [ "$1" = "local" -a "$2" = "opencl" -a "$3" = "fpga" ]; then
+    # Intel OpenCL related setting
+    export ALTERAOCLSDKROOT=$ALTERA_PATH/$AOCL_VERSION/hld
+    export INTELFPGAOCLSDKROOT=$ALTERAOCLSDKROOT
+    export AOCL_SO=$ALTERAOCLSDKROOT/host/linux64/lib/libalteracl.so
+    export AOCL_BOARD_SO=$ALTERA_PATH/$AOCL_VERSION/hld/board/${FPGA_BOARD_PACKAGE}/linux64/lib/libaltera_${FPGA_BOARD_PACKAGE}_mmd.so
+    export AOCL_LIBS="-L$ALTERA_PATH/$AOCL_VERSION/hld/board/${FPGA_BOARD_PACKAGE}/host/linux64/lib -L$ALTERA_PATH/$AOCL_VERSION/hld/board/${FPGA_BOARD_PACKAGE}/linux64/lib -L$ALTERA_PATH/$AOCL_VERSION/hld/host/linux64/lib -Wl,--no-as-needed -lalteracl -laltera_${FPGA_BOARD_PACKAGE}_mmd"
+    export QSYS_ROOTDIR=$ALTERAOCLSDKROOT/../qsys/bin
+    export QUARTUS_ROOTDIR_OVERRIDE=$ALTERAOCLSDKROOT/../quartus
+    export LD_LIBRARY_PATH=$ALTERAOCLSDKROOT/host/linux64/lib:$ALTERAOCLSDKROOT/board/${FPGA_BOARD_PACKAGE}/linux64/lib:$LD_LIBRARY_PATH
+    export PATH=$QUARTUS_ROOTDIR_OVERRIDE/bin:$ALTERAOCLSDKROOT/bin:$PATH
+    source $ALTERAOCLSDKROOT/init_opencl.sh
+    unset CL_CONTEXT_EMULATOR_DEVICE_ALTERA
+    export EMULATOR_LIBHALIDE_TO_LINK="-lHalide"
+    export HW_LIBHALIDE_TO_LINK="-lHalide"
+fi
 
-    if [ "$1" = "devcloud" ]; then
-        if [ -f /data/intel_fpga/devcloudLoginToolSetup.sh ]; then
-            source /data/intel_fpga/devcloudLoginToolSetup.sh
-        fi
-        pbsnodes -s v-qsvr-fpga  $(hostname) >& tmp.txt
-        if grep "fpga,arria10" tmp.txt; then
-            tools_setup -t  A10DS 1.2.1
-            export FPGA_BOARD=pac_a10
+if [ "$1" = "devcloud" -a "$2" = "opencl" -a "$3" = "fpga" ]; then
+    if [ -f /data/intel_fpga/devcloudLoginToolSetup.sh ]; then
+        source /data/intel_fpga/devcloudLoginToolSetup.sh
+    fi
+    pbsnodes -s v-qsvr-fpga  $(hostname) >& tmp.txt
+    if grep "fpga,arria10" tmp.txt; then
+        tools_setup -t  A10DS 1.2.1
+        export FPGA_BOARD=pac_a10
+    else
+        if grep "fpga,darby" tmp.txt; then
+            tools_setup -t S10DS
+            export FPGA_BOARD=pac_s10_dc
         else
-            if grep "fpga,darby" tmp.txt; then
-                tools_setup -t S10DS
-                export FPGA_BOARD=pac_s10_dc
-            else
-                echo The current compute node does not have either an A10 or an S10 card with it.
-                echo Please choose another compute node from 'Nodes with Arria 10 Release 1.2.1',
-                echo or 'Nodes with Stratix 10', without OneAPI
-                return
-            fi
+            echo The current compute node does not have either an A10 or an S10 card with it.
+            echo Please choose another compute node from 'Nodes with Arria 10 Release 1.2.1',
+            echo or 'Nodes with Stratix 10', without OneAPI
+            return
         fi
-        export AOCL_SO=$ALTERAOCLSDKROOT/host/linux64/lib/libalteracl.so
-        export AOCL_BOARD_SO=$AOCL_BOARD_PACKAGE_ROOT/linux64/lib/libintel_opae_mmd.so
-        export AOCL_LIBS="-L$INTELFPGAOCLSDKROOT/linux64/lib -L$AOCL_BOARD_PACKAGE_ROOT/linux64/lib -L$INTELFPGAOCLSDKROOT/host/linux64/lib -Wl,--no-as-needed -lalteracl  -lintel_opae_mmd"
-
-        # The aoc on DevCloud has an LLVM whose version is different from that of the LLVM libHalide.so has linked with. Consequently, calling
-        # aoc dynamically will have two LLVMs messed up: the aoc has some LLVM calls to some symbols that are not resolved to be in the aoc linked
-        # LLVM, but instead the libHalide.so linked LLVM, because libHalide.so was loaded the first.
-        # Using the static libHalide.a instead of th dynamic libHalide.so is the only solution we found so far.
-        export EMULATOR_LIBHALIDE_TO_LINK="$T2S_PATH/Halide/lib/libHalide.a"
-        export HW_LIBHALIDE_TO_LINK="$T2S_PATH/Halide/lib/libHalide.a $AOCL_LIBS"
-
-        source  /glob/development-tools/versions/intel-parallel-studio-2019/debugger_2019/bin/debuggervars.sh
-        alias gdb='gdb-ia'
     fi
+    export AOCL_SO=$ALTERAOCLSDKROOT/host/linux64/lib/libalteracl.so
+    export AOCL_BOARD_SO=$AOCL_BOARD_PACKAGE_ROOT/linux64/lib/libintel_opae_mmd.so
+    export AOCL_LIBS="-L$INTELFPGAOCLSDKROOT/linux64/lib -L$AOCL_BOARD_PACKAGE_ROOT/linux64/lib -L$INTELFPGAOCLSDKROOT/host/linux64/lib -Wl,--no-as-needed -lalteracl  -lintel_opae_mmd"
+
+    # The aoc on DevCloud has an LLVM whose version is different from that of the LLVM libHalide.so has linked with. Consequently, calling
+    # aoc dynamically will have two LLVMs messed up: the aoc has some LLVM calls to some symbols that are not resolved to be in the aoc linked
+    # LLVM, but instead the libHalide.so linked LLVM, because libHalide.so was loaded the first.
+    # Using the static libHalide.a instead of th dynamic libHalide.so is the only solution we found so far.
+    export EMULATOR_LIBHALIDE_TO_LINK="$T2S_PATH/Halide/lib/libHalide.a"
+    export HW_LIBHALIDE_TO_LINK="$T2S_PATH/Halide/lib/libHalide.a $AOCL_LIBS"
+
+    source  /glob/development-tools/versions/intel-parallel-studio-2019/debugger_2019/bin/debuggervars.sh
+    alias gdb='gdb-ia'
 
     # Figure out the emulator and hardware run platform
     AOC_VERSION=$(aoc -version | grep -E 'Version\ [^[:space:]]*' -o  |grep -E '[0-9]+[\.[0-9]+]*' -o)
@@ -141,7 +152,16 @@ if [ "$2" = "fpga" ]; then
     fi
 fi
 
-if [ "$2" = "gpu" ]; then
+if [ "$1" = "devcloud" -a "$2" = "oneapi" -a "$3" = "fpga" ]; then
+    pbsnodes $(hostname) >& tmp.txt
+    if [ "$(grep -c "fpga_runtime" tmp.txt)" -eq 0 ]; then        
+        echo Warning: This compute node does not have FPGA runtime. 
+    fi
+    export EMULATOR_LIBHALIDE_TO_LINK="$T2S_PATH/Halide/lib/libHalide.a"
+    export HW_LIBHALIDE_TO_LINK="$T2S_PATH/Halide/lib/libHalide.a"    
+fi
+
+if [ "$1" = "devcloud" -a "$2" = "cm" ]; then
     if [ "$3" = "gen9" ]; then
         export CM_ROOT=$T2S_PATH/install/Linux_C_for_Metal_Development_Package_20200119
         export LIBVA_DRIVERS_PATH=$CM_ROOT/drivers/media_driver/release/extract/usr/lib/x86_64-linux-gnu/dri
@@ -159,10 +179,8 @@ export PATH=$TOOLS_PATH/bin:$PATH
 export LD_LIBRARY_PATH=$TOOLS_PATH/lib64:$TOOLS_PATH/lib:$LD_LIBRARY_PATH
 
 # Add gcc
-if [ "$1" != "devcloud" -o "$2" != "gpu" ]; then
-    export PATH=$GCC_PATH/bin:$PATH
-    export LD_LIBRARY_PATH=$GCC_PATH/bin:$GCC_PATH/lib64:$LD_LIBRARY_PATH
-fi
+export PATH=$GCC_PATH/bin:$PATH
+export LD_LIBRARY_PATH=$GCC_PATH/bin:$GCC_PATH/lib64:$LD_LIBRARY_PATH
 
 # Add Halide
 export PATH=$T2S_PATH/Halide/bin:$PATH
