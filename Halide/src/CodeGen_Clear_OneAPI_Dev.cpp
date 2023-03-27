@@ -28,6 +28,18 @@ CodeGen_Clear_OneAPI_Dev::CodeGen_Clear_OneAPI_Dev(Target t)
     : clc(src_stream, t) {
 }
 
+string CodeGen_Clear_OneAPI_Dev::CodeGen_Clear_OneAPI_C::generate_intermediate_var(const string &old_val) {
+    // Expressions that are too long are likely to be complicated to calculate
+    // So we generate intermediate variables for them.
+    if (needs_intermediate_expr || old_val.size() >= 32) {
+        auto name = "_" + unique_name('D');
+        stream << get_indent() << "auto " << name << " = " << old_val << ";\n";
+        needs_intermediate_expr = false;
+        return name;
+    }
+    return old_val;
+}
+
 string CodeGen_Clear_OneAPI_Dev::CodeGen_Clear_OneAPI_C::vector_index_to_string(int idx) {
     std::ostringstream oss;
     if (idx >= 10 && idx < 16) {
@@ -250,12 +262,12 @@ void CodeGen_Clear_OneAPI_Dev::CodeGen_Clear_OneAPI_C::visit(const For *loop) {
             }
         }
         loop->body.accept(this);
-    } else if(ends_with(loop->name, ".infinite")){
+    } else if (ends_with(loop->name, ".infinite")) {
         stream << get_indent() << "while(1) ";
         open_scope();
         loop->body.accept(this);
         close_scope("while "+print_name(loop->name));
-    } else if (ends_with(loop->name,"remove")){
+    } else if (ends_with(loop->name, "remove")) {
         loop->body.accept(this);
     } else if (loop->for_type == ForType::DelayUnroll) {
         Expr extent = simplify(loop->extent);
@@ -382,45 +394,38 @@ void CodeGen_Clear_OneAPI_Dev::CodeGen_Clear_OneAPI_C::visit(const Ramp *op) {
 
     ostringstream rhs;
     if (!is_standard_opencl_type(op->type)) {
-        rhs << "(" << print_type(op->type.with_lanes(op->lanes)) << "){" << id_base;
+        rhs << print_type(op->type.with_lanes(op->lanes)) << "{{" << id_base;
         for (int i = 1; i < op->lanes; ++i) {
             rhs << ", (" << id_base << " + " << id_stride << " * " << i << ")";
         }
-        rhs << "}";
+        rhs << "}}";
     } else {
-        rhs << id_base << " + " << id_stride << " * ("
-            << print_type(op->type.with_lanes(op->lanes)) << ")(0";
+        rhs << id_base << " + " << id_stride << " * "
+            << print_type(op->type.with_lanes(op->lanes)) << "{0";
         // Note 0 written above.
         for (int i = 1; i < op->lanes; ++i) {
             rhs << ", " << i;
         }
-        rhs << ")";
+        rhs << "}";
     }
+    needs_intermediate_expr = true;
     set_latest_expr(op->type.with_lanes(op->lanes), rhs.str());
 }
 
 void CodeGen_Clear_OneAPI_Dev::CodeGen_Clear_OneAPI_C::visit(const Broadcast *op) {
     string id_value = print_expr(op->value);
     if (is_standard_opencl_type(op->type)) {
+        id_value = print_type(op->type.with_lanes(op->lanes)) + "{" + id_value + "}";
         set_latest_expr(op->type.with_lanes(op->lanes), id_value);
     } else {
-        string s = "(" + print_type(op->type) + ") {";
+        string s = "(" + print_type(op->type) + "){{";
         for (int i = 0; i < op->lanes; i++) {
             s += ((i == 0) ? "" : ", ") + id_value;
         }
-        s += "}";
+        s += "}}";
         set_latest_expr(op->type.with_lanes(op->lanes), s);
     }
-}
-
-namespace {
-// Mapping of integer vector indices to OpenCL ".s" syntax.
-const char *vector_elements = "0123456789ABCDEF";
-
-}  // namespace
-
-string CodeGen_Clear_OneAPI_Dev::CodeGen_Clear_OneAPI_C::get_memory_space(const string &buf) {
-    return "__address_space_" + print_name(buf);
+    needs_intermediate_expr = true;
 }
 
 void CodeGen_Clear_OneAPI_Dev::CodeGen_Clear_OneAPI_C::visit(const Let *op) {
@@ -484,27 +489,28 @@ void CodeGen_Clear_OneAPI_Dev::CodeGen_Clear_OneAPI_C::visit(const Call *op) {
     } else if (op->is_intrinsic(Call::shift_left) || op->is_intrinsic(Call::shift_right)) {
         CodeGen_Clear_C::visit(op);
     } else if (op->is_intrinsic(Call::read_channel)) {
-        string string_channel_index;
+        string string_pipe_index{};
         const StringImm *v = op->args[0].as<StringImm>();
-        for (unsigned i = 1; i < op->args.size(); i++ ){
+        for (unsigned i = 1; i < op->args.size(); i++) {
             Expr e = op->args[i];
             assert(e.type() == Int(32));
             string sindex = print_expr(e);
             assert(!sindex.empty());
-            string_channel_index += "["+sindex+"]";
+            string_pipe_index += sindex + ",";
         }
+        if (string_pipe_index.back() == ',') string_pipe_index.pop_back();
         latest_expr = '_' + unique_name('_');
-        int size = (v->value).rfind(".");
+        int size = v->value.rfind(".");
         string channel_name = v->value;
         debug(4) << "channel name: " << channel_name << "\n";
-        if (size < (int)(v->value.size())-1) {
+        if (size < (int)(v->value.size()) - 1) {
             string suffix = (v->value).substr(size + 1, (int)v->value.size() - size - 1);
             // eliminate useless suffix
             while (suffix != "channel") {
-                channel_name = (channel_name).substr(0, size);
-                size = (channel_name).rfind(".");
-                if (size < (int)(channel_name.size())-1) {
-                    suffix = (channel_name).substr(size + 1, (int)channel_name.size() - size - 1);
+                channel_name = channel_name.substr(0, size);
+                size = channel_name.rfind(".");
+                if (size < (int)(channel_name.size()) - 1) {
+                    suffix = channel_name.substr(size + 1, (int)channel_name.size() - size - 1);
                 } else {
                     break;
                 }
@@ -518,12 +524,13 @@ void CodeGen_Clear_OneAPI_Dev::CodeGen_Clear_OneAPI_C::visit(const Call *op) {
         if (op->type.is_handle() && !op->type.is_generated_struct()) {
             type = print_name(channel_name + ".array.t");
         }
-        latest_expr = "read_channel_intel(" + print_name(channel_name) + string_channel_index + ")";
+        latest_expr = print_name(channel_name) + "::read<" + string_pipe_index + ">()";
+        needs_intermediate_expr = true;
     } else if (op->is_intrinsic(Call::read_channel_nb)) {
         string string_channel_index;
         const StringImm *v = op->args[0].as<StringImm>();
         const StringImm *read_success = op->args[1].as<StringImm>();
-        for (unsigned i = 2; i < op->args.size(); i++ ){
+        for (unsigned i = 2; i < op->args.size(); i++) {
             Expr e = op->args[i];
             assert(e.type() == Int(32));
             string sindex = print_expr(e);
@@ -558,19 +565,17 @@ void CodeGen_Clear_OneAPI_Dev::CodeGen_Clear_OneAPI_C::visit(const Call *op) {
                 << print_name(channel_name) << string_channel_index << ", &" << print_name(read_success->value) << ");\n";
     } else if (op->is_intrinsic(Call::write_channel)) {
         const StringImm *v = op->args[0].as<StringImm>();
-        // Do not directly print to stream: there might have been a cached value useable.
-        ostringstream rhs;
-        int size = (v->value).rfind(".");
+        int size = v->value.rfind(".");
         string channel_name = v->value;
         debug(4) << "channel name: " << channel_name << "\n";
-        if (size < (int)(v->value.size())-1) {
-            string suffix = (v->value).substr(size + 1, (int)v->value.size() - size - 1);
+        if (size < (int)(v->value.size()) - 1) {
+            string suffix = v->value.substr(size + 1, (int)v->value.size() - size - 1);
             // eliminate useless suffix
             while (suffix != "channel") {
-                channel_name = (channel_name).substr(0, size);
-                size = (channel_name).rfind(".");
-                if (size < (int)(channel_name.size())-1) {
-                    suffix = (channel_name).substr(size + 1, (int)channel_name.size() - size - 1);
+                channel_name = channel_name.substr(0, size);
+                size = channel_name.rfind(".");
+                if (size < (int)(channel_name.size()) - 1) {
+                    suffix = channel_name.substr(size + 1, (int)channel_name.size() - size - 1);
                 } else {
                     break;
                 }
@@ -580,18 +585,19 @@ void CodeGen_Clear_OneAPI_Dev::CodeGen_Clear_OneAPI_C::visit(const Call *op) {
             }
         }
         debug(4) << "modified channel name: " << channel_name << "\n";
-        rhs << print_name(channel_name);
-        for (unsigned i = 2; i < op->args.size(); i++ ){
+        string pipe_index{};
+        for (unsigned i = 2; i < op->args.size(); i++) {
             Expr e = op->args[i];
             assert(e.type() == Int(32));
-            rhs << "[";
-            rhs << print_expr(e);
-            rhs << "]";
+            auto print_e = print_expr(e);
+            pipe_index += print_e + ",";
         }
-        rhs << ", ";
+        if (pipe_index.back() == ',') pipe_index.pop_back();
+
+        ostringstream rhs;
         string write_data = print_expr(op->args[1]);
-        rhs << write_data;
-        stream << get_indent() << "write_channel_intel(" << rhs.str() << ");\n";
+        rhs << print_name(channel_name) << "::write<" << pipe_index << ">(" << write_data << ")";
+        stream << get_indent() << rhs.str() << ";\n";
     } else if (op->is_intrinsic(Call::write_channel_nb)) {
         const StringImm *v = op->args[0].as<StringImm>();
         const StringImm *write_success = op->args[2].as<StringImm>();
@@ -618,7 +624,7 @@ void CodeGen_Clear_OneAPI_Dev::CodeGen_Clear_OneAPI_C::visit(const Call *op) {
         }
         debug(4) << "modified channel name: " << channel_name << "\n";
         rhs << print_name(channel_name);
-        for (unsigned i = 3; i < op->args.size(); i++ ){
+        for (unsigned i = 3; i < op->args.size(); i++) {
             Expr e = op->args[i];
             assert(e.type() == Int(32));
             rhs << "[";
@@ -868,7 +874,7 @@ void CodeGen_Clear_OneAPI_Dev::CodeGen_Clear_OneAPI_C::visit(const Call *op) {
     } else if (ends_with(op->name, ".ibuffer")) {
         ostringstream rhs;
         rhs << print_name(op->name + '.' + std::to_string(op->value_index));
-        for(size_t i = 0; i < op->args.size(); i++) {
+        for (size_t i = 0; i < op->args.size(); i++) {
             rhs << "[";
             rhs << print_expr(op->args[i]);
             rhs << "]";
@@ -879,24 +885,51 @@ void CodeGen_Clear_OneAPI_Dev::CodeGen_Clear_OneAPI_C::visit(const Call *op) {
         // Do not directly print to stream: there might have been a cached value useable.
         ostringstream rhs;
         rhs << print_name(name);
-        for(size_t i = 0; i < op->args.size(); i++) {
+        for (size_t i = 0; i < op->args.size(); i++) {
             rhs << "[";
             rhs << print_expr(op->args[i]);
             rhs << "]";
         }
         set_latest_expr(op->type, rhs.str());
     } else if (op->is_intrinsic(Call::make_struct)) {
-        vector<string> values;
-        for (size_t i = 0; i < op->args.size(); i++) {
-            values.push_back(print_expr(op->args[i]));
-        }
         ostringstream rhs;
-        rhs << "(" << print_type(op->type) + "){";
-        for (size_t i = 0; i < op->args.size(); i++) {
-            rhs << values[i];
-            if (i < op->args.size() - 1) rhs << ", ";
+        if (op->args.empty()) {
+            internal_assert(op->type.handle_type) << "The return type of the no-arg call to make_struct must be a pointer type.\n";
+            rhs << "(" << print_type(op->type) + ")(nullptr)";
+        } else if (op->type == type_of<halide_dimension_t *>()) {
+            vector<string> values;
+            values.reserve(op->args.size());
+            for (size_t i = 0; i < op->args.size(); i++) {
+                values.push_back(print_expr(op->args[i]));
+            }
+            internal_assert(values.size() % 4 == 0);
+            int dimension = values.size() / 4;
+            auto shape_name = unique_name('s');
+            stream << get_indent() << "struct halide_dimension_t " << shape_name
+                   << "[" << dimension << "] = {\n";
+            indent++;
+            for (int i = 0; i < dimension; i++)
+                stream << get_indent() << "{"
+                       << values[i * 4 + 0] << ", "
+                       << values[i * 4 + 1] << ", "
+                       << values[i * 4 + 2] << ", "
+                       << values[i * 4 + 3] << "},\n";
+            indent--;
+            stream << get_indent() << "};\n";
+            rhs << shape_name;
+        } else {
+            vector<string> values;
+            values.reserve(op->args.size());
+            for (size_t i = 0; i < op->args.size(); i++) {
+                values.push_back(print_expr(op->args[i]));
+            }
+            rhs << "(" << print_type(op->type) + "){";
+            for (size_t i = 0; i < op->args.size(); i++) {
+                rhs << values[i];
+                if (i < op->args.size() - 1) rhs << ", ";
+            }
+            rhs << "}";
         }
-        rhs << "}";
         set_latest_expr(op->type, rhs.str());
     } else if (op->is_intrinsic(Call::postincrement)) {
         // Args: an expression e, Expr(offset), Expr("addr.temp"), indexes of addr.temp
@@ -922,12 +955,21 @@ void CodeGen_Clear_OneAPI_Dev::CodeGen_Clear_OneAPI_C::visit(const Call *op) {
             times = val->value;
         }
         ostringstream rhs;
-        for (int i = 0; i < times; i++) {
-            rhs << "__fpga_reg(";
-        }
-        rhs << print_expr(op->args[0]);
-        for (int i = 0; i < times; i++) {
-            rhs << ")";
+        if (op->type.is_vector()) {
+            std::string print_e = print_expr(op->args[0]);
+            auto num_lanes = op->type.lanes();
+            rhs << print_type(op->type) << "{\n";
+            for (int i = 0; i < num_lanes; i++) {
+                rhs << get_indent() << "sycl::ext::intel::fpga_reg(sycl::ext::intel::fpga_reg(" << print_e << "["<< i << "]))";
+                if (i != num_lanes - 1) rhs << ",";
+                rhs << "\n";
+            }
+            rhs << get_indent() << "}";
+        } else {
+            for (int i = 0; i < times; i++)
+                rhs << "sycl::ext::intel::fpga_reg(";
+            rhs << print_expr(op->args[0]);
+            for (int i = 0; i < times; i++) rhs << ")";
         }
         set_latest_expr(op->type, rhs.str());
     } else if (op->is_intrinsic(Call::annotate)) {
@@ -1187,26 +1229,29 @@ void CodeGen_Clear_OneAPI_Dev::CodeGen_Clear_OneAPI_C::visit(const Load *op) {
     Expr ramp_base = strided_ramp_base(op->index);
     if (ramp_base.defined()) {
         internal_assert(op->type.is_vector());
-        string id_ramp_base = print_expr(ramp_base);
+        string id_ramp_base = generate_intermediate_var(print_expr(ramp_base));
 
         ostringstream rhs;
 
         if (!is_standard_opencl_type(op->type)) {
             // For compiler-generated vector types, read in the way like *((float6*) address)
-            rhs << "*((" << get_memory_space(op->name) << " "
-                   << print_type(op->type) << "*)(" << print_name(op->name)
+            rhs << "*((" << print_type(op->type) << "*)(" << print_name(op->name)
                    << " + " << id_ramp_base << "))";
         } else {
-            rhs << "vload" << op->type.lanes()
-                << "(0, (" << get_memory_space(op->name) << " "
-                << print_type(op->type.element_of()) << "*)"
-                << print_name(op->name) << " + " << id_ramp_base << ")";
+            rhs << print_type(op->type) << "{\n";
+            indent++;
+            for (int i = 0; i < op->type.lanes(); i++)
+                rhs << get_indent() << print_name(op->name) << "[" << id_ramp_base << " + " << i << "]"
+                    << (i != op->type.lanes() - 1 ? ",\n" : "\n");
+            indent--;
+            rhs << get_indent()  << "}";
         }
+        needs_intermediate_expr = true;
         set_latest_expr(op->type, rhs.str());
         return;
     }
 
-    string id_index = print_expr(op->index);
+    string id_index = generate_intermediate_var(print_expr(op->index));
 
     // Get the rhs just for the cache.
     bool type_cast_needed = !(allocations.contains(op->name) &&
@@ -1215,7 +1260,7 @@ void CodeGen_Clear_OneAPI_Dev::CodeGen_Clear_OneAPI_C::visit(const Load *op) {
     if (pointer_args.count(op->name)) {
         rhs << pointer_args[op->name];
     } else if (type_cast_needed) {
-        rhs << "((" << get_memory_space(op->name) << " "
+        rhs << "(("
             << print_type(op->type) << " *)"
             << print_name(op->name)
             << ")";
@@ -1231,18 +1276,19 @@ void CodeGen_Clear_OneAPI_Dev::CodeGen_Clear_OneAPI_C::visit(const Load *op) {
         stream << get_indent() << print_type(op->type)
                << " " << latest_expr << ";\n";
 
-        for (int i = 0; i < op->type.lanes(); ++i) {
+        for (int i = 0; i < op->type.lanes(); i++) {
             stream << get_indent();
             stream
-                << latest_expr << ".s" << vector_elements[i]
-                << " = ((" << get_memory_space(op->name) << " "
+                << latest_expr << "[" << i << "]"
+                << " = (("
                 << print_type(op->type.element_of()) << "*)"
                 << print_name(op->name) << ")"
-                << "[" << id_index << ".s" << vector_elements[i] << "];\n";
+                << "[" << id_index << "[" << i << "]];\n";
         }
     } else {
         set_latest_expr(op->type, rhs.str());
     }
+    needs_intermediate_expr = false;
 }
 
 void CodeGen_Clear_OneAPI_Dev::CodeGen_Clear_OneAPI_C::visit(const Store *op) {
@@ -1271,7 +1317,6 @@ void CodeGen_Clear_OneAPI_Dev::CodeGen_Clear_OneAPI_C::visit(const Store *op) {
         auto print_store_var = [&]() {
             if (type_cast_needed) {
                 stream << "(("
-                       << get_memory_space(op->name) << " "
                        << print_type(t)
                        << " *)"
                        << print_name(op->name)
@@ -1341,7 +1386,7 @@ void CodeGen_Clear_OneAPI_Dev::CodeGen_Clear_OneAPI_C::visit(const Store *op) {
             string new_val = t.is_float() ? "new_val.i" : "new_val";
             stream << get_indent()
                    << "} while(atomic_cmpxchg((volatile "
-                   << get_memory_space(op->name) << " " << int_type << "*)&"
+                   << int_type << "*)&"
                    << print_name(op->name) << "[" << id_index << "], "
                    << old_val << ", " << new_val << ") != " << old_val << ");\n"
                    << get_indent() << "}\n";
@@ -1350,48 +1395,46 @@ void CodeGen_Clear_OneAPI_Dev::CodeGen_Clear_OneAPI_C::visit(const Store *op) {
         return;
     }
 
-    string id_value = print_expr(op->value);
+    string id_value = generate_intermediate_var(print_expr(op->value));
     Type t = op->value.type();
 
     // If we're writing a contiguous ramp, use vstore instead.
     Expr ramp_base = strided_ramp_base(op->index);
     if (ramp_base.defined()) {
         internal_assert(op->value.type().is_vector());
-        string id_ramp_base = print_expr(ramp_base);
+        string id_ramp_base = generate_intermediate_var(print_expr(ramp_base));
 
         if (!is_standard_opencl_type(t)) {
             // For compiler-generated vector types, write in the way like
             //   *((float6*) address) = value
-            stream << get_indent() << "*((" << get_memory_space(op->name) << " "
+            stream << get_indent() << "*(("
                    << print_type(t) << "*)(" << print_name(op->name)
                    << " + " << id_ramp_base << ")) = " << id_value << ";\n";
         } else {
-            stream << get_indent() << "vstore" << t.lanes() << "("
-                   << id_value << ", "
-                   << 0 << ", (" << get_memory_space(op->name) << " "
-                   << print_type(t.element_of()) << "*)"
-                   << print_name(op->name) << " + " << id_ramp_base
-                   << ");\n";
+            for (int i = 0; i < t.lanes(); i++)
+                stream << get_indent() << print_name(op->name)
+                       << "[" << id_ramp_base << " + " << i << "] = "
+                       <<  id_value << "["<< i << "]"<< ";\n";
         }
     } else if (op->index.type().is_vector()) {
         // If index is a vector, scatter vector elements.
         internal_assert(t.is_vector());
 
-        string id_index = print_expr(op->index);
+        string id_index = generate_intermediate_var(print_expr(op->index));
 
         for (int i = 0; i < t.lanes(); ++i) {
-            stream << get_indent() << "((" << get_memory_space(op->name) << " "
+            stream << get_indent() << "(("
                    << print_type(t.element_of()) << " *)"
                    << print_name(op->name)
                    << ")["
-                   << id_index << ".s" << vector_elements[i] << "] = "
-                   << id_value << ".s" << vector_elements[i] << ";\n";
+                   << id_index << "[" << i << "]] = "
+                   << id_value << "[" << i << "];\n";
         }
     } else {
         bool type_cast_needed = !(allocations.contains(op->name) &&
                                   allocations.get(op->name).type == t);
 
-        string id_index = print_expr(op->index);
+        string id_index = generate_intermediate_var(print_expr(op->index));
         stream << get_indent();
 
         // Avoid type casting for global pointer
@@ -1399,7 +1442,6 @@ void CodeGen_Clear_OneAPI_Dev::CodeGen_Clear_OneAPI_C::visit(const Store *op) {
             stream << pointer_args[op->name];
         } else if (type_cast_needed) {
             stream << "(("
-                   << get_memory_space(op->name) << " "
                    << print_type(t)
                    << " *)"
                    << print_name(op->name)
@@ -1410,9 +1452,6 @@ void CodeGen_Clear_OneAPI_Dev::CodeGen_Clear_OneAPI_C::visit(const Store *op) {
         stream << "[" << id_index << "] = "
                << id_value << ";\n";
     }
-}
-
-namespace {
 }
 
 void CodeGen_Clear_OneAPI_Dev::CodeGen_Clear_OneAPI_C::visit_binop(Type t, Expr a, Expr b, const char *op) {
@@ -1566,7 +1605,6 @@ void CodeGen_Clear_OneAPI_Dev::CodeGen_Clear_OneAPI_C::visit(const Allocate *op)
 
             stream << get_indent() << print_type(op->type) << ' '
                    << print_name(op->name) << "[" << size << "];\n";
-            stream << get_indent() << "#define " << get_memory_space(op->name) << " __private\n";
 
             Allocation alloc;
             alloc.type = op->type;
@@ -1589,7 +1627,6 @@ void CodeGen_Clear_OneAPI_Dev::CodeGen_Clear_OneAPI_C::visit(const Free *op) {
         // Should have been freed internally
         internal_assert(allocations.contains(op->name));
         allocations.pop(op->name);
-        stream << get_indent() << "#undef " << get_memory_space(op->name) << "\n";
     }
 }
 
@@ -1637,7 +1674,7 @@ void CodeGen_Clear_OneAPI_Dev::CodeGen_Clear_OneAPI_C::visit(const Shuffle *op) 
                 int arg = i % num_vectors;
                 int arg_idx = i / num_vectors;
                 internal_assert(arg_idx <= arg_lanes);
-                stream << arg_exprs[arg] << ".s" << vector_elements[arg_idx];
+                stream << arg_exprs[arg] << "[" << arg_idx << "]";
                 if (i != dest_lanes - 1) {
                     stream << ", ";
                 }
@@ -1688,7 +1725,7 @@ void CodeGen_Clear_OneAPI_Dev::CodeGen_Clear_OneAPI_C::visit(const Shuffle *op) 
             // which lane
             int p_arg_lane = index_table[op->indices[i]].second;
             if (is_vec[p_arg]) {
-                stream << arg_exprs[p_arg] << ".s" << vector_elements[p_arg_lane];
+                stream << arg_exprs[p_arg] << "[" << p_arg_lane << "]";
             } else {
                 stream << arg_exprs[p_arg];
             }
@@ -1854,43 +1891,9 @@ void CodeGen_Clear_OneAPI_Dev::CodeGen_Clear_OneAPI_C::add_kernel(Stmt s,
         constants[i].size += constants[i - 1].size;
     }
 
-
-    // Create preprocessor replacements for the address spaces of all our buffers.
-    stream << "\n";
-    for (size_t i = 0; i < args.size(); i++) {
-        if (args[i].is_buffer) {
-            vector<BufferSize>::iterator constant = constants.begin();
-            while (constant != constants.end() &&
-                   constant->name != args[i].name) {
-                constant++;
-            }
-
-            if (constant != constants.end()) {
-                stream << "#if " << constant->size << " <= MAX_CONSTANT_BUFFER_SIZE && "
-                       << constant - constants.begin() << " < MAX_CONSTANT_ARGS\n";
-                stream << "#define " << get_memory_space(args[i].name) << " __constant\n";
-                stream << "#else\n";
-                stream << "#define " << get_memory_space(args[i].name) << " __global\n";
-                stream << "#endif\n";
-            } else {
-                stream << "#define " << get_memory_space(args[i].name) << " __global\n";
-            }
-        }
-    }
-
-    // Emit the function prototype.
-    IsAutorun checker;
-    s.accept(&checker);
-    char *overlay_kernel_name = getenv("HL_OVERLAY_KERNEL");
-    if (checker.is_autorun || (overlay_kernel_name != NULL && args.size() == 0)) {
-        stream << "__attribute__((max_global_work_dim(0)))\n";
-        stream << "__attribute__((autorun))\n";
-    }
-
     stream << "__kernel void " << name << "(\n";
     for (size_t i = 0; i < args.size(); i++) {
         if (args[i].is_buffer) {
-            stream << " " << get_memory_space(args[i].name) << " ";
             // TODO: Update buffer attributes if written in kernel ip
             char *overlay_num = getenv("HL_OVERLAY_NUM");
             if (!args[i].write && overlay_num == NULL) stream << "const ";
@@ -1955,12 +1958,6 @@ void CodeGen_Clear_OneAPI_Dev::CodeGen_Clear_OneAPI_C::add_kernel(Stmt s,
         }
     }
 
-    // Undef all the buffer address spaces, in case they're different in another kernel.
-    for (size_t i = 0; i < args.size(); i++) {
-        if (args[i].is_buffer) {
-            stream << "#undef " << get_memory_space(args[i].name) << "\n";
-        }
-    }
 }
 
 void CodeGen_Clear_OneAPI_Dev::init_module() {
@@ -2331,8 +2328,7 @@ __kernel void scheduler() {
 vector<char> CodeGen_Clear_OneAPI_Dev::compile_to_src() {
     // compile_to_src is invoked in CodeGen_GPU_Host, but we avoid going through that route.
     internal_assert(false) << "Unreachable";
-    vector<char> nothing;
-    return nothing;
+    return {};
 }
 
 string CodeGen_Clear_OneAPI_Dev::get_current_kernel_name() {
@@ -2347,12 +2343,12 @@ string CodeGen_Clear_OneAPI_Dev::print_gpu_name(const string &name) {
     return name;
 }
 
-string CodeGen_Clear_OneAPI_Dev::compile(const Module &input){
+string CodeGen_Clear_OneAPI_Dev::compile(const Module &input) {
     // Initialize the module
     init_module();
 
     std::ostringstream EmitOneAPIFunc_stream;
-    EmitOneAPIFunc em_visitor(&clc, EmitOneAPIFunc_stream, clc.get_target() );
+    EmitOneAPIFunc em_visitor(&clc, EmitOneAPIFunc_stream, clc.get_target());
 
     // The Halide runtime headers, etc. into a separate file to make the main file cleaner
     std::ofstream runtime_file("halide_runtime_etc.h");
@@ -2391,27 +2387,34 @@ void CodeGen_Clear_OneAPI_Dev::CodeGen_Clear_OneAPI_C::DeclareChannels::visit(co
     if (ends_with(op->name, ".channel") || ends_with(op->name, ".channel.array")) {
         // Get the bounds in which all bounds are for the dimensions of the channel array, except the last one is for the min depth.
         Region bounds = op->bounds;
-        string bounds_str = "";
-        string attributes = "";
+        string bounds_str{};
+        string pipe_bounds{};
+        string pipe_attributes{};
         for (size_t i = 0; i < bounds.size(); i++) {
             Range b = bounds[i];
             Expr extent = b.extent;
             const IntImm *e_extent = extent.as<IntImm>();
-            internal_assert(e_extent != NULL);
+            internal_assert(e_extent != nullptr);
             if (i < bounds.size() - 1) {
                 internal_assert(e_extent->value > 0);
                 bounds_str += "[" + std::to_string(e_extent->value) + "]";
+                pipe_bounds += std::to_string(e_extent->value) + ",";
             } else {
-                attributes = " __attribute__((depth(" + std::to_string(e_extent->value) +  "))) ";
+                pipe_attributes = std::to_string(e_extent->value);
             }
         }
+        if (pipe_bounds.back() == ',') pipe_bounds.pop_back();
         internal_assert(op->types.size() == 1) << "In generating Intel OpenCL for FPGAs, a single type is expected for a channel.\n";
         string type = parent->print_type(op->types[0]);
 
         std::ostringstream oss;
         if (ends_with(op->name, ".channel")) {
-               parent->map_verbose_to_succinct_globally(op->name, parent->print_name(op->name));
-            oss << "channel " << type << " " << parent->print_name(op->name) << bounds_str << attributes << ";\n";
+            parent->map_verbose_to_succinct_globally(op->name, parent->print_name(op->name));
+            oss << "using " << parent->print_name(op->name)
+                << " = pipe_wrapper<class "
+                << parent->print_name(op->name) << "_pipe, " << type << ", "
+                << pipe_attributes << (pipe_bounds.empty() ? pipe_bounds : ", " + pipe_bounds) << ">;\n";
+
             channels += oss.str();
         } else {
             // For a channel array, we will declare a global channel and a local channel array. For example, for this IR:
@@ -2428,8 +2431,9 @@ void CodeGen_Clear_OneAPI_Dev::CodeGen_Clear_OneAPI_C::DeclareChannels::visit(co
 
             string printed_name = parent->print_name(op->name);
             string type_name = printed_name + "_t";
-            oss << "typedef struct { " << type << " s" << bounds_str << "; } " << type_name << ";\n";
-            oss << "channel " << type_name << " " << channel_name << attributes << ";\n";
+            oss << "struct " << type_name << " { " << type << " s" << bounds_str << "; };\n";
+            oss << "using " << channel_name << " = pipe_wrapper<class "
+                << channel_name << "_pipe, " << type_name << ", " << pipe_attributes <<  ">;\n";
             channels += oss.str();
         }
     }
@@ -2599,9 +2603,9 @@ void CodeGen_Clear_OneAPI_Dev::CodeGen_Clear_OneAPI_C::GatherShiftRegsAllocates:
             // Remember the bounds of the shift registers.
             shift_regs_bounds[op->name] = bounds.size();
         }
-    } else if(ends_with(op->name,".temp")){
-    } else if(ends_with(op->name,".ibuffer")){
-    } else if (ends_with(op->name,".break")){
+    } else if (ends_with(op->name, ".temp")) {
+    } else if (ends_with(op->name, ".ibuffer")) {
+    } else if (ends_with(op->name, ".break")) {
     } else {
         // Not really shift registers. But we can allocate them as shift regs as well.
         ostringstream rhs;
@@ -2636,7 +2640,7 @@ void CodeGen_Clear_OneAPI_Dev::CodeGen_Clear_OneAPI_C::visit(const Realize *op) 
         // We have already gathered shift regs allocates with gather_shift_regs_allocates().
         // Just skip it and get into the body.
         print_stmt(op->body);
-    } else if(ends_with(op->name,".temp")){
+    } else if (ends_with(op->name, ".temp")) {
         string stripped = remove_postfix(op->name, ".temp");
         map_verbose_to_succinct_locally(op->name, CodeGen_Clear_C::print_name(stripped));
 
@@ -2648,7 +2652,7 @@ void CodeGen_Clear_OneAPI_Dev::CodeGen_Clear_OneAPI_C::visit(const Realize *op) 
         for (string ae : access_exprs) {
             string_bound += "[" + ae + "]";
         }
-        for(size_t i=0;i<op->types.size();i++) {
+        for (size_t i = 0; i<op->types.size(); i++) {
             // do_indent();
             string name = op->name;
             stream << get_indent() << print_type(op->types[i]) << " " << print_name(name)
@@ -2658,7 +2662,7 @@ void CodeGen_Clear_OneAPI_Dev::CodeGen_Clear_OneAPI_C::visit(const Realize *op) 
 
         // The Realize scope ends and its name is dead
         kernel_name_map.erase(op->name);
-    } else if(ends_with(op->name,".ibuffer")){
+    } else if (ends_with(op->name, ".ibuffer")) {
         string string_bound = "" ;
         vector<string> access_exprs;
         for (Range b : op->bounds) {
@@ -2668,7 +2672,7 @@ void CodeGen_Clear_OneAPI_Dev::CodeGen_Clear_OneAPI_C::visit(const Realize *op) 
             string_bound += "[" + ae + "]";
         }
         bool multi_values = op->types.size() > 1;
-        for(size_t i=0;i<op->types.size();i++) {
+        for (size_t i = 0; i < op->types.size(); i++) {
             string stripped = remove_postfix(op->name, ".ibuffer");
             stripped = extract_after_tokens(stripped, 1); // Remove the function prefix
             if (multi_values) {
@@ -2676,20 +2680,24 @@ void CodeGen_Clear_OneAPI_Dev::CodeGen_Clear_OneAPI_C::visit(const Realize *op) 
             }
             string buffer_name = op->name + '.' + std::to_string(i);
             map_verbose_to_succinct_locally(buffer_name, print_name(stripped));
-            stream << get_indent() << print_type(op->types[i]) << " ";
-            stream << "__attribute__((memory, numbanks("
+            stream << get_indent() << "// OpenCL's __attribute__((memory, numbanks("
                    << access_exprs.back()
-                   << "), singlepump, numwriteports(1), numreadports(1))) "
+                   << "), singlepump, numwriteports(1), numreadports(1)))"
+                   << print_name(buffer_name) << string_bound << "\n";
+            stream << get_indent() << "[[intel::fpga_memory(), "
+                   << "intel::numbanks(" << access_exprs.back() << "), "
+                   << "intel::singlepump, intel::simple_dual_port]]\n"
+                   << get_indent() << print_type(op->types[i])  << " "
                    << print_name(buffer_name) << string_bound << ";\n";
         }
         print_stmt(op->body);
 
         // The Realize scope ends and its name is dead
-        for(size_t i=0;i<op->types.size();i++) {
+        for (size_t i = 0; i < op->types.size(); i++) {
             string buffer_name = op->name + '.' + std::to_string(i);
             kernel_name_map.erase(buffer_name);
         }
-    } else if (ends_with(op->name,".break")){
+    } else if (ends_with(op->name, ".break")) {
         print_stmt(op->body);
     } else {
         // We have treated this case as shift regs allocates with gather_shift_regs_allocates().
@@ -2698,17 +2706,17 @@ void CodeGen_Clear_OneAPI_Dev::CodeGen_Clear_OneAPI_C::visit(const Realize *op) 
     }
 }
 
-void CodeGen_Clear_OneAPI_Dev::CodeGen_Clear_OneAPI_C::visit(const Provide *op){
+void CodeGen_Clear_OneAPI_Dev::CodeGen_Clear_OneAPI_C::visit(const Provide *op) {
     if (ends_with(op->name, ".ibuffer")) {
         internal_assert(op->values.size() == 1);
         string id_value = print_expr(op->values[0]);
         vector<string> access_exprs;
-        for(size_t i = 0; i < op->args.size(); i++) {
+        for (size_t i = 0; i < op->args.size(); i++) {
             access_exprs.push_back(print_expr(op->args[i]));
         }
         string buffer_name = op->name + '.' + std::to_string(0);
         stream << get_indent() << print_name(buffer_name);
-        for(size_t i = 0; i < op->args.size(); i++) {
+        for (size_t i = 0; i < op->args.size(); i++) {
             stream << "[";
             stream << access_exprs[i];
             stream << "]";
@@ -2719,19 +2727,19 @@ void CodeGen_Clear_OneAPI_Dev::CodeGen_Clear_OneAPI_C::visit(const Provide *op){
         string id_value = print_expr(op->values[0]);
         string name = op->name;
         vector<string> access_exprs;
-        for(size_t i = 0; i < op->args.size(); i++) {
+        for (size_t i = 0; i < op->args.size(); i++) {
             access_exprs.push_back(print_expr(op->args[i]));
         }
         stream << get_indent() << print_name(name);
         // do_indent();
-        for(size_t i = 0; i < op->args.size(); i++) {
+        for (size_t i = 0; i < op->args.size(); i++) {
             stream << "[";
             stream << access_exprs[i];
             stream << "]";
         }
         stream << " = " << id_value ;
         stream<< ";\n";
-    }else if(ends_with(op->name,".break")){
+    }else if (ends_with(op->name, ".break")) {
         stream<<"break;\n";
     }
     else {
@@ -2751,7 +2759,7 @@ string CodeGen_Clear_OneAPI_Dev::EmitOneAPIFunc::ExternCallFuncs::halide_device_
     vector<Expr> args = op->args;
     string buff = p->print_expr(args[0]);
 
-    rhs << "if( !" << buff << "->device ){ // device malloc\n";
+    rhs << "if (!" << buff << "->device) { // device malloc\n";
     rhs << p->get_indent() << "  std::cout << \"//\t device malloc "<< buff << "\\n\";\n";
     rhs << p->get_indent() << "  assert(" << buff << "->size_in_bytes() != 0);\n";
     rhs << p->get_indent() << "  uint64_t lowest_index = 0;\n";
@@ -2781,7 +2789,7 @@ string CodeGen_Clear_OneAPI_Dev::EmitOneAPIFunc::ExternCallFuncs::halide_host_ma
     rhs << "{ // host malloc\n";
     rhs << p->get_indent() << "  std::cout << \"//\\t host malloc "<< buffer_name << "\\n\";\n";
     rhs << p->get_indent() << "  assert(" << buffer_name << "->size_in_bytes() != 0);\n";
-    rhs << p->get_indent() << "  " << buffer_name << "->host = (uint8_t*)std::malloc(" << buffer_name << "->size_in_bytes() );\n";
+    rhs << p->get_indent() << "  " << buffer_name << "->host = (uint8_t*)std::malloc(" << buffer_name << "->size_in_bytes());\n";
     rhs << p->get_indent() << "  assert(" << buffer_name << "->host != NULL);\n";
     rhs << p->get_indent() << "}";
     return rhs.str();
@@ -2790,8 +2798,6 @@ string CodeGen_Clear_OneAPI_Dev::EmitOneAPIFunc::ExternCallFuncs::halide_host_ma
 string CodeGen_Clear_OneAPI_Dev::EmitOneAPIFunc::ExternCallFuncs::halide_copy_to_device(const Call *op) {
     check_valid(op, 2, 1);
     std::ostringstream rhs;
-    vector<Expr> args = op->args;
-    string buffer_name = p->print_expr(args[0]);
     rhs << halide_opencl_buffer_copy(op, false);
     return rhs.str();
 }
@@ -2799,8 +2805,6 @@ string CodeGen_Clear_OneAPI_Dev::EmitOneAPIFunc::ExternCallFuncs::halide_copy_to
 string CodeGen_Clear_OneAPI_Dev::EmitOneAPIFunc::ExternCallFuncs::halide_copy_to_host(const Call *op) {
     check_valid(op, 2, 1);
     std::ostringstream rhs;
-    vector<Expr> args = op->args;
-    string buffer_name = p->print_expr(args[0]);
     rhs << halide_opencl_buffer_copy(op, true);
     return rhs.str();
 }
@@ -2809,7 +2813,7 @@ string CodeGen_Clear_OneAPI_Dev::EmitOneAPIFunc::ExternCallFuncs::create_memcpy(
     std::ostringstream rhs;
     string dst;
     string src;
-    if(to_host){
+    if (to_host) {
         dst = buffer_name + "->host";
         src = "(((device_handle*)" + buffer_name + "->device)->mem)";
     } else {
@@ -2819,11 +2823,11 @@ string CodeGen_Clear_OneAPI_Dev::EmitOneAPIFunc::ExternCallFuncs::create_memcpy(
     rhs << "q_device.submit([&](handler& h){ h.memcpy("
         << "(void *)" << dst << ", " // dst
         << "(void *)" << src << ", " // src
-        << buffer_name << "->size_in_bytes() ); }).wait()"; // size
+        << buffer_name << "->size_in_bytes()); }).wait()"; // size
     return rhs.str();
 }
 
-string CodeGen_Clear_OneAPI_Dev::EmitOneAPIFunc::ExternCallFuncs::halide_opencl_buffer_copy(const Call* op, bool to_host){
+string CodeGen_Clear_OneAPI_Dev::EmitOneAPIFunc::ExternCallFuncs::halide_opencl_buffer_copy(const Call* op, bool to_host) {
     // Implemented based on AOT-OpenCL-Runtime.cpp
     check_valid(op, 2, 1);
     std::ostringstream rhs;
@@ -2852,8 +2856,8 @@ string CodeGen_Clear_OneAPI_Dev::EmitOneAPIFunc::ExternCallFuncs::halide_opencl_
 string CodeGen_Clear_OneAPI_Dev::EmitOneAPIFunc::ExternCallFuncs::halide_device_and_host_free(const Call *op) {
     check_valid(op, 2, 1);
     std::ostringstream rhs;
-    vector<Expr> args = op->args;
-    string buffer_name = p->print_expr(args[0]);
+    std::vector<Expr> args = op->args;
+    std::string buffer_name = p->print_expr(args[0]);
     rhs << halide_device_host_nop_free(buffer_name);
     return rhs.str();
 }
@@ -2861,7 +2865,6 @@ string CodeGen_Clear_OneAPI_Dev::EmitOneAPIFunc::ExternCallFuncs::halide_device_
 string CodeGen_Clear_OneAPI_Dev::EmitOneAPIFunc::ExternCallFuncs::halide_device_and_host_malloc(const Call *op) {
     check_valid(op, 2, 1);
     std::ostringstream rhs;
-    vector<Expr> args = op->args;
     // Device Malloc
     rhs << halide_device_malloc(op);
     rhs << ";\n";
@@ -2873,10 +2876,8 @@ string CodeGen_Clear_OneAPI_Dev::EmitOneAPIFunc::ExternCallFuncs::halide_device_
 string CodeGen_Clear_OneAPI_Dev::EmitOneAPIFunc::ExternCallFuncs::halide_opencl_wait_for_kernels_finish(const Call *op) {
     check_valid(op, 0, 0);
     std::ostringstream rhs;
-    vector<Expr> args = op->args;
     // Wait for all kernels to finish
-    rhs << "for(unsigned int i = 0; i < oneapi_kernel_events.size(); i++){ "
-        << "oneapi_kernel_events.at(i).wait(); }";
+    rhs << "oneapi_kernel_events.back().wait();";
     return rhs.str();
 }
 
@@ -2886,16 +2887,16 @@ string CodeGen_Clear_OneAPI_Dev::EmitOneAPIFunc::ExternCallFuncs::halide_device_
     std::ostringstream rhs;
 
     // Free device
-    rhs << "if( " << buffer_name << "->device ){ // device free\n";
-    rhs << p->get_indent() << "  sycl::free( ((device_handle*)" << buffer_name << "->device)->mem , q_device);\n";
+    rhs << "if (" << buffer_name << "->device) { // device free\n";
+    rhs << p->get_indent() << "  sycl::free(((device_handle*)" << buffer_name << "->device)->mem , q_device);\n";
     rhs << p->get_indent() << "  assert(((device_handle *)" << buffer_name << "->device)->offset == 0);\n";
     rhs << p->get_indent() << "  std::free((device_handle *)" << buffer_name << "->device);\n";
     rhs << p->get_indent() << "  "<< buffer_name <<"->set_device_dirty(false);\n";
     rhs << p->get_indent() << "}\n";
 
     // Free host
-    rhs << p->get_indent() << "if(" << buffer_name << "->host){ // host free\n";
-    rhs << p->get_indent() << "  std::free( (void*)"<< buffer_name <<"->host );\n";
+    rhs << p->get_indent() << "if (" << buffer_name << "->host) { // host free\n";
+    rhs << p->get_indent() << "  std::free((void*)"<< buffer_name <<"->host);\n";
     rhs << p->get_indent() << "  "<< buffer_name <<"->host = NULL;\n";
     rhs << p->get_indent() << "  "<< buffer_name <<"->set_host_dirty(false);\n";
     rhs << p->get_indent() << "}";
@@ -2921,24 +2922,57 @@ void CodeGen_Clear_OneAPI_Dev::EmitOneAPIFunc::clean_stream() {
 }
 
 void CodeGen_Clear_OneAPI_Dev::EmitOneAPIFunc::write_runtime_headers() {
-    stream << "#include \"halide_runtime_etc.h\"\n";
-    stream << "#include <CL/sycl.hpp>\n";
-    stream << "#include <sycl/ext/intel/fpga_extensions.hpp>\n";
-    stream << "#include \"dpc_common.hpp\"\n";
-    stream << "#include \"pipe_array.hpp\"\n";
-    stream << "using namespace sycl;\n";
-    stream << "struct device_handle {\n";
-    stream << "    // Important: order these to avoid any padding between fields;\n";
-    stream << "    // some Win32 compiler optimizer configurations can inconsistently\n";
-    stream << "    // insert padding otherwise.\n";
-    stream << "    uint64_t offset;\n";
-    stream << "    void* mem;\n";
-    stream << "};\n";
+    stream << 
+R"(#include "halide_runtime_etc.h"
+#if __has_include(<sycl/sycl.hpp>)
+#include <sycl/sycl.hpp>
+#else
+#include <CL/sycl.hpp>
+#endif
+#include <sycl/ext/intel/fpga_extensions.hpp>
+using namespace sycl;
+struct device_handle {
+    // Important: order these to avoid any padding between fields;
+    // some Win32 compiler optimizer configurations can inconsistently
+    // insert padding otherwise.
+    uint64_t offset;
+    void* mem;
+};
+
+template <typename name, typename data_type, int32_t min_capacity, int32_t... dims>
+struct pipe_wrapper {
+    template <int32_t...> struct unique_id;
+    template <int32_t... idxs>
+    static data_type read() {
+        static_assert(((idxs >= 0) && ...), "Negative index");
+        static_assert(((idxs < dims) && ...), "Index out of bounds");
+        return sycl::ext::intel::pipe<unique_id<idxs...>, data_type, min_capacity>::read();
+    }
+    template <int32_t... idxs>
+    static void write(const data_type &t) {
+        static_assert(((idxs >= 0) && ...), "Negative index");
+        static_assert(((idxs < dims) && ...), "Index out of bounds");
+        sycl::ext::intel::pipe<unique_id<idxs...>, data_type, min_capacity>::write(t);
+    }
+};
+
+void exception_handler(sycl::exception_list exceptions) {
+    for (std::exception_ptr const &e : exceptions) {
+        try {
+            std::rethrow_exception(e);
+        } catch (sycl::exception const &e) {
+            std::cout << "Caught asynchronous SYCL exception:\n"
+                      << e.what() << std::endl;
+        }
+    }
+}
+
+)";
 }
 
 string CodeGen_Clear_OneAPI_Dev::EmitOneAPIFunc::get_str() {
     std::set<string>::iterator it = UnImplementedExternFuncs.begin();
-    while (it != UnImplementedExternFuncs.end()){
+    while (it != UnImplementedExternFuncs.end()) {
         // Output all the unimplemented external functions that have been called but not caught
         stream << get_indent() << "// " << (*it) << " to-be-implemented\n";
         it++;
@@ -2949,7 +2983,7 @@ string CodeGen_Clear_OneAPI_Dev::EmitOneAPIFunc::get_str() {
 };
 
 // EmitOneAPIFunc
-void CodeGen_Clear_OneAPI_Dev::EmitOneAPIFunc::compile(const LoweredFunc &f){
+void CodeGen_Clear_OneAPI_Dev::EmitOneAPIFunc::compile(const LoweredFunc &f) {
 
     // (NOTE) Mimicing exection from CodeGen_C.cpp's
     // "void CodeGen_C::compile(const LoweredFunc &f)"
@@ -2965,7 +2999,7 @@ void CodeGen_Clear_OneAPI_Dev::EmitOneAPIFunc::compile(const LoweredFunc &f){
 
     // OneAPI is compiled wiht DPC++ so we should always be using C++ NameMangling
     NameMangling name_mangling = f.name_mangling;
-    internal_assert( target.has_feature(Target::CPlusPlusMangling) );
+    internal_assert(target.has_feature(Target::CPlusPlusMangling));
     if (name_mangling == NameMangling::Default) {
         name_mangling = NameMangling::CPlusPlus;
     }
@@ -2991,8 +3025,8 @@ void CodeGen_Clear_OneAPI_Dev::EmitOneAPIFunc::compile(const LoweredFunc &f){
 
     // (TODO) Check that HALIDE_FUNCTION_ATTRS is necessary or not
     // stream << "HALIDE_FUNCTION_ATTRS\n";
-    stream << "double " << simple_name << "(const sycl::device_selector &deviceSelector";
-    if(args.size() > 0) stream << ", ";
+    stream << "auto " << simple_name << "(int (*device_selector_v)(const sycl::device &)";
+    if (args.size() > 0) stream << ", ";
     for (size_t i = 0; i < args.size(); i++) {
         if (args[i].is_buffer()) {
             stream << "struct halide_buffer_t *"
@@ -3012,12 +3046,13 @@ void CodeGen_Clear_OneAPI_Dev::EmitOneAPIFunc::compile(const LoweredFunc &f){
     indent += 2;
 
     // Initalize elements for kernel such as sycl event's vector
-    stream << get_indent() << "std::vector<sycl::event> oneapi_kernel_events;\n";
+    stream << get_indent() << "std::vector<sycl::event> oneapi_kernel_events{};\n";
+    stream << get_indent() << "std::vector<size_t> kernels_used_to_measure_time{};\n";
     stream << get_indent() << "std::cout << \"// creating device queues\\n\";\n";
-    stream << get_indent() << "sycl::queue q_host( sycl::host_selector{}, dpc_common::exception_handler, sycl::property::queue::enable_profiling());\n";
-    stream << get_indent() << "sycl::queue q_device(deviceSelector, dpc_common::exception_handler, sycl::property::queue::enable_profiling() );\n";
-    stream << get_indent() << "std::cout << \"// Host: \" << q_host.get_device().get_info< sycl::info::device::name>() << \"\\n\";\n";
-    stream << get_indent() << "std::cout << \"// Device: \" << q_device.get_device().get_info< sycl::info::device::name>() << \"\\n\";\n";
+    stream << get_indent() << "sycl::queue q_host(sycl::cpu_selector_v, exception_handler, sycl::property::queue::enable_profiling());\n";
+    stream << get_indent() << "sycl::queue q_device(device_selector_v, exception_handler, sycl::property::queue::enable_profiling());\n";
+    stream << get_indent() << "std::cout << \"// Host: \" << q_host.get_device().get_info<sycl::info::device::name>() << \"\\n\";\n";
+    stream << get_indent() << "std::cout << \"// Device: \" << q_device.get_device().get_info<sycl::info::device::name>() << \"\\n\";\n";
     stream << get_indent() << "sycl::device dev = q_device.get_device();\n";
 
 
@@ -3031,30 +3066,27 @@ void CodeGen_Clear_OneAPI_Dev::EmitOneAPIFunc::compile(const LoweredFunc &f){
     print(f.body);
 
     // Make sure all kernels are finished
-    stream << get_indent() << "for(unsigned int i = 0; i < oneapi_kernel_events.size(); i++){ oneapi_kernel_events.at(i).wait(); };\n";
+    stream << get_indent() << "oneapi_kernel_events.back().wait();\n";
 
 
     // Return execution time of the kernels.
     stream << get_indent() << "std::cout << \"// return the kernel execution time in nanoseconds\\n\";\n";
-    stream  << ""
-            << get_indent() << "if(oneapi_kernel_events.size() > 0){\n"
-            << get_indent() << "    double k_earliest_start_time = oneapi_kernel_events.at(0).get_profiling_info<sycl::info::event_profiling::command_start>();\n"
-            << get_indent() << "    double k_latest_end_time = oneapi_kernel_events.at(0).get_profiling_info<sycl::info::event_profiling::command_end>();\n"
-            << get_indent() << "    for (unsigned i = 1; i < oneapi_kernel_events.size(); i++) {\n"
-            << get_indent() << "      double tmp_start = oneapi_kernel_events.at(i).get_profiling_info<sycl::info::event_profiling::command_start>();\n"
-            << get_indent() << "      double tmp_end = oneapi_kernel_events.at(i).get_profiling_info<sycl::info::event_profiling::command_end>();\n"
-            << get_indent() << "      if (tmp_start < k_earliest_start_time) {\n"
-            << get_indent() << "         k_earliest_start_time = tmp_start;\n"
-            << get_indent() << "      }\n"
-            << get_indent() << "      if (tmp_end > k_latest_end_time) {\n"
-            << get_indent() << "         k_latest_end_time = tmp_end;\n"
-            << get_indent() << "      }\n"
-            << get_indent() << "    }\n"
-            << get_indent() << "    // Get time in ns\n"
-            << get_indent() << "    double events_time = (k_latest_end_time - k_earliest_start_time);\n"
-            << get_indent() << "    return events_time;\n"
-            << get_indent() << "}\n";
-    stream  << get_indent() << "return (double)0;\n";
+    stream << get_indent() << "auto k_earliest_start_time = std::numeric_limits<\n"
+           << get_indent() << "  typename sycl::info::event_profiling::command_start::return_type>::max();\n"
+           << get_indent() << "auto k_latest_end_time = std::numeric_limits<\n"
+           << get_indent() << "  typename sycl::info::event_profiling::command_end::return_type>::min();\n"
+           << get_indent() << "for (auto i : kernels_used_to_measure_time) {\n"
+           << get_indent() << "  auto tmp_start = oneapi_kernel_events[i].get_profiling_info<sycl::info::event_profiling::command_start>();\n"
+           << get_indent() << "  auto tmp_end = oneapi_kernel_events[i].get_profiling_info<sycl::info::event_profiling::command_end>();\n"
+           << get_indent() << "  if (tmp_start < k_earliest_start_time) {\n"
+           << get_indent() << "    k_earliest_start_time = tmp_start;\n"
+           << get_indent() << "  }\n"
+           << get_indent() << "  if (tmp_end > k_latest_end_time) {\n"
+           << get_indent() << "    k_latest_end_time = tmp_end;\n"
+           << get_indent() << "  }\n"
+           << get_indent() << "}\n"
+           << get_indent() << "// Get time in ns\n"
+           << get_indent() << "return kernels_used_to_measure_time.empty() ? decltype(k_latest_end_time){} : k_latest_end_time - k_earliest_start_time;\n";
 
 
 
@@ -3110,19 +3142,19 @@ std::string CodeGen_Clear_OneAPI_Dev::EmitOneAPIFunc::create_kernel_name(const F
 }
 
 
-void CodeGen_Clear_OneAPI_Dev::EmitOneAPIFunc::create_kernel_wrapper(const std::string &name, std::string q_device_name, const std::vector<DeviceArgument> &args, bool begining, bool is_run_on_device){
+void CodeGen_Clear_OneAPI_Dev::EmitOneAPIFunc::create_kernel_wrapper(const std::string &name, std::string q_device_name, const std::vector<DeviceArgument> &args, bool begining, bool is_run_on_device) {
     // (TODO), will need a function wrapper if user wants to ever
     // use the compile_to_devsrc to generate the kernels alone
 
 
-    if(begining){
+    if (begining) {
         stream << get_indent() << "// " << name << "\n";
         stream << get_indent() << "std::cout << \"// kernel " << name << "\\n\";\n";
 
         // convert any pointers we need to get the device memory allocated
         for (size_t i = 0; i < args.size(); i++) {
             auto &arg = args[i];
-            if(arg.is_buffer){
+            if (arg.is_buffer) {
                 if (allocations.contains(arg.name) && is_run_on_device) {
                     stream << get_indent() << print_name(arg.name) << " = (" << print_type(arg.type) << "*)(((device_handle*) " << print_name(arg.name + ".buffer") << "->device)->mem);\n";
                 } else if (!allocations.contains(arg.name) && is_run_on_device) {
@@ -3138,8 +3170,8 @@ void CodeGen_Clear_OneAPI_Dev::EmitOneAPIFunc::create_kernel_wrapper(const std::
 
         }
 
-        if(is_run_on_device){
-            stream << get_indent() << "oneapi_kernel_events.push_back( " << q_device_name << ".submit([&](sycl::handler &h){\n";
+        if (is_run_on_device) {
+            stream << get_indent() << "oneapi_kernel_events.push_back(" << q_device_name << ".submit([&](sycl::handler &h){\n";
             indent += 2;
             stream << get_indent() << "h.single_task<class " + name + "_class>([=](){\n";
             indent += 2;
@@ -3148,11 +3180,11 @@ void CodeGen_Clear_OneAPI_Dev::EmitOneAPIFunc::create_kernel_wrapper(const std::
         }
 
     } else {
-        if(is_run_on_device){
+        if (is_run_on_device) {
             indent -= 2;
             stream << get_indent() << "}); //  h.single_task " << name + "_class\n";
             indent -= 2;
-            stream << get_indent() << "}) ); // "<< q_device_name << ".submit\n";
+            stream << get_indent() << "})); // "<< q_device_name << ".submit\n";
         } else {
             close_scope("// kernel_" + name);
         }
@@ -3189,10 +3221,17 @@ void CodeGen_Clear_OneAPI_Dev::EmitOneAPIFunc::add_kernel(Stmt s,
     // (TODO) Remove once safe
     // Store the kernel information for a kernel wrapped function in compile_to_oneapi
     // Only add device kernels to kernel_args
-    kernel_args.push_back( std::tuple<Stmt, std::string, std::vector<DeviceArgument> >(s,name,args) );
+    kernel_args.push_back(std::tuple<Stmt, std::string, std::vector<DeviceArgument>>(s, name, args));
 
     IsRunOnDevice device_run_checker;
     s.accept(&device_run_checker);
+
+    IsAutorun autorun_checker{};
+    s.accept(&autorun_checker);
+
+    if (device_run_checker.is_run_on_device && !autorun_checker.is_autorun) {
+        stream << get_indent() << "kernels_used_to_measure_time.push_back(oneapi_kernel_events.size());\n";
+    }
 
     std::string queue_name = device_run_checker.is_run_on_device ? "q_device"  : "q_host";
     debug(2) << "Adding OneAPI kernel " << name << "\n";
@@ -3214,7 +3253,7 @@ void CodeGen_Clear_OneAPI_Dev::EmitOneAPIFunc::add_kernel(Stmt s,
     return;
 
     { // Previous
-        if(!device_run_checker.is_run_on_device){
+        if (!device_run_checker.is_run_on_device) {
             debug(2) << "Adding OneAPI Host kernel " << name << "\n";
 
             // create kernel wrapper top half
@@ -3255,13 +3294,13 @@ void CodeGen_Clear_OneAPI_Dev::EmitOneAPIFunc::add_kernel(Stmt s,
 
 
 // EmitOneAPIFunc
-void CodeGen_Clear_OneAPI_Dev::EmitOneAPIFunc::visit(const For *loop){
+void CodeGen_Clear_OneAPI_Dev::EmitOneAPIFunc::visit(const For *loop) {
     debug(3) << "//!!! EmitOneAPIFunc::visit(const For *loop) FOR LOOP NAME << " << loop->name << "\n";
 
 
     // The currently_inside_kernel is set to true/false inside the
     // ::add_kerel() function. This prevennts the CodeGen from adding recursively calling it forever
-    if(currently_inside_kernel){
+    if (currently_inside_kernel) {
         debug(3) << "//!!! EmitOneAPIFunc::visit(const For *loop) FOUND << " << loop->name << "\n";
         // CodeGen_OneAPI_C::visit(loop); // Coppied // Call parent implementaiton of For* loop to print
         {
@@ -3292,12 +3331,12 @@ void CodeGen_Clear_OneAPI_Dev::EmitOneAPIFunc::visit(const For *loop){
                         }
                     }
                     loop->body.accept(this);
-                } else if(ends_with(loop->name, ".infinite")){
+                } else if (ends_with(loop->name, ".infinite")) {
                     stream << get_indent() << "while(1)\n";
                     open_scope();
                     loop->body.accept(this);
                     close_scope("while "+print_name(loop->name));
-                } else if (ends_with(loop->name,"remove")){
+                } else if (ends_with(loop->name, "remove")) {
                     loop->body.accept(this);
                 } else if (loop->for_type == ForType::DelayUnroll) {
                     Expr extent = simplify(loop->extent);
@@ -3561,20 +3600,20 @@ void CodeGen_Clear_OneAPI_Dev::EmitOneAPIFunc::visit(const Allocate *op) {
 
 
         if (allocations.contains(op->name)) {
-            if( heap_allocations.contains(op->name) ){
+            if (heap_allocations.contains(op->name)) {
                 // Heap allocations may be from an expression or a malloc all
                 // the map is only implemented for Calls at the moment
                 // plan to eventually go to a switch statment function
-                if(op->new_expr.defined() ){
+                if (op->new_expr.defined()) {
                     stream << get_indent() << print_name(op->name)  << " = NULL;\n";
-                } else if(free_function.find("std::free") != std::string::npos ){
-                    stream << get_indent() << "if(" << print_name(op->name)  << "){ std::free( "<< print_name(op->name) <<" ); };\n";
-                } else if( free_function.find("halide_device_host_nop_free") != std::string::npos){
-                    stream << get_indent() << ext_funcs.halide_device_host_nop_free( print_name(op->name) );
+                } else if (free_function.find("std::free") != std::string::npos) {
+                    stream << get_indent() << "if (" << print_name(op->name)  << ") { std::free(" << print_name(op->name) << "); };\n";
+                } else if (free_function.find("halide_device_host_nop_free") != std::string::npos) {
+                    stream << get_indent() << ext_funcs.halide_device_host_nop_free(print_name(op->name));
                 } else {
                     // internal_assert(false);
                     user_warning << "OneAPI: Free " << op->name << " with " << free_function << " to-be-replaced";
-                    UnImplementedExternFuncs.insert( free_function  );
+                    UnImplementedExternFuncs.insert(free_function);
                 }
                 heap_allocations.pop(op->name);
             }
@@ -3620,11 +3659,11 @@ void CodeGen_Clear_OneAPI_Dev::EmitOneAPIFunc::visit(const Allocate *op) {
             //     << "OneAPI at this time has not implemented the case of allocation of size 0 for: "
             //     << op->name << "\n";
 
-            if(size == 0){
+            if (size == 0) {
                 user_warning << "OneAPI at this time has not implemented the case of allocation of size 0 for: " << op->name << "\n";
             }
 
-            if(size == 1){
+            if (size == 1) {
                 stream << get_indent() << print_type(op->type) << ' '
                     << print_name(op->name) << ";\n";
             } else {
@@ -3795,11 +3834,27 @@ void CodeGen_Clear_OneAPI_Dev::EmitOneAPIFunc::visit(const AssertStmt *op) {
     // Currently not implementing any assertions
     // this will reduce the number of Extern Funcs that need
     // to be replaced
+    // FIXME: Some necessary functions may be executed in AssertStmt::condition.
+    // assert(extern_funcs() == 0, extern_funcs())
+    // So we can't simply ignore them.
+    const auto *eq = op->condition.as<EQ>();
+    if (eq != nullptr) {
+        const auto *call_1 = eq->a.as<Call>();
+        if (call_1 != nullptr) {
+            const auto *call_2 = op->message.as<Call>();
+            if (call_2 != nullptr && call_1->name == call_2->name) {
+                auto iter = print_extern_call_map.find(call_1->name);
+                if (iter != print_extern_call_map.end()) {
+                    stream << get_indent() << (ext_funcs.*(iter->second))(call_1) << "\n";
+                }
+            }
+        }
+    }
     return;
 
     // Currently, we are not mplementaiting
     // assertions inside a kernel
-    if(!currently_inside_kernel){
+    if (!currently_inside_kernel) {
         if (target.has_feature(Target::NoAsserts)) return;
 
 
@@ -3811,7 +3866,7 @@ void CodeGen_Clear_OneAPI_Dev::EmitOneAPIFunc::visit(const AssertStmt *op) {
         open_scope();
         stream << get_indent() << "std::cout << \"Condition '"
                <<  id_cond << "' failed ";
-        if(op->message.defined()){
+        if (op->message.defined()) {
             std::string id_msg = print_expr(op->message);
             stream << "with error id_msg: " << id_msg;
         }
@@ -3821,6 +3876,14 @@ void CodeGen_Clear_OneAPI_Dev::EmitOneAPIFunc::visit(const AssertStmt *op) {
     } else {
         debug(2) << "Ignoring assertion inside OneAPI kernel: " << op->condition << "\n";
     }
+}
+
+void CodeGen_Clear_OneAPI_Dev::EmitOneAPIFunc::visit(const Evaluate *op) {
+    if (is_const(op->value)) return;
+    print_expr(op->value);
+    const auto *call = op->value.as<Call>();
+    if (call != nullptr && call->call_type == Call::CallType::Extern && call->type == Int(32))
+        stream << get_indent() << latest_expr << ";\n";
 }
 
 // EmitOneAPIFunc
@@ -3835,11 +3898,11 @@ std::string CodeGen_Clear_OneAPI_Dev::EmitOneAPIFunc::print_extern_call(const Ca
 
         auto search = print_extern_call_map.find(op->name);
 
-        if( search != print_extern_call_map.end() ){
+        if (search != print_extern_call_map.end()) {
             // (TODO) Have the functions do a simple check instead of always marking them as `... = 0;`
             // i.e. `... = exec() ? 0 /*success*/ : -1 /*errror*/;` or whatever's appropriate to return
             // This will remove the need to check for user context and simplify this better
-            if(function_takes_user_context(op->name)){
+            if (function_takes_user_context(op->name)) {
                 // functions that take user context return 0 on success
                 // simple place 0 as the value and run the actual function in the next line
                 rhs << "0; // " << op->name << "(" << with_commas(args) << ") replaced with line(s) below \n";
@@ -3848,13 +3911,13 @@ std::string CodeGen_Clear_OneAPI_Dev::EmitOneAPIFunc::print_extern_call(const Ca
                 rhs << (ext_funcs.*(search->second))(op) << " /* " << op->name << "(" << with_commas(args) << ") replaced */";
             }
         } else {
-            if((op->name.find("_halide_buffer") != std::string::npos) && !function_takes_user_context(op->name) ){
+            if (op->name.find("_halide_buffer") != std::string::npos && !function_takes_user_context(op->name)) {
                 rhs << op->name << "(" << with_commas(args) << ")";
             } else {
                 // (TODO) check with (target.has_feature(Target::NoAsserts)) as some call external functions
                 rhs << "0; //!!! print_extern_call(): " << op->name << "(" << with_commas(args) << ") to-be-replaced";
                 user_warning << "OneAPI: " << op->name << "(" << with_commas(args) << ") to-be-replaced";
-                UnImplementedExternFuncs.insert( op->name  );
+                UnImplementedExternFuncs.insert(op->name);
             }
         }
         return rhs.str();
@@ -3878,8 +3941,8 @@ std::string CodeGen_Clear_OneAPI_Dev::EmitOneAPIFunc::print_reinterpret(Type typ
     return oss.str();
 }
 
-std::string CodeGen_Clear_OneAPI_Dev::EmitOneAPIFunc::print_type(Type type, AppendSpaceIfNeeded space){
-    if(!currently_inside_kernel) // Modifed Type.cpp implementation to fix int32x4_t
+std::string CodeGen_Clear_OneAPI_Dev::EmitOneAPIFunc::print_type(Type type, AppendSpaceIfNeeded space) {
+    if (!currently_inside_kernel) // Modifed Type.cpp implementation to fix int32x4_t
     {
         ostringstream oss;
         bool include_space = space == AppendSpace;
@@ -3973,7 +4036,7 @@ std::string CodeGen_Clear_OneAPI_Dev::EmitOneAPIFunc::print_type(Type type, Appe
                     oss << 'u';
                 }
                 oss << "int";
-                if(type.is_vector()){
+                if (type.is_vector()) {
                     oss << type.lanes();
                 } else {
                     oss << type.bits() << "_t";
@@ -3983,7 +4046,7 @@ std::string CodeGen_Clear_OneAPI_Dev::EmitOneAPIFunc::print_type(Type type, Appe
                 user_error << "Can't represent an integer with this many bits in C: " << type << "\n";
             }
         }
-        if (include_space && needs_space){
+        if (include_space && needs_space) {
             oss << " ";
         }
         return oss.str();
