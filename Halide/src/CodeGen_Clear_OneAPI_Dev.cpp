@@ -2967,6 +2967,14 @@ void exception_handler(sycl::exception_list exceptions) {
     }
 }
 
+// The SYCL 1.2.1 device_selector class is deprecated in SYCL 2020.
+// Use the callable selector object instead.
+#if SYCL_LANGUAGE_VERSION >= 202001
+using device_selector_t = int(*)(const sycl::device&);
+#else
+using device_selector_t = const sycl::device_selector &;
+#endif
+
 )";
 }
 
@@ -3025,7 +3033,7 @@ void CodeGen_Clear_OneAPI_Dev::EmitOneAPIFunc::compile(const LoweredFunc &f) {
 
     // (TODO) Check that HALIDE_FUNCTION_ATTRS is necessary or not
     // stream << "HALIDE_FUNCTION_ATTRS\n";
-    stream << "auto " << simple_name << "(int (*device_selector_v)(const sycl::device &)";
+    stream << "auto " << simple_name << "(device_selector_t device_selector_v";
     if (args.size() > 0) stream << ", ";
     for (size_t i = 0; i < args.size(); i++) {
         if (args[i].is_buffer()) {
