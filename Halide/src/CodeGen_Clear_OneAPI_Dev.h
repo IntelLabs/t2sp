@@ -56,6 +56,12 @@ public:
 
 protected:
     class CodeGen_Clear_OneAPI_C : public CodeGen_Clear_C {
+    private:
+        bool needs_intermediate_expr = false;
+        // Generate intermediate variables if needs_intermediate_expr.
+        // As the calculation of some expressions may be complicated or have
+        // side-effects, so we need to store their results in intermediate variables.
+        std::string generate_intermediate_var(const std::string &);
     public:
         CodeGen_Clear_OneAPI_C(std::ostream &s, Target t)
             : CodeGen_Clear_C(s, t) {
@@ -98,8 +104,6 @@ protected:
         };
         // Ids of struct types defined
         std::vector<int> defined_struct_ids;
-
-        std::string get_memory_space(const std::string &);
 
         // For declaring channels
         class DeclareChannels : public IRVisitor {
@@ -171,7 +175,7 @@ protected:
         std::map<std::string, std::string> kernel_name_map;
 
         // OneAPI-specific
-        typedef std::vector< std::tuple<Stmt, std::string, std::vector<DeviceArgument> > > kernel_args_vector;
+        typedef std::vector<std::tuple<Stmt, std::string, std::vector<DeviceArgument>>> kernel_args_vector;
         kernel_args_vector kernel_args;
         const std::string OneAPIDefineVectorStructTypes = "\n// CodeGen_OneAPI DefineVectorStructTypes \n";
         const std::string OneAPIDeclareChannels = "\n// CodeGen_OneAPI DeclareChannels \n";
@@ -227,14 +231,15 @@ protected:
         void visit(const For *) override;
         void visit(const Allocate *) override;
         void visit(const AssertStmt *) override;
-        void visit(const Free *op) override;
+        void visit(const Free *) override;
+        void visit(const Evaluate *) override;
     private:
         // Parent Class pointer
         CodeGen_Clear_OneAPI_C* parent;
 
         // Record to check when we need to use CodeGen_Clear_OneAPI_C implementation or not
         // parent's first name
-        std::vector< std::tuple<std::string, const void *, const void *> > emit_visited_op_names;
+        std::vector<std::tuple<std::string, const void *, const void *>> emit_visited_op_names;
 
         // set to true/false inside add_kernel()
         bool currently_inside_kernel;
@@ -244,7 +249,7 @@ protected:
 
         std::set<std::string> UnImplementedExternFuncs;
 
-        typedef struct {
+        struct ExternCallFuncs {
             EmitOneAPIFunc *p;
 
             void check_valid(const Call *op, unsigned int max_args, unsigned int min_args=0);
@@ -269,7 +274,7 @@ protected:
 
             // Make for use with visit(const Allocate)
             std::string halide_device_host_nop_free(std::string buffer_name);
-        } ExternCallFuncs;
+        };
 
         ExternCallFuncs ext_funcs;
 
