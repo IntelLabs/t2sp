@@ -294,8 +294,8 @@ protected:
         void create_assertion(const std::string &id_cond, const std::string &id_msg);
 
     public:
-        EmitOneAPIFunc(CodeGen_Clear_OneAPI_C* parent, std::ostringstream &s, Target t) : parent(parent),
-            CodeGen_Clear_OneAPI_C(s, t) { // Note this assocates s with stream in CodeGen_Clear_OneAPI_C, which is inherited from IRPrinter
+        EmitOneAPIFunc(CodeGen_Clear_OneAPI_C* parent, std::ostringstream &s, Target t) : 
+            CodeGen_Clear_OneAPI_C(s, t), parent(parent) { // Note this assocates s with stream in CodeGen_Clear_OneAPI_C, which is inherited from IRPrinter
                 stream_ptr = &s;
                 ext_funcs.p = this;
                 currently_inside_kernel = false;
