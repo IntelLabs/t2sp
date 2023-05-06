@@ -4,6 +4,8 @@ T2SP is available under a permissive license, the [BSD+Patent license](./LICENSE
 
 Currently, we support only Intel FPGAs and GPUs. We assume your device is local to you, or within Intel DevCloud, and the operating system is Linux (We have tried Ubuntu 18.04 and CentOS 7.9, but our system is not really tied to any specific Linux system or version). Other platforms might also work, although not tested. 
 
+**Our newest paper, Lasa: Abstraction and Specialization for Productive and Performant Linear Algebra on FPGAs (to appear in FCCM 2023), is currently a separate project released at [pku-liang/Lasa](https://github.com/pku-liang/Lasa).**
+
 # [DevCloud] Open an account (once)
 
  + Register at the [Intel's FPGA DevCloud](https://software.intel.com/content/www/us/en/develop/tools/devcloud/fpga.html). This will enable access to both the FPGAs and the GPUs in the cloud. Currently, the cloud offers Arria 10  and Stratix 10 FPGAs, and GEN 9.5 (Intel UHD Graphics P630) and GEN 12 ( Intel Iris Xe MAX Graphics) GPUs.
